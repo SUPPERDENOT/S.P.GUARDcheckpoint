@@ -12,6 +12,7 @@ import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.service.BatteryMonitorService
+import com.superdenot.powerguard.service.TargetSessionLookupResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -175,7 +176,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                                 val persisted = loadResult.recovery
                                 blockedSessionIds.add(persisted.sessionId)
                                 when (val lookup = BatteryMonitorService.lookupTargetSessionSafely(dao, persisted.sessionId)) {
-                                    is BatteryMonitorService.TargetSessionLookupResult.DatabaseInaccessible -> {
+                                    is TargetSessionLookupResult.DatabaseInaccessible -> {
                                         Log.e(
                                             "PowerGuard",
                                             "Cleanup background: database tidak dapat diakses untuk sessionId=${persisted.sessionId}; checkpoint dipertahankan",
@@ -189,7 +190,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                                         )
                                     }
 
-                                    is BatteryMonitorService.TargetSessionLookupResult.MissingInAccessibleDb -> {
+                                    is TargetSessionLookupResult.MissingInAccessibleDb -> {
                                         Log.w(
                                             "PowerGuard",
                                             "Cleanup background: target sessionId=${persisted.sessionId} tidak ditemukan di Room; mempertahankan checkpoint dan menandai butuh tindak lanjut tanpa menutup sesi lain"
@@ -202,7 +203,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                                         )
                                     }
 
-                                    is BatteryMonitorService.TargetSessionLookupResult.Found -> {
+                                    is TargetSessionLookupResult.Found -> {
                                         val targetRow = lookup.session
                                         val avgCurrent = if (persisted.currentReadingsCount > 0L) {
                                             (persisted.currentSumForAvg / persisted.currentReadingsCount).toInt()
