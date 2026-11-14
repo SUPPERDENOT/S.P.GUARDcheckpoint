@@ -2418,4 +2418,50 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertFalse("Service berhenti bersih setelah DB pulih dan data terverifikasi", BatteryMonitorService.isRunning)
         assertNotNull(faultDao.getSessionById(sessionId)!!.endTime)
     }
+
+    /**
+     * Regression: retry must not keep an activeSessionId that points to an already-closed Room row.
+     * Once pending data is reconciled, the stale in-memory session is reset so charging can start a
+     * fresh Room session instead of repeatedly writing to the closed row.
+     */
+    @Test
+    fun testClosedActiveSessionRetry_reconcilesThenClearsStaleSessionIdentity() = runTest {
+        val closedTs = System.currentTimeMillis() - 30_000L
+        val sessionId = faultDao.insertSession(
+            ChargingSessionEntity(
+                startTime = closedTs - 600_000L,
+                endTime = closedTs,
+                startLevel = 40,
+                endLevel = 60,
+                totalMahDelivered = 400.0,
+                avgCurrentMa = 1500,
+                maxTempCelsius = 37.0f,
+                chargerType = "AC Adapter"
+            )
+        )
+        val pendingTs = 1_700_000_800_000L
+        service.seedActiveSessionStateForTesting(
+            sessionId = sessionId,
+            accumulatedMah = 610.0,
+            sessionSeconds = 600L,
+            maxSessionTemp = 38.0f,
+            currentSumForAvg = 900_000L,
+            currentReadingsCount = 600L,
+            bufferedSamples = listOf(
+                sampleLiveState(level = 60, sessionMah = 610.0, sessionDurationSec = 600L)
+            ),
+            pendingBatchTimestampMs = pendingTs,
+            samplePersistenceHalted = true
+        )
+
+        assertTrue(service.retryPendingCheckpointAndFinalizationForTest())
+
+        val snapshot = service.getInMemorySessionSnapshotForTesting()
+        assertNull("ID sesi tertutup tidak boleh dipakai lagi", snapshot.activeSessionId)
+        assertEquals(0, snapshot.bufferedSamplesCount)
+        assertFalse(snapshot.samplePersistenceHalted)
+        assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, pendingTs))
+        assertEquals(610.0, faultDao.getSessionById(sessionId)!!.totalMahDelivered, 0.001)
+    }
+
 }
