@@ -14,6 +14,7 @@ import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
 import com.superdenot.powerguard.data.repository.BatteryRepository
+import com.superdenot.powerguard.data.repository.DesignCapacitySetting
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.service.BatteryMonitorService
@@ -52,8 +53,8 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     val dailyRollups: StateFlow<List<DailyRollupEntity>> = repository.recentRollupsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val designCapacityMah: StateFlow<Int> = repository.customDesignCapacityFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 5000)
+    val designCapacitySetting: StateFlow<DesignCapacitySetting> = repository.designCapacitySettingFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesignCapacitySetting(null, false))
 
     private val _selectedSessionId = MutableStateFlow<Long?>(null)
     val selectedSessionId: StateFlow<Long?> = _selectedSessionId.asStateFlow()
@@ -138,6 +139,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun updateDesignCapacity(newCapacityMah: Int) {
         viewModelScope.launch {
             repository.saveCustomDesignCapacity(newCapacityMah)
+        }
+    }
+
+    fun useAutomaticDesignCapacity() {
+        viewModelScope.launch {
+            repository.useAutomaticDesignCapacity()
         }
     }
 
