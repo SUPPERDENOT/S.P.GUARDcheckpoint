@@ -218,8 +218,11 @@ object SessionRecoveryStore {
         incoming: PersistedSessionRecovery
     ): PersistedSessionRecovery {
         val mergedCount = maxOf(existing.currentReadingsCount, incoming.currentReadingsCount)
+        // Jumlah pembacaan yang sama tidak membuktikan snapshot incoming lebih baru.
+        // Pertahankan sum tersimpan pada count yang sama agar retry/stale snapshot tidak
+        // mengganti statistik dengan nilai yang tidak konsisten.
         val mergedSum = when {
-            incoming.currentReadingsCount >= existing.currentReadingsCount && incoming.currentReadingsCount > 0L ->
+            incoming.currentReadingsCount > existing.currentReadingsCount && incoming.currentReadingsCount > 0L ->
                 incoming.currentSumForAvg
             existing.currentReadingsCount > 0L ->
                 existing.currentSumForAvg
@@ -264,7 +267,8 @@ object SessionRecoveryStore {
             }
             incoming.hasPendingSample && existing.hasPendingSample -> {
                 if (existing.pendingBatchTimestampMs == incoming.pendingBatchTimestampMs) {
-                    val primary = if (incoming.sampleWeight >= existing.sampleWeight) incoming else existing
+                    // Bobot sama bukan bukti payload incoming lebih baru; pertahankan checkpoint existing.
+                    val primary = if (incoming.sampleWeight > existing.sampleWeight) incoming else existing
                     mergedPendingTs = primary.pendingBatchTimestampMs
                     mergedHasSample = true
                     mergedLevel = primary.sampleBatteryLevel
