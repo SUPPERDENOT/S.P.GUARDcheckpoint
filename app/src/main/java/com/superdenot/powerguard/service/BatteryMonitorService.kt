@@ -30,6 +30,7 @@ import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.engine.ChargingMahIntegrator
+import com.superdenot.powerguard.domain.engine.ChargingSessionDurationTracker
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -3006,6 +3007,14 @@ class BatteryMonitorService : Service() {
         this.accumulatedMah = accumulatedMah
         chargingMahIntegrator.reset()
         this.sessionSeconds = sessionSeconds
+        if (sessionId != null) {
+            sessionDurationTracker.startOrResume(
+                elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                persistedDurationSec = sessionSeconds
+            )
+        } else {
+            sessionDurationTracker.reset()
+        }
         this.maxSessionTemp = maxSessionTemp
         this.currentSumForAvg = currentSumForAvg
         this.currentReadingsCount = currentReadingsCount
