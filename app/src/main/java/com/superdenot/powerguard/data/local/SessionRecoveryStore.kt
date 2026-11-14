@@ -294,9 +294,15 @@ object SessionRecoveryStore {
                     val totalW = w1 + w2
                     val later = if (incoming.pendingBatchTimestampMs >= existing.pendingBatchTimestampMs) incoming else existing
                     val earliestStart = minOf(existing.pendingBatchTimestampMs, incoming.pendingBatchTimestampMs)
+                    // Hindari overflow Long saat membentuk akhir rentang batch.
+                    fun saturatedEnd(timestamp: Long, span: Long): Long {
+                        val safeSpan = span.coerceAtLeast(0L)
+                        return if (safeSpan > Long.MAX_VALUE - timestamp) Long.MAX_VALUE
+                        else timestamp + safeSpan
+                    }
                     val latestEnd = maxOf(
-                        existing.pendingBatchTimestampMs + existing.sampleSpanDurationMs.coerceAtLeast(0L),
-                        incoming.pendingBatchTimestampMs + incoming.sampleSpanDurationMs.coerceAtLeast(0L)
+                        saturatedEnd(existing.pendingBatchTimestampMs, existing.sampleSpanDurationMs),
+                        saturatedEnd(incoming.pendingBatchTimestampMs, incoming.sampleSpanDurationMs)
                     )
 
                     mergedPendingTs = earliestStart
