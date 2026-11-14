@@ -2214,6 +2214,46 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression P0: checkpoint lama dengan sessionId benar tetapi payload tertinggal tidak
+     * boleh dianggap sebagai bukti bahwa snapshot RAM sudah durable.
+     */
+    @Test
+    fun test_durabilityGate_rejectsStaleCheckpointForSameSessionId() {
+        val sessionId = 40_405L
+        val stale = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 100.0,
+            sessionSeconds = 60L,
+            maxTemp = 35.0f,
+            currentSum = 60_000L,
+            currentCount = 60L,
+            anomalyCodes = emptySet(),
+            batchTimestampMs = 1_700_000_800_000L,
+            hasPendingSample = false
+        )
+        assertTrue(SessionRecoveryStore.save(context, stale))
+
+        service.seedActiveSessionStateForTesting(
+            sessionId = sessionId,
+            accumulatedMah = 280.0,
+            sessionSeconds = 240L,
+            maxSessionTemp = 38.0f,
+            currentSumForAvg = 360_000L,
+            currentReadingsCount = 240L,
+            alertedAnomalyCodes = setOf("SLOW_CHARGING"),
+            bufferedSamples = listOf(sampleLiveState(level = 49, sessionMah = 280.0, sessionDurationSec = 240L)),
+            pendingBatchTimestampMs = 1_700_000_800_000L
+        )
+
+        assertTrue(
+            "Checkpoint stale tidak boleh melewati durability gate hanya karena sessionId cocok",
+            service.hasUnpersistedRamOnlyDataForTesting(
+                BatteryMonitorService.SessionFinalizationResult.COMPLETE_DATA_FINALIZED
+            )
+        )
+    }
+
+    /**
      * Skenario 36 (v5 P0): DATABASE_UNAVAILABLE disertai kegagalan penyimpanan checkpoint
      * tetap menahan shutdown layanan (RECOVERY_HOLD) sampai persistensi terkonfirmasi.
      */
