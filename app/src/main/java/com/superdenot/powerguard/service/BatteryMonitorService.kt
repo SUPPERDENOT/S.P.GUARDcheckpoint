@@ -461,9 +461,42 @@ class BatteryMonitorService : Service() {
         if (finalizationResult == SessionFinalizationResult.FAILED || checkpointSavePendingRetry) {
             return true
         }
-        val targetId = activeSessionId ?: return sampleBuffer.isNotEmpty()
+        val targetId = activeSessionId ?: return true
         val persistedCheckpoint = SessionRecoveryStore.loadForSession(applicationContext, targetId)
-        return persistedCheckpoint !is SessionRecoveryStore.CheckpointLoadResult.Loaded
+        val loaded = persistedCheckpoint as? SessionRecoveryStore.CheckpointLoadResult.Loaded ?: return true
+        val checkpoint = loaded.recovery
+
+        // Checkpoint harus benar-benar mencakup snapshot RAM saat ini; keberadaan file
+        // dengan sessionId yang sama saja tidak cukup untuk melewati durability gate.
+        if (checkpoint.sessionId != targetId ||
+            checkpoint.accumulatedMah + 1e-6 < accumulatedMah ||
+            checkpoint.sessionSeconds < sessionSeconds ||
+            checkpoint.maxSessionTemp < maxSessionTemp ||
+            checkpoint.currentReadingsCount < currentReadingsCount ||
+            (checkpoint.currentReadingsCount == currentReadingsCount &&
+                checkpoint.currentSumForAvg != currentSumForAvg) ||
+            !checkpoint.alertedAnomalyCodes.containsAll(alertedAnomalyCodes)
+        ) {
+            return true
+        }
+
+        if (sampleBuffer.isNotEmpty()) {
+            val entries = sampleBuffer.toList()
+            val latestEntry = entries.maxByOrNull { it.endTimestampMs } ?: return true
+            val earliestTimestamp = entries.minOf { it.timestampMs }
+            val currentSpanMs = (entries.maxOf { maxOf(it.timestampMs, it.endTimestampMs) } - earliestTimestamp)
+                .coerceAtLeast(0L)
+            val currentWeight = entries.sumOf { it.weight.coerceAtLeast(1) }
+            if (!checkpoint.hasPendingSample ||
+                checkpoint.sampleWeight < currentWeight ||
+                checkpoint.pendingBatchTimestampMs > earliestTimestamp ||
+                checkpoint.sampleSpanDurationMs < currentSpanMs ||
+                checkpoint.sampleBatteryLevel != latestEntry.state.level
+            ) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun enterRecoveryHoldLocked(generation: Long, reason: String) {
@@ -2863,6 +2896,11 @@ class BatteryMonitorService : Service() {
         this.nextFlushRetryAtSec = 0L
         this.checkpointSavePendingRetry = false
     }
+
+    @VisibleForTesting
+    internal fun hasUnpersistedRamOnlyDataForTesting(
+        result: SessionFinalizationResult = SessionFinalizationResult.FAILED
+    ): Boolean = hasUnpersistedRamOnlyData(result)
 
     @VisibleForTesting
     internal fun appendSampleToBufferForTesting(state: LiveBatteryState) {
