@@ -7,20 +7,20 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 /**
- * Polls direct battery snapshots while the foreground monitor service is inactive.
+ * Polls direct battery snapshots whenever the foreground service has no fresh sensor data.
  * A failed read is isolated to one tick; the next tick still runs.
  */
 internal class FallbackSensorPoller(
     private val intervalMs: Long = 1_500L
 ) {
     suspend fun runWhileActive(
-        isServiceRunning: () -> Boolean,
+        isServiceDataFresh: () -> Boolean,
         readSnapshot: () -> LiveBatteryState,
         onSnapshot: (LiveBatteryState) -> Unit,
         onReadError: (Throwable) -> Unit
     ) {
         while (currentCoroutineContext().isActive) {
-            if (!isServiceRunning()) {
+            if (!isServiceDataFresh()) {
                 try {
                     onSnapshot(readSnapshot())
                 } catch (cancelled: CancellationException) {

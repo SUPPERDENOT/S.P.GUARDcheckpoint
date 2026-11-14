@@ -7,28 +7,85 @@ import org.junit.Test
 class DashboardLiveStateSelectorTest {
 
     @Test
-    fun usesForegroundServiceStateWhileServiceIsRunning() {
+    fun prefersFreshServiceState() {
         val serviceState = LiveBatteryState(level = 88, isCharging = true)
         val fallbackState = LiveBatteryState(level = 61, isCharging = false)
 
         val selected = selectDashboardLiveState(
             isServiceRunning = true,
             serviceState = serviceState,
-            fallbackState = fallbackState
+            fallbackState = fallbackState,
+            serviceUpdatedAtElapsedRealtime = 9_000L,
+            fallbackUpdatedAtElapsedRealtime = 9_500L,
+            nowElapsedRealtime = 10_000L
         )
 
         assertSame(serviceState, selected)
     }
 
     @Test
-    fun switchesToFreshFallbackStateAfterServiceStops() {
+    fun usesFallbackWhenServiceIsRunningButItsHeartbeatIsStale() {
         val serviceState = LiveBatteryState(level = 88, isCharging = true)
         val fallbackState = LiveBatteryState(level = 61, isCharging = false)
 
         val selected = selectDashboardLiveState(
+            isServiceRunning = true,
+            serviceState = serviceState,
+            fallbackState = fallbackState,
+            serviceUpdatedAtElapsedRealtime = 4_000L,
+            fallbackUpdatedAtElapsedRealtime = 9_500L,
+            nowElapsedRealtime = 10_000L
+        )
+
+        assertSame(fallbackState, selected)
+    }
+
+    @Test
+    fun doesNotTreatFutureHeartbeatAsFresh() {
+        val serviceState = LiveBatteryState(level = 88)
+        val fallbackState = LiveBatteryState(level = 61)
+
+        val selected = selectDashboardLiveState(
+            isServiceRunning = true,
+            serviceState = serviceState,
+            fallbackState = fallbackState,
+            serviceUpdatedAtElapsedRealtime = 10_100L,
+            fallbackUpdatedAtElapsedRealtime = 9_500L,
+            nowElapsedRealtime = 10_000L
+        )
+
+        assertSame(fallbackState, selected)
+    }
+
+    @Test
+    fun keepsLastKnownServiceStateWhenBothSourcesAreStaleAndServiceIsRunning() {
+        val serviceState = LiveBatteryState(level = 88)
+        val fallbackState = LiveBatteryState(level = 61)
+
+        val selected = selectDashboardLiveState(
+            isServiceRunning = true,
+            serviceState = serviceState,
+            fallbackState = fallbackState,
+            serviceUpdatedAtElapsedRealtime = 1_000L,
+            fallbackUpdatedAtElapsedRealtime = 2_000L,
+            nowElapsedRealtime = 10_000L
+        )
+
+        assertSame(serviceState, selected)
+    }
+
+    @Test
+    fun usesFallbackAfterServiceStops() {
+        val serviceState = LiveBatteryState(level = 88)
+        val fallbackState = LiveBatteryState(level = 61)
+
+        val selected = selectDashboardLiveState(
             isServiceRunning = false,
             serviceState = serviceState,
-            fallbackState = fallbackState
+            fallbackState = fallbackState,
+            serviceUpdatedAtElapsedRealtime = 9_900L,
+            fallbackUpdatedAtElapsedRealtime = 9_500L,
+            nowElapsedRealtime = 10_000L
         )
 
         assertSame(fallbackState, selected)

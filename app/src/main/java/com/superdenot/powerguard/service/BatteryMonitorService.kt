@@ -11,6 +11,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
@@ -340,6 +341,8 @@ class BatteryMonitorService : Service() {
                     ActorLifecycleState.STARTING -> {
                         _isStartingFlow.value = true
                         _isRunningFlow.value = false
+                        _lastSensorUpdateElapsedRealtime.value = 0L
+                        _lastMonitorError.value = null
                     }
                     ActorLifecycleState.RUNNING_CHARGING,
                     ActorLifecycleState.RUNNING_MANUAL,
@@ -1562,6 +1565,8 @@ class BatteryMonitorService : Service() {
                             sessionMah = accumulatedMah,
                             sessionDurationSec = sessionSeconds
                         )
+                        _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
+                        _lastMonitorError.value = null
                         if (currentSensor.isCharging) {
                             val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
                             chargerConnectedGenerationToSend = currentGen
@@ -1583,6 +1588,8 @@ class BatteryMonitorService : Service() {
                         sessionMah = accumulatedMah,
                         sessionDurationSec = sessionSeconds
                     )
+                    _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
+                    _lastMonitorError.value = null
                     val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
 
                     if (effectiveSensor.isCharging) {
@@ -1689,6 +1696,7 @@ class BatteryMonitorService : Service() {
             } catch (ce: CancellationException) {
                 throw ce
             } catch (error: Throwable) {
+                _lastMonitorError.value = "${error.javaClass.simpleName}: ${error.message.orEmpty()}".take(240)
                 Log.e("PowerGuard", "Kesalahan iterasi monitoring loop: ${error.message}", error)
             }
 
@@ -3154,6 +3162,12 @@ class BatteryMonitorService : Service() {
 
         private val _isRunningFlow = MutableStateFlow(false)
         val isRunningFlow: StateFlow<Boolean> = _isRunningFlow.asStateFlow()
+
+        private val _lastSensorUpdateElapsedRealtime = MutableStateFlow(0L)
+        val lastSensorUpdateElapsedRealtime: StateFlow<Long> = _lastSensorUpdateElapsedRealtime.asStateFlow()
+
+        private val _lastMonitorError = MutableStateFlow<String?>(null)
+        val lastMonitorError: StateFlow<String?> = _lastMonitorError.asStateFlow()
 
         private val _isStartingFlow = MutableStateFlow(false)
         val isStartingFlow: StateFlow<Boolean> = _isStartingFlow.asStateFlow()

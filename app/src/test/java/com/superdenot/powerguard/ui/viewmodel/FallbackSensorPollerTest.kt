@@ -21,7 +21,7 @@ class FallbackSensorPollerTest {
 
         backgroundScope.launch {
             poller.runWhileActive(
-                isServiceRunning = { false },
+                isServiceDataFresh = { false },
                 readSnapshot = {
                     reads++
                     if (reads == 1) error("temporary sensor failure")
@@ -44,14 +44,14 @@ class FallbackSensorPollerTest {
     }
 
     @Test
-    fun pausesReadsWhileForegroundServiceOwnsLiveState() = runTest {
+    fun pausesReadsWhileServiceDataIsFreshAndResumesWhenStale() = runTest {
         val poller = FallbackSensorPoller()
-        var serviceRunning = true
+        var serviceDataFresh = true
         var reads = 0
 
         backgroundScope.launch {
             poller.runWhileActive(
-                isServiceRunning = { serviceRunning },
+                isServiceDataFresh = { serviceDataFresh },
                 readSnapshot = {
                     reads++
                     LiveBatteryState(level = 81)
@@ -66,7 +66,7 @@ class FallbackSensorPollerTest {
         runCurrent()
         assertEquals(0, reads)
 
-        serviceRunning = false
+        serviceDataFresh = false
         advanceTimeBy(1_500L)
         runCurrent()
         assertEquals(1, reads)
@@ -80,7 +80,7 @@ class FallbackSensorPollerTest {
 
         backgroundScope.launch {
             poller.runWhileActive(
-                isServiceRunning = { false },
+                isServiceDataFresh = { false },
                 readSnapshot = { LiveBatteryState(level = nextLevel++) },
                 onSnapshot = { levels += it.level },
                 onReadError = { throw AssertionError("Unexpected sensor error", it) }

@@ -3,6 +3,7 @@ package com.superdenot.powerguard.ui.viewmodel
 import android.app.Application
 import android.content.Context
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -34,8 +35,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     private val repository = BatteryRepository(application)
 
     private val _fallbackLiveState = MutableStateFlow(repository.readDirectSensorSnapshot())
+    private val _fallbackUpdatedAtElapsedRealtime = MutableStateFlow(SystemClock.elapsedRealtime())
     val liveState: StateFlow<LiveBatteryState> = repository.liveServiceState
     val isServiceRunning: StateFlow<Boolean> = repository.isServiceRunning
+    val lastSensorUpdateElapsedRealtime: StateFlow<Long> = repository.lastSensorUpdateElapsedRealtime
+    val fallbackUpdatedAtElapsedRealtime: StateFlow<Long> = _fallbackUpdatedAtElapsedRealtime.asStateFlow()
+    val lastMonitorError: StateFlow<String?> = repository.lastMonitorError
     val fallbackState: StateFlow<LiveBatteryState> = _fallbackLiveState.asStateFlow()
 
     val sessions: StateFlow<List<ChargingSessionEntity>> = repository.allSessionsFlow
@@ -105,9 +110,16 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         val poller = FallbackSensorPoller()
         viewModelScope.launch(Dispatchers.IO) {
             poller.runWhileActive(
-                isServiceRunning = { isServiceRunning.value },
+                isServiceDataFresh = {
+                    val lastUpdate = lastSensorUpdateElapsedRealtime.value
+                    val age = SystemClock.elapsedRealtime() - lastUpdate
+                    isServiceRunning.value && lastUpdate > 0L && age in 0L..5_000L
+                },
                 readSnapshot = repository::readDirectSensorSnapshot,
-                onSnapshot = { _fallbackLiveState.value = it },
+                onSnapshot = {
+                    _fallbackLiveState.value = it
+                    _fallbackUpdatedAtElapsedRealtime.value = SystemClock.elapsedRealtime()
+                },
                 onReadError = { error ->
                     Log.w(
                         "PowerGuard",

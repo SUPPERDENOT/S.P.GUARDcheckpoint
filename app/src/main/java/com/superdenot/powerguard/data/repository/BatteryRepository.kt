@@ -29,6 +29,8 @@ class BatteryRepository(private val context: Context) {
 
     val liveServiceState: StateFlow<LiveBatteryState> = BatteryMonitorService.liveState
     val isServiceRunning: StateFlow<Boolean> = BatteryMonitorService.isRunningFlow
+    val lastSensorUpdateElapsedRealtime: StateFlow<Long> = BatteryMonitorService.lastSensorUpdateElapsedRealtime
+    val lastMonitorError: StateFlow<String?> = BatteryMonitorService.lastMonitorError
 
     val allSessionsFlow: Flow<List<ChargingSessionEntity>> = dao.getAllSessionsFlow()
     val latestHealthFlow: Flow<BatteryHealthEntity?> = dao.getLatestHealthFlow()

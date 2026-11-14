@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import android.os.SystemClock
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,7 +86,16 @@ fun DashboardScreen(
     val serviceState by viewModel.liveState.collectAsState()
     val fallbackState by viewModel.fallbackState.collectAsState()
     val isServiceRunning by viewModel.isServiceRunning.collectAsState()
-    val activeState = selectDashboardLiveState(isServiceRunning, serviceState, fallbackState)
+    val serviceUpdatedAt by viewModel.lastSensorUpdateElapsedRealtime.collectAsState()
+    val fallbackUpdatedAt by viewModel.fallbackUpdatedAtElapsedRealtime.collectAsState()
+    val activeState = selectDashboardLiveState(
+        isServiceRunning = isServiceRunning,
+        serviceState = serviceState,
+        fallbackState = fallbackState,
+        serviceUpdatedAtElapsedRealtime = serviceUpdatedAt,
+        fallbackUpdatedAtElapsedRealtime = fallbackUpdatedAt,
+        nowElapsedRealtime = SystemClock.elapsedRealtime()
+    )
 
     val latestHealth by viewModel.latestHealth.collectAsState()
     val designCapacity by viewModel.designCapacityMah.collectAsState()
