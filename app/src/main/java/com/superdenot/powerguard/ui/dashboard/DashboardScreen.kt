@@ -339,6 +339,11 @@ fun DashboardScreen(
                                     color = EmeraldCharge,
                                     fontWeight = FontWeight.SemiBold
                                 )
+                                Text(
+                                    text = "Acuan desain saat dicatat: ${latestHealth!!.designCapacityMah} mAh",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             } else {
                                 Text(
                                     text = "Estimasi Real: Belum dikalibrasi (cas >= 40% dalam 1 sesi)",
