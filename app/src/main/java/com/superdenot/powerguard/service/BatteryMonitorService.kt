@@ -1454,12 +1454,16 @@ class BatteryMonitorService : Service() {
     }
 
     private fun readSafeBatteryLevelForFinalization(): Int {
+        // Sampel terakhir yang sudah diterima service lebih representatif daripada pembacaan
+        // sensor baru yang dapat gagal/bernilai default ketika lifecycle sedang dihentikan.
+        sampleBuffer.lastOrNull()?.state?.level?.takeIf { it in 0..100 }?.let { return it }
+        _liveState.value.level.takeIf { it in 0..100 && it > 0 }?.let { return it }
         return try {
-            resolveEngine().readCurrentState().level
+            resolveEngine().readCurrentState().level.coerceIn(0, 100)
         } catch (ce: CancellationException) {
             throw ce
         } catch (_: Throwable) {
-            _liveState.value.level.coerceIn(0, 100)
+            0
         }
     }
 
