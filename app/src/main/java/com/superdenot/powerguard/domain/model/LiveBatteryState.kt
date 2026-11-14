@@ -13,7 +13,7 @@ data class LiveBatteryState(
     val sessionDurationSec: Long = 0L,
     val deepSleepRatio: Float = 0f,
     val anomalyAlert: String? = null,
-    val designCapacityMah: Int = 5000
+    val designCapacityMah: Int = 0
 )
 
 data class AppUsageSummary(
