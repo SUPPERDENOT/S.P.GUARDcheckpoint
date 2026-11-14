@@ -1565,6 +1565,10 @@ class BatteryMonitorService : Service() {
                             sessionMah = accumulatedMah,
                             sessionDurationSec = sessionSeconds
                         )
+                        _liveState.value = currentSensor.copy(
+                            sessionMahDelivered = accumulatedMah,
+                            sessionDurationSec = sessionSeconds
+                        )
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
                         if (currentSensor.isCharging) {
@@ -1588,8 +1592,6 @@ class BatteryMonitorService : Service() {
                         sessionMah = accumulatedMah,
                         sessionDurationSec = sessionSeconds
                     )
-                    _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
-                    _lastMonitorError.value = null
                     val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
 
                     if (effectiveSensor.isCharging) {
@@ -1642,6 +1644,8 @@ class BatteryMonitorService : Service() {
                             anomalyAlert = activeAlertMsg
                         )
                         _liveState.value = updatedState
+                        _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
+                        _lastMonitorError.value = null
 
                         if (activeSessionId != null && checkpointSavePendingRetry) {
                             captureIncompleteRecoveryMetadata(

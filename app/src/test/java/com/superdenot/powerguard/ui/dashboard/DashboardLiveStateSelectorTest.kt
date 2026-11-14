@@ -8,7 +8,7 @@ class DashboardLiveStateSelectorTest {
 
     @Test
     fun prefersFreshServiceState() {
-        val serviceState = LiveBatteryState(level = 88, isCharging = true)
+        val serviceState = LiveBatteryState(level = 88, isCharging = true, sessionMahDelivered = 123.4, sessionDurationSec = 456L, anomalyAlert = "warning")
         val fallbackState = LiveBatteryState(level = 61, isCharging = false)
 
         val selected = selectDashboardLiveState(
@@ -37,7 +37,10 @@ class DashboardLiveStateSelectorTest {
             nowElapsedRealtime = 10_000L
         )
 
-        assertSame(fallbackState, selected)
+        org.junit.Assert.assertEquals(61, selected.level)
+        org.junit.Assert.assertEquals(123.4, selected.sessionMahDelivered, 0.001)
+        org.junit.Assert.assertEquals(456L, selected.sessionDurationSec)
+        org.junit.Assert.assertEquals("warning", selected.anomalyAlert)
     }
 
     @Test
@@ -88,6 +91,7 @@ class DashboardLiveStateSelectorTest {
             nowElapsedRealtime = 10_000L
         )
 
-        assertSame(fallbackState, selected)
+        org.junit.Assert.assertEquals(61, selected.level)
+        org.junit.Assert.assertEquals(456L, selected.sessionDurationSec)
     }
 }

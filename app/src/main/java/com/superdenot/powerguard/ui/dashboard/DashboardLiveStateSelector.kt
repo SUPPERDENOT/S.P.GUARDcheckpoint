@@ -26,10 +26,16 @@ internal fun selectDashboardLiveState(
     val serviceFresh = isServiceRunning && isFresh(serviceUpdatedAtElapsedRealtime)
     val fallbackFresh = isFresh(fallbackUpdatedAtElapsedRealtime)
 
+    val fallbackWithSessionContext = fallbackState.copy(
+        sessionMahDelivered = serviceState.sessionMahDelivered,
+        sessionDurationSec = serviceState.sessionDurationSec,
+        anomalyAlert = serviceState.anomalyAlert
+    )
+
     return when {
         serviceFresh -> serviceState
-        fallbackFresh -> fallbackState
+        fallbackFresh -> fallbackWithSessionContext
         isServiceRunning -> serviceState
-        else -> fallbackState
+        else -> fallbackWithSessionContext
     }
 }
