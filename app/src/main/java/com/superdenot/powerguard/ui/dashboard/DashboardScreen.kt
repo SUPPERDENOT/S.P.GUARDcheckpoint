@@ -572,7 +572,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Superd Power Guard — Info",
+                    text = "SUPERD POWER GUARD — Info",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -587,44 +587,44 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 InfoSectionItem(
-                    title = "1. About SUPERD POWER GUARD",
-                    content = "• Nama Aplikasi: Superd Power Guard\n• Deskripsi & Fungsi: Aplikasi diagnostik baterai canggih untuk pemantauan arus (mA), tegangan (mV), daya (Watt), suhu (°C), dan kesehatan baterai secara real-time.\n• Developer: superdenot\n• Versi: v1.0.0 (Build 2026)"
+                    title = "1. Tentang Aplikasi",
+                    content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\\n\\nDeveloper: superdenot\\nApplication ID: com.superdenot.powerguard\\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
                 )
                 InfoSectionItem(
-                    title = "2. License & Copyright",
-                    content = "• Lisensi Utama: MIT License / Open Source Proprietary\n• Informasi Hak Cipta: © 2026 superdenot. Seluruh hak cipta dilindungi undang-undang.\n• Ketentuan Penggunaan: Aplikasi ini disediakan untuk penggunaan personal dan diagnostik perangkat."
+                    title = "2. Fitur Utama",
+                    content = "• Pemantauan level, arus, tegangan, daya, dan suhu baterai.\\n• Deteksi sumber daya yang dilaporkan Android (AC, USB, atau wireless).\\n• Analisis indikasi anomali pengisian berdasarkan heuristik.\\n• Pemantauan otomatis saat charger tersambung dan finalisasi sesi saat dilepas.\\n• Riwayat sesi dan ringkasan data baterai yang tersimpan di perangkat."
                 )
                 InfoSectionItem(
-                    title = "3. Open Source Licenses",
-                    content = "• Jetpack Compose & AndroidX Libraries (Google / Apache 2.0)\n• Room Database & WorkManager (Google / Apache 2.0)\n• Kotlin Coroutines & Kotlinx Serialization (JetBrains / Apache 2.0)\n• DataStore Preferences (Google / Apache 2.0)"
+                    title = "3. Lisensi Aplikasi & Hak Cipta",
+                    content = "© 2026 superdenot. Hak cipta atas aplikasi dan kode SUPERD POWER GUARD dimiliki oleh pengembang. Lisensi distribusi untuk kode aplikasi ini belum ditetapkan melalui berkas LICENSE di repository. Karena itu, jangan menganggap kode aplikasi sebagai MIT, GPL, atau open-source berlisensi tertentu. Izin penggunaan, penyalinan, modifikasi, dan distribusi kode aplikasi memerlukan ketentuan tertulis dari pemegang hak cipta."
                 )
                 InfoSectionItem(
-                    title = "4. Privacy Policy",
-                    content = "• Informasi Data: Status baterai lokal, sensor daya hardware, dan statistik penggunaan aplikasi (Usage Stats) 24 jam terakhir.\n• Penyimpanan & Penggunaan: Seluruh data sesi dan riwayat disimpan secara lokal di SQLite Room Database perangkat Anda tanpa pengiriman ke server eksternal.\n• Izin Android: Foreground Service, Package Usage Stats, Ignore Battery Optimizations."
+                    title = "4. Open-Source & Third-Party Notices",
+                    content = "Aplikasi menggunakan komponen dan library pihak ketiga, antara lain:\\n• AndroidX, Jetpack Compose, Material 3, Room, WorkManager, dan DataStore — komponen AndroidX/Google yang umumnya didistribusikan di bawah Apache License 2.0.\\n• Kotlin dan kotlinx.coroutines — Apache License 2.0.\\n• JUnit 4 — Eclipse Public License 1.0.\\n• Robolectric — Apache License 2.0.\\n\\nLibrary dan versi yang benar-benar dipakai ditentukan oleh konfigurasi Gradle proyek. Merek dagang dan hak cipta masing-masing komponen tetap menjadi milik pemiliknya. Untuk distribusi publik, sertakan teks lisensi dan pemberitahuan hak cipta sesuai ketentuan setiap dependency."
                 )
                 InfoSectionItem(
-                    title = "5. Terms of Use",
-                    content = "• Pengguna bertanggung jawab penuh atas penggunaan aplikasi pada perangkat masing-masing.\n• Dilarang melakukan dekompilasi, reverse engineering, atau modifikasi tanpa izin resmi dari developer."
+                    title = "5. Privasi & Data",
+                    content = "Data pemantauan baterai, sampel, dan riwayat sesi dikelola secara lokal menggunakan Room Database. Preferensi kapasitas baterai disimpan menggunakan DataStore. Fitur informasi penggunaan aplikasi dapat membaca Usage Stats 24 jam terakhir jika pengguna memberikan akses Usage Access melalui pengaturan Android. Pada implementasi saat ini, aplikasi tidak memiliki fitur akun atau sinkronisasi cloud untuk mengunggah data tersebut."
                 )
                 InfoSectionItem(
-                    title = "6. Disclaimer",
-                    content = "• Hasil pengukuran arus, tegangan, dan estimasi kesehatan baterai (mAh) memiliki keterbatasan akurasi bergantung pada pembacaan HAL (Hardware Abstraction Layer) kernel masing-masing ponsel.\n• Aplikasi ini BUKAN alat diagnosis kerusakan perangkat keras resmi."
+                    title = "6. Izin Android",
+                    content = "Izin yang dideklarasikan berkaitan dengan foreground service, notifikasi, deteksi charger/boot, pengecualian optimasi baterai, dan Usage Stats. Sebagian izin atau akses khusus harus diaktifkan oleh pengguna melalui pengaturan Android. Berikan akses hanya jika diperlukan untuk fitur yang digunakan."
                 )
                 InfoSectionItem(
-                    title = "7. Battery Measurement Notes",
-                    content = "• Arus (mA): Menunjukkan arus masuk (positif saat charging) atau arus keluar (negatif saat discharging).\n• Daya & Tegangan: Dihitung langsung dari sensor baterai sistem.\n• Variasi Perangkat: Hasil antarperangkat dapat bervariasi bergantung pada dukungan chip power management (PMIC)."
+                    title = "7. Catatan Pengukuran",
+                    content = "• Arus, tegangan, suhu, dan status pengisian berasal dari pembacaan sistem/perangkat; ketersediaan serta akurasinya berbeda antar model.\\n• Daya dihitung dari tegangan dan arus yang dilaporkan perangkat.\\n• Label Fast Charging merupakan estimasi berbasis ambang arus, tegangan, dan daya, bukan konfirmasi universal protokol fast charging.\\n• Deteksi anomali merupakan indikasi berbasis heuristik, bukan diagnosis kerusakan hardware."
                 )
                 InfoSectionItem(
-                    title = "8. Security Notes",
-                    content = "• Keamanan & Pemrosesan: Superd Power Guard tidak mengumpulkan atau mengirimkan data pribadi pengguna ke server eksternal.\n• Transparansi Izin: Seluruh izin aplikasi digunakan semata-mata untuk fungsi pemantauan daya dan diagnostik."
+                    title = "8. Batasan & Disclaimer",
+                    content = "SUPERD POWER GUARD bukan alat ukur laboratorium atau alat diagnosis resmi produsen. Hasil dapat dipengaruhi sensor, fuel gauge, kernel, dan kebijakan sistem Android. Aplikasi pihak ketiga tidak memiliki kemampuan universal untuk memutus aliran charger atau membatasi pengisian pada semua perangkat. Gunakan hasil sebagai informasi pendukung, bukan satu-satunya dasar keputusan perbaikan perangkat."
                 )
                 InfoSectionItem(
-                    title = "9. Version & Build",
-                    content = "• Version Name: 1.0.0\n• Build Number: 20261112\n• Konfigurasi: CompileSDK 35, MinSDK 26 (Android 8.0+)\n• Informasi versi diambil otomatis dari konfigurasi build aplikasi."
+                    title = "9. Teknologi & Credits",
+                    content = "Dibangun menggunakan Kotlin, Android Jetpack Compose, Material 3, AndroidX, Kotlin Coroutines, Room, DataStore, dan WorkManager. Terima kasih kepada para pengembang dan komunitas open-source yang menyediakan teknologi tersebut. Seluruh kredit dan lisensi komponen pihak ketiga tetap mengikuti ketentuan masing-masing proyek."
                 )
                 InfoSectionItem(
-                    title = "10. Credits & Acknowledgements",
-                    content = "• Developer Aplikasi: superdenot\n• Teknologi & Framework: Android Jetpack Compose & Material 3\n• Kontributor & Desain: Tim Komunitas RT 01 / Dapur Ken'Chan Ecosystem\n• Ucapan Terima Kasih: Kepada seluruh pengguna dan kontributor open-source yang mendukung pengembangan."
+                    title = "10. Status Versi",
+                    content = "Nama versi dan version code ditampilkan dari konfigurasi build aplikasi. Aplikasi masih dalam tahap pengembangan dan validasi lintas perangkat. Keberhasilan build dan unit test tidak berarti seluruh fitur telah divalidasi pada semua model ponsel."
                 )
             }
         },
