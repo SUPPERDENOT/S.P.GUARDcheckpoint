@@ -2013,6 +2013,19 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals(1250, merged.sampleCurrentMa)
         assertEquals(5, merged.sampleWeight)
         assertEquals(timestamp, merged.pendingBatchTimestampMs)
+
+        // Snapshot dengan timestamp persistensi lebih baru boleh memperbarui nilai pada count sama.
+        val genuinelyNewer = staleIncoming.copy(
+            persistedAtMs = existing.persistedAtMs + 1L,
+            currentSumForAvg = 130_000L,
+            sampleBatteryLevel = 52,
+            sampleCurrentMa = 1300
+        )
+        assertTrue(SessionRecoveryStore.save(context, genuinelyNewer))
+        val refreshed = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertEquals(130_000L, refreshed.currentSumForAvg)
+        assertEquals(52, refreshed.sampleBatteryLevel)
+        assertEquals(1300, refreshed.sampleCurrentMa)
     }
 
     /**
