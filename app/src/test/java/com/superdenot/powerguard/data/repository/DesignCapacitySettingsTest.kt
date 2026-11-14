@@ -3,6 +3,7 @@ package com.superdenot.powerguard.data.repository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class DesignCapacitySettingsTest {
@@ -11,7 +12,7 @@ class DesignCapacitySettingsTest {
     fun manualOverrideHasPriorityOverAutomaticCapacity() {
         val result = DesignCapacitySettings.resolveSetting(4800, 5000)
 
-        assertEquals(4800, result.capacityMah)
+        assertEquals(4800, result.capacityMah ?: -1)
         assertTrue(result.isManualOverride)
     }
 
@@ -19,7 +20,7 @@ class DesignCapacitySettingsTest {
     fun automaticCapacityIsUsedWhenManualOverrideIsAbsent() {
         val result = DesignCapacitySettings.resolveSetting(null, 5000)
 
-        assertEquals(5000, result.capacityMah)
+        assertEquals(5000, result.capacityMah ?: -1)
         assertFalse(result.isManualOverride)
     }
 
@@ -27,7 +28,7 @@ class DesignCapacitySettingsTest {
     fun unavailableAutomaticCapacityRemainsUnavailable() {
         val result = DesignCapacitySettings.resolveSetting(null, 0)
 
-        assertEquals(null, result.capacityMah)
+        assertNull(result.capacityMah)
         assertFalse(result.isManualOverride)
     }
 
