@@ -1576,6 +1576,43 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression: read-back checkpoint harus mempertahankan seluruh payload, termasuk field
+     * yang sebelumnya tidak ikut diverifikasi setelah SharedPreferences.commit().
+     */
+    @Test
+    fun test_checkpointReadBack_preservesEveryPersistedField() {
+        val sessionId = 987654321L
+        val expected = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 731.25,
+            sessionSeconds = 2345L,
+            maxTemp = 41.25f,
+            currentSum = -987654L,
+            currentCount = 321L,
+            anomalyCodes = setOf("SLOW_CHARGING", "HIGH_TEMPERATURE"),
+            batchTimestampMs = 1_700_000_345_678L,
+            sampleWeight = 7,
+            dbSessionsClosed = true
+        ).copy(
+            sampleBatteryLevel = 63,
+            sampleCurrentMa = -1725,
+            sampleVoltageMv = 4187,
+            sampleTempCelsius = 39.75f,
+            samplePowerWatt = -7.224f,
+            sampleIsScreenOn = true,
+            sampleSpanDurationMs = 4567L,
+            failureReason = "full payload verification",
+            recoveryStatus = SessionRecoveryStore.RecoveryStatus.NEEDS_FOLLOW_UP_DB_UNAVAILABLE
+        )
+
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, expected).isSuccess)
+        val loaded = SessionRecoveryStore.loadForSession(context, sessionId)
+            as SessionRecoveryStore.CheckpointLoadResult.Loaded
+
+        assertEquals(expected, loaded.recovery)
+    }
+
+    /**
      * Skenario 25 (v4 P0): Rekonsiliasi berulang tidak menduplikasi sampel maupun menggandakan metrik kumulatif.
      */
     @Test
