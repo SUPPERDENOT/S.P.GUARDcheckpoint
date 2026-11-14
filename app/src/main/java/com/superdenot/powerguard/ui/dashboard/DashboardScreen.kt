@@ -85,7 +85,7 @@ fun DashboardScreen(
     val serviceState by viewModel.liveState.collectAsState()
     val fallbackState by viewModel.fallbackState.collectAsState()
     val isServiceRunning by viewModel.isServiceRunning.collectAsState()
-    val activeState = if (isServiceRunning) serviceState else fallbackState
+    val activeState = selectDashboardLiveState(isServiceRunning, serviceState, fallbackState)
 
     val latestHealth by viewModel.latestHealth.collectAsState()
     val designCapacity by viewModel.designCapacityMah.collectAsState()
