@@ -1082,7 +1082,16 @@ class BatteryMonitorService : Service() {
                 "Fallback single-session exception untuk targetId=$targetId: ${fallbackError.message}; checkpoint persisten dipertahankan",
                 fallbackError
             )
-            FallbackClosureStatus.DATABASE_UNAVAILABLE_FAILED
+            // Jika target sudah tertutup, kegagalan rekonsiliasi adalah kegagalan finalisasi data,
+            // bukan bukti bahwa database tidak tersedia. Pertahankan status FAILED yang spesifik.
+            val targetAlreadyClosed = runCatching {
+                dao.getSessionById(targetId)?.endTime != null
+            }.getOrDefault(false)
+            if (targetAlreadyClosed) {
+                FallbackClosureStatus.FAILED
+            } else {
+                FallbackClosureStatus.DATABASE_UNAVAILABLE_FAILED
+            }
         }
     }
 
