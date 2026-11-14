@@ -6,17 +6,17 @@ import org.junit.Test
 class BatteryCurrentNormalizerTest {
 
     @Test
-    fun chargingCurrentIsPositiveRegardlessOfVendorRawSign() {
-        assertEquals(1_800, BatteryCurrentNormalizer.normalize(1_800, true))
-        assertEquals(1_800, BatteryCurrentNormalizer.normalize(-1_800, true))
+    fun convertsMicroampsToMilliampsAndNormalizesChargingDirection() {
         assertEquals(1_800, BatteryCurrentNormalizer.normalize(1_800_000, true))
         assertEquals(1_800, BatteryCurrentNormalizer.normalize(-1_800_000, true))
+        assertEquals(9, BatteryCurrentNormalizer.normalize(9_999, true))
+        assertEquals(0, BatteryCurrentNormalizer.normalize(999, true))
     }
 
     @Test
-    fun nonChargingCurrentIsNegativeRegardlessOfVendorRawSign() {
-        assertEquals(-1_800, BatteryCurrentNormalizer.normalize(1_800, false))
-        assertEquals(-1_800, BatteryCurrentNormalizer.normalize(-1_800, false))
+    fun normalizesNonChargingDirectionRegardlessOfVendorRawSign() {
+        assertEquals(-1_800, BatteryCurrentNormalizer.normalize(1_800_000, false))
+        assertEquals(-1_800, BatteryCurrentNormalizer.normalize(-1_800_000, false))
     }
 
     @Test
