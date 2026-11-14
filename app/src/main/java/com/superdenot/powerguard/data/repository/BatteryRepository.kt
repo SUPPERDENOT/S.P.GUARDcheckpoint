@@ -34,7 +34,7 @@ class BatteryRepository(private val context: Context) {
         DesignCapacitySettings.observe(context, engine)
 
     suspend fun saveCustomDesignCapacity(capacityMah: Int) {
-        DesignCapacitySettings.saveManual(context, capacityMah.coerceIn(1000, 20000))
+        DesignCapacitySettings.saveManual(context, capacityMah)
     }
 
     suspend fun useAutomaticDesignCapacity() {
