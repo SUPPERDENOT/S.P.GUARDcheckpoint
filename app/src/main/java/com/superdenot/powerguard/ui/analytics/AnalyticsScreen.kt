@@ -153,23 +153,26 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
         }
     }
 
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item {
-            ChargingCurveChart(samples = samples)
-        }
+        // Grafik tetap berada di atas; hanya riwayat sesi di bawah yang dapat digulir.
+        ChargingCurveChart(samples = samples)
 
-        item {
-            Text(
-                text = "Riwayat Sesi Pengisian",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
+        Text(
+            text = "Riwayat Sesi Pengisian",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 4.dp)
+        )
 
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
         if (sessions.isEmpty()) {
             item {
                 Text(
@@ -287,7 +290,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
         }
 
         item { Spacer(modifier = Modifier.height(16.dp)) }
-    }
+        }
 }
 
 @Composable
