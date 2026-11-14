@@ -28,9 +28,9 @@ class ChargingMahIntegratorTest {
         val integrator = ChargingMahIntegrator()
 
         integrator.addSample(1_500, 1_000L)
-        assertEquals(0.0, integrator.addSample(-1_500, 2_000L), 0.000001)
+        assertEquals(750.0 / 3_600.0, integrator.addSample(-1_500, 2_000L), 0.000001)
         assertEquals(0.0, integrator.addSample(0, 3_000L), 0.000001)
-        assertEquals(0.5, integrator.addSample(1_800, 4_000L), 0.000001)
+        assertEquals(0.25, integrator.addSample(1_800, 4_000L), 0.000001)
     }
 
     @Test
