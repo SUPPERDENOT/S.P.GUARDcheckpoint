@@ -486,16 +486,28 @@ class BatteryMonitorService : Service() {
             val earliestTimestamp = entries.minOf { it.timestampMs }
             val currentSpanMs = metrics.spanDurationMs
             val currentWeight = metrics.totalWeight
+            val currentEndTimestamp = entries.maxOf { maxOf(it.timestampMs, it.endTimestampMs) }
+            val checkpointEndTimestamp = if (
+                checkpoint.sampleSpanDurationMs > Long.MAX_VALUE - checkpoint.pendingBatchTimestampMs
+            ) Long.MAX_VALUE else checkpoint.pendingBatchTimestampMs + checkpoint.sampleSpanDurationMs
             val requiredMaxTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius)
+            // Jika bobot identik, kedua payload merepresentasikan batch yang sama sehingga
+            // seluruh metrik listrik harus cocok. Jika checkpoint berbobot lebih besar,
+            // checkpoint dapat mencakup batch terdahulu yang sudah digabung; validasi subset
+            // metrik tidak dapat dilakukan, maka gunakan cakupan waktu + bobot + level terbaru.
+            val sameBatchWeight = checkpoint.sampleWeight == currentWeight
             if (!checkpoint.hasPendingSample ||
                 checkpoint.sampleWeight < currentWeight ||
                 checkpoint.pendingBatchTimestampMs > earliestTimestamp ||
                 checkpoint.sampleSpanDurationMs < currentSpanMs ||
+                checkpointEndTimestamp < currentEndTimestamp ||
                 checkpoint.sampleBatteryLevel != metrics.latestState.level ||
-                checkpoint.sampleCurrentMa != metrics.weightedCurrentMa ||
-                checkpoint.sampleVoltageMv != metrics.weightedVoltageMv ||
-                checkpoint.sampleTempCelsius != metrics.weightedTempCelsius ||
-                checkpoint.samplePowerWatt != metrics.weightedPowerWatt ||
+                (sameBatchWeight && (
+                    checkpoint.sampleCurrentMa != metrics.weightedCurrentMa ||
+                        checkpoint.sampleVoltageMv != metrics.weightedVoltageMv ||
+                        checkpoint.sampleTempCelsius != metrics.weightedTempCelsius ||
+                        checkpoint.samplePowerWatt != metrics.weightedPowerWatt
+                    )) ||
                 checkpoint.maxSessionTemp < requiredMaxTemp
             ) {
                 return true
