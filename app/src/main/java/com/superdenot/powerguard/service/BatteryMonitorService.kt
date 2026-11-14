@@ -482,16 +482,21 @@ class BatteryMonitorService : Service() {
 
         if (sampleBuffer.isNotEmpty()) {
             val entries = sampleBuffer.toList()
-            val latestEntry = entries.maxByOrNull { it.endTimestampMs } ?: return true
+            val metrics = computeWeightedBatchMetrics(entries)
             val earliestTimestamp = entries.minOf { it.timestampMs }
-            val currentSpanMs = (entries.maxOf { maxOf(it.timestampMs, it.endTimestampMs) } - earliestTimestamp)
-                .coerceAtLeast(0L)
-            val currentWeight = entries.sumOf { it.weight.coerceAtLeast(1) }
+            val currentSpanMs = metrics.spanDurationMs
+            val currentWeight = metrics.totalWeight
+            val requiredMaxTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius)
             if (!checkpoint.hasPendingSample ||
                 checkpoint.sampleWeight < currentWeight ||
                 checkpoint.pendingBatchTimestampMs > earliestTimestamp ||
                 checkpoint.sampleSpanDurationMs < currentSpanMs ||
-                checkpoint.sampleBatteryLevel != latestEntry.state.level
+                checkpoint.sampleBatteryLevel != metrics.latestState.level ||
+                checkpoint.sampleCurrentMa != metrics.weightedCurrentMa ||
+                checkpoint.sampleVoltageMv != metrics.weightedVoltageMv ||
+                checkpoint.sampleTempCelsius != metrics.weightedTempCelsius ||
+                checkpoint.samplePowerWatt != metrics.weightedPowerWatt ||
+                checkpoint.maxSessionTemp < requiredMaxTemp
             ) {
                 return true
             }
