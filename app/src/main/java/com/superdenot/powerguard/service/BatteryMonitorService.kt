@@ -249,6 +249,7 @@ class BatteryMonitorService : Service() {
     private var activeSessionId: Long? = null
     private var accumulatedMah: Double = 0.0
     private val chargingMahIntegrator = ChargingMahIntegrator()
+    private val sessionDurationTracker = ChargingSessionDurationTracker()
     private var sessionSeconds: Long = 0L
     private var maxSessionTemp: Float = 0f
     private var currentSumForAvg: Long = 0L
@@ -1490,6 +1491,7 @@ class BatteryMonitorService : Service() {
         checkpointSavePendingRetry = false
         accumulatedMah = 0.0
         chargingMahIntegrator.reset()
+        sessionDurationTracker.reset()
         sessionSeconds = 0L
         maxSessionTemp = 0f
         currentSumForAvg = 0L
@@ -1631,7 +1633,7 @@ class BatteryMonitorService : Service() {
                     if (autoStopGenerationToSend == null) {
                         var activeAlertMsg: String? = null
                         if (activeSessionId != null) {
-                            sessionSeconds++
+                            sessionSeconds = sessionDurationTracker.elapsedSeconds(SystemClock.elapsedRealtime())
                             accumulatedMah += chargingMahIntegrator.addSample(
                                 currentMa = effectiveSensor.currentMa,
                                 elapsedRealtimeMs = SystemClock.elapsedRealtime()
@@ -2002,6 +2004,10 @@ class BatteryMonitorService : Service() {
                     elapsedFromDbSec,
                     unappliedRecovery?.sessionSeconds ?: 0L
                 )
+                sessionDurationTracker.startOrResume(
+                    elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                    persistedDurationSec = sessionSeconds
+                )
                 maxSessionTemp = maxOf(
                     reconciledLatest.maxTempCelsius,
                     state.tempCelsius,
@@ -2173,6 +2179,10 @@ class BatteryMonitorService : Service() {
         accumulatedMah = 0.0
         chargingMahIntegrator.reset()
         sessionSeconds = 0L
+        sessionDurationTracker.startOrResume(
+            elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+            persistedDurationSec = 0L
+        )
         maxSessionTemp = state.tempCelsius
         currentSumForAvg = 0L
         currentReadingsCount = 0L
