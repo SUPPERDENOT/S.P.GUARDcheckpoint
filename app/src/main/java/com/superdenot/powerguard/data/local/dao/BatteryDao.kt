@@ -379,6 +379,11 @@ interface BatteryDao {
 
         if (healthLog != null &&
             healthLog.sessionId == sessionId &&
+            BatteryHealthEstimator.isValidStoredSnapshot(
+                estimatedCapacityMah = healthLog.estimatedCapacityMah,
+                designCapacityMah = healthLog.designCapacityMah,
+                healthPercentage = healthLog.healthPercentage
+            ) &&
             countHealthLogsForSession(sessionId) == 0
         ) {
             insertHealthLog(healthLog)
