@@ -25,6 +25,7 @@ import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
+import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.model.LiveBatteryState
@@ -233,6 +234,9 @@ class BatteryMonitorService : Service() {
 
     private fun resolveDao(): BatteryDao = daoOverride ?: database.batteryDao()
     private fun resolveEngine(): BatteryMonitorEngine = engineOverride ?: engine
+
+    private suspend fun effectiveDesignCapacityMah(): Int =
+        DesignCapacitySettings.resolve(applicationContext, resolveEngine().designCapacityMah)
 
     // State sesi dan operasi database dilindungi oleh sharedSessionMutex
     @Volatile
@@ -1015,7 +1019,7 @@ class BatteryMonitorService : Service() {
                 sessionId = targetId,
                 endTime = now,
                 endLevel = fallbackLevel,
-                designCapacityMah = resolveEngine().designCapacityMah
+                designCapacityMah = effectiveDesignCapacityMah()
             )
             val verifiedRow = runCatching { dao.getSessionById(targetId) }.getOrNull()
             val targetClosed = (singleStatus == SessionFinalizationStatus.FINALIZED ||
@@ -2437,7 +2441,7 @@ class BatteryMonitorService : Service() {
         )
     }
 
-    private fun buildHealthLogEntityIfEligible(
+    private suspend fun buildHealthLogEntityIfEligible(
         sessionId: Long,
         existingSession: ChargingSessionEntity,
         endLevel: Int,
@@ -2447,8 +2451,10 @@ class BatteryMonitorService : Service() {
         val deltaPercent = endLevel - existingSession.startLevel
         if (deltaPercent < 40 || accumulatedMah <= 300.0) return null
         val estimatedFullMah = ((accumulatedMah / deltaPercent.toDouble()) * 100.0).toInt()
-        val designMah = resolveEngine().designCapacityMah
-        val healthPct = ((estimatedFullMah.toFloat() / designMah.toFloat()) * 100f).coerceIn(10f, 110f)
+        val designMah = effectiveDesignCapacityMah()
+        if (designMah <= 0 || estimatedFullMah !in 1000..20000) return null
+        val healthPct = (estimatedFullMah.toFloat() / designMah.toFloat()) * 100f
+        if (!healthPct.isFinite() || healthPct !in 10f..110f) return null
         return BatteryHealthEntity(
             timestamp = now,
             sessionId = sessionId,
@@ -2469,7 +2475,7 @@ class BatteryMonitorService : Service() {
         excludeSessionIds: Set<Long> = emptySet()
     ): Boolean {
         val openSessions = dao.getAllOpenSessions().filter { it.id !in excludeSessionIds }
-        val designMah = resolveEngine().designCapacityMah
+        val designMah = effectiveDesignCapacityMah()
         var allSucceeded = true
         for (openSession in openSessions) {
             val status = runCatching {
@@ -3317,7 +3323,7 @@ class BatteryMonitorService : Service() {
 
                 val dao = daoOverride ?: AppDatabase.getInstance(appContext).batteryDao()
                 val now = System.currentTimeMillis()
-                val designCapacityMah = runCatching { resolvedEngine.designCapacityMah }.getOrDefault(5000)
+                val designCapacityMah = DesignCapacitySettings.resolve(appContext, resolvedEngine.designCapacityMah)
 
                 withContext(NonCancellable) {
                     val blockedSessionIds = mutableSetOf<Long>()
