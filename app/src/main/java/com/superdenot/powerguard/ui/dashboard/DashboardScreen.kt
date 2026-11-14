@@ -99,7 +99,7 @@ fun DashboardScreen(
     )
 
     val latestHealth by viewModel.latestHealth.collectAsState()
-    val designCapacity by viewModel.designCapacityMah.collectAsState()
+    val designCapacity by viewModel.designCapacitySetting.collectAsState()
     val isBatteryOptIgnored by viewModel.isBatteryOptimizationIgnored.collectAsState()
     val hasUsagePerm by viewModel.hasUsagePermission.collectAsState()
 
@@ -347,7 +347,12 @@ fun DashboardScreen(
                                 )
                             }
                             Text(
-                                text = "Kapasitas Desain Pabrik: $designCapacity mAh",
+                                text = "Kapasitas Desain: ${designCapacity.capacityMah?.let { "$it mAh" } ?: "Tidak tersedia"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (designCapacity.isManualOverride) "Sumber: Manual Override" else "Sumber: Automatic",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -514,14 +519,14 @@ fun DashboardScreen(
     }
 
     if (showCapacityDialog) {
-        var inputText by remember { mutableStateOf(designCapacity.toString()) }
+        var inputText by remember { mutableStateOf(designCapacity.capacityMah?.toString().orEmpty()) }
         AlertDialog(
             onDismissRequest = { showCapacityDialog = false },
-            title = { Text("Kalibrasi Kapasitas Pabrik (mAh)") },
+            title = { Text("Kapasitas Desain Baterai") },
             text = {
                 Column {
                     Text(
-                        "Masukkan kapasitas baterai resmi spesifikasi ponsel Anda (misal: 5000) untuk akurasi persentase kesehatan baterai.",
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual akan dipakai sampai Anda kembali ke Automatic.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -543,8 +548,16 @@ fun DashboardScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCapacityDialog = false }) {
-                    Text("Batal")
+                Row {
+                    TextButton(onClick = {
+                        viewModel.useAutomaticDesignCapacity()
+                        showCapacityDialog = false
+                    }) {
+                        Text("Gunakan Automatic")
+                    }
+                    TextButton(onClick = { showCapacityDialog = false }) {
+                        Text("Batal")
+                    }
                 }
             }
         )
