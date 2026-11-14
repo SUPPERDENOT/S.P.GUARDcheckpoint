@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.superdenot.powerguard.BuildConfig
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
