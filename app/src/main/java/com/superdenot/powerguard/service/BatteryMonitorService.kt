@@ -49,6 +49,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
+internal sealed interface TargetSessionLookupResult {
+    data class Found(val session: ChargingSessionEntity) : TargetSessionLookupResult
+    data object MissingInAccessibleDb : TargetSessionLookupResult
+    data class DatabaseInaccessible(val cause: Throwable?) : TargetSessionLookupResult
+}
+
 class BatteryMonitorService : Service() {
 
     private enum class ActorLifecycleState {
@@ -1634,8 +1640,9 @@ class BatteryMonitorService : Service() {
                     lifecycleChannel.trySend(LifecycleCommand.ChargerConnected(gen))
                 }
 
-                autoStopGenerationToSend?.let { gen ->
-                    lifecycleChannel.trySend(LifecycleCommand.AutoStop(gen))
+                val autoStopGeneration = autoStopGenerationToSend
+                if (autoStopGeneration != null) {
+                    lifecycleChannel.trySend(LifecycleCommand.AutoStop(autoStopGeneration))
                     break
                 }
 
@@ -3165,12 +3172,6 @@ class BatteryMonitorService : Service() {
                 pendingStartGenerations.remove(generation)
                 pendingStartCount.set(pendingStartGenerations.size)
             }
-        }
-
-        internal sealed interface TargetSessionLookupResult {
-            data class Found(val session: ChargingSessionEntity) : TargetSessionLookupResult
-            data object MissingInAccessibleDb : TargetSessionLookupResult
-            data class DatabaseInaccessible(val cause: Throwable?) : TargetSessionLookupResult
         }
 
         internal suspend fun lookupTargetSessionSafely(
