@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.viewmodel
 
 import com.superdenot.powerguard.domain.model.LiveBatteryState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -8,6 +9,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FallbackSensorPollerTest {
 
     @Test
