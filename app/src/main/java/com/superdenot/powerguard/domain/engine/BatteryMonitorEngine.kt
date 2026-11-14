@@ -7,12 +7,10 @@ import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.SystemClock
 import com.superdenot.powerguard.domain.model.LiveBatteryState
-import kotlin.math.abs
 
 class BatteryMonitorEngine(private val context: Context) {
 
     private val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-    private var invertCurrentSign: Boolean? = null
     private var baselineElapsedRealtime: Long = SystemClock.elapsedRealtime()
     private var baselineUptimeMillis: Long = SystemClock.uptimeMillis()
     private val batteryIntentFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
@@ -59,7 +57,7 @@ class BatteryMonitorEngine(private val context: Context) {
         val tempCelsius = tempTenths / 10f
 
         val rawCurrent = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
-        val calibratedCurrentMa = calibrateCurrent(rawCurrent, isCharging)
+        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(rawCurrent, isCharging)
 
         val powerWatt = (voltageMv / 1000f) * (calibratedCurrentMa / 1000f)
         val isFastCharging = isCharging && (voltageMv > 5500 || calibratedCurrentMa >= 1800 || powerWatt >= 14f)
@@ -79,18 +77,6 @@ class BatteryMonitorEngine(private val context: Context) {
             anomalyAlert = activeAnomaly,
             designCapacityMah = designCapacityMah
         )
-    }
-
-    private fun calibrateCurrent(raw: Int, isCharging: Boolean): Int {
-        if (raw == 0 || raw == Int.MIN_VALUE) return 0
-
-        val magnitudeMa = if (abs(raw) >= 10_000) raw / 1000 else raw
-
-        if (!isCharging && invertCurrentSign == null && abs(magnitudeMa) > 50) {
-            invertCurrentSign = magnitudeMa > 0
-        }
-
-        return if (invertCurrentSign == true) -magnitudeMa else magnitudeMa
     }
 
     @SuppressLint("PrivateApi")
