@@ -236,7 +236,11 @@ class BatteryMonitorService : Service() {
     private fun resolveEngine(): BatteryMonitorEngine = engineOverride ?: engine
 
     private suspend fun effectiveDesignCapacityMah(): Int =
-        DesignCapacitySettings.resolve(applicationContext, resolveEngine().designCapacityMah)
+        runCatching {
+            DesignCapacitySettings.resolve(applicationContext, resolveEngine().designCapacityMah)
+        }.onFailure { error ->
+            Log.w("PowerGuard", "Kapasitas desain tidak dapat dibaca; health log sesi ini dilewati", error)
+        }.getOrDefault(0)
 
     // State sesi dan operasi database dilindungi oleh sharedSessionMutex
     @Volatile
@@ -3323,7 +3327,11 @@ class BatteryMonitorService : Service() {
 
                 val dao = daoOverride ?: AppDatabase.getInstance(appContext).batteryDao()
                 val now = System.currentTimeMillis()
-                val designCapacityMah = DesignCapacitySettings.resolve(appContext, resolvedEngine.designCapacityMah)
+                val designCapacityMah = runCatching {
+                    DesignCapacitySettings.resolve(appContext, resolvedEngine.designCapacityMah)
+                }.onFailure { error ->
+                    Log.w("PowerGuard", "Kapasitas desain tidak tersedia saat startup recovery; health log dilewati", error)
+                }.getOrDefault(0)
 
                 withContext(NonCancellable) {
                     val blockedSessionIds = mutableSetOf<Long>()
