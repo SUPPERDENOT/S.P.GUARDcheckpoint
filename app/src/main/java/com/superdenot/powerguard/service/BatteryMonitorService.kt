@@ -113,12 +113,23 @@ class BatteryMonitorService : Service() {
         val endTimestampMs: Long = timestampMs,
         val state: LiveBatteryState,
         val weight: Int = 1,
-        val maxTempCelsius: Float = state.tempCelsius
+        val maxTempCelsius: Float = state.tempCelsius,
+        // Simpan jumlah berbobot asli agar pemadatan berulang tidak mengakumulasi galat pembulatan.
+        val weightedCurrentMaSum: Long = state.currentMa.toLong() * weight.coerceAtLeast(1),
+        val weightedVoltageMvSum: Long = state.voltageMv.toLong() * weight.coerceAtLeast(1),
+        val weightedTempCelsiusSum: Double = state.tempCelsius.toDouble() * weight.coerceAtLeast(1),
+        val weightedPowerWattSum: Double = state.powerWatt.toDouble() * weight.coerceAtLeast(1),
+        val weightedDeepSleepRatioSum: Double = state.deepSleepRatio.toDouble() * weight.coerceAtLeast(1)
     )
 
     private data class WeightedBatchMetrics(
         val totalWeight: Int,
         val spanDurationMs: Long,
+        val weightedCurrentMaSum: Long,
+        val weightedVoltageMvSum: Long,
+        val weightedTempCelsiusSum: Double,
+        val weightedPowerWattSum: Double,
+        val weightedDeepSleepRatioSum: Double,
         val weightedCurrentMa: Int,
         val weightedVoltageMv: Int,
         val weightedTempCelsius: Float,
@@ -1146,7 +1157,6 @@ class BatteryMonitorService : Service() {
                     return@withContext false
                 }
 
-                removePersistedBufferEntries(pendingEntriesSnapshot)
             }
 
             val sessionOnlyAttempt = runCatching {
@@ -1167,7 +1177,13 @@ class BatteryMonitorService : Service() {
 
             if (sessionOnlyAttempt == SessionFinalizationStatus.FINALIZED) {
                 val verifiedRow = runCatching { dao.getSessionById(targetId) }.getOrNull()
-                verifiedRow?.endTime != null
+                val finalized = verifiedRow?.endTime != null
+                if (finalized) {
+                    // Pertahankan buffer sampai penutupan sesi terverifikasi; retry tetap idempotent
+                    // jika sampel sudah lebih dulu tersimpan pada Upaya B.
+                    removePersistedBufferEntries(pendingEntriesSnapshot)
+                }
+                finalized
             } else {
                 false
             }
@@ -1183,17 +1199,25 @@ class BatteryMonitorService : Service() {
         val startTs = entries.first().timestampMs
         val endTs = entries.maxOf { maxOf(it.timestampMs, it.endTimestampMs) }
         val spanDurationMs = (endTs - startTs).coerceAtLeast(0L)
-        val weightedCurrentMa = (entries.sumOf { it.state.currentMa.toLong() * it.weight.coerceAtLeast(1) } / totalWeight).toInt()
-        val weightedVoltageMv = (entries.sumOf { it.state.voltageMv.toLong() * it.weight.coerceAtLeast(1) } / totalWeight).toInt()
-        val weightedTempCelsius = (entries.sumOf { it.state.tempCelsius.toDouble() * it.weight.coerceAtLeast(1) } / totalWeight).toFloat()
+        val weightedCurrentMaSum = entries.sumOf { it.weightedCurrentMaSum }
+        val weightedVoltageMvSum = entries.sumOf { it.weightedVoltageMvSum }
+        val weightedTempCelsiusSum = entries.sumOf { it.weightedTempCelsiusSum }
+        val weightedPowerWattSum = entries.sumOf { it.weightedPowerWattSum }
+        val weightedDeepSleepRatioSum = entries.sumOf { it.weightedDeepSleepRatioSum }
+        val weightedCurrentMa = (weightedCurrentMaSum / totalWeight).toInt()
+        val weightedVoltageMv = (weightedVoltageMvSum / totalWeight).toInt()
+        val weightedTempCelsius = (weightedTempCelsiusSum / totalWeight).toFloat()
         val maxTempCelsius = entries.maxOf { maxOf(it.maxTempCelsius, it.state.tempCelsius) }
-        val weightedPowerWatt = (entries.sumOf { it.state.powerWatt.toDouble() * it.weight.coerceAtLeast(1) } / totalWeight).toFloat()
-        val weightedDeepSleepRatio = (entries.sumOf { it.state.deepSleepRatio.toDouble() * it.weight.coerceAtLeast(1) } / totalWeight)
-            .toFloat()
-            .coerceIn(0f, 1f)
+        val weightedPowerWatt = (weightedPowerWattSum / totalWeight).toFloat()
+        val weightedDeepSleepRatio = (weightedDeepSleepRatioSum / totalWeight).toFloat().coerceIn(0f, 1f)
         return WeightedBatchMetrics(
             totalWeight = totalWeight,
             spanDurationMs = spanDurationMs,
+            weightedCurrentMaSum = weightedCurrentMaSum,
+            weightedVoltageMvSum = weightedVoltageMvSum,
+            weightedTempCelsiusSum = weightedTempCelsiusSum,
+            weightedPowerWattSum = weightedPowerWattSum,
+            weightedDeepSleepRatioSum = weightedDeepSleepRatioSum,
             weightedCurrentMa = weightedCurrentMa,
             weightedVoltageMv = weightedVoltageMv,
             weightedTempCelsius = weightedTempCelsius,
@@ -2143,7 +2167,12 @@ class BatteryMonitorService : Service() {
                     endTimestampMs = maxOf(head.timestampMs, tail.endTimestampMs),
                     state = compactedState,
                     weight = metrics.totalWeight,
-                    maxTempCelsius = metrics.maxTempCelsius
+                    maxTempCelsius = metrics.maxTempCelsius,
+                    weightedCurrentMaSum = metrics.weightedCurrentMaSum,
+                    weightedVoltageMvSum = metrics.weightedVoltageMvSum,
+                    weightedTempCelsiusSum = metrics.weightedTempCelsiusSum,
+                    weightedPowerWattSum = metrics.weightedPowerWattSum,
+                    weightedDeepSleepRatioSum = metrics.weightedDeepSleepRatioSum
                 )
             )
         }
