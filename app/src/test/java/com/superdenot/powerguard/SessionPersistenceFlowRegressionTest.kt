@@ -100,10 +100,26 @@ class SessionPersistenceFlowRegressionTest {
         )
 
         val samples = listOf(
-            BatterySampleEntity(sessionId, 1_000L, 50, 1_800, 4_200, 36.0f, 7.5f, true),
-            BatterySampleEntity(sessionId, 2_000L, 51, 3_600, 4_200, 36.0f, 15.0f, true),
-            BatterySampleEntity(sessionId, 10_000L, 52, 3_600, 4_200, 36.0f, 15.0f, true),
-            BatterySampleEntity(sessionId, 11_000L, 53, -1_800, 4_200, 36.0f, -7.5f, true)
+            BatterySampleEntity(
+                sessionId = sessionId, timestamp = 1_000L, batteryLevel = 50,
+                currentMa = 1_800, voltageMv = 4_200, tempCelsius = 36.0f,
+                powerWatt = 7.5f, isScreenOn = true
+            ),
+            BatterySampleEntity(
+                sessionId = sessionId, timestamp = 2_000L, batteryLevel = 51,
+                currentMa = 3_600, voltageMv = 4_200, tempCelsius = 36.0f,
+                powerWatt = 15.0f, isScreenOn = true
+            ),
+            BatterySampleEntity(
+                sessionId = sessionId, timestamp = 10_000L, batteryLevel = 52,
+                currentMa = 3_600, voltageMv = 4_200, tempCelsius = 36.0f,
+                powerWatt = 15.0f, isScreenOn = true
+            ),
+            BatterySampleEntity(
+                sessionId = sessionId, timestamp = 11_000L, batteryLevel = 53,
+                currentMa = -1_800, voltageMv = 4_200, tempCelsius = 36.0f,
+                powerWatt = -7.5f, isScreenOn = true
+            )
         )
         samples.forEach { dao.insertSample(it) }
 
