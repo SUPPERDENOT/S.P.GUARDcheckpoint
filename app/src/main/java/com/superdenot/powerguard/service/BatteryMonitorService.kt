@@ -28,6 +28,7 @@ import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
+import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -2452,19 +2453,19 @@ class BatteryMonitorService : Service() {
         now: Long
     ): BatteryHealthEntity? {
         if (existingSession.endTime != null) return null
-        val deltaPercent = endLevel - existingSession.startLevel
-        if (deltaPercent < 40 || accumulatedMah <= 300.0) return null
-        val estimatedFullMah = ((accumulatedMah / deltaPercent.toDouble()) * 100.0).toInt()
         val designMah = effectiveDesignCapacityMah()
-        if (designMah <= 0 || estimatedFullMah !in 1000..20000) return null
-        val healthPct = (estimatedFullMah.toFloat() / designMah.toFloat()) * 100f
-        if (!healthPct.isFinite() || healthPct !in 10f..110f) return null
+        val estimate = BatteryHealthEstimator.estimate(
+            totalMahDelivered = accumulatedMah,
+            startLevel = existingSession.startLevel,
+            endLevel = endLevel,
+            designCapacityMah = designMah
+        ) ?: return null
         return BatteryHealthEntity(
             timestamp = now,
             sessionId = sessionId,
-            estimatedCapacityMah = estimatedFullMah,
+            estimatedCapacityMah = estimate.estimatedCapacityMah,
             designCapacityMah = designMah,
-            healthPercentage = healthPct
+            healthPercentage = estimate.healthPercentage
         )
     }
 
