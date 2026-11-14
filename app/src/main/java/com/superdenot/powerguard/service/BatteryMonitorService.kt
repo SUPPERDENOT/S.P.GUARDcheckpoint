@@ -3179,8 +3179,7 @@ class BatteryMonitorService : Service() {
                     stoppedSessionId
                 ) is SessionRecoveryStore.CheckpointLoadResult.Loaded
                 if (!durableCheckpoint) return true
-                return sessionId == null ||
-                    (sessionId == stoppedSessionId && !instance.destroyFinalizationInProgress)
+                return false
             }
             if (sessionId == null) {
                 instance.destroyFinalizationInProgress ||
