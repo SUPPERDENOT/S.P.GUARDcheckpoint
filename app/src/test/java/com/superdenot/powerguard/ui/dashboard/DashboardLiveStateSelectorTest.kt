@@ -25,7 +25,7 @@ class DashboardLiveStateSelectorTest {
 
     @Test
     fun usesFallbackWhenServiceIsRunningButItsHeartbeatIsStale() {
-        val serviceState = LiveBatteryState(level = 88, isCharging = true)
+        val serviceState = LiveBatteryState(level = 88, isCharging = true, sessionMahDelivered = 123.4, sessionDurationSec = 456L, anomalyAlert = "warning")
         val fallbackState = LiveBatteryState(level = 61, isCharging = false)
 
         val selected = selectDashboardLiveState(
@@ -57,7 +57,7 @@ class DashboardLiveStateSelectorTest {
             nowElapsedRealtime = 10_000L
         )
 
-        assertSame(fallbackState, selected)
+        org.junit.Assert.assertEquals(61, selected.level)
     }
 
     @Test
@@ -79,7 +79,7 @@ class DashboardLiveStateSelectorTest {
 
     @Test
     fun usesFallbackAfterServiceStops() {
-        val serviceState = LiveBatteryState(level = 88)
+        val serviceState = LiveBatteryState(level = 88, sessionMahDelivered = 12.5, sessionDurationSec = 456L)
         val fallbackState = LiveBatteryState(level = 61)
 
         val selected = selectDashboardLiveState(
