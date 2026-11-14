@@ -3168,9 +3168,13 @@ class BatteryMonitorService : Service() {
 
         internal fun hasActiveServiceSessionFor(sessionId: Long? = null): Boolean = synchronized(lifecycleLock) {
             val instance = activeInstance ?: return false
+            // Data sesi yang tertinggal di memori setelah actor STOPPED bukan sesi service aktif;
+            // startup recovery harus tetap dapat merekonsiliasinya ke Room.
+            if (instance.actorState == ActorLifecycleState.STOPPED && !instance.destroyFinalizationInProgress) {
+                return false
+            }
             if (sessionId == null) {
-                instance.activeSessionId != null ||
-                    instance.destroyFinalizationInProgress ||
+                instance.destroyFinalizationInProgress ||
                     instance.actorState != ActorLifecycleState.STOPPED
             } else {
                 instance.activeSessionId == sessionId ||
@@ -3377,6 +3381,13 @@ class BatteryMonitorService : Service() {
                                                 )
                                                 if (cleared) {
                                                     blockedSessionIds.remove(persisted.sessionId)
+                                                    val stoppedInstance = activeInstance
+                                                    if (stoppedInstance != null &&
+                                                        stoppedInstance.actorState == ActorLifecycleState.STOPPED &&
+                                                        stoppedInstance.activeSessionId == persisted.sessionId
+                                                    ) {
+                                                        stoppedInstance.resetInMemorySessionTracking(clearRecoverySnapshot = true)
+                                                    }
                                                 } else {
                                                     Log.e(
                                                         "PowerGuard",
