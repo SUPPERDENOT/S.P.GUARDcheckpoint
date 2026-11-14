@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
+import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
@@ -621,6 +622,8 @@ class P0RecoveryAndFinalizationRegressionTest {
      */
     @Test
     fun test07_repeatedFinalization_isIdempotentWithoutDuplicates() = runTest {
+        // PowerProfile may be unavailable in Robolectric; configure an explicit valid source.
+        DesignCapacitySettings.saveManual(context, 5000)
         val sessionId = faultDao.insertSession(
             ChargingSessionEntity(
                 startTime = System.currentTimeMillis() - 3_600_000L,
