@@ -19,7 +19,6 @@ import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.worker.DailyRollupWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -104,24 +102,20 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun startFallbackSensorLoop() {
+        val poller = FallbackSensorPoller()
         viewModelScope.launch(Dispatchers.IO) {
-            while (isActive) {
-                if (!isServiceRunning.value) {
-                    try {
-                        _fallbackLiveState.value = repository.readDirectSensorSnapshot()
-                    } catch (ce: kotlinx.coroutines.CancellationException) {
-                        throw ce
-                    } catch (error: Throwable) {
-                        // Satu kegagalan sensor tidak boleh mematikan loop fallback secara permanen.
-                        Log.w(
-                            "PowerGuard",
-                            "Gagal memperbarui snapshot sensor fallback; akan mencoba lagi: ${error.message}",
-                            error
-                        )
-                    }
+            poller.runWhileActive(
+                isServiceRunning = { isServiceRunning.value },
+                readSnapshot = repository::readDirectSensorSnapshot,
+                onSnapshot = { _fallbackLiveState.value = it },
+                onReadError = { error ->
+                    Log.w(
+                        "PowerGuard",
+                        "Gagal memperbarui snapshot sensor fallback; akan mencoba lagi: ${error.message}",
+                        error
+                    )
                 }
-                delay(1500L)
-            }
+            )
         }
     }
 
