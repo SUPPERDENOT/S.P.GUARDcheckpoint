@@ -10,6 +10,7 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
+import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
 import kotlinx.coroutines.flow.Flow
 
 enum class SessionFinalizationStatus {
@@ -182,25 +183,22 @@ interface BatteryDao {
 
         val finalizedRow = getSessionById(sessionId) ?: return SessionFinalizationStatus.TARGET_MISSING
         val resolvedEndLevel = finalizedRow.endLevel ?: finalizedRow.startLevel
-        val deltaPercent = resolvedEndLevel - finalizedRow.startLevel
-        if (deltaPercent >= 40 &&
-            finalizedRow.totalMahDelivered > 300.0 &&
-            designCapacityMah > 0 &&
-            countHealthLogsForSession(sessionId) == 0
-        ) {
-            val estimatedFullMah = ((finalizedRow.totalMahDelivered / deltaPercent.toDouble()) * 100.0).toInt()
-            val healthPct = (estimatedFullMah.toFloat() / designCapacityMah.toFloat()) * 100f
-            if (estimatedFullMah in 1000..20000 && healthPct.isFinite() && healthPct in 10f..110f) {
-                insertHealthLog(
-                    BatteryHealthEntity(
-                        timestamp = finalizedRow.endTime ?: endTime,
-                        sessionId = sessionId,
-                        estimatedCapacityMah = estimatedFullMah,
-                        designCapacityMah = designCapacityMah,
-                        healthPercentage = healthPct
-                    )
+        val estimate = BatteryHealthEstimator.estimate(
+            totalMahDelivered = finalizedRow.totalMahDelivered,
+            startLevel = finalizedRow.startLevel,
+            endLevel = resolvedEndLevel,
+            designCapacityMah = designCapacityMah
+        )
+        if (estimate != null && countHealthLogsForSession(sessionId) == 0) {
+            insertHealthLog(
+                BatteryHealthEntity(
+                    timestamp = finalizedRow.endTime ?: endTime,
+                    sessionId = sessionId,
+                    estimatedCapacityMah = estimate.estimatedCapacityMah,
+                    designCapacityMah = designCapacityMah,
+                    healthPercentage = estimate.healthPercentage
                 )
-            }
+            )
         }
         return SessionFinalizationStatus.FINALIZED
     }
