@@ -1977,6 +1977,45 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression P0: snapshot incoming dengan count dan bobot sampel yang sama tidak boleh
+     * mengganti statistik/payload existing hanya karena proses save dipanggil ulang.
+     */
+    @Test
+    fun test_mergeSameSession_equalCountAndWeight_preservesExistingSnapshot() {
+        val sessionId = 40_404L
+        val timestamp = 1_700_000_777_000L
+        val existing = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 250.0,
+            sessionSeconds = 120L,
+            currentSum = 125_000L,
+            currentCount = 50L,
+            batchTimestampMs = timestamp,
+            sampleWeight = 5
+        ).copy(sampleBatteryLevel = 48, sampleCurrentMa = 1250)
+
+        val staleIncoming = existing.copy(
+            accumulatedMah = 240.0,
+            sessionSeconds = 115L,
+            currentSumForAvg = 99_000L,
+            sampleBatteryLevel = 47,
+            sampleCurrentMa = 990,
+            failureReason = "stale retry"
+        )
+
+        assertTrue(SessionRecoveryStore.save(context, existing))
+        assertTrue(SessionRecoveryStore.save(context, staleIncoming))
+
+        val merged = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertEquals(125_000L, merged.currentSumForAvg)
+        assertEquals(50L, merged.currentReadingsCount)
+        assertEquals(48, merged.sampleBatteryLevel)
+        assertEquals(1250, merged.sampleCurrentMa)
+        assertEquals(5, merged.sampleWeight)
+        assertEquals(timestamp, merged.pendingBatchTimestampMs)
+    }
+
+    /**
      * Skenario 32 (v5 P1): Penggabungan dua batch sampel berbeda pada sessionId yang sama mempertahankan
      * total bobot tertimbang dan metrik gabungan tanpa kehilangan sampel batch sebelumnya.
      */
