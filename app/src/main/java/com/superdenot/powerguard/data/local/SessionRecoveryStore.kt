@@ -970,7 +970,11 @@ object SessionRecoveryStore {
                 }
 
                 return when (val current = readSessionBucketFromEntries(allBefore, expectedSessionId)) {
-                    is CheckpointLoadResult.Empty -> true
+                    is CheckpointLoadResult.Empty -> {
+                        // ID yang tidak memiliki checkpoint bukan pemilik yang boleh menghapus
+                        // checkpoint sesi lain. Idempotent true hanya jika store memang kosong.
+                        readAllFromPrefs(prefs).isEmpty()
+                    }
                     is CheckpointLoadResult.Unavailable -> false
                     is CheckpointLoadResult.Corrupt -> false
                     is CheckpointLoadResult.Loaded -> {
