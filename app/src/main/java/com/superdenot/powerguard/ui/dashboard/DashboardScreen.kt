@@ -541,7 +541,7 @@ fun DashboardScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = inputText.toIntOrNull() in 1000..20000,
+                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
                     onClick = {
                         inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
                         showCapacityDialog = false
