@@ -104,9 +104,16 @@ interface BatteryDao {
         } else if (samples.size >= 2) {
             var integratedMah = 0.0
             for (i in 1 until samples.size) {
-                val dtSec = ((samples[i].timestamp - samples[i - 1].timestamp) / 1000.0).coerceAtLeast(0.0)
-                if (dtSec > 0.0) {
-                    integratedMah += (samples[i].currentMa / 3600.0) * dtSec
+                val previous = samples[i - 1]
+                val current = samples[i]
+                val dtMs = current.timestamp - previous.timestamp
+                // Sampel lama memakai wall-clock; jangan menebak arus selama jeda panjang
+                // (mis. proses mati/terhenti) atau timestamp yang tidak berurutan.
+                if (dtMs in 1L..5_000L) {
+                    val previousCurrentMa = previous.currentMa.coerceAtLeast(0)
+                    val currentCurrentMa = current.currentMa.coerceAtLeast(0)
+                    val averageCurrentMa = (previousCurrentMa + currentCurrentMa) / 2.0
+                    integratedMah += averageCurrentMa * dtMs / 3_600_000.0
                 }
             }
             integratedMah.coerceAtLeast(0.0)
