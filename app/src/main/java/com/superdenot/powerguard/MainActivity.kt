@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                         TopAppBar(
                             title = {
                                 Text(
-                                    text = "PowerGuard Diagnostic",
+                                    text = "SUPERD POWER GUARD",
                                     fontWeight = FontWeight.Bold
                                 )
                             }
