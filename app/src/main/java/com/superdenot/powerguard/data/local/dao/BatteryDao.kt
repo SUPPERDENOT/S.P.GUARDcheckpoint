@@ -189,16 +189,18 @@ interface BatteryDao {
             countHealthLogsForSession(sessionId) == 0
         ) {
             val estimatedFullMah = ((finalizedRow.totalMahDelivered / deltaPercent.toDouble()) * 100.0).toInt()
-            val healthPct = ((estimatedFullMah.toFloat() / designCapacityMah.toFloat()) * 100f).coerceIn(10f, 110f)
-            insertHealthLog(
-                BatteryHealthEntity(
-                    timestamp = finalizedRow.endTime ?: endTime,
-                    sessionId = sessionId,
-                    estimatedCapacityMah = estimatedFullMah,
-                    designCapacityMah = designCapacityMah,
-                    healthPercentage = healthPct
+            val healthPct = (estimatedFullMah.toFloat() / designCapacityMah.toFloat()) * 100f
+            if (estimatedFullMah in 1000..20000 && healthPct.isFinite() && healthPct in 10f..110f) {
+                insertHealthLog(
+                    BatteryHealthEntity(
+                        timestamp = finalizedRow.endTime ?: endTime,
+                        sessionId = sessionId,
+                        estimatedCapacityMah = estimatedFullMah,
+                        designCapacityMah = designCapacityMah,
+                        healthPercentage = healthPct
+                    )
                 )
-            )
+            }
         }
         return SessionFinalizationStatus.FINALIZED
     }
