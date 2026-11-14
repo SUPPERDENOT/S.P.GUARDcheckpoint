@@ -589,11 +589,11 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
             ) {
                 InfoSectionItem(
                     title = "1. Tentang Aplikasi",
-                    content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\\n\\nDeveloper: superdenot\\nApplication ID: com.superdenot.powerguard\\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
+                    content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.powerguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
                 )
                 InfoSectionItem(
                     title = "2. Fitur Utama",
-                    content = "• Pemantauan level, arus, tegangan, daya, dan suhu baterai.\\n• Deteksi sumber daya yang dilaporkan Android (AC, USB, atau wireless).\\n• Analisis indikasi anomali pengisian berdasarkan heuristik.\\n• Pemantauan otomatis saat charger tersambung dan finalisasi sesi saat dilepas.\\n• Riwayat sesi dan ringkasan data baterai yang tersimpan di perangkat."
+                    content = "• Pemantauan level, arus, tegangan, daya, dan suhu baterai.\n• Deteksi sumber daya yang dilaporkan Android (AC, USB, atau wireless).\n• Analisis indikasi anomali pengisian berdasarkan heuristik.\n• Pemantauan otomatis saat charger tersambung dan finalisasi sesi saat dilepas.\n• Riwayat sesi dan ringkasan data baterai yang tersimpan di perangkat."
                 )
                 InfoSectionItem(
                     title = "3. Lisensi Aplikasi & Hak Cipta",
@@ -601,7 +601,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 )
                 InfoSectionItem(
                     title = "4. Open-Source & Third-Party Notices",
-                    content = "Aplikasi menggunakan komponen dan library pihak ketiga, antara lain:\\n• AndroidX, Jetpack Compose, Material 3, Room, WorkManager, dan DataStore — komponen AndroidX/Google yang umumnya didistribusikan di bawah Apache License 2.0.\\n• Kotlin dan kotlinx.coroutines — Apache License 2.0.\\n• JUnit 4 — Eclipse Public License 1.0.\\n• Robolectric — Apache License 2.0.\\n\\nLibrary dan versi yang benar-benar dipakai ditentukan oleh konfigurasi Gradle proyek. Merek dagang dan hak cipta masing-masing komponen tetap menjadi milik pemiliknya. Untuk distribusi publik, sertakan teks lisensi dan pemberitahuan hak cipta sesuai ketentuan setiap dependency."
+                    content = "Aplikasi menggunakan komponen dan library pihak ketiga, antara lain:\n• AndroidX, Jetpack Compose, Material 3, Room, WorkManager, dan DataStore — komponen AndroidX/Google yang umumnya didistribusikan di bawah Apache License 2.0.\n• Kotlin dan kotlinx.coroutines — Apache License 2.0.\n• JUnit 4 — Eclipse Public License 1.0.\n• Robolectric — Apache License 2.0.\n\nLibrary dan versi yang benar-benar dipakai ditentukan oleh konfigurasi Gradle proyek. Merek dagang dan hak cipta masing-masing komponen tetap menjadi milik pemiliknya. Untuk distribusi publik, sertakan teks lisensi dan pemberitahuan hak cipta sesuai ketentuan setiap dependency."
                 )
                 InfoSectionItem(
                     title = "5. Privasi & Data",
@@ -613,7 +613,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 )
                 InfoSectionItem(
                     title = "7. Catatan Pengukuran",
-                    content = "• Arus, tegangan, suhu, dan status pengisian berasal dari pembacaan sistem/perangkat; ketersediaan serta akurasinya berbeda antar model.\\n• Daya dihitung dari tegangan dan arus yang dilaporkan perangkat.\\n• Label Fast Charging merupakan estimasi berbasis ambang arus, tegangan, dan daya, bukan konfirmasi universal protokol fast charging.\\n• Deteksi anomali merupakan indikasi berbasis heuristik, bukan diagnosis kerusakan hardware."
+                    content = "• Arus, tegangan, suhu, dan status pengisian berasal dari pembacaan sistem/perangkat; ketersediaan serta akurasinya berbeda antar model.\n• Daya dihitung dari tegangan dan arus yang dilaporkan perangkat.\n• Label Fast Charging merupakan estimasi berbasis ambang arus, tegangan, dan daya, bukan konfirmasi universal protokol fast charging.\n• Deteksi anomali merupakan indikasi berbasis heuristik, bukan diagnosis kerusakan hardware."
                 )
                 InfoSectionItem(
                     title = "8. Batasan & Disclaimer",
