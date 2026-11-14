@@ -1,5 +1,6 @@
 package com.superdenot.powerguard
 
+import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteException
 import androidx.room.Room
@@ -32,8 +33,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
 
+/**
+ * Isolates unit tests from production Application startup. The production app schedules
+ * WorkManager work in PowerGuardApp.onCreate(), while Config.NONE intentionally omits
+ * AndroidX Startup's WorkManager initializer from the Robolectric test environment.
+ */
+class PowerGuardTestApplication : Application()
+
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [34], application = PowerGuardTestApplication::class, manifest = Config.NONE)
 class P0RecoveryAndFinalizationRegressionTest {
 
     private lateinit var context: Context
