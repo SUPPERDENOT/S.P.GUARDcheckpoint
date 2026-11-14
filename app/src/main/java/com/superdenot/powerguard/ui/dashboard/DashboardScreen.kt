@@ -623,7 +623,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)
             ) {
-                Text("Tutup", fontWeight = FontWeight.Bold, color = Color.black)
+                Text("Tutup", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
     )
