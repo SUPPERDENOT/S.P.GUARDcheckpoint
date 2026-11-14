@@ -1702,6 +1702,14 @@ class BatteryMonitorService : Service() {
             } catch (error: Throwable) {
                 _lastMonitorError.value = "${error.javaClass.simpleName}: ${error.message.orEmpty()}".take(240)
                 Log.e("PowerGuard", "Kesalahan iterasi monitoring loop: ${error.message}", error)
+                runCatching {
+                    notificationManager.notify(
+                        MONITOR_NOTIFICATION_ID,
+                        buildMonitorNotification("Pemantauan mengalami kendala; mencoba pulih otomatis...")
+                    )
+                }.onFailure { notificationError ->
+                    Log.w("PowerGuard", "Gagal memperbarui notifikasi status pemulihan: ${notificationError.message}", notificationError)
+                }
             }
 
             delay(1000L)
