@@ -16,8 +16,12 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+class SessionPersistenceTestApplication : android.app.Application()
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = SessionPersistenceTestApplication::class, manifest = Config.NONE)
 class SessionPersistenceFlowRegressionTest {
 
     private lateinit var database: AppDatabase
