@@ -2267,6 +2267,82 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression P0: durability gate wajib memverifikasi seluruh metrik pending sample,
+     * bukan hanya level, bobot, dan rentang waktunya.
+     */
+    @Test
+    fun test_durabilityGate_rejectsPendingSampleWithStaleElectricalMetrics() {
+        val sessionId = 40_406L
+        val timestamp = 1_700_000_810_000L
+        val ramSample = sampleLiveState(level = 49, currentMa = 1800, voltageMv = 4200, tempCelsius = 36.5f)
+        val checkpoint = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 280.0,
+            sessionSeconds = 240L,
+            maxTemp = 38.0f,
+            currentSum = 360_000L,
+            currentCount = 240L,
+            anomalyCodes = setOf("SLOW_CHARGING"),
+            batchTimestampMs = timestamp,
+            sampleWeight = 1
+        ).copy(
+            sampleBatteryLevel = 49,
+            sampleCurrentMa = 100,
+            sampleVoltageMv = 3900,
+            sampleTempCelsius = 30.0f,
+            samplePowerWatt = 0.39f,
+            sampleSpanDurationMs = 0L
+        )
+        assertTrue(SessionRecoveryStore.save(context, checkpoint))
+        service.seedActiveSessionStateForTesting(
+            sessionId = sessionId,
+            accumulatedMah = 280.0,
+            sessionSeconds = 240L,
+            maxSessionTemp = 38.0f,
+            currentSumForAvg = 360_000L,
+            currentReadingsCount = 240L,
+            alertedAnomalyCodes = setOf("SLOW_CHARGING"),
+            bufferedSamples = listOf(ramSample),
+            pendingBatchTimestampMs = timestamp
+        )
+
+        assertTrue(
+            "Checkpoint dengan level/bobot sama tetapi metrik listrik stale harus ditolak",
+            service.hasUnpersistedRamOnlyDataForTesting(
+                BatteryMonitorService.SessionFinalizationResult.COMPLETE_DATA_FINALIZED
+            )
+        )
+    }
+
+    /**
+     * Regression P0: penggabungan batch dekat batas Long tidak boleh overflow dan
+     * menghasilkan rentang durasi negatif atau terpotong.
+     */
+    @Test
+    fun test_mergeSameSession_timestampNearLongMax_saturatesEndWithoutOverflow() {
+        val sessionId = 40_407L
+        val firstTimestamp = Long.MAX_VALUE - 2_000L
+        val first = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            batchTimestampMs = firstTimestamp,
+            sampleWeight = 2
+        ).copy(sampleSpanDurationMs = 5_000L)
+        val second = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            batchTimestampMs = Long.MAX_VALUE - 1_000L,
+            sampleWeight = 3
+        ).copy(sampleSpanDurationMs = 0L)
+
+        assertTrue(SessionRecoveryStore.save(context, first))
+        assertTrue(SessionRecoveryStore.save(context, second))
+
+        val merged = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertEquals(firstTimestamp, merged.pendingBatchTimestampMs)
+        assertEquals(2_000L, merged.sampleSpanDurationMs)
+        assertEquals(5, merged.sampleWeight)
+    }
+
+    /**
      * Skenario 36 (v5 P0): DATABASE_UNAVAILABLE disertai kegagalan penyimpanan checkpoint
      * tetap menahan shutdown layanan (RECOVERY_HOLD) sampai persistensi terkonfirmasi.
      */
