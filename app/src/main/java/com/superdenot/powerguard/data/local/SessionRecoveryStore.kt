@@ -832,16 +832,30 @@ object SessionRecoveryStore {
                 }
 
                 val verified = (readSessionBucketFromEntries(readBackAfter, recordToWrite.sessionId) as? CheckpointLoadResult.Loaded)?.recovery
+                // Verifikasi seluruh payload, bukan hanya metrik utama. Checkpoint dianggap
+                // durable hanya bila setiap field yang ditulis dapat dibaca kembali identik.
                 val isVerified = verified != null &&
                     verified.sessionId == recordToWrite.sessionId &&
-                    verified.recoveryStatus == recordToWrite.recoveryStatus &&
-                    verified.dbSessionsClosed == recordToWrite.dbSessionsClosed &&
                     verified.accumulatedMah == recordToWrite.accumulatedMah &&
                     verified.sessionSeconds == recordToWrite.sessionSeconds &&
+                    verified.maxSessionTemp == recordToWrite.maxSessionTemp &&
+                    verified.currentSumForAvg == recordToWrite.currentSumForAvg &&
+                    verified.currentReadingsCount == recordToWrite.currentReadingsCount &&
+                    verified.alertedAnomalyCodes == recordToWrite.alertedAnomalyCodes &&
+                    verified.pendingBatchTimestampMs == recordToWrite.pendingBatchTimestampMs &&
                     verified.hasPendingSample == recordToWrite.hasPendingSample &&
-                    verified.sampleWeight == recordToWrite.sampleWeight &&
-                    verified.sampleSpanDurationMs == recordToWrite.sampleSpanDurationMs &&
-                    verified.pendingBatchTimestampMs == recordToWrite.pendingBatchTimestampMs
+                    verified.sampleBatteryLevel == recordToWrite.sampleBatteryLevel &&
+                    verified.sampleCurrentMa == recordToWrite.sampleCurrentMa &&
+                    verified.sampleVoltageMv == recordToWrite.sampleVoltageMv &&
+                    verified.sampleTempCelsius == recordToWrite.sampleTempCelsius &&
+                    verified.samplePowerWatt == recordToWrite.samplePowerWatt &&
+                    verified.sampleIsScreenOn == recordToWrite.sampleIsScreenOn &&
+                    verified.sampleWeight == recordToWrite.sampleWeight.coerceAtLeast(1) &&
+                    verified.sampleSpanDurationMs == recordToWrite.sampleSpanDurationMs.coerceAtLeast(0L) &&
+                    verified.dbSessionsClosed == recordToWrite.dbSessionsClosed &&
+                    verified.failureReason == recordToWrite.failureReason &&
+                    verified.persistedAtMs == (if (recordToWrite.persistedAtMs > 0L) recordToWrite.persistedAtMs else verified.persistedAtMs) &&
+                    verified.recoveryStatus == recordToWrite.recoveryStatus
 
                 val otherSessionsIntact = otherSessionsBefore.all { (otherId, expectedOther) ->
                     val afterOther = (readSessionBucketFromEntries(readBackAfter, otherId) as? CheckpointLoadResult.Loaded)?.recovery
