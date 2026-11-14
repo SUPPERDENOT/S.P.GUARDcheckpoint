@@ -101,7 +101,7 @@ class BatteryMonitorEngine(private val context: Context) {
             val powerProfile = constructor.newInstance(context)
             val getBatteryCapacity = powerProfileClass.getMethod("getBatteryCapacity")
             val capacity = (getBatteryCapacity.invoke(powerProfile) as Double).toInt()
-            if (capacity in 1000..15000) capacity else 5000
-        }.getOrDefault(5000)
+            if (capacity in 1000..15000) capacity else 0
+        }.getOrDefault(0)
     }
 }
