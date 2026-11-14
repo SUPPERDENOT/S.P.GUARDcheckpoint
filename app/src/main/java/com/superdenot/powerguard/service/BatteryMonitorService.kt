@@ -2889,10 +2889,30 @@ class BatteryMonitorService : Service() {
                                 samplePersistenceHalted = true
                                 return@withContext false
                             }
+
+                            // Sesi lama sudah tertutup dan seluruh data tertunda berhasil direkonsiliasi.
+                            // Jangan pertahankan activeSessionId yang menunjuk baris tertutup: batch berikutnya
+                            // akan terus ditolak Room dan membuat riwayat sesi tampak membeku.
+                            resetInMemorySessionTracking(clearRecoverySnapshot = true)
                             consecutiveFlushFailures = 0
                             nextFlushRetryAtSec = 0L
                             checkpointSavePendingRetry = false
                             samplePersistenceHalted = false
+
+                            val currentSensor = runCatching { resolveEngine().readCurrentState() }.getOrNull()
+                            if (currentSensor?.isCharging == true &&
+                                !destroyRequested.get() &&
+                                actorState != ActorLifecycleState.STOPPED
+                            ) {
+                                recoverOrStartChargingSession(currentSensor)
+                                if (activeSessionId == null || samplePersistenceHalted) {
+                                    Log.w(
+                                        "PowerGuard",
+                                        "Sesi baru belum dapat dimulai setelah sesi lama tertutup; persistensi tetap ditahan"
+                                    )
+                                    return@withContext false
+                                }
+                            }
                         }
                     }
                 }
