@@ -352,7 +352,7 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = if (designCapacity.isManualOverride) "Sumber: Manual Override" else "Sumber: Automatic",
+                                text = if (designCapacity.isManualOverride) "Sumber: Manual Override" else if (designCapacity.capacityMah != null) "Sumber: Automatic" else "Sumber: Automatic (tidak tersedia)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -540,10 +540,13 @@ fun DashboardScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
-                    showCapacityDialog = false
-                }) {
+                TextButton(
+                    enabled = inputText.toIntOrNull() in 1000..20000,
+                    onClick = {
+                        inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
+                        showCapacityDialog = false
+                    }
+                ) {
                     Text("Simpan")
                 }
             },
