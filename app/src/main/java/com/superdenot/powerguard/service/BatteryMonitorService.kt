@@ -29,6 +29,7 @@ import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
+import com.superdenot.powerguard.domain.engine.ChargingMahIntegrator
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -247,6 +248,7 @@ class BatteryMonitorService : Service() {
     @Volatile
     private var activeSessionId: Long? = null
     private var accumulatedMah: Double = 0.0
+    private val chargingMahIntegrator = ChargingMahIntegrator()
     private var sessionSeconds: Long = 0L
     private var maxSessionTemp: Float = 0f
     private var currentSumForAvg: Long = 0L
@@ -1487,6 +1489,7 @@ class BatteryMonitorService : Service() {
         nextFlushRetryAtSec = 0L
         checkpointSavePendingRetry = false
         accumulatedMah = 0.0
+        chargingMahIntegrator.reset()
         sessionSeconds = 0L
         maxSessionTemp = 0f
         currentSumForAvg = 0L
@@ -1629,7 +1632,10 @@ class BatteryMonitorService : Service() {
                         var activeAlertMsg: String? = null
                         if (activeSessionId != null) {
                             sessionSeconds++
-                            accumulatedMah += (effectiveSensor.currentMa / 3600.0)
+                            accumulatedMah += chargingMahIntegrator.addSample(
+                                currentMa = effectiveSensor.currentMa,
+                                elapsedRealtimeMs = SystemClock.elapsedRealtime()
+                            )
                             if (effectiveSensor.tempCelsius > maxSessionTemp) {
                                 maxSessionTemp = effectiveSensor.tempCelsius
                             }
@@ -1985,6 +1991,7 @@ class BatteryMonitorService : Service() {
             val preservingPreviousInMemory = activeSessionId == reconciledLatest.id
             activeSessionId = reconciledLatest.id
             if (!preservingPreviousInMemory) {
+                chargingMahIntegrator.reset()
                 val elapsedFromDbSec = ((System.currentTimeMillis() - reconciledLatest.startTime) / 1000L)
                     .coerceAtLeast(0L)
                 accumulatedMah = maxOf(
@@ -2164,6 +2171,7 @@ class BatteryMonitorService : Service() {
         sampleBuffer.clear()
 
         accumulatedMah = 0.0
+        chargingMahIntegrator.reset()
         sessionSeconds = 0L
         maxSessionTemp = state.tempCelsius
         currentSumForAvg = 0L
@@ -2986,6 +2994,7 @@ class BatteryMonitorService : Service() {
     ) {
         this.activeSessionId = sessionId
         this.accumulatedMah = accumulatedMah
+        chargingMahIntegrator.reset()
         this.sessionSeconds = sessionSeconds
         this.maxSessionTemp = maxSessionTemp
         this.currentSumForAvg = currentSumForAvg
