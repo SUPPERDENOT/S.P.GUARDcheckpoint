@@ -1861,8 +1861,8 @@ class P0RecoveryAndFinalizationRegressionTest {
             ).status
         )
 
-        // Penolakan clear dengan sessionId yang tidak terdaftar tidak memengaruhi A, B, maupun C
-        assertTrue(SessionRecoveryStore.clear(context, expectedSessionId = 9999L))
+        // Clear wajib menolak ID yang bukan pemilik, tanpa memengaruhi A, B, maupun C
+        assertFalse(SessionRecoveryStore.clear(context, expectedSessionId = 9999L))
         assertEquals(3, SessionRecoveryStore.loadAllLoaded(context).size)
         assertEquals(410.0, SessionRecoveryStore.loadForSessionOrNull(context, sessionA)!!.accumulatedMah, 0.001)
         assertEquals(220.0, SessionRecoveryStore.loadForSessionOrNull(context, sessionB)!!.accumulatedMah, 0.001)
