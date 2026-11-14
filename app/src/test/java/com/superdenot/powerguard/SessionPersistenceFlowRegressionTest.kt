@@ -89,6 +89,39 @@ class SessionPersistenceFlowRegressionTest {
     }
 
     @Test
+    fun legacyRecoveryIntegration_ignoresLongGapsAndNegativeCurrent() = runBlocking {
+        val dao = database.batteryDao()
+        val sessionId = dao.insertSession(
+            ChargingSessionEntity(
+                startTime = 1_000L,
+                startLevel = 50,
+                chargerType = "AC Adapter"
+            )
+        )
+
+        val samples = listOf(
+            BatterySampleEntity(sessionId, 1_000L, 50, 1_800, 4_200, 36.0f, 7.5f, true),
+            BatterySampleEntity(sessionId, 2_000L, 51, 3_600, 4_200, 36.0f, 15.0f, true),
+            BatterySampleEntity(sessionId, 10_000L, 52, 3_600, 4_200, 36.0f, 15.0f, true),
+            BatterySampleEntity(sessionId, 11_000L, 53, -1_800, 4_200, 36.0f, -7.5f, true)
+        )
+        samples.forEach { dao.insertSample(it) }
+
+        assertTrue(
+            dao.closeSingleOpenSessionWithConsistentMetrics(
+                session = dao.getSessionById(sessionId)!!,
+                fallbackEndTime = 12_000L,
+                fallbackEndLevel = 54
+            )
+        )
+
+        val finalized = dao.getSessionById(sessionId)!!
+        // 0.75 mAh for the first 1s interval + 0.5 mAh for the last;
+        // the 8s gap is excluded and negative current is treated as zero.
+        assertEquals(1.25, finalized.totalMahDelivered, 0.0001)
+    }
+
+    @Test
     fun closedOrMissingSession_rejectsSampleFlushWithoutWritingSample() = runBlocking {
         val dao = database.batteryDao()
         val sessionId = dao.insertSession(
