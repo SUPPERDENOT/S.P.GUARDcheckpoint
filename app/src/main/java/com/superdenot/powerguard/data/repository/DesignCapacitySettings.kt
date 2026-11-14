@@ -18,20 +18,31 @@ data class DesignCapacitySetting(
 )
 
 object DesignCapacitySettings {
+    internal fun resolveSetting(
+        manualCapacityMah: Int?,
+        automaticCapacityMah: Int?
+    ): DesignCapacitySetting {
+        val manual = manualCapacityMah?.takeIf { it in 1000..20000 }
+        val automatic = automaticCapacityMah?.takeIf { it in 1000..15000 }
+        return DesignCapacitySetting(
+            capacityMah = manual ?: automatic,
+            isManualOverride = manual != null
+        )
+    }
+
     fun observe(context: Context, engine: BatteryMonitorEngine): Flow<DesignCapacitySetting> =
         context.powerGuardDataStore.data.map { prefs ->
-            val manual = prefs[KEY_DESIGN_CAPACITY]?.takeIf { it in 1000..20000 }
-            val automatic = engine.designCapacityMah.takeIf { it in 1000..15000 }
-            DesignCapacitySetting(
-                capacityMah = manual ?: automatic,
-                isManualOverride = manual != null
+            resolveSetting(
+                manualCapacityMah = prefs[KEY_DESIGN_CAPACITY],
+                automaticCapacityMah = engine.designCapacityMah
             )
         }
 
     suspend fun resolve(context: Context, automaticCapacityMah: Int): Int {
-        val manual = context.powerGuardDataStore.data.first()[KEY_DESIGN_CAPACITY]
-            ?.takeIf { it in 1000..20000 }
-        return manual ?: automaticCapacityMah.takeIf { it in 1000..15000 } ?: 0
+        return resolveSetting(
+            manualCapacityMah = context.powerGuardDataStore.data.first()[KEY_DESIGN_CAPACITY],
+            automaticCapacityMah = automaticCapacityMah
+        ).capacityMah ?: 0
     }
 
     suspend fun saveManual(context: Context, capacityMah: Int) {
