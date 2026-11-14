@@ -3168,10 +3168,19 @@ class BatteryMonitorService : Service() {
 
         internal fun hasActiveServiceSessionFor(sessionId: Long? = null): Boolean = synchronized(lifecycleLock) {
             val instance = activeInstance ?: return false
-            // Data sesi yang tertinggal di memori setelah actor STOPPED bukan sesi service aktif;
-            // startup recovery harus tetap dapat merekonsiliasinya ke Room.
             if (instance.actorState == ActorLifecycleState.STOPPED && !instance.destroyFinalizationInProgress) {
-                return false
+                // Actor STOPPED boleh dilewati hanya jika snapshot sesi yang tertinggal sudah
+                // durable di checkpoint. Tanpa checkpoint, data RAM-only wajib tetap dilindungi.
+                val stoppedSessionId = instance.activeSessionId
+                    ?: instance.lastIncompleteSessionRecovery?.sessionId
+                if (stoppedSessionId == null) return false
+                val durableCheckpoint = SessionRecoveryStore.loadForSession(
+                    instance.applicationContext,
+                    stoppedSessionId
+                ) is SessionRecoveryStore.CheckpointLoadResult.Loaded
+                if (!durableCheckpoint) return true
+                return sessionId == null ||
+                    (sessionId == stoppedSessionId && !instance.destroyFinalizationInProgress)
             }
             if (sessionId == null) {
                 instance.destroyFinalizationInProgress ||
