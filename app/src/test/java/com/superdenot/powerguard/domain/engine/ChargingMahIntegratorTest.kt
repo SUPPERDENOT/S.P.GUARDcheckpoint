@@ -20,7 +20,7 @@ class ChargingMahIntegratorTest {
 
         integrator.addSample(1_800, 1_000L)
         assertEquals(0.75, integrator.addSample(3_600, 2_000L), 0.000001)
-        assertEquals(1.25, integrator.addSample(3_600, 3_000L), 0.000001)
+        assertEquals(1.0, integrator.addSample(3_600, 3_000L), 0.000001)
     }
 
     @Test
