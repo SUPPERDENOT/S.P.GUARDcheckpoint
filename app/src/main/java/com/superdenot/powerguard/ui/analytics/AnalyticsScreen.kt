@@ -290,6 +290,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
 
         item { Spacer(modifier = Modifier.height(16.dp)) }
         }
+    }
 }
 
 @Composable
