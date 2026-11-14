@@ -3,6 +3,7 @@ package com.superdenot.powerguard.ui.viewmodel
 import android.app.Application
 import android.content.Context
 import android.os.PowerManager
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.OneTimeWorkRequestBuilder
@@ -106,7 +107,18 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
                 if (!isServiceRunning.value) {
-                    _fallbackLiveState.value = repository.readDirectSensorSnapshot()
+                    try {
+                        _fallbackLiveState.value = repository.readDirectSensorSnapshot()
+                    } catch (ce: kotlinx.coroutines.CancellationException) {
+                        throw ce
+                    } catch (error: Throwable) {
+                        // Satu kegagalan sensor tidak boleh mematikan loop fallback secara permanen.
+                        Log.w(
+                            "PowerGuard",
+                            "Gagal memperbarui snapshot sensor fallback; akan mencoba lagi: ${error.message}",
+                            error
+                        )
+                    }
                 }
                 delay(1500L)
             }
