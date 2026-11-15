@@ -346,6 +346,20 @@ interface BatteryDao {
         val targetSession = getSessionById(sessionId) ?: return SessionFinalizationStatus.TARGET_MISSING
 
         if (targetSession.endTime != null) {
+            // A concurrent/fallback path may have closed the session after the caller
+            // prepared an eligible health snapshot but before this transaction acquired
+            // the Room write lock. Preserve that snapshot idempotently on the closed path.
+            if (healthLog != null &&
+                healthLog.sessionId == sessionId &&
+                BatteryHealthEstimator.isValidStoredSnapshot(
+                    estimatedCapacityMah = healthLog.estimatedCapacityMah,
+                    designCapacityMah = healthLog.designCapacityMah,
+                    healthPercentage = healthLog.healthPercentage
+                ) &&
+                countHealthLogsForSession(sessionId) == 0
+            ) {
+                insertHealthLog(healthLog)
+            }
             return SessionFinalizationStatus.ALREADY_CLOSED
         }
 
