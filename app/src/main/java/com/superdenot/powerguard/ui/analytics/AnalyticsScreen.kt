@@ -85,7 +85,7 @@ fun AnalyticsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 12.dp)
     ) {
         // Segmented tab bar hanya ditampilkan jika halaman memiliki beberapa sub-tab.
         if (availableTabs.size > 1) Row(
@@ -212,7 +212,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
                             viewModel.selectSessionForCurve(session.id)
                             expandedSessionId = if (isExpanded) null else session.id
                         }
-                        .padding(horizontal = 10.dp, vertical = 11.dp)
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
