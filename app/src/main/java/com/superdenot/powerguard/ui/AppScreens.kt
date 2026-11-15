@@ -40,7 +40,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val auto by vm.autoMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
-    var expanded by remember { mutableStateOf(setOf<String>()) }
+    var expanded by remember { mutableStateOf(setOf("health", "system", "future")) }
     var comingSoon by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -77,11 +77,29 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         item {
-            ExpandPanel("charge", "Charging Monitor", "Tegangan, arus, durasi, dan efisiensi", expanded, { expanded = expanded.toggle("charge") }) {
-                Text("Tegangan: ${state.voltageMv} mV")
-                Text("Daya masuk sesi: ${String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered)}")
-                Text("Durasi sesi: ${state.sessionDurationSec / 60} menit")
-                Text("CPU Deep Sleep: ${(state.deepSleepRatio * 100).toInt()}%")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.BatteryChargingFull, null, tint = EmeraldCharge, modifier = Modifier.size(22.dp))
+                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                            Text("Charging Monitor", fontWeight = FontWeight.Bold)
+                            Text("Pemantauan daya secara langsung", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        StatusPill(if (state.isCharging) "LIVE" else "STANDBY", if (state.isCharging) EmeraldCharge else AmberThermal)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniMetric("Tegangan", "${state.voltageMv} mV", Modifier.weight(1f))
+                        MiniMetric("Daya masuk", String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered), Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniMetric("Durasi sesi", "${state.sessionDurationSec / 60} mnt", Modifier.weight(1f))
+                        MiniMetric("CPU Deep Sleep", "${(state.deepSleepRatio * 100).toInt()}%", Modifier.weight(1f))
+                    }
+                }
             }
         }
         item {
@@ -186,6 +204,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    var permissionStatusRefreshed by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("SETTINGS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -236,7 +255,23 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }, modifier = Modifier.fillMaxWidth()) { Text("Battery Optimization Settings") }
                     Text("Usage Access: ${if (usage) "Granted" else "Not granted"}")
                     if (!usage) OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } }, modifier = Modifier.fillMaxWidth()) { Text("Usage Access Settings") }
-                    OutlinedButton(onClick = vm::refreshPermissionsAndUsage, modifier = Modifier.fillMaxWidth()) { Text("Refresh Permission Status") }
+                    OutlinedButton(
+                        onClick = {
+                            vm.refreshPermissionsAndUsage()
+                            permissionStatusRefreshed = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Rounded.Refresh, null)
+                        Text("  Perbarui Status Izin")
+                    }
+                    if (permissionStatusRefreshed) {
+                        Text(
+                            "Status izin sudah diperiksa ulang.",
+                            color = EmeraldCharge,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
         }
