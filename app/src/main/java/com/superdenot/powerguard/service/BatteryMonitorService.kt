@@ -17,6 +17,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.superdenot.powerguard.MainActivity
+import com.superdenot.powerguard.R
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
