@@ -71,9 +71,10 @@ import java.util.Locale
 @Composable
 fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    initialSubTab: Int = 0
 ) {
-    var selectedSubTab by remember { mutableIntStateOf(0) }
+    var selectedSubTab by remember { mutableIntStateOf(initialSubTab.coerceIn(0, 2)) }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas App")
 
     Column(
