@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 class PowerGuardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = BatteryRepository(application)
+    private val autoStartRequestInFlight = AtomicBoolean(false)
 
     private val _fallbackLiveState = MutableStateFlow(repository.readDirectSensorSnapshot())
     private val _fallbackUpdatedAtElapsedRealtime = MutableStateFlow(SystemClock.elapsedRealtime())
@@ -97,19 +98,16 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         val snapshot = repository.readDirectSensorSnapshot()
         if (snapshot.isCharging && !BatteryMonitorService.isStartingOrRunning) {
             viewModelScope.launch(Dispatchers.IO) {
-                val enabled = runCatching { repository.isAutoMonitoringEnabled() }
-                    .onFailure { error ->
-                        Log.e("PowerGuard", "Preferensi Auto Monitoring gagal dibaca; pemicu otomatis dibatalkan", error)
-                        _autoMonitoringError.value = "Preferensi Auto Monitoring tidak dapat dibaca; pemantauan otomatis ditahan."
-                    }
-                    .getOrDefault(false)
-                if (enabled && !BatteryMonitorService.isStartingOrRunning) {
-                    runCatching { BatteryMonitorService.requestStartService(getApplication(), manual = false) }
-                        .onFailure { error ->
-                            _autoMonitoringError.value = "Auto Monitoring belum dapat dimulai: periksa izin dan pembatasan sistem."
-                            Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error)
-                        }
+                val enabled = try {
+                    repository.isAutoMonitoringEnabled()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    Log.e("PowerGuard", "Preferensi Auto Monitoring gagal dibaca; pemicu otomatis dibatalkan", error)
+                    _autoMonitoringError.value = "Preferensi Auto Monitoring tidak dapat dibaca; pemantauan otomatis ditahan."
+                    false
                 }
+                if (enabled) requestAutoMonitorStartSafely()
             }
         } else {
             viewModelScope.launch(Dispatchers.IO) {
@@ -133,19 +131,26 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
             // This start is initiated by an explicit foreground UI interaction.
             // Future POWER_CONNECTED broadcasts still require the battery-optimization exemption.
-            if (enabled && repository.readDirectSensorSnapshot().isCharging &&
-                !BatteryMonitorService.isStartingOrRunning
-            ) {
-                try {
-                    BatteryMonitorService.requestStartService(getApplication(), manual = false)
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    _autoMonitoringError.value =
-                        "Pengaturan tersimpan, tetapi layanan belum dapat dimulai. Periksa izin dan pembatasan sistem."
-                    Log.e("PowerGuard", "Preferensi tersimpan tetapi Auto Monitoring gagal dimulai: ${error.message}", error)
-                }
+            if (enabled && repository.readDirectSensorSnapshot().isCharging) {
+                requestAutoMonitorStartSafely()
             }
+        }
+    }
+
+    private fun requestAutoMonitorStartSafely() {
+        if (BatteryMonitorService.isStartingOrRunning ||
+            !autoStartRequestInFlight.compareAndSet(false, true)
+        ) return
+
+        try {
+            BatteryMonitorService.requestStartService(getApplication(), manual = false)
+            _autoMonitoringError.value = null
+        } catch (error: Exception) {
+            _autoMonitoringError.value =
+                "Pengaturan tersimpan, tetapi layanan belum dapat dimulai. Periksa izin dan pembatasan sistem."
+            Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error)
+        } finally {
+            autoStartRequestInFlight.set(false)
         }
     }
 
