@@ -182,6 +182,35 @@ class SessionPersistenceFlowRegressionTest {
     }
 
     @Test
+    fun alreadyClosedRecovery_backfillsEligibleHealthLogExactlyOnce() = runBlocking {
+        val dao = database.batteryDao()
+        val sessionId = dao.insertSession(
+            ChargingSessionEntity(
+                startTime = 1_000L,
+                endTime = 3_000L,
+                startLevel = 20,
+                endLevel = 60,
+                totalMahDelivered = 2_000.0,
+                chargerType = "AC Adapter"
+            )
+        )
+
+        repeat(2) {
+            assertEquals(
+                com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus.ALREADY_CLOSED,
+                dao.finalizeSingleSessionWithReconciledMetrics(
+                    sessionId = sessionId,
+                    endTime = 4_000L,
+                    endLevel = 60,
+                    designCapacityMah = 5_000
+                )
+            )
+        }
+
+        assertEquals(1, dao.countHealthLogsForSession(sessionId))
+    }
+
+    @Test
     fun closedOrMissingSession_rejectsSampleFlushWithoutWritingSample() = runBlocking {
         val dao = database.batteryDao()
         val sessionId = dao.insertSession(
