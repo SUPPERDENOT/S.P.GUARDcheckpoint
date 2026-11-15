@@ -176,6 +176,26 @@ interface BatteryDao {
     ): SessionFinalizationStatus {
         val existing = getSessionById(sessionId) ?: return SessionFinalizationStatus.TARGET_MISSING
         if (existing.endTime != null) {
+            // Startup/recovery may encounter a row closed by an earlier fallback before its
+            // eligible health snapshot was recorded. Backfill once from the durable row.
+            val resolvedEndLevel = existing.endLevel ?: existing.startLevel
+            val estimate = BatteryHealthEstimator.estimate(
+                totalMahDelivered = existing.totalMahDelivered,
+                startLevel = existing.startLevel,
+                endLevel = resolvedEndLevel,
+                designCapacityMah = designCapacityMah
+            )
+            if (estimate != null && countHealthLogsForSession(sessionId) == 0) {
+                insertHealthLog(
+                    BatteryHealthEntity(
+                        timestamp = existing.endTime,
+                        sessionId = sessionId,
+                        estimatedCapacityMah = estimate.estimatedCapacityMah,
+                        designCapacityMah = designCapacityMah,
+                        healthPercentage = estimate.healthPercentage
+                    )
+                )
+            }
             return SessionFinalizationStatus.ALREADY_CLOSED
         }
 
