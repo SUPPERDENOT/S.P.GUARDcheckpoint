@@ -327,7 +327,13 @@ interface BatteryDao {
         updateSession(
             existing.copy(
                 totalMahDelivered = targetTotalMah,
-                avgCurrentMa = if (recoveredAvgCurrentMa != 0) recoveredAvgCurrentMa else existing.avgCurrentMa,
+                // Recovery snapshots can lag behind a newer Room flush. Never replace a
+                // durable non-zero average with an older checkpoint value.
+                avgCurrentMa = if (existing.avgCurrentMa == 0 && recoveredAvgCurrentMa != 0) {
+                    recoveredAvgCurrentMa
+                } else {
+                    existing.avgCurrentMa
+                },
                 maxTempCelsius = targetMaxTemp,
                 isAnomaly = mergedAnomaly,
                 anomalyReason = mergedReason
