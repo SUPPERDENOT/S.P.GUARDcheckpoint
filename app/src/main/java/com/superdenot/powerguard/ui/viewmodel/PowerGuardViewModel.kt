@@ -23,6 +23,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +58,10 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     val designCapacitySetting: StateFlow<DesignCapacitySetting> = repository.designCapacitySettingFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesignCapacitySetting(null, false))
     val autoMonitoringEnabled: StateFlow<Boolean> = repository.autoMonitoringEnabledFlow
+        .catch { error ->
+            Log.e("PowerGuard", "Gagal mengamati preferensi Auto Monitoring; pemicu otomatis dinonaktifkan", error)
+            emit(false)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val _autoMonitoringError = MutableStateFlow<String?>(null)
@@ -90,14 +95,20 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     fun startMonitorIfCharging() {
         val snapshot = repository.readDirectSensorSnapshot()
-        if (snapshot.isCharging) {
+        if (snapshot.isCharging && !BatteryMonitorService.isStartingOrRunning) {
             viewModelScope.launch(Dispatchers.IO) {
                 val enabled = runCatching { repository.isAutoMonitoringEnabled() }
-                    .onFailure { error -> Log.e("PowerGuard", "Preferensi Auto Monitoring gagal dibaca; pemicu otomatis dibatalkan", error) }
+                    .onFailure { error ->
+                        Log.e("PowerGuard", "Preferensi Auto Monitoring gagal dibaca; pemicu otomatis dibatalkan", error)
+                        _autoMonitoringError.value = "Preferensi Auto Monitoring tidak dapat dibaca; pemantauan otomatis ditahan."
+                    }
                     .getOrDefault(false)
-                if (enabled) {
+                if (enabled && !BatteryMonitorService.isStartingOrRunning) {
                     runCatching { BatteryMonitorService.requestStartService(getApplication(), manual = false) }
-                        .onFailure { error -> Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error) }
+                        .onFailure { error ->
+                            _autoMonitoringError.value = "Auto Monitoring belum dapat dimulai: periksa izin dan pembatasan sistem."
+                            Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error)
+                        }
                 }
             }
         } else {
@@ -112,21 +123,28 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
             try {
                 repository.setAutoMonitoringEnabled(enabled)
                 _autoMonitoringError.value = null
-
-                // This start is initiated by an explicit foreground UI interaction.
-                // Future POWER_CONNECTED broadcasts still require the battery-optimization exemption.
-                if (enabled && repository.readDirectSensorSnapshot().isCharging) {
-                    BatteryMonitorService.requestStartService(getApplication(), manual = false)
-                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                _autoMonitoringError.value = if (enabled) {
-                    "Pengaturan Auto Monitoring gagal disimpan. Periksa ruang penyimpanan lalu coba lagi."
-                } else {
-                    "Auto Monitoring gagal dinonaktifkan. Status sebelumnya mungkin masih berlaku."
+                _autoMonitoringError.value = "Pengaturan Auto Monitoring gagal disimpan. Status sebelumnya mungkin masih berlaku."
+                Log.e("PowerGuard", "Gagal menyimpan preferensi Auto Monitoring: ${error.message}", error)
+                return@launch
+            }
+
+            // This start is initiated by an explicit foreground UI interaction.
+            // Future POWER_CONNECTED broadcasts still require the battery-optimization exemption.
+            if (enabled && repository.readDirectSensorSnapshot().isCharging &&
+                !BatteryMonitorService.isStartingOrRunning
+            ) {
+                try {
+                    BatteryMonitorService.requestStartService(getApplication(), manual = false)
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    _autoMonitoringError.value =
+                        "Pengaturan tersimpan, tetapi layanan belum dapat dimulai. Periksa izin dan pembatasan sistem."
+                    Log.e("PowerGuard", "Preferensi tersimpan tetapi Auto Monitoring gagal dimulai: ${error.message}", error)
                 }
-                Log.e("PowerGuard", "Gagal menyimpan/menerapkan Auto Monitoring: ${error.message}", error)
             }
         }
     }
