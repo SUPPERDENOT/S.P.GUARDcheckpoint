@@ -208,6 +208,9 @@ class BatteryMonitorService : Service() {
     @Volatile
     private var actorState: ActorLifecycleState = ActorLifecycleState.STOPPED
     private var monitorJob: Job? = null
+    private var monitorLoopGeneration: Long = -1L
+    @Volatile
+    private var monitorLoopStopping: Boolean = false
     private var activeRunGeneration: Long = 0L
     private var manualMonitoringRequested: Boolean = false
 
@@ -1540,16 +1543,30 @@ class BatteryMonitorService : Service() {
     }
 
     private fun ensureMonitoringLoopRunning() {
-        if (monitorJob?.isActive == true) return
         val runGen = activeRunGeneration
+        val currentJob = monitorJob
+        val currentJobIsHealthy = currentJob?.isActive == true &&
+            monitorLoopGeneration == runGen &&
+            !monitorLoopStopping
+
+        if (currentJobIsHealthy) return
+
+        // Lifecycle handlers call this while holding sharedSessionMutex. Cancelling the
+        // previous job is safe here: its state-mutating loop body also requires that mutex.
+        // Do not join here; the old loop may be waiting for the same mutex.
+        currentJob?.cancel()
+        monitorLoopGeneration = runGen
+        monitorLoopStopping = false
         monitorJob = serviceScope.launch {
             runMonitoringLoop(runGen)
         }
     }
 
     private fun stopMonitoringLoopLocked() {
+        monitorLoopStopping = true
         monitorJob?.cancel()
         monitorJob = null
+        monitorLoopGeneration = -1L
     }
 
     private suspend fun runMonitoringLoop(loopGeneration: Long) {
@@ -1699,6 +1716,7 @@ class BatteryMonitorService : Service() {
                 }
 
                 if (stopLoopForStaleOrStopped) {
+                    monitorLoopStopping = true
                     break
                 }
 
@@ -1708,6 +1726,9 @@ class BatteryMonitorService : Service() {
 
                 val autoStopGeneration = autoStopGenerationToSend
                 if (autoStopGeneration != null) {
+                    // Mark the loop as exiting before notifying the actor. If the actor
+                    // observes a reconnect immediately, it must replace this still-active job.
+                    monitorLoopStopping = true
                     lifecycleChannel.trySend(LifecycleCommand.AutoStop(autoStopGeneration))
                     break
                 }
