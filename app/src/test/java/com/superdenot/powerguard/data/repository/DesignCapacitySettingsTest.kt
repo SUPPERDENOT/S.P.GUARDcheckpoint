@@ -17,6 +17,13 @@ class DesignCapacitySettingsTest {
         assertFalse(AutoMonitoringSettings.resolveEnabled(false))
     }
 
+    @Test fun powerConnectedAutoStartRequiresEnabledPreferenceAndBatteryExemption() {
+        assertTrue(AutoMonitoringSettings.canStartFromPowerConnected(true, true))
+        assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(false, true))
+        assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(true, false))
+        assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(false, false))
+    }
+
     @Test
     fun manualOverrideHasPriorityOverAutomaticCapacity() {
         val result = DesignCapacitySettings.resolveSetting(4800, 5000)
