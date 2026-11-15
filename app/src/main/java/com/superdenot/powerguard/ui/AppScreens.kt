@@ -142,6 +142,11 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 }
             }
         }
+        item {
+            Button(onClick = vm::startManualMonitorService, modifier = Modifier.fillMaxWidth()) {
+                Text(if (running) "Monitor Service Active" else "Start Monitor Service")
+            }
+        }
         item { ComingSoonButton("Smart Charging Limit") { comingSoon = true } }
         item { ComingSoonButton("Charging Schedule") { comingSoon = true } }
     }
