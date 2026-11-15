@@ -10,6 +10,7 @@ import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
+import com.superdenot.powerguard.data.repository.AutoMonitoringSettings
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.service.TargetSessionLookupResult
@@ -45,10 +46,21 @@ class PowerConnectionReceiver : BroadcastReceiver() {
     }
 
     private fun startMonitorServiceSafe(context: Context) {
-        runCatching {
-            BatteryMonitorService.requestStartService(context, manual = false)
-        }.onFailure { error ->
-            Log.e("PowerGuard", "Gagal memulai Foreground Service: ${error.message}", error)
+        val pendingResult = goAsync()
+        val appContext = context.applicationContext
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (AutoMonitoringSettings.isEnabled(appContext)) {
+                    BatteryMonitorService.requestStartService(appContext, manual = false)
+                } else {
+                    Log.i("PowerGuard", "Auto Monitoring nonaktif; pemicu charger/boot diabaikan")
+                }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                Log.e("PowerGuard", "Gagal memulai Foreground Service: ${error.message}", error)
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 

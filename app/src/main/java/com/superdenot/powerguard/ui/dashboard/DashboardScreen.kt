@@ -45,6 +45,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -100,6 +101,7 @@ fun DashboardScreen(
 
     val latestHealth by viewModel.latestHealth.collectAsState()
     val designCapacity by viewModel.designCapacitySetting.collectAsState()
+    val autoMonitoringEnabled by viewModel.autoMonitoringEnabled.collectAsState()
     val isBatteryOptIgnored by viewModel.isBatteryOptimizationIgnored.collectAsState()
     val hasUsagePerm by viewModel.hasUsagePermission.collectAsState()
 
@@ -370,6 +372,23 @@ fun DashboardScreen(
                                 tint = CyanFastCharge
                             )
                         }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Auto Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text("Mulai pemantauan otomatis saat charger terhubung atau HP dinyalakan dalam kondisi charging.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (autoMonitoringEnabled) "Status: Aktif" else "Status: Nonaktif — pemantauan manual tetap tersedia", style = MaterialTheme.typography.labelSmall, color = if (autoMonitoringEnabled) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = autoMonitoringEnabled, onCheckedChange = viewModel::setAutoMonitoringEnabled)
                     }
                 }
             }

@@ -55,6 +55,8 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     val designCapacitySetting: StateFlow<DesignCapacitySetting> = repository.designCapacitySettingFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesignCapacitySetting(null, false))
+    val autoMonitoringEnabled: StateFlow<Boolean> = repository.autoMonitoringEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val _selectedSessionId = MutableStateFlow<Long?>(null)
     val selectedSessionId: StateFlow<Long?> = _selectedSessionId.asStateFlow()
@@ -85,14 +87,22 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun startMonitorIfCharging() {
         val snapshot = repository.readDirectSensorSnapshot()
         if (snapshot.isCharging) {
-            startMonitorService(manual = false)
-        } else {
             viewModelScope.launch(Dispatchers.IO) {
-                runCatching {
-                    BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication())
+                if (repository.isAutoMonitoringEnabled()) {
+                    runCatching {
+                        BatteryMonitorService.requestStartService(getApplication(), manual = false)
+                    }.onFailure { error -> Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error) }
                 }
             }
+        } else {
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
+            }
         }
+    }
+
+    fun setAutoMonitoringEnabled(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) { repository.setAutoMonitoringEnabled(enabled) }
     }
 
     fun startManualMonitorService() {

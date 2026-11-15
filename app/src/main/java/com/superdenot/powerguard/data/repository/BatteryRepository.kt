@@ -32,6 +32,10 @@ class BatteryRepository(private val context: Context) {
 
     val designCapacitySettingFlow: Flow<DesignCapacitySetting> =
         DesignCapacitySettings.observe(context, engine)
+    val autoMonitoringEnabledFlow: Flow<Boolean> = AutoMonitoringSettings.observe(context)
+
+    suspend fun isAutoMonitoringEnabled(): Boolean = AutoMonitoringSettings.isEnabled(context)
+    suspend fun setAutoMonitoringEnabled(enabled: Boolean) = AutoMonitoringSettings.setEnabled(context, enabled)
 
     suspend fun saveCustomDesignCapacity(capacityMah: Int) {
         DesignCapacitySettings.saveManual(context, capacityMah)

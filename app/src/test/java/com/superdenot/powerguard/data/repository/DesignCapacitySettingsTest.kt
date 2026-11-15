@@ -8,6 +8,15 @@ import org.junit.Test
 
 class DesignCapacitySettingsTest {
 
+    @Test fun autoMonitoringDefaultsToEnabledForExistingInstallations() {
+        assertTrue(AutoMonitoringSettings.resolveEnabled(null))
+    }
+
+    @Test fun autoMonitoringPreferenceCanBeEnabledOrDisabled() {
+        assertTrue(AutoMonitoringSettings.resolveEnabled(true))
+        assertFalse(AutoMonitoringSettings.resolveEnabled(false))
+    }
+
     @Test
     fun manualOverrideHasPriorityOverAutomaticCapacity() {
         val result = DesignCapacitySettings.resolveSetting(4800, 5000)
