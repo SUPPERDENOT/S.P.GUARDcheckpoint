@@ -102,6 +102,7 @@ fun DashboardScreen(
     val latestHealth by viewModel.latestHealth.collectAsState()
     val designCapacity by viewModel.designCapacitySetting.collectAsState()
     val autoMonitoringEnabled by viewModel.autoMonitoringEnabled.collectAsState()
+    val autoMonitoringError by viewModel.autoMonitoringError.collectAsState()
     val isBatteryOptIgnored by viewModel.isBatteryOptimizationIgnored.collectAsState()
     val hasUsagePerm by viewModel.hasUsagePermission.collectAsState()
 
@@ -386,7 +387,18 @@ fun DashboardScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Auto Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text("Atur pemicu otomatis saat charger terhubung atau HP dinyalakan dalam kondisi charging. Sesi yang sedang berjalan tidak dihentikan oleh toggle ini.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(if (autoMonitoringEnabled) "Status: Aktif" else "Status: Nonaktif — pemantauan manual tetap tersedia", style = MaterialTheme.typography.labelSmall, color = if (autoMonitoringEnabled) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = when {
+                                    !autoMonitoringEnabled -> "Status: Nonaktif — pemantauan manual tetap tersedia"
+                                    isBatteryOptIgnored -> "Status: Aktif — pengecualian optimasi baterai tersedia"
+                                    else -> "Status: Aktif — auto-start saat charger terhubung menunggu izin pengecualian baterai"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (autoMonitoringEnabled && isBatteryOptIgnored) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            autoMonitoringError?.let { error ->
+                                Text(error, style = MaterialTheme.typography.bodySmall, color = CrimsonAnomaly)
+                            }
                         }
                         Switch(checked = autoMonitoringEnabled, onCheckedChange = viewModel::setAutoMonitoringEnabled)
                     }
@@ -427,13 +439,13 @@ fun DashboardScreen(
                                     .fillMaxWidth()
                                     .height(46.dp)
                             ) {
-                                Text("Izinkan Abaikan Optimasi Baterai (Wajib)")
+                                Text("Izinkan Abaikan Optimasi Baterai untuk Auto-start")
                             }
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = EmeraldCharge, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Bebas pembatasan latar belakang Android", style = MaterialTheme.typography.bodySmall)
+                                Text("Pengecualian optimasi baterai aktif", style = MaterialTheme.typography.bodySmall)
                             }
                         }
 
