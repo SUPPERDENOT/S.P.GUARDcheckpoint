@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
@@ -170,6 +172,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val error by vm.autoMonitoringError.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
+    val capacity by vm.designCapacitySetting.collectAsState()
+    var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -188,6 +192,26 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         Switch(checked = auto, onCheckedChange = vm::setAutoMonitoringEnabled)
                     }
                     error?.let { Text(it, color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Battery Capacity", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Design capacity: ${capacity.capacityMah?.let { "$it mAh" } ?: "Not available"}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "Source: ${if (capacity.isManualOverride) "Manual override" else "Automatic"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(onClick = { showCapacityDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Edit, null)
+                        Text("  Edit Design Capacity")
+                    }
                 }
             }
         }
@@ -224,6 +248,48 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     }
     if (comingSoon) ComingSoonDialog { comingSoon = false }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
+    if (showCapacityDialog) {
+        var inputText by remember(capacity.capacityMah) {
+            mutableStateOf(capacity.capacityMah?.toString().orEmpty())
+        }
+        AlertDialog(
+            onDismissRequest = { showCapacityDialog = false },
+            title = { Text("Kapasitas Desain Baterai") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Automatic.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it.filter(Char::isDigit) },
+                        label = { Text("Kapasitas (mAh)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
+                    onClick = {
+                        inputText.toIntOrNull()?.let(vm::updateDesignCapacity)
+                        showCapacityDialog = false
+                    }
+                ) { Text("Simpan") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        vm.useAutomaticDesignCapacity()
+                        showCapacityDialog = false
+                    }) { Text("Gunakan Automatic") }
+                    TextButton(onClick = { showCapacityDialog = false }) { Text("Batal") }
+                }
+            }
+        )
+    }
 }
 
 @Composable
