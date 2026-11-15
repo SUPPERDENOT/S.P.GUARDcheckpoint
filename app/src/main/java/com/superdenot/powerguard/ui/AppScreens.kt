@@ -71,12 +71,6 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { expanded = setOf("charge", "health", "system", "future") }, modifier = Modifier.weight(1f)) { Text("Expand All") }
-                OutlinedButton(onClick = { expanded = emptySet() }, modifier = Modifier.weight(1f)) { Text("Collapse All") }
-            }
-        }
-        item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(18.dp),
