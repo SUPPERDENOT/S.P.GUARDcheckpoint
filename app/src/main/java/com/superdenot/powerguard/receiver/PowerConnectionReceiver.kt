@@ -58,16 +58,15 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val enabled = AutoMonitoringSettings.isEnabled(appContext)
-                val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
-                val batteryOptimizationIgnored =
-                    powerManager.isIgnoringBatteryOptimizations(appContext.packageName)
-
                 val allowed = if (requiresBatteryOptimizationExemption) {
+                    val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
                     AutoMonitoringSettings.canStartFromPowerConnected(
                         autoMonitoringEnabled = enabled,
-                        batteryOptimizationIgnored = batteryOptimizationIgnored
+                        batteryOptimizationIgnored =
+                            powerManager.isIgnoringBatteryOptimizations(appContext.packageName)
                     )
                 } else {
+                    // Avoid an unnecessary system-service dependency for the BOOT_COMPLETED path.
                     enabled
                 }
 
