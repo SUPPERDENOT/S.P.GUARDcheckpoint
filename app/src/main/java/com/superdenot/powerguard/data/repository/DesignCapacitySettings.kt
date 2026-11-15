@@ -61,8 +61,18 @@ object DesignCapacitySettings {
 /** Preferensi pemantauan otomatis saat perangkat mulai mengisi daya. Default ON menjaga perilaku versi sebelumnya. */
 object AutoMonitoringSettings {
     internal fun resolveEnabled(preferenceValue: Boolean?): Boolean = preferenceValue ?: true
-    fun observe(context: Context): Flow<Boolean> = context.powerGuardDataStore.data.map { resolveEnabled(it[KEY_AUTO_MONITORING_ENABLED]) }
-    suspend fun isEnabled(context: Context): Boolean = resolveEnabled(context.powerGuardDataStore.data.first()[KEY_AUTO_MONITORING_ENABLED])
+
+    internal fun canStartFromPowerConnected(
+        autoMonitoringEnabled: Boolean,
+        batteryOptimizationIgnored: Boolean
+    ): Boolean = autoMonitoringEnabled && batteryOptimizationIgnored
+
+    fun observe(context: Context): Flow<Boolean> =
+        context.powerGuardDataStore.data.map { resolveEnabled(it[KEY_AUTO_MONITORING_ENABLED]) }
+
+    suspend fun isEnabled(context: Context): Boolean =
+        resolveEnabled(context.powerGuardDataStore.data.first()[KEY_AUTO_MONITORING_ENABLED])
+
     suspend fun setEnabled(context: Context, enabled: Boolean) {
         context.powerGuardDataStore.edit { it[KEY_AUTO_MONITORING_ENABLED] = enabled }
     }
