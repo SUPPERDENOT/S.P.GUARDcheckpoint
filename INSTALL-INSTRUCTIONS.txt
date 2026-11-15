@@ -1,0 +1,31 @@
+SUPERD POWER GUARD — MANUAL LAUNCHER ICON INSTALL
+
+Target branch: hardening/p0-recovery
+Repository: SUPPERDENOT/S.P.GUARDcheckpoint
+
+1. Open the repository on the target branch.
+2. Upload/merge the contents of this ZIP into the repository root.
+   The ZIP already uses the exact app/src/main/res/... paths.
+3. Allow GitHub to replace files with matching names.
+4. Do not upload this ZIP as a nested folder and do not change AndroidManifest.xml.
+5. Commit the resource replacement to hardening/p0-recovery only.
+6. Run the Android CI workflow and install the resulting APK to verify the launcher icon.
+
+Files included:
+- drawable/ic_launcher_background.xml
+- mipmap-anydpi-v26/ic_launcher.xml
+- mipmap-anydpi-v26/ic_launcher_round.xml
+- mipmap-hdpi/ic_launcher.png
+- mipmap-mdpi/ic_launcher.png
+- mipmap-xhdpi/ic_launcher.png
+- mipmap-xxhdpi/ic_launcher.png
+- mipmap-xxxhdpi/ic_launcher.png
+- mipmap-xxxhdpi/ic_launcher_foreground.png
+
+The existing AndroidManifest.xml already references @mipmap/ic_launcher and
+@mipmap/ic_launcher_round, so no manifest edit is required.
+
+Important:
+- Upload to branch hardening/p0-recovery, NOT main.
+- This package replaces launcher icon resources only. It does not change the
+  app label, notification small icon, or in-app UI.
