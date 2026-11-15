@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.os.PowerManager
 import android.util.Log
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
@@ -29,7 +30,9 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
                 if (isDeviceCurrentlyCharging(context)) {
-                    startMonitorServiceSafe(context)
+                    // BOOT_COMPLETED is an Android background-FGS exemption, subject to
+                    // foreground-service-type restrictions on the device's OS version.
+                    startMonitorServiceSafe(context, requiresBatteryOptimizationExemption = false)
                 } else if (!BatteryMonitorService.isStartingOrRunning &&
                     !BatteryMonitorService.hasActiveServiceSessionFor()
                 ) {
@@ -37,7 +40,8 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                 }
             }
             Intent.ACTION_POWER_CONNECTED -> {
-                startMonitorServiceSafe(context)
+                // POWER_CONNECTED is not itself a general background-FGS exemption.
+                startMonitorServiceSafe(context, requiresBatteryOptimizationExemption = true)
             }
             Intent.ACTION_POWER_DISCONNECTED -> {
                 handlePowerDisconnected(context)
@@ -45,19 +49,41 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun startMonitorServiceSafe(context: Context) {
+    private fun startMonitorServiceSafe(
+        context: Context,
+        requiresBatteryOptimizationExemption: Boolean
+    ) {
         val pendingResult = goAsync()
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (AutoMonitoringSettings.isEnabled(appContext)) {
-                    BatteryMonitorService.requestStartService(appContext, manual = false)
+                val enabled = AutoMonitoringSettings.isEnabled(appContext)
+                val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+                val batteryOptimizationIgnored =
+                    powerManager.isIgnoringBatteryOptimizations(appContext.packageName)
+
+                val allowed = if (requiresBatteryOptimizationExemption) {
+                    AutoMonitoringSettings.canStartFromPowerConnected(
+                        autoMonitoringEnabled = enabled,
+                        batteryOptimizationIgnored = batteryOptimizationIgnored
+                    )
                 } else {
+                    enabled
+                }
+
+                if (allowed) {
+                    BatteryMonitorService.requestStartService(appContext, manual = false)
+                } else if (!enabled) {
                     Log.i("PowerGuard", "Auto Monitoring nonaktif; pemicu charger/boot diabaikan")
+                } else {
+                    Log.w(
+                        "PowerGuard",
+                        "Auto-start saat charger terhubung dilewati: pengecualian optimasi baterai belum diberikan"
+                    )
                 }
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
-                Log.e("PowerGuard", "Gagal memulai Foreground Service: ${error.message}", error)
+                Log.e("PowerGuard", "Gagal memulai Foreground Service dari receiver: ${error.message}", error)
             } finally {
                 pendingResult.finish()
             }
