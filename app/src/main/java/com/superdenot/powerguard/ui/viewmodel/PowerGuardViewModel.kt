@@ -88,10 +88,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         val snapshot = repository.readDirectSensorSnapshot()
         if (snapshot.isCharging) {
             viewModelScope.launch(Dispatchers.IO) {
-                if (repository.isAutoMonitoringEnabled()) {
-                    runCatching {
-                        BatteryMonitorService.requestStartService(getApplication(), manual = false)
-                    }.onFailure { error -> Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error) }
+                val enabled = runCatching { repository.isAutoMonitoringEnabled() }
+                    .onFailure { error -> Log.e("PowerGuard", "Preferensi Auto Monitoring gagal dibaca; pemicu otomatis dibatalkan", error) }
+                    .getOrDefault(false)
+                if (enabled) {
+                    runCatching { BatteryMonitorService.requestStartService(getApplication(), manual = false) }
+                        .onFailure { error -> Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error) }
                 }
             }
         } else {

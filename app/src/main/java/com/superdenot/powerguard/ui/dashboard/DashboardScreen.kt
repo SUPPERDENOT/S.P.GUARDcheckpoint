@@ -385,7 +385,7 @@ fun DashboardScreen(
                     Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Auto Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text("Mulai pemantauan otomatis saat charger terhubung atau HP dinyalakan dalam kondisi charging.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Atur pemicu otomatis saat charger terhubung atau HP dinyalakan dalam kondisi charging. Sesi yang sedang berjalan tidak dihentikan oleh toggle ini.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(if (autoMonitoringEnabled) "Status: Aktif" else "Status: Nonaktif — pemantauan manual tetap tersedia", style = MaterialTheme.typography.labelSmall, color = if (autoMonitoringEnabled) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = autoMonitoringEnabled, onCheckedChange = viewModel::setAutoMonitoringEnabled)
