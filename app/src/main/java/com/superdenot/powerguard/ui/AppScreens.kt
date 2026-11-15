@@ -157,12 +157,22 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    AnalyticsScreen(viewModel = vm, contentPadding = padding, initialSubTab = 1)
+    AnalyticsScreen(
+        viewModel = vm,
+        contentPadding = padding,
+        initialSubTab = 1,
+        visibleSubTabs = listOf(1, 2)
+    )
 }
 
 @Composable
 fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    AnalyticsScreen(viewModel = vm, contentPadding = padding, initialSubTab = 0)
+    AnalyticsScreen(
+        viewModel = vm,
+        contentPadding = padding,
+        initialSubTab = 0,
+        visibleSubTabs = listOf(0)
+    )
 }
 
 @Composable

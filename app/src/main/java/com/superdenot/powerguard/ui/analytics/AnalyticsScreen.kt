@@ -72,9 +72,13 @@ import java.util.Locale
 fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
     contentPadding: PaddingValues,
-    initialSubTab: Int = 0
+    initialSubTab: Int = 0,
+    visibleSubTabs: List<Int> = listOf(0, 1, 2)
 ) {
-    var selectedSubTab by remember { mutableIntStateOf(initialSubTab.coerceIn(0, 2)) }
+    val availableTabs = visibleSubTabs.filter { it in 0..2 }.ifEmpty { listOf(0) }
+    var selectedSubTab by remember(availableTabs, initialSubTab) {
+        mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
+    }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas App")
 
     Column(
@@ -83,8 +87,8 @@ fun AnalyticsScreen(
             .padding(contentPadding)
             .padding(horizontal = 16.dp)
     ) {
-        // Segmented tab bar simetris 1 baris (mencegah teks terpotong vertikal)
-        Row(
+        // Segmented tab bar hanya ditampilkan jika halaman memiliki beberapa sub-tab.
+        if (availableTabs.size > 1) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
@@ -95,7 +99,8 @@ fun AnalyticsScreen(
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            subTabs.forEachIndexed { index, title ->
+            availableTabs.forEach { index ->
+                val title = subTabs[index]
                 val isSelected = selectedSubTab == index
                 Surface(
                     onClick = {
