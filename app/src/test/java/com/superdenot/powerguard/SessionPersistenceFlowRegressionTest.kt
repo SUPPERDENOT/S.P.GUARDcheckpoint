@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.dao.SampleFlushStatus
+import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import kotlinx.coroutines.flow.first
@@ -135,6 +136,49 @@ class SessionPersistenceFlowRegressionTest {
         // 0.75 mAh for the first 1s interval + 0.5 mAh for the last;
         // the 8s gap is excluded and negative current is treated as zero.
         assertEquals(1.25, finalized.totalMahDelivered, 0.0001)
+    }
+
+    @Test
+    fun alreadyClosedFinalization_persistsEligibleHealthLogExactlyOnce() = runBlocking {
+        val dao = database.batteryDao()
+        val sessionId = dao.insertSession(
+            ChargingSessionEntity(
+                startTime = 1_000L,
+                endTime = 3_000L,
+                startLevel = 20,
+                endLevel = 60,
+                totalMahDelivered = 2_000.0,
+                chargerType = "AC Adapter"
+            )
+        )
+        val healthLog = BatteryHealthEntity(
+            timestamp = 3_000L,
+            sessionId = sessionId,
+            estimatedCapacityMah = 5_000,
+            designCapacityMah = 5_000,
+            healthPercentage = 100f
+        )
+
+        repeat(2) {
+            assertEquals(
+                com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus.ALREADY_CLOSED,
+                dao.finalizeSessionAtomically(
+                    sessionId = sessionId,
+                    endTime = 4_000L,
+                    endLevel = 60,
+                    totalMahDelivered = 2_000.0,
+                    avgCurrentMa = 1_800,
+                    maxTempCelsius = 37f,
+                    hasAnomaly = false,
+                    anomalyReason = null,
+                    deepSleepRatio = 0f,
+                    finalSample = null,
+                    healthLog = healthLog
+                )
+            )
+        }
+
+        assertEquals(1, dao.countHealthLogsForSession(sessionId))
     }
 
     @Test
