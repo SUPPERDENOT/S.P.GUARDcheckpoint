@@ -18,6 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -51,16 +53,16 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(title = {
-                            Text("SUPERD POWER GUARD", fontWeight = FontWeight.Bold)
+                            Text("SUPERD POWER GUARD", fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 0.35.sp, maxLines = 1)
                         })
                     },
                     bottomBar = {
-                        NavigationBar {
-                            NavigationBarItem(currentTab == 0, { currentTab = 0 }, icon = { Icon(Icons.Rounded.Home, null) }, label = { Text(labels[0]) })
-                            NavigationBarItem(currentTab == 1, { currentTab = 1 }, icon = { Icon(Icons.Rounded.BatteryChargingFull, null) }, label = { Text(labels[1]) })
-                            NavigationBarItem(currentTab == 2, { currentTab = 2 }, icon = { Icon(Icons.Rounded.Insights, null) }, label = { Text(labels[2]) })
-                            NavigationBarItem(currentTab == 3, { currentTab = 3 }, icon = { Icon(Icons.Rounded.History, null) }, label = { Text(labels[3]) })
-                            NavigationBarItem(currentTab == 4, { currentTab = 4 }, icon = { Icon(Icons.Rounded.Settings, null) }, label = { Text(labels[4]) })
+                        NavigationBar(modifier = Modifier.height(68.dp), tonalElevation = 2.dp) {
+                            NavigationBarItem(currentTab == 0, { currentTab = 0 }, icon = { Icon(Icons.Rounded.Home, null, modifier = Modifier.size(21.dp)) }, label = { Text(labels[0], fontSize = 10.sp, maxLines = 1) })
+                            NavigationBarItem(currentTab == 1, { currentTab = 1 }, icon = { Icon(Icons.Rounded.BatteryChargingFull, null, modifier = Modifier.size(21.dp)) }, label = { Text(labels[1], fontSize = 10.sp, maxLines = 1) })
+                            NavigationBarItem(currentTab == 2, { currentTab = 2 }, icon = { Icon(Icons.Rounded.Insights, null, modifier = Modifier.size(21.dp)) }, label = { Text(labels[2], fontSize = 10.sp, maxLines = 1) })
+                            NavigationBarItem(currentTab == 3, { currentTab = 3 }, icon = { Icon(Icons.Rounded.History, null, modifier = Modifier.size(21.dp)) }, label = { Text(labels[3], fontSize = 10.sp, maxLines = 1) })
+                            NavigationBarItem(currentTab == 4, { currentTab = 4 }, icon = { Icon(Icons.Rounded.Settings, null, modifier = Modifier.size(21.dp)) }, label = { Text(labels[4], fontSize = 10.sp, maxLines = 1) })
                         }
                     }
                 ) { padding ->
