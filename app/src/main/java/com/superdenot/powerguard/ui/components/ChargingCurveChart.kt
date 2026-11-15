@@ -63,7 +63,7 @@ fun ChargingCurveChart(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-            .padding(16.dp)
+            .padding(12.dp)
     ) {
         Text(
             text = "Charging Curve Analyzer (Arus • Suhu • Level)",
@@ -89,7 +89,7 @@ fun ChargingCurveChart(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(110.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -107,7 +107,7 @@ fun ChargingCurveChart(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(190.dp)
+                    .height(125.dp)
                     .pointerInput(samples) {
                         detectTapGestures { offset ->
                             selectedIndexState.intValue = (
