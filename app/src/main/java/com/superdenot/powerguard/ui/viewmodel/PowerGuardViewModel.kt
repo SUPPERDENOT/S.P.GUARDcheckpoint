@@ -104,7 +104,13 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun setAutoMonitoringEnabled(enabled: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) { repository.setAutoMonitoringEnabled(enabled) }
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.setAutoMonitoringEnabled(enabled)
+            if (enabled && repository.readDirectSensorSnapshot().isCharging) {
+                runCatching { BatteryMonitorService.requestStartService(getApplication(), manual = false) }
+                    .onFailure { error -> Log.e("PowerGuard", "Auto Monitoring gagal dimulai setelah diaktifkan: ${error.message}", error) }
+            }
+        }
     }
 
     fun startManualMonitorService() {
