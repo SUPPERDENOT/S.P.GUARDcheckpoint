@@ -182,6 +182,53 @@ class SessionPersistenceFlowRegressionTest {
     }
 
     @Test
+    fun recoveryReconciliation_doesNotReplaceDurableAverageWithStaleSnapshot() = runBlocking {
+        val dao = database.batteryDao()
+        val durableAverageSessionId = dao.insertSession(
+            ChargingSessionEntity(
+                startTime = 1_000L,
+                startLevel = 30,
+                avgCurrentMa = 2_100,
+                totalMahDelivered = 100.0,
+                chargerType = "AC Adapter"
+            )
+        )
+        assertTrue(
+            dao.reconcileRecoveredSessionAtomically(
+                sessionId = durableAverageSessionId,
+                recoveredTotalMah = 150.0,
+                recoveredAvgCurrentMa = 1_500,
+                recoveredMaxTempCelsius = 37f,
+                recoveredHasAnomaly = false,
+                recoveredAnomalyReason = null,
+                recoveredSample = null
+            )
+        )
+        assertEquals(2_100, dao.getSessionById(durableAverageSessionId)!!.avgCurrentMa)
+
+        val missingAverageSessionId = dao.insertSession(
+            ChargingSessionEntity(
+                startTime = 1_000L,
+                startLevel = 30,
+                avgCurrentMa = 0,
+                chargerType = "AC Adapter"
+            )
+        )
+        assertTrue(
+            dao.reconcileRecoveredSessionAtomically(
+                sessionId = missingAverageSessionId,
+                recoveredTotalMah = 150.0,
+                recoveredAvgCurrentMa = 1_800,
+                recoveredMaxTempCelsius = 37f,
+                recoveredHasAnomaly = false,
+                recoveredAnomalyReason = null,
+                recoveredSample = null
+            )
+        )
+        assertEquals(1_800, dao.getSessionById(missingAverageSessionId)!!.avgCurrentMa)
+    }
+
+    @Test
     fun alreadyClosedRecovery_backfillsEligibleHealthLogExactlyOnce() = runBlocking {
         val dao = database.batteryDao()
         val sessionId = dao.insertSession(
