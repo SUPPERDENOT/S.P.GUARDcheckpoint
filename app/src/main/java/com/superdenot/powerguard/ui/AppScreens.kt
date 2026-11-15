@@ -235,7 +235,7 @@ private fun ExpandPanel(id: String, title: String, subtitle: String, expanded: S
             }
             if (open) {
                 HorizontalDivider(Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp), content = body)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { body() }
             }
         }
     }
