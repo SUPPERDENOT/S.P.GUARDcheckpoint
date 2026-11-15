@@ -40,7 +40,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val auto by vm.autoMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
-    var expanded by remember { mutableStateOf(setOf("health", "system", "future")) }
+    var expanded by remember { mutableStateOf(setOf<String>()) }
     var comingSoon by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
