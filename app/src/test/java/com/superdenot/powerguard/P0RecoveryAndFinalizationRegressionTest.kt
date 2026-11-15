@@ -296,7 +296,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         val updatedSession = faultDao.getSessionById(sessionId)
         assertNotNull(updatedSession)
         assertEquals(850.0, updatedSession!!.totalMahDelivered, 0.001)
-        assertEquals(1500, updatedSession.avgCurrentMa)
+        assertEquals("Rata-rata durable Room tidak boleh ditimpa checkpoint recovery", 1400, updatedSession.avgCurrentMa)
         assertEquals(38.5f, updatedSession.maxTempCelsius, 0.01f)
         assertTrue(updatedSession.isAnomaly)
         assertEquals("SLOW_CHARGING", updatedSession.anomalyReason)
@@ -1660,7 +1660,7 @@ class P0RecoveryAndFinalizationRegressionTest {
 
         val row = faultDao.getSessionById(sessionId)!!
         assertEquals(650.0, row.totalMahDelivered, 0.001)
-        assertEquals(1600, row.avgCurrentMa)
+        assertEquals("Recovery berulang tidak boleh menimpa rata-rata durable Room", 1400, row.avgCurrentMa)
         assertEquals(38.0f, row.maxTempCelsius, 0.01f)
         assertEquals("SLOW_CHARGING", row.anomalyReason)
         assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, batchTs))
