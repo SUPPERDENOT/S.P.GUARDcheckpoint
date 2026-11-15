@@ -3190,7 +3190,7 @@ class BatteryMonitorService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle("PowerGuard Aktif")
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
+            .setSmallIcon(R.drawable.ic_status_turbo_ring)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
