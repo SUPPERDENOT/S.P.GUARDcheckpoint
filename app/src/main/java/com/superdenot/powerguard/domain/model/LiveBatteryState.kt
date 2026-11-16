@@ -8,7 +8,8 @@ data class LiveBatteryState(
     val tempCelsius: Float = 0f,
     val isCharging: Boolean = false,
     val chargeSource: String = "Discharging",
-    val isFastCharging: Boolean = false,
+    // Null means Android/device firmware does not expose a verifiable charging protocol.
+    val chargingProtocol: String? = null,
     val sessionMahDelivered: Double = 0.0,
     val sessionDurationSec: Long = 0L,
     val deepSleepRatio: Float = 0f,
