@@ -7,6 +7,8 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
 import java.util.LinkedHashMap
+import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * Renders a compact, monochrome glyph suitable for a notification small icon.
@@ -16,6 +18,32 @@ import java.util.LinkedHashMap
  * converted to a fabricated zero value.
  */
 internal object LiveStatusBarRenderer {
+
+    enum class Parameter {
+        TEMPERATURE,
+        VOLTAGE,
+        CURRENT,
+        POWER,
+        BATTERY_PERCENTAGE,
+        CHARGING_STATUS
+    }
+
+    /**
+     * Formats the exact LiveBatteryState instance used by the app UI.
+     * Unavailable readings are represented as N/A; valid zero readings remain visible.
+     */
+    fun format(state: com.superdenot.powerguard.domain.model.LiveBatteryState, parameter: Parameter): String {
+        return when (parameter) {
+            Parameter.TEMPERATURE -> if (state.isTemperatureAvailable) "${state.tempCelsius.roundToInt()}°" else "N/A"
+            Parameter.VOLTAGE -> if (state.isVoltageAvailable) String.format(Locale.US, "%.1fV", state.voltageMv / 1000f) else "N/A"
+            Parameter.CURRENT -> if (state.isCurrentAvailable) String.format(Locale.US, "%.1fA", state.currentMa / 1000f) else "N/A"
+            Parameter.POWER -> if (state.isPowerAvailable) String.format(Locale.US, "%.1fW", state.powerWatt) else "N/A"
+            Parameter.BATTERY_PERCENTAGE -> if (state.isLevelAvailable) "${state.level}%" else "N/A"
+            Parameter.CHARGING_STATUS -> if (state.isChargingStatusAvailable) {
+                if (state.isCharging) "CHG" else "DIS"
+            } else "N/A"
+        }
+    }
 
     const val ICON_WIDTH = 112
     const val ICON_HEIGHT = 64
