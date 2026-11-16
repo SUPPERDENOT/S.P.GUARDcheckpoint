@@ -31,6 +31,8 @@ class AnomalyDetector(private val context: Context) {
         if (state.isTemperatureAvailable && state.tempCelsius >= 41.0f &&
             state.isCurrentAvailable && state.currentMa < 500
         ) {
+            // Pause/reset progress timers while thermal control may intentionally limit charging.
+            chargingProgressTracker.reset()
             return AnomalyResult(
                 isAnomaly = true,
                 code = "THERMAL_THROTTLING",
