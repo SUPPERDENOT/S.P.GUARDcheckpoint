@@ -56,9 +56,9 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.BatteryChargingFull, null, tint = if (state.isCharging) EmeraldCharge else CyanFastCharge, modifier = Modifier.size(27.dp))
-                            Text("  ${state.level}%", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                            Text("  ${if (state.isLevelAvailable) "${state.level}%" else "N/A"}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
                         }
-                        StatusPill(if (state.isCharging) "CHARGING" else "DISCHARGING", if (state.isCharging) EmeraldCharge else AmberThermal)
+                        StatusPill(if (!state.isChargingStatusAvailable) "STATUS N/A" else if (state.isCharging) "CHARGING" else "DISCHARGING", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
                     }
                     Text(if (state.isFastCharging) "⚡ FAST CHARGING • ${state.chargeSource}" else state.chargeSource.uppercase(Locale.getDefault()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -112,15 +112,15 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(20.dp)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("${state.level}%", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = EmeraldCharge)
-                    StatusPill(if (state.isCharging) "CHARGING • ${state.chargeSource}" else "NOT CHARGING", if (state.isCharging) EmeraldCharge else AmberThermal)
+                    Text(if (state.isLevelAvailable) "${state.level}%" else "N/A", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = EmeraldCharge)
+                    StatusPill(if (!state.isChargingStatusAvailable) "STATUS N/A" else if (state.isCharging) "CHARGING • ${state.chargeSource}" else "NOT CHARGING", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Current", "${state.currentMa} mA", Modifier.weight(1f))
-                        MiniMetric("Power", String.format(Locale.US, "%.2f W", state.powerWatt), Modifier.weight(1f))
+                        MiniMetric("Current", if (state.isCurrentAvailable) "${state.currentMa} mA" else "N/A", Modifier.weight(1f))
+                        MiniMetric("Power", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "N/A", Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Voltage", "${state.voltageMv} mV", Modifier.weight(1f))
-                        MiniMetric("Temperature", String.format(Locale.US, "%.1f°C", state.tempCelsius), Modifier.weight(1f))
+                        MiniMetric("Voltage", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "N/A", Modifier.weight(1f))
+                        MiniMetric("Temperature", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "N/A", Modifier.weight(1f))
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f))
                     Text("Session delivered: ${String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered)}")
