@@ -62,37 +62,10 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                     Text(if (state.isFastCharging) "⚡ FAST CHARGING • ${state.chargeSource}" else state.chargeSource.uppercase(Locale.getDefault()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Arus", "${state.currentMa} mA", Modifier.weight(1f))
-                        MiniMetric("Daya", String.format(Locale.US, "%.2f W", state.powerWatt), Modifier.weight(1f))
-                        MiniMetric("Suhu", String.format(Locale.US, "%.1f°C", state.tempCelsius), Modifier.weight(1f))
+                        MiniMetric("Monitoring", if (running) "ACTIVE" else "STANDBY", Modifier.weight(1f))
+                        MiniMetric("Auto Start", if (auto) "ON" else "OFF", Modifier.weight(1f))
                     }
                     state.anomalyAlert?.let { Text("PERHATIAN: $it", color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) }
-                }
-            }
-        }
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.BatteryChargingFull, null, tint = EmeraldCharge, modifier = Modifier.size(22.dp))
-                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                            Text("Charging Monitor", fontWeight = FontWeight.Bold)
-                            Text("Pemantauan daya secara langsung", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        StatusPill(if (state.isCharging) "LIVE" else "STANDBY", if (state.isCharging) EmeraldCharge else AmberThermal)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Tegangan", "${state.voltageMv} mV", Modifier.weight(1f))
-                        MiniMetric("Daya masuk", String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered), Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Durasi sesi", "${state.sessionDurationSec / 60} mnt", Modifier.weight(1f))
-                        MiniMetric("CPU Deep Sleep", "${(state.deepSleepRatio * 100).toInt()}%", Modifier.weight(1f))
-                    }
                 }
             }
         }
@@ -169,22 +142,34 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    AnalyticsScreen(
-        viewModel = vm,
-        contentPadding = padding,
-        initialSubTab = 1,
-        visibleSubTabs = listOf(1, 2)
-    )
+    Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Text("INSIGHTS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Tren siklus dan aktivitas perangkat", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        AnalyticsScreen(
+            viewModel = vm,
+            contentPadding = PaddingValues(0.dp),
+            initialSubTab = 1,
+            visibleSubTabs = listOf(1, 2)
+        )
+    }
 }
 
 @Composable
 fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    AnalyticsScreen(
-        viewModel = vm,
-        contentPadding = padding,
-        initialSubTab = 0,
-        visibleSubTabs = listOf(0)
-    )
+    Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Text("HISTORY", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Riwayat sesi dan kurva pengisian", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        AnalyticsScreen(
+            viewModel = vm,
+            contentPadding = PaddingValues(0.dp),
+            initialSubTab = 0,
+            visibleSubTabs = listOf(0)
+        )
+    }
 }
 
 @Composable

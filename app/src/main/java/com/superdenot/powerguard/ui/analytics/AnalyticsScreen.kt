@@ -149,6 +149,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
     val samples by viewModel.selectedSessionSamples.collectAsState()
     val liveState by viewModel.liveState.collectAsState()
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
+    var showCurve by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessions) {
         if (selectedSessionId == null && sessions.isNotEmpty()) {
@@ -162,15 +163,29 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Grafik tetap berada di atas; hanya riwayat sesi di bawah yang dapat digulir.
-        ChargingCurveChart(samples = samples)
-
-        Text(
-            text = "Riwayat Sesi Pengisian",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "${sessions.size} sesi tersimpan • pilih sesi untuk detail",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            androidx.compose.material3.TextButton(onClick = { showCurve = !showCurve }) {
+                Text(if (showCurve) "Tutup Kurva" else "Lihat Kurva")
+            }
+        }
+        AnimatedVisibility(
+            visible = showCurve,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            ChargingCurveChart(samples = samples)
+        }
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
