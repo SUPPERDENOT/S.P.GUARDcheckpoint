@@ -439,7 +439,7 @@ private fun SessionHistoryCard(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 10.dp)) {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
@@ -508,7 +508,7 @@ private fun SessionDetailMiniBox(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = Color.Black.copy(alpha = 0.22f),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(10.dp),
         modifier = modifier
     ) {
