@@ -217,7 +217,6 @@ class P0RecoveryAndFinalizationRegressionTest {
             tempCelsius = tempCelsius,
             isCharging = isCharging,
             chargeSource = if (isCharging) "AC Adapter" else "Discharging",
-            isFastCharging = isCharging,
             sessionMahDelivered = sessionMah,
             sessionDurationSec = sessionDurationSec,
             deepSleepRatio = 0.4f,
