@@ -38,7 +38,7 @@ internal object LiveStatusBarRenderer {
      */
     fun render(displayText: String?): Bitmap? {
         val text = displayText?.trim()
-            ?.takeIf { it.isNotEmpty() && it.length <= MAX_TEXT_LENGTH && it.none(Char::isISOControl) }
+            ?.takeIf { it.isNotEmpty() && it.length <= MAX_TEXT_LENGTH && it.none { char -> char.code < 0x20 || char.code in 0x7f..0x9f } }
             ?: return null
 
         return synchronized(cacheLock) {
