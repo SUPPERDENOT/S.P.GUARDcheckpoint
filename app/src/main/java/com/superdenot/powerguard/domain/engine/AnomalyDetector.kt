@@ -67,6 +67,11 @@ class AnomalyDetector(private val context: Context) {
                     message = "Pengisian belum menunjukkan kenaikan level baterai selama sedikitnya 45 menit, sementara arus terukur rendah (≤300 mA). Periksa sumber daya, kabel, konektor, dan beban perangkat." + wakelockHint
                 )
             }
+            ChargingProgressTracker.Issue.CHARGING_PROGRESS_NOT_OBSERVED -> AnomalyResult(
+                isAnomaly = true,
+                code = "CHARGING_PROGRESS_NOT_OBSERVED",
+                message = "Status Android menunjukkan pengisian, tetapi persentase baterai tidak bertambah selama sedikitnya 90 menit. Ini belum membuktikan adaptor gagal: beban perangkat, pembatasan suhu, atau pembacaan level baterai dapat memengaruhi hasil. Periksa arus, suhu, dan penggunaan perangkat."
+            )
         }
     }
 
