@@ -102,7 +102,7 @@ class NotificationVisualRendererTest {
             )
         )
         assertEquals(R.drawable.ic_status_anomaly, activeAnomaly.smallIconResId)
-        assertEquals(NotificationVisualRenderer.COLOR_CRIMSON_ANOMALY, activeAnomaly.accentColor)
+        assertEquals(NotificationVisualRenderer.COLOR_AMBER_THERMAL, activeAnomaly.accentColor)
 
         val recoveryHold = NotificationVisualRenderer.resolveMonitorVisualSpec(
             LiveBatteryState(isCharging = false, chargeSource = "Discharging", tempCelsius = 33.0f),
@@ -207,6 +207,7 @@ class NotificationVisualRendererTest {
             val monitorNotification: Notification =
                 service.buildMonitorNotificationForTesting("+1850 mA (7.6W) • 33.0°C")
             assertNotNull(monitorNotification)
+            assertEquals("SUPERD GUARD", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertNotEquals(0, monitorNotification.icon)
             assertNotEquals(0, monitorNotification.color)
             assertNotNull(NotificationCompat.getLargeIcon(monitorNotification))
@@ -214,6 +215,7 @@ class NotificationVisualRendererTest {
             val anomalyNotification: Notification =
                 service.buildAnomalyAlertNotificationForTesting("Suhu baterai tinggi (42.5°C).")
             assertNotNull(anomalyNotification)
+            assertEquals("SUPERD GUARD • Peringatan Daya", anomalyNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertEquals(R.drawable.ic_status_anomaly, anomalyNotification.icon)
             assertEquals(NotificationVisualRenderer.COLOR_CRIMSON_ANOMALY, anomalyNotification.color)
             assertNotNull(NotificationCompat.getLargeIcon(anomalyNotification))
@@ -241,6 +243,23 @@ class NotificationVisualRendererTest {
                 spec.accentColor
             )
         }
+    }
+
+    @Test
+    fun bitmapCache_isBoundedAndEvictionDoesNotRecycleIssuedBitmaps() {
+        val base = NotificationVisualRenderer.resolveMonitorVisualSpec(
+            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 32.0f)
+        )
+        val first = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
+            context, base.copy(cacheKey = "eviction-0")
+        )
+        repeat(NotificationVisualRenderer.MAX_CACHE_ENTRIES + 4) { index ->
+            NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
+                context, base.copy(cacheKey = "eviction-$index")
+            )
+        }
+        assertTrue(NotificationVisualRenderer.cacheSize() <= NotificationVisualRenderer.MAX_CACHE_ENTRIES)
+        assertFalse("An evicted bitmap may still be referenced by NotificationManager", first.isRecycled)
     }
 
     @Test
