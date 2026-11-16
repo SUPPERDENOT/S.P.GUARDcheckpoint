@@ -3180,69 +3180,70 @@ class BatteryMonitorService : Service() {
         notificationManager.createNotificationChannel(alertChannel)
     }
 
-    private fun resolveMonitorNotificationIcon(): Int {
-        val state = if (_lastSensorUpdateElapsedRealtime.value > 0L) {
-            _liveState.value
-        } else {
-            runCatching { resolveEngine().readCurrentState() }.getOrDefault(_liveState.value)
-        }
-
-        if (!state.isCharging) return R.drawable.ic_status_standby
-        if (state.tempCelsius >= 41f) return R.drawable.ic_status_temp_hot
-
-        return when (state.chargeSource) {
-            "USB Port" -> R.drawable.ic_status_usb
-            "AC Adapter" -> if (state.isFastCharging) {
-                R.drawable.ic_status_turbo_ring
-            } else {
-                R.drawable.ic_status_ac
-            }
-            "Wireless" -> R.drawable.ic_status_wireless
-            else -> if (state.isFastCharging) {
-                R.drawable.ic_status_turbo_ring
-            } else {
-                R.drawable.ic_status_temp_normal
-            }
-        }
+    private fun resolveNotificationBatteryState(): LiveBatteryState {
+        return if (_lastSensorUpdateElapsedRealtime.value > 0L) _liveState.value
+        else runCatching { resolveEngine().readCurrentState() }.getOrDefault(_liveState.value)
     }
 
-    private fun buildMonitorNotification(contentText: String): Notification {
-        val openAppIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
+    private fun resolveMonitorNotificationIcon(): Int {
+        val state = resolveNotificationBatteryState()
+        return NotificationVisualRenderer.resolveMonitorVisualSpec(
+            state, actorState == ActorLifecycleState.RECOVERY_HOLD
+        ).smallIconResId
+    }
 
+    internal fun buildMonitorNotificationForTesting(contentText: String): Notification =
+        buildMonitorNotification(contentText)
+
+    internal fun buildAnomalyAlertNotificationForTesting(
+        alertMessage: String,
+        anomalyCode: String? = null
+    ): Notification = buildAnomalyAlertNotification(alertMessage, anomalyCode)
+
+    private fun buildMonitorNotification(contentText: String): Notification {
+        val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val state = resolveNotificationBatteryState()
+        val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
+            state, actorState == ActorLifecycleState.RECOVERY_HOLD
+        )
+        val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
+            context = applicationContext, spec = visualSpec, isFastCharging = state.isFastCharging
+        )
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle("SUPERD GUARD")
             .setContentText(contentText)
-            .setSmallIcon(resolveMonitorNotificationIcon())
+            .setSubText(visualSpec.subText)
+            .setSmallIcon(visualSpec.smallIconResId)
+            .setColor(visualSpec.accentColor)
+            .setLargeIcon(largeIcon)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
     }
 
-    private fun sendAnomalyAlertNotification(alertMessage: String) {
-        val openAppIntent = PendingIntent.getActivity(
-            this,
-            1,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_ANOMALY)
-            .setContentTitle("⚠️ Peringatan Daya & Pengisian")
+    private fun buildAnomalyAlertNotification(alertMessage: String, anomalyCode: String? = null): Notification {
+        val openAppIntent = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val visualSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(alertMessage, anomalyCode)
+        val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
+        return NotificationCompat.Builder(this, CHANNEL_ANOMALY)
+            .setContentTitle("SUPERD GUARD • Peringatan Daya")
             .setContentText(alertMessage)
+            .setSubText(visualSpec.subText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(alertMessage))
-            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setSmallIcon(visualSpec.smallIconResId)
+            .setColor(visualSpec.accentColor)
+            .setLargeIcon(largeIcon)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent)
             .setAutoCancel(true)
             .build()
+    }
 
-        notificationManager.notify(ANOMALY_NOTIFICATION_ID, notification)
+    private fun sendAnomalyAlertNotification(alertMessage: String, anomalyCode: String) {
+        notificationManager.notify(ANOMALY_NOTIFICATION_ID, buildAnomalyAlertNotification(alertMessage, anomalyCode))
     }
 
     override fun onDestroy() {
