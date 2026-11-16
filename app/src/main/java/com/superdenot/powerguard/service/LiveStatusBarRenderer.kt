@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -19,27 +20,18 @@ import kotlin.math.roundToInt
  */
 internal object LiveStatusBarRenderer {
 
-    enum class Parameter {
-        TEMPERATURE,
-        VOLTAGE,
-        CURRENT,
-        POWER,
-        BATTERY_PERCENTAGE,
-        CHARGING_STATUS
-    }
-
     /**
      * Formats the exact LiveBatteryState instance used by the app UI.
      * Unavailable readings are represented as N/A; valid zero readings remain visible.
      */
-    fun format(state: com.superdenot.powerguard.domain.model.LiveBatteryState, parameter: Parameter): String {
+    fun format(state: com.superdenot.powerguard.domain.model.LiveBatteryState, parameter: StatusBarParameter): String {
         return when (parameter) {
-            Parameter.TEMPERATURE -> if (state.isTemperatureAvailable) "${state.tempCelsius.roundToInt()}°" else "N/A"
-            Parameter.VOLTAGE -> if (state.isVoltageAvailable) String.format(Locale.US, "%.1fV", state.voltageMv / 1000f) else "N/A"
-            Parameter.CURRENT -> if (state.isCurrentAvailable) String.format(Locale.US, "%.1fA", state.currentMa / 1000f) else "N/A"
-            Parameter.POWER -> if (state.isPowerAvailable) String.format(Locale.US, "%.1fW", state.powerWatt) else "N/A"
-            Parameter.BATTERY_PERCENTAGE -> if (state.isLevelAvailable) "${state.level}%" else "N/A"
-            Parameter.CHARGING_STATUS -> if (state.isChargingStatusAvailable) {
+            StatusBarParameter.TEMPERATURE -> if (state.isTemperatureAvailable) "${state.tempCelsius.roundToInt()}°" else "N/A"
+            StatusBarParameter.VOLTAGE -> if (state.isVoltageAvailable) String.format(Locale.US, "%.1fV", state.voltageMv / 1000f) else "N/A"
+            StatusBarParameter.CURRENT -> if (state.isCurrentAvailable) String.format(Locale.US, "%.1fA", state.currentMa / 1000f) else "N/A"
+            StatusBarParameter.POWER -> if (state.isPowerAvailable) String.format(Locale.US, "%.1fW", state.powerWatt) else "N/A"
+            StatusBarParameter.BATTERY_PERCENTAGE -> if (state.isLevelAvailable) "${state.level}%" else "N/A"
+            StatusBarParameter.CHARGING_STATUS -> if (state.isChargingStatusAvailable) {
                 if (state.isCharging) "CHG" else "DIS"
             } else "N/A"
         }
