@@ -18,7 +18,7 @@ class ChargingProgressTrackerTest {
 
     @Test
     fun unavailableCurrentIsNotEvidenceOfChargerFailure() {
-        val tracker = ChargingProgressTracker(noInputThresholdMs = 1L)
+        val tracker = ChargingProgressTracker(noInputThresholdMs = 1L, noLevelProgressThresholdMs = 1L)
         val state = LiveBatteryState(isCharging = true, level = 40, currentMa = 0, isCurrentAvailable = false)
         assertNull(tracker.evaluate(state, 1_000L))
         assertNull(tracker.evaluate(state, 600_000L))
@@ -34,8 +34,26 @@ class ChargingProgressTrackerTest {
     }
 
     @Test
-    fun levelIncreaseRestartsNoProgressWindow() {
-        val tracker = ChargingProgressTracker(stalledProgressThresholdMs = 100L)
+    fun reportsNoLevelProgressAfterNinetyMinutesEvenWhenCurrentIsHigher() {
+        val tracker = ChargingProgressTracker(
+            stalledProgressThresholdMs = 10_000_000L,
+            noLevelProgressThresholdMs = 5_400_000L
+        )
+        val state = LiveBatteryState(isCharging = true, level = 40, currentMa = 1_800)
+        assertNull(tracker.evaluate(state, 1_000L))
+        assertNull(tracker.evaluate(state, 5_400_999L))
+        assertEquals(
+            ChargingProgressTracker.Issue.CHARGING_PROGRESS_NOT_OBSERVED,
+            tracker.evaluate(state, 5_401_000L)
+        )
+    }
+
+    @Test
+    fun levelIncreaseRestartsProgressWindows() {
+        val tracker = ChargingProgressTracker(
+            stalledProgressThresholdMs = 100L,
+            noLevelProgressThresholdMs = 200L
+        )
         val first = LiveBatteryState(isCharging = true, level = 40, currentMa = 200)
         val increased = first.copy(level = 41)
         assertNull(tracker.evaluate(first, 0L))
@@ -46,7 +64,7 @@ class ChargingProgressTrackerTest {
 
     @Test
     fun resetsWhenChargingStopsOrSensorsAreUnavailable() {
-        val tracker = ChargingProgressTracker(noInputThresholdMs = 100L)
+        val tracker = ChargingProgressTracker(noInputThresholdMs = 100L, noLevelProgressThresholdMs = 100L)
         val charging = LiveBatteryState(isCharging = true, level = 40, currentMa = 0)
         assertNull(tracker.evaluate(charging, 0L))
         assertNull(tracker.evaluate(charging.copy(isCharging = false), 200L))
