@@ -2,6 +2,7 @@ package com.superdenot.powerguard.service
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import com.superdenot.powerguard.PowerGuardTestApplication
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [34], application = PowerGuardTestApplication::class, manifest = Config.NONE)
 class LiveStatusBarRendererTest {
 
     @After
