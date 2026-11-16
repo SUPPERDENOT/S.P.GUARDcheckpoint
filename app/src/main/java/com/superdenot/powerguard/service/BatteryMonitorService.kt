@@ -297,20 +297,8 @@ class BatteryMonitorService : Service() {
     private fun observeStatusBarIndicatorSettings() {
         serviceScope.launch {
             StatusBarIndicatorSettings.observe(applicationContext).collect { setting ->
+                // The existing monitoring loop applies the new icon on its next notification refresh.
                 statusBarIndicatorSetting = setting
-                val isActive = actorState == ActorLifecycleState.RUNNING_CHARGING ||
-                    actorState == ActorLifecycleState.RUNNING_MANUAL ||
-                    actorState == ActorLifecycleState.RECOVERY_HOLD
-                if (isActive) {
-                    runCatching {
-                        notificationManager.notify(
-                            MONITOR_NOTIFICATION_ID,
-                            buildMonitorNotification("Pemantauan sensor daya aktif")
-                        )
-                    }.onFailure { error ->
-                        Log.w("PowerGuard", "Gagal menerapkan preferensi indikator status bar: ${error.message}", error)
-                    }
-                }
             }
         }
     }
