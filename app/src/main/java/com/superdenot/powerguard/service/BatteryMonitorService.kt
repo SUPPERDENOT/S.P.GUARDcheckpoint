@@ -3180,6 +3180,32 @@ class BatteryMonitorService : Service() {
         notificationManager.createNotificationChannel(alertChannel)
     }
 
+    private fun resolveMonitorNotificationIcon(): Int {
+        val state = if (_lastSensorUpdateElapsedRealtime.value > 0L) {
+            _liveState.value
+        } else {
+            runCatching { resolveEngine().readCurrentState() }.getOrDefault(_liveState.value)
+        }
+
+        if (!state.isCharging) return R.drawable.ic_status_standby
+        if (state.tempCelsius >= 41f) return R.drawable.ic_status_temp_hot
+
+        return when (state.chargeSource) {
+            "USB Port" -> R.drawable.ic_status_usb
+            "AC Adapter" -> if (state.isFastCharging) {
+                R.drawable.ic_status_turbo_ring
+            } else {
+                R.drawable.ic_status_ac
+            }
+            "Wireless" -> R.drawable.ic_status_wireless
+            else -> if (state.isFastCharging) {
+                R.drawable.ic_status_turbo_ring
+            } else {
+                R.drawable.ic_status_temp_normal
+            }
+        }
+    }
+
     private fun buildMonitorNotification(contentText: String): Notification {
         val openAppIntent = PendingIntent.getActivity(
             this,
@@ -3191,7 +3217,7 @@ class BatteryMonitorService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle("PowerGuard Aktif")
             .setContentText(contentText)
-            .setSmallIcon(R.drawable.ic_status_turbo_ring)
+            .setSmallIcon(resolveMonitorNotificationIcon())
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
