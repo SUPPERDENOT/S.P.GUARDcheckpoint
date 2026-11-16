@@ -41,59 +41,83 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val auto by vm.autoMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
-    var expanded by remember { mutableStateOf(setOf<String>()) }
-    var comingSoon by remember { mutableStateOf(false) }
 
-    LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         item {
-            Column(Modifier.padding(top = 14.dp)) {
-                Text("CONTROL CENTER", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                Text("Ringkasan kondisi daya perangkat", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Column(Modifier.padding(top = 8.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("RINGKASAN DAYA", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text("Kondisi baterai saat ini", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Pembacaan langsung dari sistem perangkat", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.BatteryChargingFull, null, tint = if (state.isCharging) EmeraldCharge else CyanFastCharge, modifier = Modifier.size(27.dp))
-                            Text("  ${if (state.isLevelAvailable) "${state.level}%" else "N/A"}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("LEVEL BATERAI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
+                            Text(if (state.isLevelAvailable) "${state.level}%" else "—", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
-                        StatusPill(if (!state.isChargingStatusAvailable) "STATUS N/A" else if (state.isCharging) "CHARGING" else "DISCHARGING", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
+                        StatusPill(
+                            if (!state.isChargingStatusAvailable) "STATUS TIDAK TERSEDIA" else if (state.isCharging) "MENGISI" else "TIDAK MENGISI",
+                            if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal
+                        )
                     }
-                    Text(if (state.isCharging) "${state.chargeSource.uppercase(Locale.getDefault())} • PROTOCOL ${state.chargingProtocol?.uppercase(Locale.getDefault()) ?: "UNKNOWN"}" else "DISCHARGING", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Monitoring", if (running) "ACTIVE" else "STANDBY", Modifier.weight(1f))
-                        MiniMetric("Auto Start", if (auto) "ON" else "OFF", Modifier.weight(1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text(
+                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Protokol: ${state.chargingProtocol ?: "Tidak diketahui"}" else "Perangkat sedang menggunakan daya baterai",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        MiniMetric("Arus baterai", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f))
+                        MiniMetric("Pemantauan", if (running) "Aktif" else "Siaga", Modifier.weight(1f))
                     }
-                    state.anomalyAlert?.let { Text("PERHATIAN: $it", color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) }
+                    state.anomalyAlert?.let {
+                        Surface(color = CrimsonAnomaly.copy(alpha = .10f), shape = RoundedCornerShape(10.dp)) {
+                            Text("Perlu diperiksa: $it", Modifier.padding(12.dp), color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
         }
         item {
-            ExpandPanel("health", "Battery Health", "Estimasi kapasitas dan acuan desain", expanded, { expanded = expanded.toggle("health") }) {
-                Text(health?.let { "Estimasi kapasitas: ${it.estimatedCapacityMah} mAh" } ?: "Estimasi kesehatan belum tersedia.")
-                health?.let { Text("Kesehatan: ${String.format(Locale.US, "%.1f", it.healthPercentage)}%") }
-                Text("Kapasitas desain: ${capacity.capacityMah?.let { "$it mAh" } ?: "Tidak tersedia"}")
-                Text("Sumber: ${if (capacity.isManualOverride) "Manual" else "Automatic"}")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionHeading("PARAMETER BATERAI", "Nilai pengukuran yang tersedia")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MiniMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f))
+                    MiniMetric("Tegangan", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "—", Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MiniMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "—", Modifier.weight(1f))
+                    MiniMetric("Sesi", "${state.sessionDurationSec / 60} menit", Modifier.weight(1f))
+                }
             }
         }
         item {
-            ExpandPanel("system", "System Readiness", "Status pemantauan dan izin sistem", expanded, { expanded = expanded.toggle("system") }) {
-                Text("Auto Monitoring: ${if (auto) "Aktif" else "Nonaktif"}")
+            ExpandPanel("health", "Kesehatan baterai", "Estimasi kapasitas dan acuan desain", emptySet(), {}) {
+                Text(health?.let { "Estimasi kapasitas: ${it.estimatedCapacityMah} mAh" } ?: "Belum cukup data untuk estimasi kesehatan.")
+                health?.let { Text("Estimasi kesehatan: ${String.format(Locale.US, "%.1f", it.healthPercentage)}%") }
+                Text("Kapasitas desain: ${capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia"}")
+                Text("Sumber kapasitas: ${if (capacity.isManualOverride) "Manual" else "Otomatis"}")
+            }
+        }
+        item {
+            ExpandPanel("system", "Kesiapan sistem", "Izin dan pemantauan latar belakang", emptySet(), {}) {
+                Text("Pemantauan otomatis: ${if (auto) "Aktif" else "Nonaktif"}")
                 Text("Optimasi baterai: ${if (batteryOpt) "Dikecualikan" else "Belum dikecualikan"}")
-                Text("Usage Access: ${if (usage) "Diizinkan" else "Belum diizinkan"}")
-            }
-        }
-        item {
-            ExpandPanel("future", "Fitur Mendatang", "Modul yang sedang disiapkan", expanded, { expanded = expanded.toggle("future") }) {
-                ComingSoonButton("Smart Charging Protection") { comingSoon = true }
-                ComingSoonButton("Advanced Battery Diagnostics") { comingSoon = true }
+                Text("Akses penggunaan: ${if (usage) "Diizinkan" else "Belum diizinkan"}")
             }
         }
         item { Spacer(Modifier.height(12.dp)) }
     }
-    if (comingSoon) ComingSoonDialog { comingSoon = false }
 }
 
 @Composable
@@ -104,73 +128,88 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val serviceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
     val fallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
-    var comingSoon by remember { mutableStateOf(false) }
-    LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+    LazyColumn(
+        Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         item {
-            Text("CHARGING", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Live charging analysis", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("DIAGNOSTIK PENGISIAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+                Text("Analisis pengisian baterai", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Pantau sumber daya, pembacaan baterai, dan perkembangan sesi.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(if (state.isLevelAvailable) "${state.level}%" else "N/A", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = EmeraldCharge)
-                    StatusPill(if (!state.isChargingStatusAvailable) "STATUS N/A" else if (state.isCharging) "CHARGING • ${state.chargeSource}" else "NOT CHARGING", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
-                    Text("Protocol: ${state.chargingProtocol ?: "Unknown (not exposed by Android/device)"}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Current", if (state.isCurrentAvailable) "${state.currentMa} mA" else "N/A", Modifier.weight(1f))
-                        MiniMetric("Power", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "N/A", Modifier.weight(1f))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("LEVEL BATERAI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
+                            Text(if (state.isLevelAvailable) "${state.level}%" else "—", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+                        }
+                        StatusPill(if (!state.isChargingStatusAvailable) "STATUS TIDAK TERSEDIA" else if (state.isCharging) "MENGISI" else "TIDAK MENGISI", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MiniMetric("Voltage", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "N/A", Modifier.weight(1f))
-                        MiniMetric("Temperature", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "N/A", Modifier.weight(1f))
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f))
-                    Text("Session delivered: ${String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered)}")
-                    Text("Session duration: ${state.sessionDurationSec / 60} min")
-                    Text("CPU Deep Sleep: ${(state.deepSleepRatio * 100).toInt()}%")
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    DiagnosticLine("Sumber daya", if (state.isCharging) state.chargeSource else "Tidak terhubung")
+                    DiagnosticLine("Protokol", state.chargingProtocol ?: "Tidak diketahui — tidak diekspos perangkat")
                 }
             }
         }
         item {
-            Button(onClick = vm::startManualMonitorService, modifier = Modifier.fillMaxWidth()) {
-                Text(if (running) "Monitor Service Active" else "Start Monitor Service")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionHeading("PEMBACAAN BATERAI", "Nilai pada sisi baterai, bukan keluaran adaptor")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
+                    MiniMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MiniMetric("Tegangan", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "Tidak tersedia", Modifier.weight(1f))
+                    MiniMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "Tidak tersedia", Modifier.weight(1f))
+                }
             }
         }
-        item { ComingSoonButton("Smart Charging Limit") { comingSoon = true } }
-        item { ComingSoonButton("Charging Schedule") { comingSoon = true } }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionHeading("RINGKASAN SESI", "Perubahan yang tercatat sejak pengisian dimulai")
+                    DiagnosticLine("Muatan bersih tercatat", String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered))
+                    DiagnosticLine("Durasi sesi", "${state.sessionDurationSec / 60} menit")
+                    DiagnosticLine("CPU deep sleep", "${(state.deepSleepRatio * 100).toInt()}%")
+                }
+            }
+        }
+        item {
+            OutlinedButton(onClick = vm::startManualMonitorService, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Text(if (running) "Layanan pemantauan aktif" else "Mulai pemantauan manual")
+            }
+        }
     }
-    if (comingSoon) ComingSoonDialog { comingSoon = false }
 }
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     Column(Modifier.fillMaxSize().padding(padding)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Text("INSIGHTS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Tren siklus dan aktivitas perangkat", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("INSIGHTS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+            Text("Pola penggunaan daya", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
-        AnalyticsScreen(
-            viewModel = vm,
-            contentPadding = PaddingValues(0.dp),
-            initialSubTab = 1,
-            visibleSubTabs = listOf(1, 2)
-        )
+        AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 1, visibleSubTabs = listOf(1, 2))
     }
 }
 
 @Composable
 fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     Column(Modifier.fillMaxSize().padding(padding)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Text("HISTORY", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Riwayat sesi dan kurva pengisian", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("RIWAYAT", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+            Text("Sesi dan kurva pengisian", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
-        AnalyticsScreen(
-            viewModel = vm,
-            contentPadding = PaddingValues(0.dp),
-            initialSubTab = 0,
-            visibleSubTabs = listOf(0)
-        )
+        AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 0, visibleSubTabs = listOf(0))
     }
 }
 
@@ -188,18 +227,18 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     var permissionStatusRefreshed by remember { mutableStateOf(false) }
-    LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Text("SETTINGS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Preferences & system access", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("PENGATURAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Preferensi aplikasi", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Auto Monitoring", fontWeight = FontWeight.Bold)
-                            Text("Mulai pemantauan otomatis saat charger tersambung.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Pemantauan otomatis", fontWeight = FontWeight.Bold)
+                            Text("Mulai memantau saat pengisi daya tersambung.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = auto, onCheckedChange = vm::setAutoMonitoringEnabled)
                     }
@@ -212,9 +251,9 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Live Status Bar Indicator", fontWeight = FontWeight.Bold)
+                            Text("Indikator status bar", fontWeight = FontWeight.Bold)
                             Text(
-                                "Tampilkan satu data baterai pada ikon notifikasi di status bar.",
+                                "Tampilkan satu parameter baterai pada ikon di status bar.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -224,7 +263,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                             onCheckedChange = vm::setStatusBarIndicatorEnabled
                         )
                     }
-                    Text("Displayed parameter", style = MaterialTheme.typography.labelMedium)
+                    Text("Parameter yang ditampilkan", style = MaterialTheme.typography.labelMedium)
                     Box {
                         OutlinedButton(
                             enabled = statusBarSetting.enabled,
@@ -259,13 +298,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Battery Capacity", fontWeight = FontWeight.Bold)
+                    Text("Kapasitas baterai", fontWeight = FontWeight.Bold)
                     Text(
-                        "Design capacity: ${capacity.capacityMah?.let { "$it mAh" } ?: "Not available"}",
+                        "Design capacity: ${capacity.capacityMah?.let { "$it mAh" } ?: "Tidak tersedia"}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "Source: ${if (capacity.isManualOverride) "Manual override" else "Automatic"}",
+                        "Source: ${if (capacity.isManualOverride) "Manual" else "Automatic"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -279,14 +318,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Android Permissions", fontWeight = FontWeight.Bold)
-                    Text("Battery optimization: ${if (batteryOpt) "Exempted" else "Not exempted"}")
+                    Text("Akses Android", fontWeight = FontWeight.Bold)
+                    Text("Battery optimization: ${if (batteryOpt) "Dikecualikan" else "Belum dikecualikan"}")
                     if (!batteryOpt) OutlinedButton(onClick = {
                         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply { data = Uri.parse("package:${context.packageName}") }
                         runCatching { context.startActivity(intent) }
-                    }, modifier = Modifier.fillMaxWidth()) { Text("Battery Optimization Settings") }
-                    Text("Usage Access: ${if (usage) "Granted" else "Not granted"}")
-                    if (!usage) OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } }, modifier = Modifier.fillMaxWidth()) { Text("Usage Access Settings") }
+                    }, modifier = Modifier.fillMaxWidth()) { Text("Pengaturan optimasi baterai") }
+                    Text("Usage Access: ${if (usage) "Diizinkan" else "Belum diizinkan"}")
+                    if (!usage) OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } }, modifier = Modifier.fillMaxWidth()) { Text("Pengaturan akses penggunaan") }
                     OutlinedButton(
                         onClick = {
                             vm.refreshPermissionsAndUsage()
@@ -310,16 +349,16 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Personalization", fontWeight = FontWeight.Bold)
-                    ComingSoonButton("Alert Sound Studio") { comingSoon = true }
-                    ComingSoonButton("Custom Alert Profiles") { comingSoon = true }
+                    Text("Personalisasi", fontWeight = FontWeight.Bold)
+                    ComingSoonButton("Studio nada peringatan") { comingSoon = true }
+                    ComingSoonButton("Profil peringatan khusus") { comingSoon = true }
                 }
             }
         }
         item {
             OutlinedButton(onClick = { showInfo = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Rounded.Info, null)
-                Text("  About SUPERD POWER GUARD")
+                Text("  Tentang SUPERD POWER GUARD")
             }
         }
     }
@@ -391,7 +430,7 @@ private fun ExpandPanel(id: String, title: String, subtitle: String, expanded: S
 
 @Composable
 private fun MiniMetric(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(modifier, color = Color.Black.copy(alpha = .16f), shape = RoundedCornerShape(12.dp)) {
+    Surface(modifier, color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp)) {
         Column(Modifier.padding(10.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -423,7 +462,7 @@ fun ComingSoonDialog(onDismiss: () -> Unit) {
         text = { Text("Fitur ini sedang disiapkan dan akan tersedia pada pembaruan SUPERD POWER GUARD berikutnya.") },
         confirmButton = {
             Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)) {
-                Text("OK", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Mengerti", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         shape = RoundedCornerShape(22.dp),
