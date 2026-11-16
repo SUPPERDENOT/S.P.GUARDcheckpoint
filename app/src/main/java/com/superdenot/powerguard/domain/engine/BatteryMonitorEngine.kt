@@ -42,6 +42,7 @@ class BatteryMonitorEngine(private val context: Context) {
         val batteryPct = if (isLevelAvailable) (level * 100) / scale else 0
 
         val status = intentStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val isChargingStatusAvailable = status in BatteryManager.BATTERY_STATUS_CHARGING..BatteryManager.BATTERY_STATUS_FULL
         val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL
 
@@ -93,7 +94,8 @@ class BatteryMonitorEngine(private val context: Context) {
             isCurrentAvailable = isCurrentAvailable,
             isVoltageAvailable = isVoltageAvailable,
             isTemperatureAvailable = isTemperatureAvailable,
-            isPowerAvailable = isPowerAvailable
+            isPowerAvailable = isPowerAvailable,
+            isChargingStatusAvailable = isChargingStatusAvailable
         )
     }
 
