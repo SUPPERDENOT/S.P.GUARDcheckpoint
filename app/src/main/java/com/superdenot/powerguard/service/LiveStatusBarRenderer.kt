@@ -14,16 +14,11 @@ import kotlin.math.roundToInt
 /**
  * Renders a compact, monochrome glyph suitable for a notification small icon.
  *
- * This class deliberately accepts an already validated display string. Sensor availability
- * belongs to the data/service layer; a missing reading must be passed as null rather than
- * converted to a fabricated zero value.
+ * Dimensions and typography are density-scaled, following the proven Wattz status-icon
+ * approach. SystemUI still controls the final status-bar slot size.
  */
 internal object LiveStatusBarRenderer {
 
-    /**
-     * Formats the exact LiveBatteryState instance used by the app UI.
-     * Unavailable readings are represented as N/A; valid zero readings remain visible.
-     */
     fun format(state: com.superdenot.powerguard.domain.model.LiveBatteryState, parameter: StatusBarParameter): String {
         return when (parameter) {
             StatusBarParameter.TEMPERATURE -> if (state.isTemperatureAvailable) "${state.tempCelsius.roundToInt()}°" else "N/A"
@@ -37,61 +32,67 @@ internal object LiveStatusBarRenderer {
         }
     }
 
-    const val ICON_WIDTH = 112
-    const val ICON_HEIGHT = 64
+    const val ICON_SIZE_DP = 48
     const val MAX_CACHE_ENTRIES = 32
-    private const val HORIZONTAL_PADDING = 5f
-    private const val VERTICAL_PADDING = 4f
+    private const val HORIZONTAL_PADDING_DP = 1f
+    private const val BASE_TEXT_SIZE_DP = 28f
+    private const val MIN_TEXT_SIZE_DP = 10f
     private const val MAX_TEXT_LENGTH = 8
-    private const val BASE_TEXT_SIZE = 42f
-    private const val MIN_TEXT_SIZE = 12f
+
+    private data class CacheKey(val text: String, val densityBits: Int)
 
     private val cacheLock = Any()
-    private val bitmapCache = object : LinkedHashMap<String, Bitmap>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Bitmap>?): Boolean =
+    private val bitmapCache = object : LinkedHashMap<CacheKey, Bitmap>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<CacheKey, Bitmap>?): Boolean =
             size > MAX_CACHE_ENTRIES
     }
 
     /**
-     * Returns null for unavailable/blank input. The caller must not replace unavailable sensor
-     * readings with zero; zero is a valid reading for several battery measurements.
+     * Returns null for unavailable/blank input. Density is supplied by the Android display
+     * metrics so the bitmap's physical dimensions and text scale together on high-density screens.
      */
-    fun render(displayText: String?): Bitmap? {
+    fun render(displayText: String?, density: Float = 1f): Bitmap? {
         val text = displayText?.trim()
             ?.takeIf { it.isNotEmpty() && it.length <= MAX_TEXT_LENGTH && it.none { char -> char.code < 0x20 || char.code in 0x7f..0x9f } }
             ?: return null
+        val safeDensity = density.takeIf { it.isFinite() && it > 0f } ?: 1f
+        val key = CacheKey(text, safeDensity.toBits())
 
         return synchronized(cacheLock) {
-            bitmapCache[text] ?: renderBitmap(text).also { bitmapCache[text] = it }
+            bitmapCache[key] ?: renderBitmap(text, safeDensity).also { bitmapCache[key] = it }
         }
     }
 
-    private fun renderBitmap(text: String): Bitmap {
-        val bitmap = Bitmap.createBitmap(ICON_WIDTH, ICON_HEIGHT, Bitmap.Config.ALPHA_8)
+    private fun renderBitmap(text: String, density: Float): Bitmap {
+        val sizePx = (ICON_SIZE_DP * density).roundToInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ALPHA_8)
         val canvas = Canvas(bitmap)
+        val horizontalPadding = HORIZONTAL_PADDING_DP * density
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textSize = BASE_TEXT_SIZE
+            textSize = BASE_TEXT_SIZE_DP * density
         }
 
-        val maxTextWidth = ICON_WIDTH - (HORIZONTAL_PADDING * 2f)
+        val maxTextWidth = sizePx - (horizontalPadding * 2f)
         val measuredWidth = paint.measureText(text)
         if (measuredWidth > maxTextWidth && measuredWidth > 0f) {
-            paint.textSize = (BASE_TEXT_SIZE * maxTextWidth / measuredWidth).coerceAtLeast(MIN_TEXT_SIZE)
+            paint.textSize = (paint.textSize * maxTextWidth / measuredWidth)
+                .coerceAtLeast(MIN_TEXT_SIZE_DP * density)
         }
 
         val bounds = Rect()
         paint.getTextBounds(text, 0, text.length, bounds)
-        val baseline = (ICON_HEIGHT / 2f) - (paint.ascent() + paint.descent()) / 2f
-        val availableHeight = ICON_HEIGHT - (VERTICAL_PADDING * 2f)
-        if (bounds.height() > availableHeight) {
-            paint.textSize = (paint.textSize * availableHeight / bounds.height()).coerceAtLeast(MIN_TEXT_SIZE)
+        val verticalPadding = density
+        val availableHeight = sizePx - (verticalPadding * 2f)
+        if (bounds.height() > availableHeight && bounds.height() > 0) {
+            paint.textSize = (paint.textSize * availableHeight / bounds.height())
+                .coerceAtLeast(MIN_TEXT_SIZE_DP * density)
         }
 
-        val adjustedBaseline = (ICON_HEIGHT / 2f) - (paint.ascent() + paint.descent()) / 2f
-        canvas.drawText(text, ICON_WIDTH / 2f, adjustedBaseline.takeIf { it.isFinite() } ?: baseline, paint)
+        val baseline = (sizePx / 2f) - (paint.ascent() + paint.descent()) / 2f
+        canvas.drawText(text, sizePx / 2f, baseline, paint)
         return bitmap
     }
 
