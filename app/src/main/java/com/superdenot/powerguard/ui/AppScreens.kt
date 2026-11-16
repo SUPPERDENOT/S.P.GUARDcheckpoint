@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
@@ -102,18 +103,24 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         item {
-            ExpandPanel("health", "Kesehatan baterai", "Estimasi kapasitas dan acuan desain", emptySet(), {}) {
-                Text(health?.let { "Estimasi kapasitas: ${it.estimatedCapacityMah} mAh" } ?: "Belum cukup data untuk estimasi kesehatan.")
-                health?.let { Text("Estimasi kesehatan: ${String.format(Locale.US, "%.1f", it.healthPercentage)}%") }
-                Text("Kapasitas desain: ${capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia"}")
-                Text("Sumber kapasitas: ${if (capacity.isManualOverride) "Manual" else "Otomatis"}")
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeading("KESEHATAN BATERAI", "Estimasi kapasitas dan acuan desain")
+                    DiagnosticLine("Kapasitas terestimasi", health?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
+                    DiagnosticLine("Estimasi kesehatan", health?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
+                    DiagnosticLine("Kapasitas desain", capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia")
+                    DiagnosticLine("Sumber", if (capacity.isManualOverride) "Manual" else "Otomatis")
+                }
             }
         }
         item {
-            ExpandPanel("system", "Kesiapan sistem", "Izin dan pemantauan latar belakang", emptySet(), {}) {
-                Text("Pemantauan otomatis: ${if (auto) "Aktif" else "Nonaktif"}")
-                Text("Optimasi baterai: ${if (batteryOpt) "Dikecualikan" else "Belum dikecualikan"}")
-                Text("Akses penggunaan: ${if (usage) "Diizinkan" else "Belum diizinkan"}")
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeading("KESIAPAN SISTEM", "Izin dan pemantauan latar belakang")
+                    DiagnosticLine("Pemantauan otomatis", if (auto) "Aktif" else "Nonaktif")
+                    DiagnosticLine("Optimasi baterai", if (batteryOpt) "Dikecualikan" else "Belum dikecualikan")
+                    DiagnosticLine("Akses penggunaan", if (usage) "Diizinkan" else "Belum diizinkan")
+                }
             }
         }
         item { Spacer(Modifier.height(12.dp)) }
@@ -405,6 +412,23 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 }
             }
         )
+    }
+}
+
+
+@Composable
+private fun SectionHeading(title: String, subtitle: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(title, color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun DiagnosticLine(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 
