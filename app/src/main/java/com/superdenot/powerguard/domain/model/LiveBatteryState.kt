@@ -19,7 +19,8 @@ data class LiveBatteryState(
     val isCurrentAvailable: Boolean = true,
     val isVoltageAvailable: Boolean = true,
     val isTemperatureAvailable: Boolean = true,
-    val isPowerAvailable: Boolean = true
+    val isPowerAvailable: Boolean = true,
+    val isChargingStatusAvailable: Boolean = true
 )
 
 data class AppUsageSummary(
