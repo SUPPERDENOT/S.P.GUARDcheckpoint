@@ -192,16 +192,16 @@ fun DashboardScreen(
                             }
 
                             Surface(
-                                color = if (activeState.isFastCharging) CyanFastCharge.copy(alpha = 0.2f)
+                                color = if (activeState.isCharging) EmeraldCharge.copy(alpha = 0.16f)
                                 else Color.White.copy(alpha = 0.08f),
                                 shape = RoundedCornerShape(50)
                             ) {
                                 Text(
-                                    text = if (activeState.isFastCharging) "⚡ FAST CHARGING (${activeState.chargeSource})"
-                                    else activeState.chargeSource.uppercase(),
+                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • PROTOCOL ${activeState.chargingProtocol?.uppercase() ?: "UNKNOWN"}"
+                                    else "DISCHARGING",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (activeState.isFastCharging) CyanFastCharge else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (activeState.isCharging) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
