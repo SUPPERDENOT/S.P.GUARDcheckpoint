@@ -74,7 +74,6 @@ class BatteryMonitorEngine(private val context: Context) {
         val powerWatt = if (isPowerAvailable) {
             (voltageMv / 1000f) * (calibratedCurrentMa / 1000f)
         } else 0f
-        val isFastCharging = isCharging && (voltageMv > 5500 || calibratedCurrentMa >= 1800 || powerWatt >= 14f)
 
         return LiveBatteryState(
             level = batteryPct,
@@ -84,7 +83,7 @@ class BatteryMonitorEngine(private val context: Context) {
             tempCelsius = tempCelsius,
             isCharging = isCharging,
             chargeSource = chargeSource,
-            isFastCharging = isFastCharging,
+            chargingProtocol = null,
             sessionMahDelivered = sessionMah,
             sessionDurationSec = sessionDurationSec,
             deepSleepRatio = calculateDeepSleepRatio(),
