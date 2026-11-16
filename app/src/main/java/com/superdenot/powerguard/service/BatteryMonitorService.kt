@@ -2190,7 +2190,7 @@ class BatteryMonitorService : Service() {
             return@withContext
         }
 
-        val modeLabel = if (state.isFastCharging) "FAST (${state.chargeSource})" else state.chargeSource
+        val modeLabel = state.chargeSource
         val session = ChargingSessionEntity(
             startTime = System.currentTimeMillis(),
             startLevel = state.level,
@@ -3224,7 +3224,7 @@ class BatteryMonitorService : Service() {
             state, actorState == ActorLifecycleState.RECOVERY_HOLD
         )
         val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
-            context = applicationContext, spec = visualSpec, isFastCharging = state.isFastCharging
+            context = applicationContext, spec = visualSpec
         )
         val statusBarIcon = if (statusBarIndicatorSetting.enabled) {
             val statusBarText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
