@@ -3,6 +3,7 @@ package com.superdenot.powerguard.service
 import android.graphics.Bitmap
 import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.domain.model.LiveBatteryState
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -119,7 +120,7 @@ class LiveStatusBarRendererTest {
             isCharging = true
         )
 
-        assertEquals("0°", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.TEMPERATURE))
+        assertEquals("0°", LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
         assertEquals("4.1V", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.VOLTAGE))
         assertEquals("0.0A", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.CURRENT))
         assertEquals("0.0W", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.POWER))
@@ -144,7 +145,7 @@ class LiveStatusBarRendererTest {
             isChargingStatusAvailable = false
         )
 
-        LiveStatusBarRenderer.Parameter.values().forEach { parameter ->
+        StatusBarParameter.values().forEach { parameter ->
             assertEquals("N/A", LiveStatusBarRenderer.format(state, parameter))
         }
     }
