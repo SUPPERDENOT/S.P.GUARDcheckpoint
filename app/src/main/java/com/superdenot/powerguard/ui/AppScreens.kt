@@ -61,7 +61,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         }
                         StatusPill(if (!state.isChargingStatusAvailable) "STATUS N/A" else if (state.isCharging) "CHARGING" else "DISCHARGING", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
                     }
-                    Text(if (state.isFastCharging) "⚡ FAST CHARGING • ${state.chargeSource}" else state.chargeSource.uppercase(Locale.getDefault()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text(if (state.isCharging) "${state.chargeSource.uppercase(Locale.getDefault())} • PROTOCOL ${state.chargingProtocol?.uppercase(Locale.getDefault()) ?: "UNKNOWN"}" else "DISCHARGING", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MiniMetric("Monitoring", if (running) "ACTIVE" else "STANDBY", Modifier.weight(1f))
                         MiniMetric("Auto Start", if (auto) "ON" else "OFF", Modifier.weight(1f))
@@ -115,6 +115,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(if (state.isLevelAvailable) "${state.level}%" else "N/A", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = EmeraldCharge)
                     StatusPill(if (!state.isChargingStatusAvailable) "STATUS N/A" else if (state.isCharging) "CHARGING • ${state.chargeSource}" else "NOT CHARGING", if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal)
+                    Text("Protocol: ${state.chargingProtocol ?: "Unknown (not exposed by Android/device)"}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MiniMetric("Current", if (state.isCurrentAvailable) "${state.currentMa} mA" else "N/A", Modifier.weight(1f))
                         MiniMetric("Power", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "N/A", Modifier.weight(1f))
