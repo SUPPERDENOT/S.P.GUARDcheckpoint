@@ -1667,7 +1667,7 @@ class BatteryMonitorService : Service() {
                             if (anomaly.isAnomaly && anomaly.code != null && anomaly.message != null) {
                                 activeAlertMsg = anomaly.message
                                 if (alertedAnomalyCodes.add(anomaly.code)) {
-                                    sendAnomalyAlertNotification(anomaly.message)
+                                    sendAnomalyAlertNotification(anomaly.message, anomaly.code)
                                 }
                             }
                         } else {
@@ -3215,7 +3215,7 @@ class BatteryMonitorService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
-            .setContentTitle("PowerGuard Aktif")
+            .setContentTitle("SUPERD GUARD")
             .setContentText(contentText)
             .setSmallIcon(resolveMonitorNotificationIcon())
             .setContentIntent(openAppIntent)
