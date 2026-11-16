@@ -163,7 +163,7 @@ fun ChargingCurveChart(
                 for (line in 0..4) {
                     val y = chartHeight * (line / 4f)
                     drawLine(
-                        color = Color.White.copy(alpha = 0.08f),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
                         start = Offset(0f, y),
                         end = Offset(chartWidth, y),
                         strokeWidth = 1.dp.toPx()
@@ -189,7 +189,7 @@ fun ChargingCurveChart(
                 val focus = samples[selectedIndex]
                 val focusX = selectedIndex * stepX
                 drawLine(
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     start = Offset(focusX, 0f),
                     end = Offset(focusX, chartHeight),
                     strokeWidth = 1.dp.toPx()
