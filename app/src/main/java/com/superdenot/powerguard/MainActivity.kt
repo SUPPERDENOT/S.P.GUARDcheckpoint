@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
                                         "BATTERY DIAGNOSTIC SYSTEM",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Medium,
-                                        fontSize = 9.sp,
+                                        fontSize = 10.sp,
                                         letterSpacing = 1.1.sp
                                     )
                                 }
