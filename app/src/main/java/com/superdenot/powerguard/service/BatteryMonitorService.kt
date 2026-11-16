@@ -3228,7 +3228,7 @@ class BatteryMonitorService : Service() {
         )
         val statusBarIcon = if (statusBarIndicatorSetting.enabled) {
             val statusBarText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
-            LiveStatusBarRenderer.render(statusBarText)?.let(IconCompat::createWithBitmap)
+            LiveStatusBarRenderer.render(statusBarText, resources.displayMetrics.density)?.let(IconCompat::createWithBitmap)
         } else {
             null
         }
