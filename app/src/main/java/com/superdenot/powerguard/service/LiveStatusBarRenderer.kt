@@ -26,9 +26,18 @@ internal object LiveStatusBarRenderer {
             StatusBarParameter.CURRENT -> if (state.isCurrentAvailable) String.format(Locale.US, "%.1fA", state.currentMa / 1000f) else "N/A"
             StatusBarParameter.POWER -> if (state.isPowerAvailable) "${state.powerWatt.roundToInt()}W" else "N/A"
             StatusBarParameter.BATTERY_PERCENTAGE -> if (state.isLevelAvailable) "${state.level}%" else "N/A"
-            StatusBarParameter.CHARGING_STATUS -> if (state.isChargingStatusAvailable) {
-                if (state.isCharging) "CHG" else "DIS"
-            } else "N/A"
+            StatusBarParameter.CHARGING_STATUS -> if (!state.isChargingStatusAvailable) {
+                "N/A"
+            } else if (!state.isCharging) {
+                "DIS"
+            } else {
+                when (state.chargeSource) {
+                    "AC Adapter" -> "AC"
+                    "USB Port" -> "USB"
+                    "Wireless" -> "WLS"
+                    else -> "CHG"
+                }
+            }
         }
     }
 
