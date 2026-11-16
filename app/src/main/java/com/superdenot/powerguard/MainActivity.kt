@@ -8,6 +8,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.History
@@ -18,8 +20,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,20 +52,85 @@ class MainActivity : ComponentActivity() {
                     vm.startMonitorIfCharging()
                     vm.refreshPermissionsAndUsage()
                 }
-                val labels = listOf("Home", "Charging", "Insights", "History", "Settings")
+
+                val labels = listOf("Overview", "Charging", "Insights", "History", "Settings")
+                val navColors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 Scaffold(
+                    containerColor = MaterialTheme.colorScheme.background,
                     topBar = {
-                        TopAppBar(title = {
-                            Text("SUPERD GUARD", fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = 0.2.sp, maxLines = 1)
-                        })
+                        TopAppBar(
+                            title = {
+                                androidx.compose.foundation.layout.Column {
+                                    Text(
+                                        "SUPERD POWER GUARD",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp,
+                                        letterSpacing = 0.45.sp
+                                    )
+                                    Text(
+                                        "BATTERY DIAGNOSTIC SYSTEM",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 1.1.sp
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.background,
+                                titleContentColor = MaterialTheme.colorScheme.onBackground
+                            )
+                        )
                     },
                     bottomBar = {
-                        NavigationBar(modifier = Modifier.height(62.dp), tonalElevation = 1.dp) {
-                            NavigationBarItem(currentTab == 0, { currentTab = 0 }, icon = { Icon(Icons.Rounded.Home, null, modifier = Modifier.size(19.dp)) }, label = { Text(labels[0], fontSize = 9.sp, maxLines = 1) })
-                            NavigationBarItem(currentTab == 1, { currentTab = 1 }, icon = { Icon(Icons.Rounded.BatteryChargingFull, null, modifier = Modifier.size(19.dp)) }, label = { Text(labels[1], fontSize = 9.sp, maxLines = 1) })
-                            NavigationBarItem(currentTab == 2, { currentTab = 2 }, icon = { Icon(Icons.Rounded.Insights, null, modifier = Modifier.size(19.dp)) }, label = { Text(labels[2], fontSize = 9.sp, maxLines = 1) })
-                            NavigationBarItem(currentTab == 3, { currentTab = 3 }, icon = { Icon(Icons.Rounded.History, null, modifier = Modifier.size(19.dp)) }, label = { Text(labels[3], fontSize = 9.sp, maxLines = 1) })
-                            NavigationBarItem(currentTab == 4, { currentTab = 4 }, icon = { Icon(Icons.Rounded.Settings, null, modifier = Modifier.size(19.dp)) }, label = { Text(labels[4], fontSize = 9.sp, maxLines = 1) })
+                        NavigationBar(
+                            modifier = Modifier.height(72.dp),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            tonalElevation = 0.dp
+                        ) {
+                            NavigationBarItem(
+                                selected = currentTab == 0,
+                                onClick = { currentTab = 0 },
+                                icon = { Icon(Icons.Rounded.Home, contentDescription = "Overview", modifier = Modifier.size(21.dp)) },
+                                label = { Text(labels[0], fontSize = 11.sp, maxLines = 1) },
+                                colors = navColors
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == 1,
+                                onClick = { currentTab = 1 },
+                                icon = { Icon(Icons.Rounded.BatteryChargingFull, contentDescription = "Charging", modifier = Modifier.size(21.dp)) },
+                                label = { Text(labels[1], fontSize = 11.sp, maxLines = 1) },
+                                colors = navColors
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == 2,
+                                onClick = { currentTab = 2 },
+                                icon = { Icon(Icons.Rounded.Insights, contentDescription = "Insights", modifier = Modifier.size(21.dp)) },
+                                label = { Text(labels[2], fontSize = 11.sp, maxLines = 1) },
+                                colors = navColors
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == 3,
+                                onClick = { currentTab = 3 },
+                                icon = { Icon(Icons.Rounded.History, contentDescription = "History", modifier = Modifier.size(21.dp)) },
+                                label = { Text(labels[3], fontSize = 11.sp, maxLines = 1) },
+                                colors = navColors
+                            )
+                            NavigationBarItem(
+                                selected = currentTab == 4,
+                                onClick = { currentTab = 4 },
+                                icon = { Icon(Icons.Rounded.Settings, contentDescription = "Settings", modifier = Modifier.size(21.dp)) },
+                                label = { Text(labels[4], fontSize = 11.sp, maxLines = 1) },
+                                colors = navColors
+                            )
                         }
                     }
                 ) { padding ->
