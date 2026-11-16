@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.data.repository
 
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -63,4 +64,28 @@ class DesignCapacitySettingsTest {
         assertEquals(null, result.capacityMah)
         assertFalse(result.isManualOverride)
     }
+    @Test
+    fun statusBarIndicatorDefaultsToEnabledBatteryPercentage() {
+        val setting = StatusBarIndicatorSettings.resolveSetting(null, null)
+
+        assertTrue(setting.enabled)
+        assertEquals(StatusBarParameter.BATTERY_PERCENTAGE, setting.parameter)
+    }
+
+    @Test
+    fun statusBarIndicatorResolvesStoredParameterAndEnabledState() {
+        val setting = StatusBarIndicatorSettings.resolveSetting(false, "VOLTAGE")
+
+        assertFalse(setting.enabled)
+        assertEquals(StatusBarParameter.VOLTAGE, setting.parameter)
+    }
+
+    @Test
+    fun invalidStoredStatusBarParameterFallsBackToBatteryPercentage() {
+        val setting = StatusBarIndicatorSettings.resolveSetting(true, "UNKNOWN")
+
+        assertTrue(setting.enabled)
+        assertEquals(StatusBarParameter.BATTERY_PERCENTAGE, setting.parameter)
+    }
+
 }
