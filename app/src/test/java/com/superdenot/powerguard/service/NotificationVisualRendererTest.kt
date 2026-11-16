@@ -5,7 +5,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
-import androidx.core.app.NotificationCompat
 import androidx.test.core.app.ApplicationProvider
 import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.R
@@ -192,6 +191,11 @@ class NotificationVisualRendererTest {
         )
         assertEquals(R.drawable.ic_status_anomaly, slowChargeAnomaly.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_AMBER_THERMAL, slowChargeAnomaly.accentColor)
+        val netDrainFallback = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Anomali Pengisian (AC Adapter): Arus masuk hanya -120 mA (-0.50 W)."
+        )
+        assertEquals(NotificationVisualRenderer.AnomalySeverity.CRITICAL, netDrainFallback.severity)
+        assertEquals(NotificationVisualRenderer.COLOR_CRIMSON_ANOMALY, netDrainFallback.accentColor)
 
         val anomalyBitmap = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, thermalAnomaly)
         assertNotNull(anomalyBitmap)
@@ -210,7 +214,7 @@ class NotificationVisualRendererTest {
             assertEquals("SUPERD GUARD", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertNotEquals(0, monitorNotification.icon)
             assertNotEquals(0, monitorNotification.color)
-            assertNotNull(NotificationCompat.getLargeIcon(monitorNotification))
+            assertNotNull(monitorNotification.largeIcon)
 
             val anomalyNotification: Notification =
                 service.buildAnomalyAlertNotificationForTesting("Suhu baterai tinggi (42.5°C).")
@@ -218,7 +222,7 @@ class NotificationVisualRendererTest {
             assertEquals("SUPERD GUARD • Peringatan Daya", anomalyNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertEquals(R.drawable.ic_status_anomaly, anomalyNotification.icon)
             assertEquals(NotificationVisualRenderer.COLOR_CRIMSON_ANOMALY, anomalyNotification.color)
-            assertNotNull(NotificationCompat.getLargeIcon(anomalyNotification))
+            assertNotNull(anomalyNotification.largeIcon)
         } finally {
             controller.destroy()
         }
