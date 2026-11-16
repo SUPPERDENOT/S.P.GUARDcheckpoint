@@ -63,6 +63,21 @@ class ChargingProgressTrackerTest {
     }
 
     @Test
+    fun levelDecreaseDoesNotResetNetProgressWindow() {
+        val tracker = ChargingProgressTracker(
+            stalledProgressThresholdMs = 10_000_000L,
+            noLevelProgressThresholdMs = 100L
+        )
+        val first = LiveBatteryState(isCharging = true, level = 40, currentMa = 1_000)
+        assertNull(tracker.evaluate(first, 0L))
+        assertNull(tracker.evaluate(first.copy(level = 39), 50L))
+        assertEquals(
+            ChargingProgressTracker.Issue.CHARGING_PROGRESS_NOT_OBSERVED,
+            tracker.evaluate(first.copy(level = 39), 100L)
+        )
+    }
+
+    @Test
     fun resetsWhenChargingStopsOrSensorsAreUnavailable() {
         val tracker = ChargingProgressTracker(noInputThresholdMs = 100L, noLevelProgressThresholdMs = 100L)
         val charging = LiveBatteryState(isCharging = true, level = 40, currentMa = 0)
