@@ -54,6 +54,8 @@ fun ChargingCurveChart(
     }
     val selectedIndex = selectedIndexState.intValue.coerceIn(0, (samples.lastIndex).coerceAtLeast(0))
     val selectedSample = samples.getOrNull(selectedIndex)
+    val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+    val focusLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
     val timeFormatter = remember {
         DateTimeFormatter.ofPattern("dd MMM, HH:mm:ss", Locale("id", "ID"))
             .withZone(ZoneId.systemDefault())
@@ -163,7 +165,7 @@ fun ChargingCurveChart(
                 for (line in 0..4) {
                     val y = chartHeight * (line / 4f)
                     drawLine(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
+                        color = gridColor,
                         start = Offset(0f, y),
                         end = Offset(chartWidth, y),
                         strokeWidth = 1.dp.toPx()
@@ -189,7 +191,7 @@ fun ChargingCurveChart(
                 val focus = samples[selectedIndex]
                 val focusX = selectedIndex * stepX
                 drawLine(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    color = focusLineColor,
                     start = Offset(focusX, 0f),
                     end = Offset(focusX, chartHeight),
                     strokeWidth = 1.dp.toPx()
