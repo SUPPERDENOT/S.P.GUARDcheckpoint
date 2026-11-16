@@ -665,7 +665,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 )
                 InfoSectionItem(
                     title = "7. Catatan Pengukuran",
-                    content = "• Level baterai, arus, tegangan, suhu, dan status pengisian dibaca dari API/sensor yang disediakan Android dan perangkat; nilai yang tersedia serta akurasinya dapat berbeda antar model dan kondisi.\n• Nilai daya merupakan hasil perhitungan dari data tegangan dan arus yang dilaporkan perangkat, bukan pengukuran laboratorium independen.\n• Label Fast Charging adalah estimasi berbasis ambang arus, tegangan, dan daya. Label ini tidak mengidentifikasi atau memverifikasi protokol pengisian cepat secara universal.\n• Peringatan anomali adalah indikasi berbasis aturan/heuristik aplikasi, bukan diagnosis kerusakan baterai atau perangkat."
+                    content = "• Level baterai, arus, tegangan, suhu, dan status pengisian dibaca dari API/sensor yang disediakan Android dan perangkat; nilai yang tersedia serta akurasinya dapat berbeda antar model dan kondisi.\n• Nilai daya merupakan hasil perhitungan dari data tegangan dan arus yang dilaporkan perangkat, bukan pengukuran laboratorium independen.\n• Protokol pengisian hanya ditampilkan jika benar-benar diekspos oleh sistem atau perangkat. Arus, tegangan, dan daya baterai tidak cukup untuk mengidentifikasi protokol adaptor.\n• Peringatan anomali adalah indikasi berbasis aturan/heuristik aplikasi, bukan diagnosis kerusakan baterai atau perangkat."
                 )
                 InfoSectionItem(
                     title = "8. Batasan & Disclaimer",
