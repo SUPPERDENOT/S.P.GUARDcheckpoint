@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - hardening/p0-recovery
+      - feature/live-status-bar-p1
   pull_request:
     branches:
       - main
