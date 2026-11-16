@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
@@ -180,6 +181,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
+    val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
+    var statusBarParameterMenuExpanded by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
@@ -200,6 +203,55 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         Switch(checked = auto, onCheckedChange = vm::setAutoMonitoringEnabled)
                     }
                     error?.let { Text(it, color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Live Status Bar Indicator", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Tampilkan satu data baterai pada ikon notifikasi di status bar.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = statusBarSetting.enabled,
+                            onCheckedChange = vm::setStatusBarIndicatorEnabled
+                        )
+                    }
+                    Text("Displayed parameter", style = MaterialTheme.typography.labelMedium)
+                    Box {
+                        OutlinedButton(
+                            enabled = statusBarSetting.enabled,
+                            onClick = { statusBarParameterMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(statusBarSetting.parameter.label)
+                        }
+                        DropdownMenu(
+                            expanded = statusBarParameterMenuExpanded,
+                            onDismissRequest = { statusBarParameterMenuExpanded = false }
+                        ) {
+                            StatusBarParameter.values().forEach { parameter ->
+                                DropdownMenuItem(
+                                    text = { Text(parameter.label) },
+                                    onClick = {
+                                        vm.setStatusBarParameter(parameter)
+                                        statusBarParameterMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        "Perubahan diterapkan pada notifikasi pemantauan yang sedang aktif. Tampilan ikon dapat berbeda menurut versi Android dan perangkat.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
