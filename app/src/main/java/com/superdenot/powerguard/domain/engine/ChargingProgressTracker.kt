@@ -3,27 +3,31 @@ package com.superdenot.powerguard.domain.engine
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 
 /**
- * Detects sustained lack of charging input/progress without trusting the OEM fast-charge label.
- * Uses elapsed realtime supplied by the caller so wall-clock changes cannot skew durations.
+ * Detects sustained lack of charging input/progress without trusting an OEM fast-charge label.
+ * Battery current is measured on the battery side, not directly at the charger input.
  */
 internal class ChargingProgressTracker(
     private val noInputThresholdMs: Long = 3 * 60 * 1000L,
     private val stalledProgressThresholdMs: Long = 45 * 60 * 1000L,
+    private val noLevelProgressThresholdMs: Long = 90 * 60 * 1000L,
     private val lowProgressCurrentThresholdMa: Int = 300,
     private val nearZeroCurrentThresholdMa: Int = 50
 ) {
     enum class Issue {
         NO_CHARGING_INPUT,
-        CHARGING_PROGRESS_STALLED
+        CHARGING_PROGRESS_STALLED,
+        CHARGING_PROGRESS_NOT_OBSERVED
     }
 
     private var nearZeroCurrentSinceMs: Long? = null
     private var lowProgressSinceMs: Long? = null
+    private var noLevelProgressSinceMs: Long? = null
     private var lastObservedLevel: Int? = null
 
     fun reset() {
         nearZeroCurrentSinceMs = null
         lowProgressSinceMs = null
+        noLevelProgressSinceMs = null
         lastObservedLevel = null
     }
 
@@ -49,6 +53,7 @@ internal class ChargingProgressTracker(
         if (previousLevel == null || state.level != previousLevel) {
             lastObservedLevel = state.level
             lowProgressSinceMs = nowElapsedMs
+            noLevelProgressSinceMs = nowElapsedMs
         }
 
         if (state.currentMa <= lowProgressCurrentThresholdMa) {
@@ -58,6 +63,11 @@ internal class ChargingProgressTracker(
             }
         } else {
             lowProgressSinceMs = nowElapsedMs
+        }
+
+        val noProgressSince = noLevelProgressSinceMs ?: nowElapsedMs.also { noLevelProgressSinceMs = it }
+        if (nowElapsedMs - noProgressSince >= noLevelProgressThresholdMs) {
+            return Issue.CHARGING_PROGRESS_NOT_OBSERVED
         }
         return null
     }
