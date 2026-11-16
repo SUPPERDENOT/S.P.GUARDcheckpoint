@@ -28,6 +28,8 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
@@ -44,6 +46,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
@@ -234,6 +237,9 @@ class BatteryMonitorService : Service() {
     private lateinit var powerManager: PowerManager
     private lateinit var notificationManager: NotificationManager
 
+    @Volatile
+    private var statusBarIndicatorSetting: StatusBarIndicatorSetting = StatusBarIndicatorSetting()
+
     @VisibleForTesting
     internal var daoOverride: BatteryDao? = null
 
@@ -281,9 +287,31 @@ class BatteryMonitorService : Service() {
         powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannels()
+        observeStatusBarIndicatorSettings()
         startLifecycleActor()
         if (hasPendingStarts()) {
             lifecycleChannel.trySend(LifecycleCommand.PrepareStart(latestStartGeneration.get()))
+        }
+    }
+
+    private fun observeStatusBarIndicatorSettings() {
+        serviceScope.launch {
+            StatusBarIndicatorSettings.observe(applicationContext).collect { setting ->
+                statusBarIndicatorSetting = setting
+                val isActive = actorState == ActorLifecycleState.RUNNING_CHARGING ||
+                    actorState == ActorLifecycleState.RUNNING_MANUAL ||
+                    actorState == ActorLifecycleState.RECOVERY_HOLD
+                if (isActive) {
+                    runCatching {
+                        notificationManager.notify(
+                            MONITOR_NOTIFICATION_ID,
+                            buildMonitorNotification("Pemantauan sensor daya aktif")
+                        )
+                    }.onFailure { error ->
+                        Log.w("PowerGuard", "Gagal menerapkan preferensi indikator status bar: ${error.message}", error)
+                    }
+                }
+            }
         }
     }
 
@@ -3210,12 +3238,12 @@ class BatteryMonitorService : Service() {
         val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
             context = applicationContext, spec = visualSpec, isFastCharging = state.isFastCharging
         )
-        val statusBarText = LiveStatusBarRenderer.format(
-            state,
-            LiveStatusBarRenderer.Parameter.BATTERY_PERCENTAGE
-        )
-        val statusBarBitmap = LiveStatusBarRenderer.render(statusBarText)
-        val statusBarIcon = statusBarBitmap?.let(IconCompat::createWithBitmap)
+        val statusBarIcon = if (statusBarIndicatorSetting.enabled) {
+            val statusBarText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            LiveStatusBarRenderer.render(statusBarText)?.let(IconCompat::createWithBitmap)
+        } else {
+            null
+        }
 
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle("SUPERD GUARD")
