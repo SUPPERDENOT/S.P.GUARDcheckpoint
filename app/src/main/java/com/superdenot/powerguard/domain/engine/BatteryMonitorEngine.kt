@@ -38,7 +38,8 @@ class BatteryMonitorEngine(private val context: Context) {
 
         val level = intentStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
         val scale = intentStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, 100) ?: 100
-        val batteryPct = if (level >= 0 && scale > 0) (level * 100) / scale else 0
+        val isLevelAvailable = level >= 0 && scale > 0
+        val batteryPct = if (isLevelAvailable) (level * 100) / scale else 0
 
         val status = intentStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
@@ -52,14 +53,26 @@ class BatteryMonitorEngine(private val context: Context) {
             else -> "Discharging"
         }
 
-        val voltageMv = intentStatus?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
-        val tempTenths = intentStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+        val isVoltageAvailable = intentStatus?.hasExtra(BatteryManager.EXTRA_VOLTAGE) == true &&
+            (intentStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) > 0)
+        val voltageMv = if (isVoltageAvailable) {
+            intentStatus!!.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0)
+        } else 0
+
+        val isTemperatureAvailable = intentStatus?.hasExtra(BatteryManager.EXTRA_TEMPERATURE) == true
+        val tempTenths = if (isTemperatureAvailable) {
+            intentStatus!!.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0)
+        } else 0
         val tempCelsius = tempTenths / 10f
 
         val rawCurrent = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
+        val isCurrentAvailable = rawCurrent != Int.MIN_VALUE
         val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(rawCurrent, isCharging)
 
-        val powerWatt = (voltageMv / 1000f) * (calibratedCurrentMa / 1000f)
+        val isPowerAvailable = isVoltageAvailable && isCurrentAvailable
+        val powerWatt = if (isPowerAvailable) {
+            (voltageMv / 1000f) * (calibratedCurrentMa / 1000f)
+        } else 0f
         val isFastCharging = isCharging && (voltageMv > 5500 || calibratedCurrentMa >= 1800 || powerWatt >= 14f)
 
         return LiveBatteryState(
@@ -75,7 +88,12 @@ class BatteryMonitorEngine(private val context: Context) {
             sessionDurationSec = sessionDurationSec,
             deepSleepRatio = calculateDeepSleepRatio(),
             anomalyAlert = activeAnomaly,
-            designCapacityMah = designCapacityMah
+            designCapacityMah = designCapacityMah,
+            isLevelAvailable = isLevelAvailable,
+            isCurrentAvailable = isCurrentAvailable,
+            isVoltageAvailable = isVoltageAvailable,
+            isTemperatureAvailable = isTemperatureAvailable,
+            isPowerAvailable = isPowerAvailable
         )
     }
 
