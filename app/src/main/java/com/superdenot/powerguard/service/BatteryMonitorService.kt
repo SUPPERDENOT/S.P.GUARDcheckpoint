@@ -15,6 +15,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.ContextCompat
 import com.superdenot.powerguard.MainActivity
 import com.superdenot.powerguard.R
@@ -3209,11 +3210,18 @@ class BatteryMonitorService : Service() {
         val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
             context = applicationContext, spec = visualSpec, isFastCharging = state.isFastCharging
         )
+        val statusBarText = LiveStatusBarRenderer.format(
+            state,
+            LiveStatusBarRenderer.Parameter.BATTERY_PERCENTAGE
+        )
+        val statusBarBitmap = LiveStatusBarRenderer.render(statusBarText)
+        val statusBarIcon = statusBarBitmap?.let(IconCompat::createWithBitmap)
+
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle("SUPERD GUARD")
             .setContentText(contentText)
             .setSubText(visualSpec.subText)
-            .setSmallIcon(visualSpec.smallIconResId)
+            .setSmallIcon(statusBarIcon ?: IconCompat.createWithResource(this, visualSpec.smallIconResId))
             .setColor(visualSpec.accentColor)
             .setLargeIcon(largeIcon)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
