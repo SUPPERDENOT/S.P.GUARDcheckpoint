@@ -24,7 +24,7 @@ internal object LiveStatusBarRenderer {
             StatusBarParameter.TEMPERATURE -> if (state.isTemperatureAvailable) "${state.tempCelsius.roundToInt()}°" else "N/A"
             StatusBarParameter.VOLTAGE -> if (state.isVoltageAvailable) String.format(Locale.US, "%.1fV", state.voltageMv / 1000f) else "N/A"
             StatusBarParameter.CURRENT -> if (state.isCurrentAvailable) String.format(Locale.US, "%.1fA", state.currentMa / 1000f) else "N/A"
-            StatusBarParameter.POWER -> if (state.isPowerAvailable) String.format(Locale.US, "%.1fW", state.powerWatt) else "N/A"
+            StatusBarParameter.POWER -> if (state.isPowerAvailable) "${state.powerWatt.roundToInt()}W" else "N/A"
             StatusBarParameter.BATTERY_PERCENTAGE -> if (state.isLevelAvailable) "${state.level}%" else "N/A"
             StatusBarParameter.CHARGING_STATUS -> if (state.isChargingStatusAvailable) {
                 if (state.isCharging) "CHG" else "DIS"
@@ -34,7 +34,8 @@ internal object LiveStatusBarRenderer {
 
     const val ICON_SIZE_DP = 48
     const val MAX_CACHE_ENTRIES = 32
-    private const val HORIZONTAL_PADDING_DP = 1f
+    private const val HORIZONTAL_PADDING_DP = 3f
+    private const val TARGET_TEXT_WIDTH_DP = 40f
     private const val BASE_TEXT_SIZE_DP = 28f
     private const val MIN_TEXT_SIZE_DP = 10f
     private const val MAX_TEXT_LENGTH = 8
@@ -92,7 +93,19 @@ internal object LiveStatusBarRenderer {
         }
 
         val baseline = (sizePx / 2f) - (paint.ascent() + paint.descent()) / 2f
+        // Normalize short labels (e.g. CHG/DIS and compact power) to a similar visual width.
+        // Long readings still shrink by font size first, preserving the full value.
+        val targetWidth = minOf(TARGET_TEXT_WIDTH_DP * density, maxTextWidth)
+        val finalWidth = paint.measureText(text)
+        val horizontalScale = if (finalWidth > 0f) {
+            (targetWidth / finalWidth).coerceIn(1f, 1.35f)
+        } else {
+            1f
+        }
+        canvas.save()
+        canvas.scale(horizontalScale, 1f, sizePx / 2f, baseline)
         canvas.drawText(text, sizePx / 2f, baseline, paint)
+        canvas.restore()
         return bitmap
     }
 
