@@ -50,43 +50,44 @@ class NotificationVisualRendererTest {
         assertEquals(NotificationVisualRenderer.COLOR_STANDBY_SLATE, standby.accentColor)
 
         val acNormal = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", isFastCharging = false, tempCelsius = 32.0f)
+            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 32.0f)
         )
         assertEquals(R.drawable.ic_status_ac, acNormal.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_EMERALD_CHARGE, acNormal.accentColor)
 
-        val turboFast = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", isFastCharging = true, tempCelsius = 34.5f)
+        val acWithoutProtocolEvidence = NotificationVisualRenderer.resolveMonitorVisualSpec(
+            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 34.5f)
         )
-        assertEquals(R.drawable.ic_status_turbo_ring, turboFast.smallIconResId)
-        assertEquals(NotificationVisualRenderer.COLOR_CYAN_FAST_CHARGE, turboFast.accentColor)
+        assertEquals(R.drawable.ic_status_ac, acWithoutProtocolEvidence.smallIconResId)
+        assertEquals(NotificationVisualRenderer.COLOR_EMERALD_CHARGE, acWithoutProtocolEvidence.accentColor)
+        assertFalse(acWithoutProtocolEvidence.subText.contains("FAST"))
 
         val usb = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "USB Port", isFastCharging = false, tempCelsius = 30.5f)
+            LiveBatteryState(isCharging = true, chargeSource = "USB Port", tempCelsius = 30.5f)
         )
         assertEquals(R.drawable.ic_status_usb, usb.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_EMERALD_CHARGE, usb.accentColor)
 
         val wireless = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "Wireless", isFastCharging = false, tempCelsius = 33.0f)
+            LiveBatteryState(isCharging = true, chargeSource = "Wireless", tempCelsius = 33.0f)
         )
         assertEquals(R.drawable.ic_status_wireless, wireless.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_EMERALD_CHARGE, wireless.accentColor)
 
         val genericNormal = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "Unknown", isFastCharging = false, tempCelsius = 32.0f)
+            LiveBatteryState(isCharging = true, chargeSource = "Unknown", tempCelsius = 32.0f)
         )
         assertEquals(R.drawable.ic_status_temp_normal, genericNormal.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_EMERALD_CHARGE, genericNormal.accentColor)
 
         val warm = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", isFastCharging = true, tempCelsius = 38.2f)
+            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 38.2f)
         )
         assertEquals(R.drawable.ic_status_temp_warm, warm.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_AMBER_THERMAL, warm.accentColor)
 
         val hot = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", isFastCharging = true, tempCelsius = 42.0f)
+            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 42.0f)
         )
         assertEquals(R.drawable.ic_status_temp_hot, hot.smallIconResId)
         assertEquals(NotificationVisualRenderer.COLOR_CRIMSON_ANOMALY, hot.accentColor)
@@ -95,7 +96,6 @@ class NotificationVisualRendererTest {
             LiveBatteryState(
                 isCharging = true,
                 chargeSource = "AC Adapter",
-                isFastCharging = false,
                 tempCelsius = 34.0f,
                 anomalyAlert = "Arus pengisian terlalu rendah"
             )
@@ -120,8 +120,7 @@ class NotificationVisualRendererTest {
             powerWatt = 10.17f,
             tempCelsius = 33.4f,
             isCharging = true,
-            chargeSource = "AC Adapter",
-            isFastCharging = true
+            chargeSource = "AC Adapter"
         )
         val stateTick2 = stateTick1.copy(
             level = 55,
@@ -135,7 +134,7 @@ class NotificationVisualRendererTest {
         val spec2 = NotificationVisualRenderer.resolveMonitorVisualSpec(stateTick2)
         assertEquals(spec1.cacheKey, spec2.cacheKey)
 
-        val bmp1 = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec1, stateTick1.isFastCharging)
+        val bmp1 = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec1)
         assertEquals(1, NotificationVisualRenderer.cacheMisses())
         assertEquals(0, NotificationVisualRenderer.cacheHits())
         assertEquals(1, NotificationVisualRenderer.cacheSize())
@@ -144,7 +143,7 @@ class NotificationVisualRendererTest {
         assertTrue(bmp1.width >= 64 && bmp1.height >= 64)
 
         repeat(20) {
-            val cached = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec2, stateTick2.isFastCharging)
+            val cached = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec2)
             assertSame("Expected cached Bitmap instance without repeated allocation", bmp1, cached)
         }
         assertEquals(1, NotificationVisualRenderer.cacheMisses())
@@ -152,7 +151,7 @@ class NotificationVisualRendererTest {
         assertEquals(1, NotificationVisualRenderer.cacheSize())
 
         val hotSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(stateTick2.copy(tempCelsius = 42.5f))
-        val hotBmp = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, hotSpec, isFastCharging = false)
+        val hotBmp = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, hotSpec)
         assertNotSame(bmp1, hotBmp)
         assertEquals(2, NotificationVisualRenderer.cacheMisses())
         assertEquals(2, NotificationVisualRenderer.cacheSize())
@@ -161,9 +160,9 @@ class NotificationVisualRendererTest {
     @Test
     fun renderLargeIcon_producesValidArgbBitmapForNotificationBadge() {
         val spec = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", isFastCharging = true, tempCelsius = 32.0f)
+            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 32.0f)
         )
-        val bitmap = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec, isFastCharging = true)
+        val bitmap = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec)
         assertFalse(bitmap.isRecycled)
         assertEquals(Bitmap.Config.ARGB_8888, bitmap.config)
         assertTrue(bitmap.width in 64..128)
@@ -259,7 +258,7 @@ class NotificationVisualRendererTest {
 
     @Test
     fun bitmapCache_concurrentSameKeyRequestsReturnSingleSharedBitmap() {
-        val state = LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", isFastCharging = true, tempCelsius = 33.0f)
+        val state = LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 33.0f)
         val spec = NotificationVisualRenderer.resolveMonitorVisualSpec(state)
         val workers = 16
         val ready = java.util.concurrent.CountDownLatch(workers)
@@ -270,7 +269,7 @@ class NotificationVisualRendererTest {
                 executor.submit<Bitmap> {
                     ready.countDown()
                     check(start.await(5, java.util.concurrent.TimeUnit.SECONDS))
-                    NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec, true)
+                    NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec)
                 }
             }
             assertTrue("Workers did not become ready", ready.await(5, java.util.concurrent.TimeUnit.SECONDS))
