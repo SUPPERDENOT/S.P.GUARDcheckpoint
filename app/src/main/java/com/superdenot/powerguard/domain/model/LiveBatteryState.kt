@@ -13,7 +13,13 @@ data class LiveBatteryState(
     val sessionDurationSec: Long = 0L,
     val deepSleepRatio: Float = 0f,
     val anomalyAlert: String? = null,
-    val designCapacityMah: Int = 0
+    val designCapacityMah: Int = 0,
+    // Availability flags keep unsupported sensors distinct from valid zero readings.
+    val isLevelAvailable: Boolean = true,
+    val isCurrentAvailable: Boolean = true,
+    val isVoltageAvailable: Boolean = true,
+    val isTemperatureAvailable: Boolean = true,
+    val isPowerAvailable: Boolean = true
 )
 
 data class AppUsageSummary(
