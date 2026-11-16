@@ -33,8 +33,7 @@ import kotlin.math.roundToInt
 internal object NotificationVisualRenderer {
 
     @ColorInt const val COLOR_EMERALD_CHARGE: Int = 0xFF00E676.toInt()
-    @ColorInt const val COLOR_CYAN_FAST_CHARGE: Int = 0xFF00E5FF.toInt()
-    @ColorInt const val COLOR_VIOLET_ACCENT: Int = 0xFFB388FF.toInt()
+    @ColorInt const val COLOR_CYAN_ACCENT: Int = 0xFF00E5FF.toInt()
     @ColorInt const val COLOR_AMBER_THERMAL: Int = 0xFFFFAB00.toInt()
     @ColorInt const val COLOR_CRIMSON_ANOMALY: Int = 0xFFFF5252.toInt()
     @ColorInt const val COLOR_STANDBY_SLATE: Int = 0xFF78909C.toInt()
@@ -88,7 +87,7 @@ internal object NotificationVisualRenderer {
                 smallIconResId = iconRes,
                 accentColor = COLOR_AMBER_THERMAL,
                 subText = "SUPERD GUARD • RECOVERY",
-                cacheKey = "monitor:$iconRes:$COLOR_AMBER_THERMAL:${state.isFastCharging}:true"
+                cacheKey = "monitor:$iconRes:$COLOR_AMBER_THERMAL:false:true"
             )
         }
 
@@ -106,7 +105,7 @@ internal object NotificationVisualRenderer {
                 smallIconResId = R.drawable.ic_status_temp_hot,
                 accentColor = COLOR_CRIMSON_ANOMALY,
                 subText = "SUPERD GUARD • THERMAL HIGH",
-                cacheKey = "monitor:${R.drawable.ic_status_temp_hot}:$COLOR_CRIMSON_ANOMALY:${state.isFastCharging}:false"
+                cacheKey = "monitor:${R.drawable.ic_status_temp_hot}:$COLOR_CRIMSON_ANOMALY:false:false"
             )
         }
 
@@ -125,32 +124,24 @@ internal object NotificationVisualRenderer {
                 smallIconResId = R.drawable.ic_status_temp_warm,
                 accentColor = COLOR_AMBER_THERMAL,
                 subText = "SUPERD GUARD • WARM",
-                cacheKey = "monitor:${R.drawable.ic_status_temp_warm}:$COLOR_AMBER_THERMAL:${state.isFastCharging}:false"
+                cacheKey = "monitor:${R.drawable.ic_status_temp_warm}:$COLOR_AMBER_THERMAL:false:false"
             )
         }
 
         val smallIconRes = resolveChargingDrawable(state)
-        val accentColor = if (state.isFastCharging) {
-            COLOR_CYAN_FAST_CHARGE
-        } else {
-            COLOR_EMERALD_CHARGE
-        }
-        val subText = if (state.isFastCharging) {
-            "SUPERD GUARD • FAST CHARGE"
-        } else {
-            when (state.chargeSource) {
-                "USB Port" -> "SUPERD GUARD • USB"
-                "Wireless" -> "SUPERD GUARD • WIRELESS"
-                "AC Adapter" -> "SUPERD GUARD • AC CHARGE"
-                else -> "SUPERD GUARD • CHARGING"
-            }
+        val accentColor = COLOR_EMERALD_CHARGE
+        val subText = when (state.chargeSource) {
+            "USB Port" -> "SUPERD GUARD • USB"
+            "Wireless" -> "SUPERD GUARD • WIRELESS"
+            "AC Adapter" -> "SUPERD GUARD • AC CHARGE"
+            else -> "SUPERD GUARD • CHARGING"
         }
 
         return MonitorVisualSpec(
             smallIconResId = smallIconRes,
             accentColor = accentColor,
             subText = subText,
-            cacheKey = "monitor:$smallIconRes:$accentColor:${state.isFastCharging}:false"
+            cacheKey = "monitor:$smallIconRes:$accentColor:false"
         )
     }
 
@@ -199,24 +190,15 @@ internal object NotificationVisualRenderer {
 
         return when (state.chargeSource) {
             "USB Port" -> R.drawable.ic_status_usb
-            "AC Adapter" -> if (state.isFastCharging) {
-                R.drawable.ic_status_turbo_ring
-            } else {
-                R.drawable.ic_status_ac
-            }
+            "AC Adapter" -> R.drawable.ic_status_ac
             "Wireless" -> R.drawable.ic_status_wireless
-            else -> if (state.isFastCharging) {
-                R.drawable.ic_status_turbo_ring
-            } else {
-                R.drawable.ic_status_temp_normal
-            }
+            else -> R.drawable.ic_status_temp_normal
         }
     }
 
     fun getOrRenderMonitorLargeIcon(
         context: Context,
         spec: MonitorVisualSpec,
-        isFastCharging: Boolean = spec.accentColor == COLOR_CYAN_FAST_CHARGE
     ): Bitmap {
         return getOrCreateCachedBitmap(context, spec.cacheKey) { appContext, sizePx ->
             renderBadgeBitmap(
@@ -224,7 +206,7 @@ internal object NotificationVisualRenderer {
                 sizePx = sizePx,
                 iconResId = spec.smallIconResId,
                 accentColor = spec.accentColor,
-                secondaryArcColor = if (isFastCharging) COLOR_VIOLET_ACCENT else null,
+                secondaryArcColor = null,
                 centerSurfaceColor = BADGE_SURFACE_CENTER,
                 edgeSurfaceColor = BADGE_SURFACE_EDGE
             )
@@ -241,7 +223,7 @@ internal object NotificationVisualRenderer {
                 sizePx = sizePx,
                 iconResId = spec.smallIconResId,
                 accentColor = spec.accentColor,
-                secondaryArcColor = COLOR_CYAN_FAST_CHARGE,
+                secondaryArcColor = COLOR_CYAN_ACCENT,
                 centerSurfaceColor = ANOMALY_SURFACE_CENTER,
                 edgeSurfaceColor = ANOMALY_SURFACE_EDGE
             )
