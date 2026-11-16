@@ -205,7 +205,7 @@ class NotificationVisualRendererTest {
                 service.buildMonitorNotificationForTesting("+1850 mA (7.6W) • 33.0°C")
             assertNotNull(monitorNotification)
             assertEquals("SUPERD GUARD", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
-            assertNotEquals(0, monitorNotification.icon)
+            assertNotNull(monitorNotification.smallIcon)
             assertNotEquals(0, monitorNotification.color)
 
             val anomalyNotification: Notification =
