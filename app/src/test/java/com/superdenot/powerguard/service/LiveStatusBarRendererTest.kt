@@ -121,11 +121,11 @@ class LiveStatusBarRendererTest {
         )
 
         assertEquals("0°", LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
-        assertEquals("4.1V", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.VOLTAGE))
-        assertEquals("0.0A", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.CURRENT))
-        assertEquals("0.0W", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.POWER))
-        assertEquals("85%", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.BATTERY_PERCENTAGE))
-        assertEquals("CHG", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.CHARGING_STATUS))
+        assertEquals("4.1V", LiveStatusBarRenderer.format(state, StatusBarParameter.VOLTAGE))
+        assertEquals("0.0A", LiveStatusBarRenderer.format(state, StatusBarParameter.CURRENT))
+        assertEquals("0.0W", LiveStatusBarRenderer.format(state, StatusBarParameter.POWER))
+        assertEquals("85%", LiveStatusBarRenderer.format(state, StatusBarParameter.BATTERY_PERCENTAGE))
+        assertEquals("CHG", LiveStatusBarRenderer.format(state, StatusBarParameter.CHARGING_STATUS))
     }
 
     @Test
