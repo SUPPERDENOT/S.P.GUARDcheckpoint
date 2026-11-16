@@ -15,6 +15,8 @@ import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
 import com.superdenot.powerguard.data.repository.BatteryRepository
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.service.BatteryMonitorService
@@ -66,6 +68,18 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val statusBarIndicatorSetting: StateFlow<StatusBarIndicatorSetting> =
+        repository.statusBarIndicatorSettingFlow
+            .catch { error ->
+                Log.e("PowerGuard", "Gagal mengamati preferensi indikator status bar", error)
+                emit(StatusBarIndicatorSetting())
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                StatusBarIndicatorSetting()
+            )
+
     private val _autoMonitoringError = MutableStateFlow<String?>(null)
     val autoMonitoringError: StateFlow<String?> = _autoMonitoringError.asStateFlow()
 
@@ -114,6 +128,24 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
             viewModelScope.launch(Dispatchers.IO) {
                 runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
             }
+        }
+    }
+
+    fun setStatusBarIndicatorEnabled(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { repository.setStatusBarIndicatorEnabled(enabled) }
+                .onFailure { error ->
+                    Log.e("PowerGuard", "Gagal menyimpan status indikator status bar", error)
+                }
+        }
+    }
+
+    fun setStatusBarParameter(parameter: StatusBarParameter) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { repository.setStatusBarParameter(parameter) }
+                .onFailure { error ->
+                    Log.e("PowerGuard", "Gagal menyimpan parameter indikator status bar", error)
+                }
         }
     }
 
