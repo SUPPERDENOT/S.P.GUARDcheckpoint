@@ -22,13 +22,13 @@ internal class ChargingProgressTracker(
     private var nearZeroCurrentSinceMs: Long? = null
     private var lowProgressSinceMs: Long? = null
     private var noLevelProgressSinceMs: Long? = null
-    private var lastObservedLevel: Int? = null
+    private var highestObservedLevel: Int? = null
 
     fun reset() {
         nearZeroCurrentSinceMs = null
         lowProgressSinceMs = null
         noLevelProgressSinceMs = null
-        lastObservedLevel = null
+        highestObservedLevel = null
     }
 
     fun evaluate(state: LiveBatteryState, nowElapsedMs: Long): Issue? {
@@ -49,9 +49,10 @@ internal class ChargingProgressTracker(
             nearZeroCurrentSinceMs = null
         }
 
-        val previousLevel = lastObservedLevel
-        if (previousLevel == null || state.level != previousLevel) {
-            lastObservedLevel = state.level
+        val highestLevel = highestObservedLevel
+        if (highestLevel == null || state.level > highestLevel) {
+            // Only a new high-water mark proves net battery-level progress.
+            highestObservedLevel = state.level
             lowProgressSinceMs = nowElapsedMs
             noLevelProgressSinceMs = nowElapsedMs
         }
