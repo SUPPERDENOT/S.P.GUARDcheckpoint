@@ -33,9 +33,15 @@ class BatteryRepository(private val context: Context) {
     val designCapacitySettingFlow: Flow<DesignCapacitySetting> =
         DesignCapacitySettings.observe(context, engine)
     val autoMonitoringEnabledFlow: Flow<Boolean> = AutoMonitoringSettings.observe(context)
+    val statusBarIndicatorSettingFlow: Flow<StatusBarIndicatorSetting> =
+        StatusBarIndicatorSettings.observe(context)
 
     suspend fun isAutoMonitoringEnabled(): Boolean = AutoMonitoringSettings.isEnabled(context)
     suspend fun setAutoMonitoringEnabled(enabled: Boolean) = AutoMonitoringSettings.setEnabled(context, enabled)
+    suspend fun setStatusBarIndicatorEnabled(enabled: Boolean) =
+        StatusBarIndicatorSettings.setEnabled(context, enabled)
+    suspend fun setStatusBarParameter(parameter: com.superdenot.powerguard.domain.model.StatusBarParameter) =
+        StatusBarIndicatorSettings.setParameter(context, parameter)
 
     suspend fun saveCustomDesignCapacity(capacityMah: Int) {
         DesignCapacitySettings.saveManual(context, capacityMah)
