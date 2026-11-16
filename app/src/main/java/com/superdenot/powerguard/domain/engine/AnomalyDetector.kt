@@ -4,14 +4,13 @@ import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.os.Process
+import android.os.SystemClock
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 
 class AnomalyDetector(private val context: Context) {
 
-    private var lowCurrentDurationSeconds = 0
-    private val signFlipTimestampsMs = ArrayDeque<Long>()
-    private var lastNonZeroSign = 0
+    private val chargingProgressTracker = ChargingProgressTracker()
 
     data class AnomalyResult(
         val isAnomaly: Boolean,
@@ -20,9 +19,7 @@ class AnomalyDetector(private val context: Context) {
     )
 
     fun reset() {
-        lowCurrentDurationSeconds = 0
-        signFlipTimestampsMs.clear()
-        lastNonZeroSign = 0
+        chargingProgressTracker.reset()
     }
 
     fun evaluate(state: LiveBatteryState, isScreenOn: Boolean): AnomalyResult {
@@ -31,77 +28,44 @@ class AnomalyDetector(private val context: Context) {
             return AnomalyResult(false, null, null)
         }
 
-        val nowMs = System.currentTimeMillis()
-
-        // 1. Deteksi osilasi arus merah-hijau (positif <-> negatif) khas Fake Fast Charging
-        val currentSign = when {
-            state.currentMa > 30 -> 1
-            state.currentMa < -30 -> -1
-            else -> 0
-        }
-        if (currentSign != 0) {
-            if (lastNonZeroSign != 0 && currentSign != lastNonZeroSign) {
-                signFlipTimestampsMs.addLast(nowMs)
-            }
-            lastNonZeroSign = currentSign
-        }
-        while (signFlipTimestampsMs.isNotEmpty() && nowMs - signFlipTimestampsMs.first() > 45_000L) {
-            signFlipTimestampsMs.removeFirst()
-        }
-
-        if (signFlipTimestampsMs.size >= 4) {
-            return AnomalyResult(
-                isAnomaly = true,
-                code = "FAKE_FAST_CHARGE_OSCILLATION",
-                message = "Fake Fast Charging terdeteksi: Arus pengisian berkedip tidak stabil (berubah positif/negatif ${signFlipTimestampsMs.size}x dalam 45 detik). Segera periksa atau ganti kabel & kepala charger."
-            )
-        }
-
-        // 2. Deteksi arus rendah berkepanjangan saat charger terhubung
-        val minExpectedMa = if (state.chargeSource == "AC Adapter" || state.isFastCharging) 450 else 250
-        if (state.currentMa < minExpectedMa) {
-            lowCurrentDurationSeconds++
-        } else {
-            lowCurrentDurationSeconds = (lowCurrentDurationSeconds - 1).coerceAtLeast(0)
-        }
-
-        // 3. Deteksi Thermal Throttling
-        if (state.tempCelsius >= 41.0f && state.currentMa < 500) {
+        if (state.isTemperatureAvailable && state.tempCelsius >= 41.0f &&
+            state.isCurrentAvailable && state.currentMa < 500
+        ) {
             return AnomalyResult(
                 isAnomaly = true,
                 code = "THERMAL_THROTTLING",
-                message = "Suhu baterai tinggi (${state.tempCelsius}°C). Sistem memangkas arus pengisian menjadi ${state.currentMa} mA."
+                message = "Suhu baterai tinggi (" + state.tempCelsius + "°C). Sistem mungkin membatasi arus pengisian (" + state.currentMa + " mA)."
             )
         }
 
-        // 4. Peringatan cepat (30 detik untuk AC/Fast Charge, 90 detik untuk USB)
-        val triggerThresholdSec = if (state.chargeSource == "AC Adapter" || state.isFastCharging) 30 else 90
-        if (lowCurrentDurationSeconds >= triggerThresholdSec) {
-            val topApp = getTopActiveApps(
-                startTime = nowMs - (state.sessionDurationSec * 1000L).coerceAtLeast(60_000L),
-                endTime = nowMs
+        val issue = chargingProgressTracker.evaluate(state, SystemClock.elapsedRealtime())
+            ?: return AnomalyResult(false, null, null)
+
+        val topApp = if (!isScreenOn && state.deepSleepRatio < 0.25f) {
+            val now = System.currentTimeMillis()
+            getTopActiveApps(
+                startTime = now - (state.sessionDurationSec * 1000L).coerceAtLeast(60_000L),
+                endTime = now
             ).firstOrNull()
+        } else null
 
-            val wakelockHint = if (!isScreenOn && state.deepSleepRatio < 0.25f) {
-                " CPU gagal masuk Deep Sleep (Wakelock aktif${topApp?.let { ", terdeteksi: ${it.appName}" } ?: ""})."
-            } else {
-                " Periksa kabel charger, adaptor, atau port USB yang kotor/longgar."
-            }
-
-            val code = when {
-                state.currentMa < 0 -> "NET_DRAIN_CHARGING"
-                state.chargeSource == "AC Adapter" || state.isFastCharging -> "FAKE_FAST_CHARGING"
-                else -> "SLOW_CHARGING"
-            }
-
-            return AnomalyResult(
+        return when (issue) {
+            ChargingProgressTracker.Issue.NO_CHARGING_INPUT -> AnomalyResult(
                 isAnomaly = true,
-                code = code,
-                message = "Anomali Pengisian (${state.chargeSource}): Arus masuk hanya ${state.currentMa} mA (${String.format("%.2f", state.powerWatt)} W).$wakelockHint"
+                code = "CHARGING_NO_INPUT",
+                message = "Status Android menunjukkan sedang mengisi, tetapi arus baterai terukur hampir nol selama sedikitnya 3 menit. Label Fast Charging dari ponsel tidak membuktikan daya benar-benar masuk. Periksa adaptor, kabel, dan konektor."
             )
+            ChargingProgressTracker.Issue.CHARGING_PROGRESS_STALLED -> {
+                val wakelockHint = if (topApp != null) {
+                    " Aktivitas layar mati terdeteksi pada " + topApp.appName + "; beban perangkat mungkin ikut menghambat kenaikan baterai."
+                } else ""
+                AnomalyResult(
+                    isAnomaly = true,
+                    code = "CHARGING_PROGRESS_STALLED",
+                    message = "Pengisian belum menunjukkan kenaikan level baterai selama sedikitnya 45 menit, sementara arus terukur rendah (≤300 mA). Periksa sumber daya, kabel, konektor, dan beban perangkat." + wakelockHint
+                )
+            }
         }
-
-        return AnomalyResult(false, null, null)
     }
 
     fun hasUsageStatsPermission(): Boolean {
