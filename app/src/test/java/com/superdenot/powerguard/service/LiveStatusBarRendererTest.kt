@@ -32,12 +32,27 @@ class LiveStatusBarRendererTest {
 
         assertNotNull(bitmap)
         assertEquals(Bitmap.Config.ALPHA_8, bitmap!!.config)
-        assertEquals(LiveStatusBarRenderer.ICON_WIDTH, bitmap.width)
-        assertEquals(LiveStatusBarRenderer.ICON_HEIGHT, bitmap.height)
+        assertEquals(LiveStatusBarRenderer.ICON_SIZE_DP, bitmap.width)
+        assertEquals(LiveStatusBarRenderer.ICON_SIZE_DP, bitmap.height)
         assertFalse(bitmap.isRecycled)
 
         // Robolectric does not reliably expose Canvas glyph rasterization from ALPHA_8 via
         // getPixel(). Actual glyph visibility is verified on a physical Android device.
+    }
+
+
+    @Test
+    fun render_scalesBitmapAndTextForDisplayDensityAndKeepsDensityInCacheKey() {
+        val baseline = LiveStatusBarRenderer.render("85%", 1f)
+        val highDensity = LiveStatusBarRenderer.render("85%", 3f)
+
+        assertNotNull(baseline)
+        assertNotNull(highDensity)
+        assertEquals(48, baseline!!.width)
+        assertEquals(144, highDensity!!.width)
+        assertEquals(144, highDensity.height)
+        assertNotSame(baseline, highDensity)
+        assertEquals(2, LiveStatusBarRenderer.cacheSizeForTesting())
     }
 
     @Test
