@@ -2,6 +2,7 @@ package com.superdenot.powerguard.service
 
 import android.graphics.Bitmap
 import com.superdenot.powerguard.PowerGuardTestApplication
+import com.superdenot.powerguard.domain.model.LiveBatteryState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -106,4 +107,46 @@ class LiveStatusBarRendererTest {
             executor.shutdownNow()
         }
     }
+
+    @Test
+    fun format_usesLiveStateValuesAndPreservesValidZeroReadings() {
+        val state = LiveBatteryState(
+            level = 85,
+            currentMa = 0,
+            voltageMv = 4120,
+            powerWatt = 0f,
+            tempCelsius = 0f,
+            isCharging = true
+        )
+
+        assertEquals("0°", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.TEMPERATURE))
+        assertEquals("4.1V", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.VOLTAGE))
+        assertEquals("0.0A", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.CURRENT))
+        assertEquals("0.0W", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.POWER))
+        assertEquals("85%", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.BATTERY_PERCENTAGE))
+        assertEquals("CHG", LiveStatusBarRenderer.format(state, LiveStatusBarRenderer.Parameter.CHARGING_STATUS))
+    }
+
+    @Test
+    fun format_returnsNaOnlyWhenSelectedReadingIsUnavailable() {
+        val state = LiveBatteryState(
+            level = 85,
+            currentMa = 0,
+            voltageMv = 0,
+            powerWatt = 0f,
+            tempCelsius = 0f,
+            isCharging = false,
+            isCurrentAvailable = false,
+            isVoltageAvailable = false,
+            isPowerAvailable = false,
+            isLevelAvailable = false,
+            isTemperatureAvailable = false,
+            isChargingStatusAvailable = false
+        )
+
+        LiveStatusBarRenderer.Parameter.values().forEach { parameter ->
+            assertEquals("N/A", LiveStatusBarRenderer.format(state, parameter))
+        }
+    }
+
 }
