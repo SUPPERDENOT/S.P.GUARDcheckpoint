@@ -144,6 +144,17 @@ class LiveStatusBarRendererTest {
     }
 
     @Test
+    fun chargingStatusShowsDetectedSourceInsteadOfGenericChargingLabel() {
+        val charging = LiveBatteryState(isCharging = true, isChargingStatusAvailable = true)
+
+        assertEquals("AC", LiveStatusBarRenderer.format(charging.copy(chargeSource = "AC Adapter"), StatusBarParameter.CHARGING_STATUS))
+        assertEquals("USB", LiveStatusBarRenderer.format(charging.copy(chargeSource = "USB Port"), StatusBarParameter.CHARGING_STATUS))
+        assertEquals("WLS", LiveStatusBarRenderer.format(charging.copy(chargeSource = "Wireless"), StatusBarParameter.CHARGING_STATUS))
+        assertEquals("CHG", LiveStatusBarRenderer.format(charging.copy(chargeSource = "Unknown"), StatusBarParameter.CHARGING_STATUS))
+        assertEquals("DIS", LiveStatusBarRenderer.format(charging.copy(isCharging = false), StatusBarParameter.CHARGING_STATUS))
+    }
+
+    @Test
     fun format_returnsNaOnlyWhenSelectedReadingIsUnavailable() {
         val state = LiveBatteryState(
             level = 85,
