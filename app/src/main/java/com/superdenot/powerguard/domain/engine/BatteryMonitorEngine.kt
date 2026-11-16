@@ -51,7 +51,7 @@ class BatteryMonitorEngine(private val context: Context) {
             BatteryManager.BATTERY_PLUGGED_AC -> "AC Adapter"
             BatteryManager.BATTERY_PLUGGED_USB -> "USB Port"
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Wireless"
-            else -> "Discharging"
+            else -> if (isCharging) "Unknown Source" else "Discharging"
         }
 
         val isVoltageAvailable = intentStatus?.hasExtra(BatteryManager.EXTRA_VOLTAGE) == true &&
