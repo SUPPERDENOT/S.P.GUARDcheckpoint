@@ -25,3 +25,21 @@ All notable changes to Superd Power Guard are documented here. Implementation an
 
 ### Verification
 - Source changes only; Android CI and physical-device verification are pending.
+
+
+## 2026-11-17 — Engineering standards adoption (documentation only)
+
+### Added
+- Added repository-wide AI agent instructions in `AGENTS.md` and Claude-specific workflow guidance in `CLAUDE.md`.
+- Added `docs/engineering/DEVELOPMENT_STANDARDS.md` defining project-specific precedence, architecture boundaries, change workflow, and definition of done.
+- Added `docs/engineering/ANTI_SLOP_POLICY.md` adapting relevant Anti-Slop principles and rules for native Android/Compose work while preserving `DESIGN.md` as the visual source of truth.
+- Added `docs/engineering/ANDROID_ENGINEERING_GUIDE.md` selecting Android Skills guidance relevant to architecture, debugging, testing, Coroutines/Flow, Compose, persistence, and build performance.
+- Added `docs/engineering/QUALITY_CHECKLIST.md` for implementation, diagnostic integrity, UI, Android lifecycle, verification, and delivery review.
+- Added `THIRD_PARTY_NOTICES.md` recording attribution and upstream MIT license references for the two supplied source archives.
+
+### Verification
+- Documentation-only change. No Android application source, build configuration, dependencies, version, or runtime behavior changed.
+- Android build and app tests were not run because no application code changed.
+- Documentation content was prepared against the supplied Anti-Slop and Android Skills archives and the existing `DESIGN.md` / `CHANGELOG.md`.
+- Physical-device testing: not applicable to this documentation-only change.
+- Branch review and user approval are pending; nothing was merged to `main`.
