@@ -11,7 +11,7 @@ import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
-import com.superdenot.powerguard.data.repository.AutoMonitoringSettings
+import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.service.TargetSessionLookupResult
@@ -57,12 +57,11 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val enabled = AutoMonitoringSettings.isEnabled(appContext)
-                val manuallySuppressed = AutoMonitoringSettings.isManualMonitoringSuppressed(appContext)
+                val enabled = BatteryMonitoringSettings.isEnabled(appContext)
                 val allowed = if (requiresBatteryOptimizationExemption) {
                     val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
-                    AutoMonitoringSettings.canStartFromPowerConnected(
-                        autoMonitoringEnabled = enabled,
+                    BatteryMonitoringSettings.canStartFromPowerConnected(
+                        enabled = enabled,
                         batteryOptimizationIgnored =
                             powerManager.isIgnoringBatteryOptimizations(appContext.packageName)
                     )
@@ -71,12 +70,10 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                     enabled
                 }
 
-                if (allowed && !manuallySuppressed) {
+                if (allowed) {
                     BatteryMonitorService.requestStartService(appContext, manual = false)
-                } else if (manuallySuppressed) {
-                    Log.i("PowerGuard", "Auto-start ditahan oleh perintah STOP manual sampai charger dilepas")
                 } else if (!enabled) {
-                    Log.i("PowerGuard", "Auto Monitoring nonaktif; pemicu charger/boot diabaikan")
+                    Log.i("PowerGuard", "Battery Monitoring OFF; pemicu charger/boot diabaikan")
                 } else {
                     Log.w(
                         "PowerGuard",
@@ -97,10 +94,6 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Cabut charger mengakhiri penahanan STOP manual; sambungan berikutnya
-                // boleh mengikuti preferensi Auto Monitoring lagi.
-                AutoMonitoringSettings.setManualMonitoringSuppressed(appContext, false)
-
                 if (BatteryMonitorService.isStartingOrRunning ||
                     BatteryMonitorService.hasActiveServiceSessionFor()
                 ) {

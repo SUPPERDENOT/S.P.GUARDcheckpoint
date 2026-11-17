@@ -9,29 +9,25 @@ import org.junit.Test
 
 class DesignCapacitySettingsTest {
 
-    @Test fun autoMonitoringDefaultsToEnabledForExistingInstallations() {
-        assertTrue(AutoMonitoringSettings.resolveEnabled(null))
+    @Test fun freshInstallBatteryMonitoringDefaultsToOff() {
+        assertFalse(BatteryMonitoringSettings.resolveEnabled(null, null))
     }
 
-    @Test fun autoMonitoringPreferenceCanBeEnabledOrDisabled() {
-        assertTrue(AutoMonitoringSettings.resolveEnabled(true))
-        assertFalse(AutoMonitoringSettings.resolveEnabled(false))
+    @Test fun migrationPreservesExplicitLegacyPreference() {
+        assertTrue(BatteryMonitoringSettings.resolveEnabled(null, true))
+        assertFalse(BatteryMonitoringSettings.resolveEnabled(null, false))
     }
 
-    @Test fun manualStopSuppressionDefaultsToFalseForExistingInstallations() {
-        assertFalse(AutoMonitoringSettings.resolveManualStopSuppressed(null))
+    @Test fun currentMasterPreferenceTakesPrecedenceOverLegacyValue() {
+        assertTrue(BatteryMonitoringSettings.resolveEnabled(true, false))
+        assertFalse(BatteryMonitoringSettings.resolveEnabled(false, true))
     }
 
-    @Test fun manualStopSuppressionCanBeSetAndCleared() {
-        assertTrue(AutoMonitoringSettings.resolveManualStopSuppressed(true))
-        assertFalse(AutoMonitoringSettings.resolveManualStopSuppressed(false))
-    }
-
-    @Test fun powerConnectedAutoStartRequiresEnabledPreferenceAndBatteryExemption() {
-        assertTrue(AutoMonitoringSettings.canStartFromPowerConnected(true, true))
-        assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(false, true))
-        assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(true, false))
-        assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(false, false))
+    @Test fun powerConnectedStartRequiresEnabledPreferenceAndBatteryExemption() {
+        assertTrue(BatteryMonitoringSettings.canStartFromPowerConnected(true, true))
+        assertFalse(BatteryMonitoringSettings.canStartFromPowerConnected(false, true))
+        assertFalse(BatteryMonitoringSettings.canStartFromPowerConnected(true, false))
+        assertFalse(BatteryMonitoringSettings.canStartFromPowerConnected(false, false))
     }
 
     @Test

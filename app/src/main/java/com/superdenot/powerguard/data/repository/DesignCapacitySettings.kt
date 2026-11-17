@@ -12,8 +12,9 @@ import kotlinx.coroutines.flow.map
 
 internal val Context.powerGuardDataStore by preferencesDataStore(name = "powerguard_prefs")
 internal val KEY_DESIGN_CAPACITY = intPreferencesKey("custom_design_capacity_mah")
-private val KEY_AUTO_MONITORING_ENABLED = booleanPreferencesKey("auto_monitoring_enabled")
-private val KEY_MANUAL_MONITORING_SUPPRESSED = booleanPreferencesKey("manual_monitoring_suppressed")
+private val KEY_BATTERY_MONITORING_ENABLED = booleanPreferencesKey("battery_monitoring_enabled")
+private val KEY_LEGACY_AUTO_MONITORING_ENABLED = booleanPreferencesKey("auto_monitoring_enabled")
+private val KEY_LEGACY_MANUAL_MONITORING_SUPPRESSED = booleanPreferencesKey("manual_monitoring_suppressed")
 
 data class DesignCapacitySetting(
     val capacityMah: Int?,
@@ -59,32 +60,40 @@ object DesignCapacitySettings {
 }
 
 
-/** Preferensi pemantauan otomatis saat perangkat mulai mengisi daya. Default ON menjaga perilaku versi sebelumnya. */
-object AutoMonitoringSettings {
-    internal fun resolveEnabled(preferenceValue: Boolean?): Boolean = preferenceValue ?: true
-    internal fun resolveManualStopSuppressed(preferenceValue: Boolean?): Boolean = preferenceValue ?: false
+/**
+ * Satu-satunya preferensi kontrol Battery Monitoring.
+ * Nilai eksplisit versi lama dipertahankan; instalasi baru default OFF.
+ */
+object BatteryMonitoringSettings {
+    internal fun resolveEnabled(currentValue: Boolean?, legacyValue: Boolean?): Boolean =
+        currentValue ?: legacyValue ?: false
 
-    internal fun canStartFromPowerConnected(
-        autoMonitoringEnabled: Boolean,
-        batteryOptimizationIgnored: Boolean
-    ): Boolean = autoMonitoringEnabled && batteryOptimizationIgnored
+    internal fun canStartFromPowerConnected(enabled: Boolean, batteryOptimizationIgnored: Boolean): Boolean =
+        enabled && batteryOptimizationIgnored
 
-    fun observe(context: Context): Flow<Boolean> =
-        context.powerGuardDataStore.data.map { resolveEnabled(it[KEY_AUTO_MONITORING_ENABLED]) }
-
-    suspend fun isEnabled(context: Context): Boolean =
-        resolveEnabled(context.powerGuardDataStore.data.first()[KEY_AUTO_MONITORING_ENABLED])
-
-    suspend fun setEnabled(context: Context, enabled: Boolean) {
-        context.powerGuardDataStore.edit { it[KEY_AUTO_MONITORING_ENABLED] = enabled }
+    private suspend fun migrateIfNeeded(context: Context) {
+        context.powerGuardDataStore.edit { prefs ->
+            if (KEY_BATTERY_MONITORING_ENABLED !in prefs) {
+                prefs[KEY_BATTERY_MONITORING_ENABLED] =
+                    resolveEnabled(null, prefs[KEY_LEGACY_AUTO_MONITORING_ENABLED])
+            }
+            prefs.remove(KEY_LEGACY_AUTO_MONITORING_ENABLED)
+            prefs.remove(KEY_LEGACY_MANUAL_MONITORING_SUPPRESSED)
+        }
     }
 
-    suspend fun isManualMonitoringSuppressed(context: Context): Boolean =
-        resolveManualStopSuppressed(
-            context.powerGuardDataStore.data.first()[KEY_MANUAL_MONITORING_SUPPRESSED]
-        )
+    fun observe(context: Context): Flow<Boolean> =
+        context.powerGuardDataStore.data.map { prefs ->
+            resolveEnabled(prefs[KEY_BATTERY_MONITORING_ENABLED], prefs[KEY_LEGACY_AUTO_MONITORING_ENABLED])
+        }
 
-    suspend fun setManualMonitoringSuppressed(context: Context, suppressed: Boolean) {
-        context.powerGuardDataStore.edit { it[KEY_MANUAL_MONITORING_SUPPRESSED] = suppressed }
+    suspend fun isEnabled(context: Context): Boolean {
+        migrateIfNeeded(context)
+        return context.powerGuardDataStore.data.first()[KEY_BATTERY_MONITORING_ENABLED] ?: false
+    }
+
+    suspend fun setEnabled(context: Context, enabled: Boolean) {
+        migrateIfNeeded(context)
+        context.powerGuardDataStore.edit { it[KEY_BATTERY_MONITORING_ENABLED] = enabled }
     }
 }

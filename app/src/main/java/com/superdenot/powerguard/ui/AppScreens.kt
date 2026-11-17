@@ -39,7 +39,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
     val health by vm.latestHealth.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
-    val auto by vm.autoMonitoringEnabled.collectAsState()
+    val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
 
@@ -79,7 +79,17 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         MiniMetric("Arus baterai", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f))
-                        MiniMetric("Pemantauan", if (running) "Aktif" else "Siaga", Modifier.weight(1f))
+                        MiniMetric(
+                            "Pemantauan",
+                            when {
+                                running -> "Aktif"
+                                !monitoringEnabled -> "OFF"
+                                !state.isCharging -> "Siaga"
+                                !batteryOpt -> "Izin diperlukan"
+                                else -> "Menunggu sistem"
+                            },
+                            Modifier.weight(1f)
+                        )
                     }
                     state.anomalyAlert?.let {
                         Surface(color = CrimsonAnomaly.copy(alpha = .10f), shape = RoundedCornerShape(10.dp)) {
@@ -117,7 +127,16 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionHeading("KESIAPAN SISTEM", "Izin dan pemantauan latar belakang")
-                    DiagnosticLine("Pemantauan otomatis", if (auto) "Aktif" else "Nonaktif")
+                    DiagnosticLine(
+                        "Battery Monitoring",
+                        when {
+                            running -> "AKTIF"
+                            !monitoringEnabled -> "OFF"
+                            !state.isCharging -> "SIAGA — menunggu charger"
+                            !batteryOpt -> "OFF — izin latar belakang diperlukan"
+                            else -> "OFF — menunggu aktivasi sistem"
+                        }
+                    )
                     DiagnosticLine("Optimasi baterai", if (batteryOpt) "Dikecualikan" else "Belum dikecualikan")
                     DiagnosticLine("Akses penggunaan", if (usage) "Diizinkan" else "Belum diizinkan")
                 }
@@ -190,26 +209,6 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 }
             }
         }
-        item {
-            val actionPending by vm.monitorActionInProgress.collectAsState()
-            OutlinedButton(
-                onClick = {
-                    if (running) vm.stopMonitorService() else vm.startManualMonitorService()
-                },
-                enabled = !actionPending,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    when {
-                        actionPending && running -> "Menghentikan Pemantauan…"
-                        actionPending -> "Memulai Pemantauan…"
-                        running -> "Hentikan Pemantauan"
-                        else -> "Mulai Pemantauan"
-                    }
-                )
-            }
-        }
     }
 }
 
@@ -238,7 +237,7 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val context = LocalContext.current
-    val auto by vm.autoMonitoringEnabled.collectAsState()
+    val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
@@ -259,10 +258,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Pemantauan otomatis", fontWeight = FontWeight.Bold)
-                            Text("Mulai memantau saat pengisi daya tersambung.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Battery Monitoring", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Pantau otomatis saat charger tersambung. OFF akan menghentikan layanan.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Switch(checked = auto, onCheckedChange = vm::setAutoMonitoringEnabled)
+                        Switch(checked = monitoringEnabled, onCheckedChange = vm::setBatteryMonitoringEnabled)
                     }
                     error?.let { Text(it, color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall) }
                 }

@@ -14,7 +14,6 @@ import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
 import com.superdenot.powerguard.data.repository.BatteryRepository
-import com.superdenot.powerguard.data.repository.AutoMonitoringSettings
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
@@ -31,11 +30,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,10 +40,6 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     private val repository = BatteryRepository(application)
     private val autoStartRequestInFlight = AtomicBoolean(false)
-    private val manualMonitorActionInFlight = AtomicBoolean(false)
-    private val _monitorActionInProgress = MutableStateFlow(false)
-    val monitorActionInProgress: StateFlow<Boolean> = _monitorActionInProgress.asStateFlow()
-
     private val _fallbackLiveState = MutableStateFlow(repository.readDirectSensorSnapshot())
     private val _fallbackUpdatedAtElapsedRealtime = MutableStateFlow(SystemClock.elapsedRealtime())
     val liveState: StateFlow<LiveBatteryState> = repository.liveServiceState
@@ -67,12 +60,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     val designCapacitySetting: StateFlow<DesignCapacitySetting> = repository.designCapacitySettingFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesignCapacitySetting(null, false))
-    val autoMonitoringEnabled: StateFlow<Boolean> = repository.autoMonitoringEnabledFlow
+    val batteryMonitoringEnabled: StateFlow<Boolean> = repository.batteryMonitoringEnabledFlow
         .catch { error ->
-            Log.e("PowerGuard", "Gagal mengamati preferensi Auto Monitoring; pemicu otomatis dinonaktifkan", error)
+            Log.e("PowerGuard", "Gagal mengamati preferensi Battery Monitoring; pemantauan dinonaktifkan", error)
             emit(false)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val statusBarIndicatorSetting: StateFlow<StatusBarIndicatorSetting> =
         repository.statusBarIndicatorSettingFlow
@@ -116,24 +109,19 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun startMonitorIfCharging() {
-        val snapshot = repository.readDirectSensorSnapshot()
-        if (snapshot.isCharging && !BatteryMonitorService.isStartingOrRunning) {
-            viewModelScope.launch(Dispatchers.IO) {
-                val autoStartAllowed = try {
-                    repository.isAutoMonitoringEnabled() &&
-                        !AutoMonitoringSettings.isManualMonitoringSuppressed(getApplication())
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    Log.e("PowerGuard", "Preferensi auto-start gagal dibaca; pemicu otomatis dibatalkan", error)
-                    _autoMonitoringError.value = "Preferensi pemantauan tidak dapat dibaca; pemantauan otomatis ditahan."
-                    false
-                }
-                if (autoStartAllowed) requestAutoMonitorStartSafely()
+        viewModelScope.launch(Dispatchers.IO) {
+            val enabled = runCatching { repository.isBatteryMonitoringEnabled() }.getOrElse { error ->
+                Log.e("PowerGuard", "Preferensi Battery Monitoring gagal dibaca; layanan ditahan", error)
+                _autoMonitoringError.value = "Preferensi pemantauan tidak dapat dibaca; layanan dinonaktifkan."
+                false
             }
-        } else {
-            viewModelScope.launch(Dispatchers.IO) {
-                runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
+            val charging = repository.readDirectSensorSnapshot().isCharging
+            when {
+                !enabled && BatteryMonitorService.isStartingOrRunning ->
+                    runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
+                enabled && charging && !BatteryMonitorService.isStartingOrRunning ->
+                    requestBatteryMonitorStartSafely()
+                else -> runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
             }
         }
     }
@@ -156,93 +144,47 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun setAutoMonitoringEnabled(enabled: Boolean) {
+    fun setBatteryMonitoringEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                repository.setAutoMonitoringEnabled(enabled)
+                repository.setBatteryMonitoringEnabled(enabled)
                 _autoMonitoringError.value = null
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                _autoMonitoringError.value = "Pengaturan Auto Monitoring gagal disimpan. Status sebelumnya mungkin masih berlaku."
-                Log.e("PowerGuard", "Gagal menyimpan preferensi Auto Monitoring: ${error.message}", error)
+                _autoMonitoringError.value = "Pengaturan Battery Monitoring gagal disimpan."
+                Log.e("PowerGuard", "Gagal menyimpan preferensi Battery Monitoring: ${error.message}", error)
                 return@launch
             }
-
-            // This start is initiated by an explicit foreground UI interaction.
-            // Future POWER_CONNECTED broadcasts still require the battery-optimization exemption.
-            if (enabled && repository.readDirectSensorSnapshot().isCharging) {
-                val manuallySuppressed = runCatching {
-                    AutoMonitoringSettings.isManualMonitoringSuppressed(getApplication())
-                }.getOrElse { true }
-                if (!manuallySuppressed) requestAutoMonitorStartSafely()
+            if (!enabled) {
+                runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
+                    .onFailure { error ->
+                        _autoMonitoringError.value = "Pengaturan OFF tersimpan, tetapi layanan belum dapat dihentikan sepenuhnya."
+                        Log.e("PowerGuard", "Gagal mengirim perintah STOP layanan", error)
+                    }
+            } else if (repository.readDirectSensorSnapshot().isCharging) {
+                requestBatteryMonitorStartSafely()
             }
         }
     }
 
-    private fun requestAutoMonitorStartSafely() {
+    private fun requestBatteryMonitorStartSafely() {
         if (BatteryMonitorService.isStartingOrRunning ||
             !autoStartRequestInFlight.compareAndSet(false, true)
         ) return
-
         try {
             BatteryMonitorService.requestStartService(getApplication(), manual = false)
             _autoMonitoringError.value = null
         } catch (error: Exception) {
             _autoMonitoringError.value =
-                "Pengaturan tersimpan, tetapi layanan belum dapat dimulai. Periksa izin dan pembatasan sistem."
-            Log.e("PowerGuard", "Auto Monitoring gagal dimulai: ${error.message}", error)
+                "Preferensi ON tersimpan, tetapi layanan belum aktif. Periksa izin dan pembatasan Android."
+            Log.e("PowerGuard", "Battery Monitoring gagal dimulai: ${error.message}", error)
         } finally {
             autoStartRequestInFlight.set(false)
         }
     }
 
-    fun startManualMonitorService() {
-        if (!manualMonitorActionInFlight.compareAndSet(false, true)) return
-        _monitorActionInProgress.value = true
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val context = getApplication<Application>()
-                AutoMonitoringSettings.setManualMonitoringSuppressed(context, false)
-                val manual = !repository.readDirectSensorSnapshot().isCharging
-                BatteryMonitorService.requestStartService(context, manual = manual)
-                withTimeoutOrNull(10_000L) {
-                    repository.isServiceRunning.first { it }
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                Log.e("PowerGuard", "Pemantauan manual gagal dimulai: ${error.message}", error)
-            } finally {
-                _monitorActionInProgress.value = false
-                manualMonitorActionInFlight.set(false)
-            }
-        }
-    }
 
-    fun stopMonitorService() {
-        if (!manualMonitorActionInFlight.compareAndSet(false, true)) return
-        _monitorActionInProgress.value = true
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val context = getApplication<Application>()
-                // Simpan penahanan auto-start sebelum mengirim STOP agar tidak ada pemicu
-                // charger/startup yang dapat menyalakan layanan kembali di sela transisi.
-                AutoMonitoringSettings.setManualMonitoringSuppressed(context, true)
-                BatteryMonitorService.requestStopMonitoring(context)
-                withTimeoutOrNull(15_000L) {
-                    repository.isServiceRunning.first { !it }
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                Log.e("PowerGuard", "Permintaan STOP pemantauan gagal: ${error.message}", error)
-            } finally {
-                _monitorActionInProgress.value = false
-                manualMonitorActionInFlight.set(false)
-            }
-        }
-    }
 
     fun startMonitorService(manual: Boolean = false) {
         val context = getApplication<Application>()

@@ -28,7 +28,7 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
-import com.superdenot.powerguard.data.repository.AutoMonitoringSettings
+import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
@@ -589,67 +589,20 @@ class BatteryMonitorService : Service() {
 
     private suspend fun handleStart(startId: Int, manual: Boolean, generation: Long) {
         if (destroyRequested.get()) return
-        if (!consumePendingStartIfLatest(generation)) {
+        if (!consumePendingStartIfLatest(generation)) return
+        if (!isBatteryMonitoringEnabled()) {
+            stopForInactiveMonitoring(startId, generation, "Battery Monitoring OFF saat perintah START diterima")
             return
         }
-
-        if (!manual && isManualAutoStartSuppressed()) {
-            manualMonitoringRequested = false
-            if (actorState == ActorLifecycleState.STARTING) {
-                transitionActorState(ActorLifecycleState.STOPPED)
-            }
-            stopForegroundAndSelfIfIdle(startId, generation)
-            return
-        }
-
-        if (actorState == ActorLifecycleState.STOPPED) {
-            transitionActorState(ActorLifecycleState.STARTING)
-        }
-
+        if (actorState == ActorLifecycleState.STOPPED) transitionActorState(ActorLifecycleState.STARTING)
         sharedSessionMutex.withLock {
-            if (destroyRequested.get() || generation < latestStartGeneration.get()) {
-                return@withLock
-            }
-
-            val currentSensor = resolveEngine().readCurrentState()
-            activeRunGeneration = generation
-            if (manual) {
-                manualMonitoringRequested = true
-            } else if (!currentSensor.isCharging) {
+            if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
+            val sensor = resolveEngine().readCurrentState()
+            if (!sensor.isCharging) {
                 manualMonitoringRequested = false
-            }
-
-            if (currentSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(currentSensor)
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
-                ensureMonitoringLoopRunning()
-            } else if (manual) {
-                val hasPendingCheckpoint = SessionRecoveryStore.loadAll(applicationContext).isNotEmpty()
-                if (activeSessionId != null || sampleBuffer.isNotEmpty() || hasPendingCheckpoint) {
-                    val finalizationResult = ensureSessionFinalizedSafely()
-                    if (!finalizationResult.isCompleteAndSafeForManualTransition()) {
-                        manualMonitoringRequested = false
-                        if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                            enterRecoveryHoldLocked(generation, "Checkpoint capture gagal saat transisi ke mode manual (result=$finalizationResult)")
-                        } else {
-                            stopMonitoringLoopLocked()
-                            activeRunGeneration = 0L
-                            transitionActorState(ActorLifecycleState.STOPPED)
-                            _liveState.value = LiveBatteryState()
-                            stopForegroundAndSelfIfIdle(startId, generation)
-                        }
-                        return@withLock
-                    }
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_MANUAL)
-                ensureMonitoringLoopRunning()
-            } else {
-                manualMonitoringRequested = false
-                val finalizationResult = ensureSessionFinalizedSafely()
-                if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                    enterRecoveryHoldLocked(generation, "Finalisasi & checkpoint gagal saat start dalam kondisi tidak mengisi daya (result=$finalizationResult)")
+                val result = ensureSessionFinalizedSafely()
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Finalisasi sesi gagal saat Battery Monitoring standby (result=$result)")
                     return@withLock
                 }
                 stopMonitoringLoopLocked()
@@ -657,55 +610,60 @@ class BatteryMonitorService : Service() {
                 transitionActorState(ActorLifecycleState.STOPPED)
                 _liveState.value = LiveBatteryState()
                 stopForegroundAndSelfIfIdle(startId, generation)
+                return@withLock
             }
+            activeRunGeneration = generation
+            manualMonitoringRequested = false
+            if (activeSessionId == null) recoverOrStartChargingSession(sensor)
+            transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+            ensureMonitoringLoopRunning()
         }
     }
 
-    private suspend fun isManualAutoStartSuppressed(): Boolean =
-        runCatching { AutoMonitoringSettings.isManualMonitoringSuppressed(applicationContext) }
+    private suspend fun isBatteryMonitoringEnabled(): Boolean =
+        runCatching { BatteryMonitoringSettings.isEnabled(applicationContext) }
             .onFailure { error ->
-                Log.e("PowerGuard", "Status penahanan STOP tidak dapat dibaca; auto-start ditahan", error)
+                Log.e("PowerGuard", "Preferensi Battery Monitoring gagal dibaca; layanan ditahan", error)
             }
-            .getOrDefault(true)
+            .getOrDefault(false)
+
+    private suspend fun stopForInactiveMonitoring(startId: Int, generation: Long, reason: String) {
+        if (destroyRequested.get()) return
+        sharedSessionMutex.withLock {
+            if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
+            manualMonitoringRequested = false
+            val result = ensureSessionFinalizedSafely()
+            if (hasUnpersistedRamOnlyData(result)) {
+                enterRecoveryHoldLocked(
+                    maxOf(generation, latestStartGeneration.get(), activeRunGeneration),
+                    "$reason; data belum aman dipersistenkan (result=$result)"
+                )
+                return@withLock
+            }
+            stopMonitoringLoopLocked()
+            activeRunGeneration = 0L
+            transitionActorState(ActorLifecycleState.STOPPED)
+            _liveState.value = LiveBatteryState()
+            stopForegroundAndSelfIfIdle(startId, generation)
+        }
+    }
 
     private suspend fun handleRestart(startId: Int, generation: Long) {
         if (destroyRequested.get()) return
-        if (!consumePendingStartIfLatest(generation)) {
+        if (!consumePendingStartIfLatest(generation)) return
+        if (!isBatteryMonitoringEnabled()) {
+            stopForInactiveMonitoring(startId, generation, "Battery Monitoring OFF saat service mencoba restart")
             return
         }
-
-        if (isManualAutoStartSuppressed()) {
-            manualMonitoringRequested = false
-            if (actorState == ActorLifecycleState.STARTING) {
-                transitionActorState(ActorLifecycleState.STOPPED)
-            }
-            stopForegroundAndSelfIfIdle(startId, generation)
-            return
-        }
-
-        if (actorState == ActorLifecycleState.STOPPED) {
-            transitionActorState(ActorLifecycleState.STARTING)
-        }
-
+        if (actorState == ActorLifecycleState.STOPPED) transitionActorState(ActorLifecycleState.STARTING)
         sharedSessionMutex.withLock {
-            if (destroyRequested.get() || generation < latestStartGeneration.get()) {
-                return@withLock
-            }
-
-            val currentSensor = resolveEngine().readCurrentState()
-            activeRunGeneration = generation
-            manualMonitoringRequested = false
-
-            if (currentSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(currentSensor)
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
-                ensureMonitoringLoopRunning()
-            } else {
-                val finalizationResult = ensureSessionFinalizedSafely()
-                if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                    enterRecoveryHoldLocked(generation, "Finalisasi & checkpoint gagal saat restart service dalam kondisi unplugged (result=$finalizationResult)")
+            if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
+            val sensor = resolveEngine().readCurrentState()
+            if (!sensor.isCharging) {
+                manualMonitoringRequested = false
+                val result = ensureSessionFinalizedSafely()
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Finalisasi sesi gagal saat restart dalam kondisi unplugged (result=$result)")
                     return@withLock
                 }
                 stopMonitoringLoopLocked()
@@ -713,7 +671,13 @@ class BatteryMonitorService : Service() {
                 transitionActorState(ActorLifecycleState.STOPPED)
                 _liveState.value = LiveBatteryState()
                 stopForegroundAndSelfIfIdle(startId, generation)
+                return@withLock
             }
+            activeRunGeneration = generation
+            manualMonitoringRequested = false
+            if (activeSessionId == null) recoverOrStartChargingSession(sensor)
+            transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+            ensureMonitoringLoopRunning()
         }
     }
 
