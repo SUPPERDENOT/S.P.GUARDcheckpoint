@@ -159,7 +159,6 @@ class MainActivity : ComponentActivity() {
                         else -> SettingsScreen(vm, padding, onOpenPermissionSetup = { showPermissionSetup = true })
                     }
                 }
-            }
                 if (showPermissionSetup) {
                     InitialPermissionSetup(
                         notificationGranted = notificationGranted,
@@ -190,6 +189,7 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
+            }
         }
 
     }
