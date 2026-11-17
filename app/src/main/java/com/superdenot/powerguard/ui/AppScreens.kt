@@ -40,6 +40,8 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val health by vm.latestHealth.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
+    val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
+    val usage by vm.hasUsagePermission.collectAsState()
     var readinessRefreshed by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -388,14 +390,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         }
                         runCatching { context.startActivity(intent) }
                     }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Rounded.BatterySaver, contentDescription = null)
+                        Icon(Icons.Rounded.Settings, contentDescription = null)
                         Text("  Pengaturan optimasi baterai")
                     }
                     OutlinedButton(
                         onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Rounded.Apps, contentDescription = null)
+                        Icon(Icons.Rounded.Settings, contentDescription = null)
                         Text("  Pengaturan akses penggunaan")
                     }
                 }
