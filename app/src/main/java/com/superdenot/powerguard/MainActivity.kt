@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -159,37 +160,38 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
-        if (showPermissionSetup) {
-            InitialPermissionSetup(
-                notificationGranted = notificationGranted,
-                batteryOptimizationIgnored = batteryOptimizationIgnored,
-                usageAccessGranted = usageAccessGranted,
-                onRequestNotifications = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationGranted) {
-                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else notificationGranted = true
-                },
-                onOpenBatteryOptimization = {
-                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = Uri.parse("package:" + context.packageName)
-                    }
-                    runCatching { context.startActivity(intent) }
-                },
-                onOpenUsageAccess = {
-                    runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-                },
-                onRefresh = {
-                    vm.refreshPermissionsAndUsage()
-                    notificationGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-                },
-                onContinue = {
-                    setupPrefs.edit().putBoolean("completed", true).apply()
-                    showPermissionSetup = false
+                if (showPermissionSetup) {
+                    InitialPermissionSetup(
+                        notificationGranted = notificationGranted,
+                        batteryOptimizationIgnored = batteryOptimizationIgnored,
+                        usageAccessGranted = usageAccessGranted,
+                        onRequestNotifications = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationGranted) {
+                                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else notificationGranted = true
+                        },
+                        onOpenBatteryOptimization = {
+                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:" + context.packageName)
+                            }
+                            runCatching { context.startActivity(intent) }
+                        },
+                        onOpenUsageAccess = {
+                            runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+                        },
+                        onRefresh = {
+                            vm.refreshPermissionsAndUsage()
+                            notificationGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                        },
+                        onContinue = {
+                            setupPrefs.edit().putBoolean("completed", true).apply()
+                            showPermissionSetup = false
+                        }
+                    )
                 }
-            )
         }
+
     }
 }
 
