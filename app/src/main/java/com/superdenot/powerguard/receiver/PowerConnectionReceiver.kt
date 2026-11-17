@@ -58,6 +58,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val enabled = AutoMonitoringSettings.isEnabled(appContext)
+                val manuallySuppressed = AutoMonitoringSettings.isManualMonitoringSuppressed(appContext)
                 val allowed = if (requiresBatteryOptimizationExemption) {
                     val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
                     AutoMonitoringSettings.canStartFromPowerConnected(
@@ -70,8 +71,10 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                     enabled
                 }
 
-                if (allowed) {
+                if (allowed && !manuallySuppressed) {
                     BatteryMonitorService.requestStartService(appContext, manual = false)
+                } else if (manuallySuppressed) {
+                    Log.i("PowerGuard", "Auto-start ditahan oleh perintah STOP manual sampai charger dilepas")
                 } else if (!enabled) {
                     Log.i("PowerGuard", "Auto Monitoring nonaktif; pemicu charger/boot diabaikan")
                 } else {
@@ -90,20 +93,35 @@ class PowerConnectionReceiver : BroadcastReceiver() {
     }
 
     private fun handlePowerDisconnected(context: Context) {
-        if (BatteryMonitorService.isStartingOrRunning || BatteryMonitorService.hasActiveServiceSessionFor()) {
-            val stopSessionIntent = Intent(context, BatteryMonitorService::class.java).apply {
-                action = BatteryMonitorService.ACTION_STOP_CHARGING_SESSION
-            }
-            val delivered = runCatching {
-                context.startService(stopSessionIntent)
-            }.isSuccess
+        val pendingResult = goAsync()
+        val appContext = context.applicationContext
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Cabut charger mengakhiri penahanan STOP manual; sambungan berikutnya
+                // boleh mengikuti preferensi Auto Monitoring lagi.
+                AutoMonitoringSettings.setManualMonitoringSuppressed(appContext, false)
 
-            if (delivered) {
-                return
+                if (BatteryMonitorService.isStartingOrRunning ||
+                    BatteryMonitorService.hasActiveServiceSessionFor()
+                ) {
+                    val stopSessionIntent = Intent(appContext, BatteryMonitorService::class.java).apply {
+                        action = BatteryMonitorService.ACTION_STOP_CHARGING_SESSION
+                    }
+                    val delivered = runCatching {
+                        appContext.startService(stopSessionIntent)
+                    }.isSuccess
+
+                    if (!delivered) scheduleGuardedBackgroundCleanup(appContext)
+                } else {
+                    scheduleGuardedBackgroundCleanup(appContext)
+                }
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal memproses charger terlepas atau mereset penahanan STOP", error)
+                scheduleGuardedBackgroundCleanup(appContext)
+            } finally {
+                pendingResult.finish()
             }
         }
-
-        scheduleGuardedBackgroundCleanup(context)
     }
 
     private fun scheduleGuardedBackgroundCleanup(context: Context) {

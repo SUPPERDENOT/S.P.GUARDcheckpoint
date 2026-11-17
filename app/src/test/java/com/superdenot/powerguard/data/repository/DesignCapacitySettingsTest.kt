@@ -18,6 +18,15 @@ class DesignCapacitySettingsTest {
         assertFalse(AutoMonitoringSettings.resolveEnabled(false))
     }
 
+    @Test fun manualStopSuppressionDefaultsToFalseForExistingInstallations() {
+        assertFalse(AutoMonitoringSettings.resolveManualStopSuppressed(null))
+    }
+
+    @Test fun manualStopSuppressionCanBeSetAndCleared() {
+        assertTrue(AutoMonitoringSettings.resolveManualStopSuppressed(true))
+        assertFalse(AutoMonitoringSettings.resolveManualStopSuppressed(false))
+    }
+
     @Test fun powerConnectedAutoStartRequiresEnabledPreferenceAndBatteryExemption() {
         assertTrue(AutoMonitoringSettings.canStartFromPowerConnected(true, true))
         assertFalse(AutoMonitoringSettings.canStartFromPowerConnected(false, true))

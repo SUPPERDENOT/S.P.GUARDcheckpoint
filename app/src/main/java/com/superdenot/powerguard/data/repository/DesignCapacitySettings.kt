@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 internal val Context.powerGuardDataStore by preferencesDataStore(name = "powerguard_prefs")
 internal val KEY_DESIGN_CAPACITY = intPreferencesKey("custom_design_capacity_mah")
 private val KEY_AUTO_MONITORING_ENABLED = booleanPreferencesKey("auto_monitoring_enabled")
+private val KEY_MANUAL_MONITORING_SUPPRESSED = booleanPreferencesKey("manual_monitoring_suppressed")
 
 data class DesignCapacitySetting(
     val capacityMah: Int?,
@@ -61,6 +62,7 @@ object DesignCapacitySettings {
 /** Preferensi pemantauan otomatis saat perangkat mulai mengisi daya. Default ON menjaga perilaku versi sebelumnya. */
 object AutoMonitoringSettings {
     internal fun resolveEnabled(preferenceValue: Boolean?): Boolean = preferenceValue ?: true
+    internal fun resolveManualStopSuppressed(preferenceValue: Boolean?): Boolean = preferenceValue ?: false
 
     internal fun canStartFromPowerConnected(
         autoMonitoringEnabled: Boolean,
@@ -75,5 +77,14 @@ object AutoMonitoringSettings {
 
     suspend fun setEnabled(context: Context, enabled: Boolean) {
         context.powerGuardDataStore.edit { it[KEY_AUTO_MONITORING_ENABLED] = enabled }
+    }
+
+    suspend fun isManualMonitoringSuppressed(context: Context): Boolean =
+        resolveManualStopSuppressed(
+            context.powerGuardDataStore.data.first()[KEY_MANUAL_MONITORING_SUPPRESSED]
+        )
+
+    suspend fun setManualMonitoringSuppressed(context: Context, suppressed: Boolean) {
+        context.powerGuardDataStore.edit { it[KEY_MANUAL_MONITORING_SUPPRESSED] = suppressed }
     }
 }

@@ -191,8 +191,23 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         item {
-            OutlinedButton(onClick = vm::startManualMonitorService, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Text(if (running) "Layanan pemantauan aktif" else "Mulai pemantauan manual")
+            val actionPending by vm.monitorActionInProgress.collectAsState()
+            OutlinedButton(
+                onClick = {
+                    if (running) vm.stopMonitorService() else vm.startManualMonitorService()
+                },
+                enabled = !actionPending,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    when {
+                        actionPending && running -> "Menghentikan Pemantauan…"
+                        actionPending -> "Memulai Pemantauan…"
+                        running -> "Hentikan Pemantauan"
+                        else -> "Mulai Pemantauan"
+                    }
+                )
             }
         }
     }

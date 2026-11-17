@@ -28,6 +28,7 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
+import com.superdenot.powerguard.data.repository.AutoMonitoringSettings
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
@@ -200,6 +201,7 @@ class BatteryMonitorService : Service() {
         data class Start(val startId: Int, val manual: Boolean, val generation: Long) : LifecycleCommand
         data class Restart(val startId: Int, val generation: Long) : LifecycleCommand
         data class Stop(val startId: Int, val generation: Long) : LifecycleCommand
+        data class StopMonitoring(val startId: Int, val generation: Long) : LifecycleCommand
         data class AutoStop(val generation: Long) : LifecycleCommand
         data class ChargerConnected(val generation: Long) : LifecycleCommand
         data object Destroy : LifecycleCommand
@@ -323,6 +325,7 @@ class BatteryMonitorService : Service() {
                             is LifecycleCommand.Start -> handleStart(command.startId, command.manual, command.generation)
                             is LifecycleCommand.Restart -> handleRestart(command.startId, command.generation)
                             is LifecycleCommand.Stop -> handleStop(command.startId, command.generation)
+                            is LifecycleCommand.StopMonitoring -> handleStopMonitoring(command.startId, command.generation)
                             is LifecycleCommand.AutoStop -> handleAutoStop(command.generation)
                             is LifecycleCommand.ChargerConnected -> handleChargerConnected(command.generation)
                             is LifecycleCommand.Destroy -> Unit
@@ -419,6 +422,12 @@ class BatteryMonitorService : Service() {
             ACTION_STOP_CHARGING_SESSION -> {
                 val stopGen = commandSequence.incrementAndGet()
                 lifecycleChannel.trySend(LifecycleCommand.Stop(startId, stopGen))
+                START_NOT_STICKY
+            }
+            ACTION_STOP_MONITORING -> {
+                val stopGen = intent.getLongExtra(EXTRA_STOP_GENERATION, -1L)
+                    .takeIf { it > 0L } ?: registerStopGeneration()
+                lifecycleChannel.trySend(LifecycleCommand.StopMonitoring(startId, stopGen))
                 START_NOT_STICKY
             }
             ACTION_START_MANUAL_MONITORING -> {
@@ -584,6 +593,15 @@ class BatteryMonitorService : Service() {
             return
         }
 
+        if (!manual && isManualAutoStartSuppressed()) {
+            manualMonitoringRequested = false
+            if (actorState == ActorLifecycleState.STARTING) {
+                transitionActorState(ActorLifecycleState.STOPPED)
+            }
+            stopForegroundAndSelfIfIdle(startId, generation)
+            return
+        }
+
         if (actorState == ActorLifecycleState.STOPPED) {
             transitionActorState(ActorLifecycleState.STARTING)
         }
@@ -643,9 +661,25 @@ class BatteryMonitorService : Service() {
         }
     }
 
+    private suspend fun isManualAutoStartSuppressed(): Boolean =
+        runCatching { AutoMonitoringSettings.isManualMonitoringSuppressed(applicationContext) }
+            .onFailure { error ->
+                Log.e("PowerGuard", "Status penahanan STOP tidak dapat dibaca; auto-start ditahan", error)
+            }
+            .getOrDefault(true)
+
     private suspend fun handleRestart(startId: Int, generation: Long) {
         if (destroyRequested.get()) return
         if (!consumePendingStartIfLatest(generation)) {
+            return
+        }
+
+        if (isManualAutoStartSuppressed()) {
+            manualMonitoringRequested = false
+            if (actorState == ActorLifecycleState.STARTING) {
+                transitionActorState(ActorLifecycleState.STOPPED)
+            }
+            stopForegroundAndSelfIfIdle(startId, generation)
             return
         }
 
@@ -737,6 +771,43 @@ class BatteryMonitorService : Service() {
             val finalizationResult = ensureSessionFinalizedSafely()
             if (hasUnpersistedRamOnlyData(finalizationResult)) {
                 enterRecoveryHoldLocked(maxOf(activeRunGeneration, latestStartGeneration.get()), "Finalisasi & checkpoint gagal saat ACTION_STOP_CHARGING_SESSION (result=$finalizationResult)")
+                return@withLock
+            }
+
+            stopMonitoringLoopLocked()
+            activeRunGeneration = 0L
+            transitionActorState(ActorLifecycleState.STOPPED)
+            _liveState.value = LiveBatteryState()
+            stopForegroundAndSelfIfIdle(stopStartId, stopGeneration)
+        }
+    }
+
+    /**
+     * STOP eksplisit dari pengguna: finalisasi sesi aktif apa pun (termasuk saat masih
+     * terhubung ke charger), lalu hentikan loop dan foreground service. Berbeda dari
+     * ACTION_STOP_CHARGING_SESSION yang hanya menutup sesi pengisian.
+     */
+    private suspend fun handleStopMonitoring(stopStartId: Int, stopGeneration: Long) {
+        if (destroyRequested.get()) return
+        if (stopGeneration < latestStartGeneration.get() ||
+            stopStartId < instanceLatestStartCommandId.get() ||
+            hasPendingStarts()
+        ) return
+
+        sharedSessionMutex.withLock {
+            if (destroyRequested.get() ||
+                stopGeneration < latestStartGeneration.get() ||
+                stopStartId < instanceLatestStartCommandId.get() ||
+                hasPendingStarts()
+            ) return@withLock
+
+            manualMonitoringRequested = false
+            val finalizationResult = ensureSessionFinalizedSafely()
+            if (hasUnpersistedRamOnlyData(finalizationResult)) {
+                enterRecoveryHoldLocked(
+                    maxOf(stopGeneration, latestStartGeneration.get(), activeRunGeneration),
+                    "STOP manual menahan layanan untuk melindungi data yang belum berhasil dipersistenkan (result=$finalizationResult)"
+                )
                 return@withLock
             }
 
@@ -3284,9 +3355,11 @@ class BatteryMonitorService : Service() {
         const val ACTION_START_MONITORING = "com.superdenot.powerguard.START_MONITORING"
         const val ACTION_START_MANUAL_MONITORING = "com.superdenot.powerguard.START_MANUAL_MONITORING"
         const val ACTION_STOP_CHARGING_SESSION = "com.superdenot.powerguard.STOP_CHARGING_SESSION"
+        const val ACTION_STOP_MONITORING = "com.superdenot.powerguard.STOP_MONITORING"
 
         private const val EXTRA_FROM_REQUEST_START = "com.superdenot.powerguard.EXTRA_FROM_REQUEST_START"
         private const val EXTRA_START_GENERATION = "com.superdenot.powerguard.EXTRA_START_GENERATION"
+        private const val EXTRA_STOP_GENERATION = "com.superdenot.powerguard.EXTRA_STOP_GENERATION"
 
         private const val CHANNEL_MONITOR = "powerguard_live_monitor"
         private const val CHANNEL_ANOMALY = "powerguard_anomaly_alerts"
@@ -3359,6 +3432,23 @@ class BatteryMonitorService : Service() {
 
         private fun hasPendingStarts(): Boolean = synchronized(lifecycleLock) {
             pendingStartGenerations.isNotEmpty()
+        }
+
+        private fun registerStopGeneration(): Long = synchronized(lifecycleLock) {
+            val gen = commandSequence.incrementAndGet()
+            latestStartGeneration.set(gen)
+            pendingStartGenerations.clear()
+            pendingStartCount.set(0)
+            gen
+        }
+
+        fun requestStopMonitoring(context: Context) {
+            val gen = registerStopGeneration()
+            val stopIntent = Intent(context, BatteryMonitorService::class.java).apply {
+                action = ACTION_STOP_MONITORING
+                putExtra(EXTRA_STOP_GENERATION, gen)
+            }
+            context.startService(stopIntent)
         }
 
         private fun registerPendingStart(): Long = synchronized(lifecycleLock) {
