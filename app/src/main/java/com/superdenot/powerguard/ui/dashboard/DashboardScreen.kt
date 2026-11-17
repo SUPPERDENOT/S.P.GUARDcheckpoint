@@ -101,7 +101,7 @@ fun DashboardScreen(
 
     val latestHealth by viewModel.latestHealth.collectAsState()
     val designCapacity by viewModel.designCapacitySetting.collectAsState()
-    val autoMonitoringEnabled by viewModel.autoMonitoringEnabled.collectAsState()
+    val batteryMonitoringEnabled by viewModel.batteryMonitoringEnabled.collectAsState()
     val autoMonitoringError by viewModel.autoMonitoringError.collectAsState()
     val isBatteryOptIgnored by viewModel.isBatteryOptimizationIgnored.collectAsState()
     val hasUsagePerm by viewModel.hasUsagePermission.collectAsState()
@@ -383,24 +383,30 @@ fun DashboardScreen(
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Auto Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text("Atur pemicu otomatis saat charger terhubung atau HP dinyalakan dalam kondisi charging. Sesi yang sedang berjalan tidak dihentikan oleh toggle ini.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(
-                                text = when {
-                                    !autoMonitoringEnabled -> "Status: Nonaktif — pemantauan manual tetap tersedia"
-                                    isBatteryOptIgnored -> "Status: Aktif — pengecualian optimasi baterai tersedia"
-                                    else -> "Status: Aktif — auto-start saat charger terhubung menunggu izin pengecualian baterai"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (autoMonitoringEnabled && isBatteryOptIgnored) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            autoMonitoringError?.let { error ->
-                                Text(error, style = MaterialTheme.typography.bodySmall, color = CrimsonAnomaly)
-                            }
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("Battery Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Kontrol utama tersedia di Settings. Layanan hanya berjalan saat Battery Monitoring ON dan charger tersambung.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = when {
+                                isServiceRunning -> "Status: AKTIF — layanan sedang berjalan"
+                                !batteryMonitoringEnabled -> "Status: OFF"
+                                !activeState.isCharging -> "Status: SIAGA — menunggu charger"
+                                !isBatteryOptIgnored -> "Status: OFF — izin latar belakang diperlukan"
+                                else -> "Status: OFF — menunggu aktivasi sistem"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isServiceRunning) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        autoMonitoringError?.let { error ->
+                            Text(error, style = MaterialTheme.typography.bodySmall, color = CrimsonAnomaly)
                         }
-                        Switch(checked = autoMonitoringEnabled, onCheckedChange = viewModel::setAutoMonitoringEnabled)
                     }
                 }
             }
@@ -463,38 +469,6 @@ fun DashboardScreen(
                             }
                         }
 
-                        Button(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.startManualMonitorService()
-                                coroutineScope.launch {
-                                    snackbarHostState.currentSnackbarData?.dismiss()
-                                    snackbarHostState.showSnackbar(
-                                        message = if (isServiceRunning) {
-                                            "✓ Monitor Service berjalan aktif di latar belakang."
-                                        } else {
-                                            "Memulai layanan pemantauan sensor daya..."
-                                        }
-                                    )
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldCharge),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isServiceRunning) Icons.Rounded.CheckCircle else Icons.Rounded.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isServiceRunning) "Monitor Service Aktif" else "Aktifkan Monitor Service",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
                 }
             }
