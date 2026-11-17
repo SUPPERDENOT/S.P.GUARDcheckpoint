@@ -15,3 +15,13 @@ All notable changes to Superd Power Guard are documented here. Implementation an
 
 ### Verification
 - These source changes are not yet device-tested. Android CI and physical-device verification are pending; do not treat these UI adjustments as verified until the relevant build and user QA pass.
+
+
+## 2026-11-17 — Follow-up UI refinement
+
+### Changed
+- **Settings header alignment:** reduced the Settings content header top inset from 12dp to 4dp so it visually aligns with the shared compact app bar used by Overview and Charging. Existing text and typography are preserved.
+- **History heading spacing:** reduced the bottom inset below “Sesi dan kurva pengisian” from 12dp to 3dp, bringing “Riwayat Sesi Pengisian” closer to its parent heading.
+
+### Verification
+- Source changes only; Android CI and physical-device verification are pending.
