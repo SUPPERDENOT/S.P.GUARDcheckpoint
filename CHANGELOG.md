@@ -27,6 +27,22 @@ All notable changes to Superd Power Guard are documented here. Implementation an
 - Source changes only; Android CI and physical-device verification are pending.
 
 
+## 2026-11-17 — ChatGPT workflow and Android skill routing
+
+### Added
+- Added `docs/engineering/CHATGPT_WORKFLOW.md` describing the repository workflow for ChatGPT-assisted inspection, implementation, branch safety, diff review, verification, changelog maintenance, and delivery reporting.
+- Added `docs/engineering/ANDROID_SKILLS_INDEX.md` mapping SPG work areas to the exact upstream Android Skills and relevant Compose references.
+- Updated `AGENTS.md` to point to the new workflow and task-to-skill index, and corrected the `main` branch approval-boundary typo.
+- Removed `CLAUDE.md` because the repository workflow is now documented for ChatGPT and the general agent instructions remain in `AGENTS.md`.
+
+### CI and verification
+- Inspected `.github/workflows/android-ci.yml`: the existing `Anti-Slop UI Audit Gate` runs `bash scripts/ui-audit.sh`; no duplicate Anti-Slop workflow was added.
+- Documentation-only changes. No application source, build configuration, dependency, version, or runtime behavior changed.
+- Android build and app tests: N/A for this documentation-only update.
+- GitHub Actions for this documentation branch: not triggered by the current workflow branch filters; no CI pass is claimed.
+- Physical-device testing: N/A.
+- Branch diff and documentation checks remain subject to final review; nothing was merged to `main`.
+
 ## 2026-11-17 — Engineering standards adoption (documentation only)
 
 ### Added
