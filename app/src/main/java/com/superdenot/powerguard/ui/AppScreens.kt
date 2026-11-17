@@ -353,7 +353,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     Text("Persiapan Izin", fontWeight = FontWeight.Bold)
                     Text("Periksa dan atur akses Android yang mendukung pemantauan serta analisis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Rounded.Tune, null)
+                        Icon(Icons.Rounded.Settings, null)
                         Text("  Buka Initial Setup")
                     }
                 }
