@@ -161,7 +161,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
@@ -462,7 +462,7 @@ private fun SessionHistoryCard(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
