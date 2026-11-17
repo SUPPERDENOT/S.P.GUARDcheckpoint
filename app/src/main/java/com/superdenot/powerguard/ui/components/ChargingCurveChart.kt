@@ -65,7 +65,7 @@ fun ChargingCurveChart(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-            .padding(12.dp)
+            .padding(10.dp)
     ) {
         Text(
             text = "Charging Curve Analyzer (Arus • Suhu • Level)",
@@ -74,10 +74,10 @@ fun ChargingCurveChart(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             LegendItem(color = EmeraldCharge, label = "Arus (mA)")
@@ -85,13 +85,13 @@ fun ChargingCurveChart(
             LegendItem(color = CyanFastCharge, label = "Level (%)")
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         if (samples.size < 2) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp),
+                    .height(82.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -109,7 +109,7 @@ fun ChargingCurveChart(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(125.dp)
+                    .height(96.dp)
                     .pointerInput(samples) {
                         detectTapGestures { offset ->
                             selectedIndexState.intValue = (
@@ -214,13 +214,13 @@ fun ChargingCurveChart(
             }
 
             selectedSample?.let { sample ->
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
+                    Column(modifier = Modifier.padding(8.dp)) {
                         Text(
                             text = timeFormatter.format(Instant.ofEpochMilli(sample.timestamp)),
                             style = MaterialTheme.typography.labelMedium,
