@@ -11,6 +11,8 @@ Before changing code or project documentation, inspect the relevant current file
 3. `DESIGN.md` for any UI, UX, copy, theme, or visual change.
 4. `docs/engineering/ANTI_SLOP_POLICY.md` for UI, UX, content, accessibility, or quality-review work.
 5. `docs/engineering/ANDROID_ENGINEERING_GUIDE.md` for Android, Kotlin, Compose, service, persistence, concurrency, or testing work.
+6. `docs/engineering/ANDROID_SKILLS_INDEX.md` to identify the exact upstream Android Skills relevant to the task.
+7. `docs/engineering/CHATGPT_WORKFLOW.md` when ChatGPT is performing repository work through the connected GitHub tools.
 
 Read the relevant upstream skill source when a task needs detailed guidance. Do not assume a skill's full contents from its name.
 
@@ -40,7 +42,7 @@ Read the relevant upstream skill source when a task needs detailed guidance. Do 
 
 ## Git and approval boundaries
 
-- Never commit, push, merge, or open a pull request targeting `main) without explicit user approval.
+- Never commit, push, merge, or open a pull request targeting `main` without explicit user approval.
 - Do not change app versioning/build numbering unless explicitly approved.
 - Do not overwrite user changes or discard unrelated work.
 - Keep changes focused and explain any deviation from the requested scope.
