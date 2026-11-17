@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     containerColor = MaterialTheme.colorScheme.background,
                     topBar = {
                         TopAppBar(
-                            expandedHeight = 56.dp,
+                            expandedHeight = 48.dp,
                             title = {
                                 androidx.compose.foundation.layout.Column {
                                     Text(
@@ -91,13 +91,6 @@ class MainActivity : ComponentActivity() {
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 15.sp,
                                         letterSpacing = 0.45.sp
-                                    )
-                                    Text(
-                                        "BATTERY DIAGNOSTIC SYSTEM",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 10.sp,
-                                        letterSpacing = 1.1.sp
                                     )
                                 }
                             },
