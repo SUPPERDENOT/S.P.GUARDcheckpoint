@@ -127,7 +127,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionHeading("KESIAPAN SISTEM", "Izin dan pemantauan latar belakang")
-                    DiagnosticLine(
+                    ReadinessLine(
                         "Battery Monitoring",
                         when {
                             running -> "AKTIF"
@@ -135,10 +135,17 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                             !state.isCharging -> "SIAGA — menunggu charger"
                             !batteryOpt -> "OFF — izin latar belakang diperlukan"
                             else -> "OFF — menunggu aktivasi sistem"
+                        },
+                        when {
+                            running -> EmeraldCharge
+                            !monitoringEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                            !state.isCharging -> AmberThermal
+                            !batteryOpt -> CrimsonAnomaly
+                            else -> AmberThermal
                         }
                     )
-                    DiagnosticLine("Optimasi baterai", if (batteryOpt) "Dikecualikan" else "Belum dikecualikan")
-                    DiagnosticLine("Akses penggunaan", if (usage) "Diizinkan" else "Belum diizinkan")
+                    ReadinessLine("Optimasi baterai", if (batteryOpt) "PASS" else "BELUM", if (batteryOpt) EmeraldCharge else CrimsonAnomaly)
+                    ReadinessLine("Akses pengguna", if (usage) "PASS" else "BELUM", if (usage) EmeraldCharge else CrimsonAnomaly)
                 }
             }
         }
@@ -235,7 +242,7 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 }
 
 @Composable
-fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
+fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
     val context = LocalContext.current
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
@@ -342,6 +349,18 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Persiapan Izin", fontWeight = FontWeight.Bold)
+                    Text("Periksa dan atur akses Android yang mendukung pemantauan serta analisis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Tune, null)
+                        Text("  Buka Initial Setup")
+                    }
+                }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Akses Android", fontWeight = FontWeight.Bold)
                     Text("Battery optimization: ${if (batteryOpt) "Dikecualikan" else "Belum dikecualikan"}")
@@ -439,6 +458,14 @@ private fun SectionHeading(title: String, subtitle: String) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(title, color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun ReadinessLine(label: String, value: String, valueColor: Color) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = valueColor, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 
