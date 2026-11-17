@@ -1,9 +1,6 @@
 package com.superdenot.powerguard.ui
 
-import android.content.Intent
-import android.net.Uri
 import android.os.SystemClock
-import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -371,34 +368,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Settings, null)
                         Text("  Buka Initial Setup")
-                    }
-                }
-            }
-        }
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Akses Android", fontWeight = FontWeight.Bold)
-                    Text(
-                        "Kelola akses langsung melalui pengaturan Android. Status aktualnya ditampilkan di Overview.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedButton(onClick = {
-                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                        }
-                        runCatching { context.startActivity(intent) }
-                    }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Rounded.Settings, contentDescription = null)
-                        Text("  Pengaturan optimasi baterai")
-                    }
-                    OutlinedButton(
-                        onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.Settings, contentDescription = null)
-                        Text("  Pengaturan akses penggunaan")
                     }
                 }
             }
