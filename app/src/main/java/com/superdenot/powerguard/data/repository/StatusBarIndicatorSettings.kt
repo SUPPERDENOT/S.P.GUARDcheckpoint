@@ -12,14 +12,14 @@ private val KEY_STATUS_BAR_ENABLED = booleanPreferencesKey("status_bar_enabled")
 private val KEY_STATUS_BAR_PARAMETER = stringPreferencesKey("status_bar_parameter")
 
 data class StatusBarIndicatorSetting(
-    val enabled: Boolean = true,
+    val enabled: Boolean = false,
     val parameter: StatusBarParameter = StatusBarParameter.BATTERY_PERCENTAGE
 )
 
 object StatusBarIndicatorSettings {
     internal fun resolveSetting(enabled: Boolean?, parameter: String?): StatusBarIndicatorSetting =
         StatusBarIndicatorSetting(
-            enabled = enabled ?: true,
+            enabled = enabled ?: false,
             parameter = StatusBarParameter.fromStoredValue(parameter)
         )
 
