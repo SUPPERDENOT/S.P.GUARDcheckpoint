@@ -40,8 +40,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val health by vm.latestHealth.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
-    val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
-    val usage by vm.hasUsagePermission.collectAsState()
+    var readinessRefreshed by remember { mutableStateOf(false) }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
@@ -146,6 +145,24 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     )
                     ReadinessLine("Optimasi baterai", if (batteryOpt) "PASS" else "BELUM", if (batteryOpt) EmeraldCharge else CrimsonAnomaly)
                     ReadinessLine("Akses pengguna", if (usage) "PASS" else "BELUM", if (usage) EmeraldCharge else CrimsonAnomaly)
+                    OutlinedButton(
+                        onClick = {
+                            vm.refreshPermissionsAndUsage()
+                            readinessRefreshed = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Periksa ulang status")
+                    }
+                    if (readinessRefreshed) {
+                        Text(
+                            "Status diperbarui dari pengaturan Android.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -246,15 +263,12 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val context = LocalContext.current
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
-    val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
-    val usage by vm.hasUsagePermission.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     var statusBarParameterMenuExpanded by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
-    var permissionStatusRefreshed by remember { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("PENGATURAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -363,29 +377,26 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Akses Android", fontWeight = FontWeight.Bold)
-                    Text("Battery optimization: ${if (batteryOpt) "Dikecualikan" else "Belum dikecualikan"}")
-                    if (!batteryOpt) OutlinedButton(onClick = {
-                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply { data = Uri.parse("package:${context.packageName}") }
+                    Text(
+                        "Kelola akses langsung melalui pengaturan Android. Status aktualnya ditampilkan di Overview.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(onClick = {
+                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        }
                         runCatching { context.startActivity(intent) }
-                    }, modifier = Modifier.fillMaxWidth()) { Text("Pengaturan optimasi baterai") }
-                    Text("Usage Access: ${if (usage) "Diizinkan" else "Belum diizinkan"}")
-                    if (!usage) OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } }, modifier = Modifier.fillMaxWidth()) { Text("Pengaturan akses penggunaan") }
+                    }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.BatterySaver, contentDescription = null)
+                        Text("  Pengaturan optimasi baterai")
+                    }
                     OutlinedButton(
-                        onClick = {
-                            vm.refreshPermissionsAndUsage()
-                            permissionStatusRefreshed = true
-                        },
+                        onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Rounded.Refresh, null)
-                        Text("  Perbarui Status Izin")
-                    }
-                    if (permissionStatusRefreshed) {
-                        Text(
-                            "Status izin sudah diperiksa ulang.",
-                            color = EmeraldCharge,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Icon(Icons.Rounded.Apps, contentDescription = null)
+                        Text("  Pengaturan akses penggunaan")
                     }
                 }
             }
