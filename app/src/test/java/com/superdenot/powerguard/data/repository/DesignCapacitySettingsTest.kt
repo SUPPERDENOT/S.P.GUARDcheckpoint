@@ -70,10 +70,10 @@ class DesignCapacitySettingsTest {
         assertFalse(result.isManualOverride)
     }
     @Test
-    fun statusBarIndicatorDefaultsToEnabledBatteryPercentage() {
+    fun statusBarIndicatorDefaultsToDisabledBatteryPercentage() {
         val setting = StatusBarIndicatorSettings.resolveSetting(null, null)
 
-        assertTrue(setting.enabled)
+        assertFalse(setting.enabled)
         assertEquals(StatusBarParameter.BATTERY_PERCENTAGE, setting.parameter)
     }
 
