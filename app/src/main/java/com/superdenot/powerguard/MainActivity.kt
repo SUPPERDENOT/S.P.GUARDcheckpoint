@@ -83,6 +83,7 @@ class MainActivity : ComponentActivity() {
                     containerColor = MaterialTheme.colorScheme.background,
                     topBar = {
                         TopAppBar(
+                            expandedHeight = 56.dp,
                             title = {
                                 androidx.compose.foundation.layout.Column {
                                     Text(
@@ -108,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     },
                     bottomBar = {
                         NavigationBar(
-                            modifier = Modifier.height(72.dp),
+                            modifier = Modifier.height(64.dp),
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.onSurface,
                             tonalElevation = 0.dp
