@@ -110,6 +110,7 @@ A task with a relevant NOT RUN or FAIL item is not fully verified. Do not descri
 - New Worker outcome unit tests: NOT RUN — awaiting branch CI
 - Android build/CI: NOT RUN — awaiting branch Actions run
 - Runtime lifecycle / RECOVERY_HOLD regression checks: NOT RUN
+- Stale process-local pending-start marker recovery: NOT RUN — intentionally not changed; requires separate lifecycle design to avoid duplicate service starts
 - Physical-device QA on itel P55 NFC: NOT RUN
 - UI/UX review: N/A — no UI changes
 - Changelog updated and historical entries preserved: PASS
