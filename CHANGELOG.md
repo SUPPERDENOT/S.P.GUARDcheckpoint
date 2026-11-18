@@ -1,3 +1,7 @@
+# Changelog
+
+All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
+
 ## 2026-11-18 — Periodic charging Auto Start recovery
 
 ### Changed
@@ -11,10 +15,6 @@
 - Periodic WorkManager is a best-effort recovery check, not a real-time trigger. Its 15-minute interval is a minimum scheduling interval; Android and OEM scheduling may delay execution further.
 - A passing Worker test or CI run cannot prove XOS background scheduling or service startup on the physical itel P55 NFC.
 - Automated verification and physical-device QA are pending for this change.
-
-# Changelog
-
-All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
 ## 2026-11-18 — Background Auto Start CI follow-up
 
