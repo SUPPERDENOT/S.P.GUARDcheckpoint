@@ -8,10 +8,12 @@ All notable changes to Superd Power Guard are documented here. Implementation an
 - Added a serialized critical-log write barrier with filesystem sync for BroadcastReceiver lifecycle markers. The receiver records entry, worker dispatch, coordinator result, and completion before releasing its asynchronous broadcast result.
 - Added process ID and foreground-state context to receiver diagnostics, plus bounded exception details for coordinator start failures and Foreground Service promotion failures.
 - Added a Robolectric regression test verifying queued events are written before a durable marker returns and are present in an exported snapshot.
+- Isolated the logger test with a dedicated no-op test Application so production WorkManager scheduling does not run during this focused unit test.
 - No Auto Start policy, Battery Monitoring lifecycle, RECOVERY_HOLD, sensor cadence, session persistence, SDK, dependency, or app-version behavior was intentionally changed.
 
 ### Verification
-- Source implementation and regression test added; CI verification pending for this commit.
+- Initial CI run #252: `assembleDebug` passed and Anti-Slop UI Audit Gate passed; `testDebugUnitTest` failed only in the new logger test because production Application startup attempted to access WorkManager while the Robolectric test manifest disabled its initializer.
+- Test harness isolation applied in commit `a83018e0aa83599424a533e6fac59c688f06c2ca`; rerun CI pending.
 - Physical-device reproduction on itel P55 NFC pending; a passing unit test/build does not prove broadcast delivery on the device.
 
 ## 2026-11-18 — Auto Start diagnostic export
