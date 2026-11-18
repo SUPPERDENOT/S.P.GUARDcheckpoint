@@ -32,6 +32,7 @@ internal object AutoStartDiagnosticLog {
             writer.execute {
                 runCatching {
                     val logFile = logFile(context.applicationContext)
+                    logFile.parentFile?.mkdirs()
                     rotateIfNeeded(logFile)
                     logFile.appendText("$elapsed ms | $safeEvent\n", Charsets.UTF_8)
                 }.onFailure { error ->
