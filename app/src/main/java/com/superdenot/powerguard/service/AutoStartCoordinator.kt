@@ -12,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 
 internal enum class AutoStartTrigger {
     POWER_CONNECTED,
+    WORK_MANAGER_CHARGING,
     BOOT_COMPLETED,
     APP_FOREGROUND_CHARGING,
     MONITORING_ENABLED
@@ -34,7 +35,7 @@ internal data class ChargingDetectionEpoch(
 )
 
 /**
- * Process-local gate shared by receiver and ViewModel triggers.
+ * Process-local gate shared by receiver, worker, and ViewModel triggers.
  * It deduplicates concurrent requests while preserving one T0 per charging epoch.
  */
 internal class AutoStartAttemptGate {
@@ -82,7 +83,8 @@ internal object AutoStartPolicy {
         batteryOptimizationIgnored: Boolean
     ): Boolean = when (trigger) {
         AutoStartTrigger.BOOT_COMPLETED -> true
-        AutoStartTrigger.POWER_CONNECTED -> appForeground || BatteryMonitoringSettings.canStartFromPowerConnected(true, batteryOptimizationIgnored)
+        AutoStartTrigger.POWER_CONNECTED,
+        AutoStartTrigger.WORK_MANAGER_CHARGING -> appForeground || BatteryMonitoringSettings.canStartFromBackgroundTrigger(true, batteryOptimizationIgnored)
         AutoStartTrigger.APP_FOREGROUND_CHARGING,
         AutoStartTrigger.MONITORING_ENABLED -> appForeground
     }
@@ -154,7 +156,8 @@ internal object AutoStartCoordinator {
             }
 
             val batteryOptimizationIgnored = if (
-                trigger == AutoStartTrigger.POWER_CONNECTED && !appForeground
+                (trigger == AutoStartTrigger.POWER_CONNECTED ||
+                    trigger == AutoStartTrigger.WORK_MANAGER_CHARGING) && !appForeground
             ) {
                 val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
                 powerManager.isIgnoringBatteryOptimizations(appContext.packageName)

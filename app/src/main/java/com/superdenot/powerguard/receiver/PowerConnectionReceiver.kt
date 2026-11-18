@@ -18,6 +18,7 @@ import com.superdenot.powerguard.service.AutoStartCoordinator
 import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.service.TargetSessionLookupResult
+import com.superdenot.powerguard.worker.ChargingAutoStartScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         )
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
+                ChargingAutoStartScheduler.schedule(context)
                 val detectedAt = SystemClock.elapsedRealtime()
                 if (isDeviceCurrentlyCharging(context)) {
                     // BOOT_COMPLETED remains subject to Android foreground-service type rules.

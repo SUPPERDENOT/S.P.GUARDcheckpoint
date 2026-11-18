@@ -2,6 +2,21 @@
 
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
+## 2026-11-18 — Background Auto Start charging trigger
+
+### Changed
+- Removed manifest registration for implicit charger connect/disconnect broadcasts, which Android restricts for apps targeting API 26+.
+- Registered charger connect/disconnect events dynamically for the lifetime of the application process; retained the manifest receiver only for BOOT_COMPLETED.
+- Added a unique WorkManager one-time charging-constrained worker as a process-death/reboot fallback. The worker rechecks the Battery Monitoring preference, charging state, service state, and background Foreground Service eligibility before requesting the existing BatteryMonitorService.
+- Kept a retrying charging-constrained work request while Battery Monitoring remains ON, using a 15-minute linear backoff. This preserves a pending trigger across unplug/replug and unexpected process death; execution timing remains subject to Android/WorkManager scheduling.
+- Toggle OFF cancels the unique charging work and still requests service stop. Toggle ON schedules/replaces the work and retains the existing immediate foreground start path when charging.
+- Added regression coverage for the WorkManager background-start policy. No new dependency, SDK, package, version, sensor cadence, persistence format, or monitoring service was added.
+
+### Verification
+- Source implementation committed on the development branch. Android CI and unit-test outcomes are tracked separately and must not be inferred from this changelog entry.
+- Physical-device validation on itel P55 NFC: pending. Confirm background charger connect, process death, unplug/replug, toggle OFF, and RECOVERY_HOLD behavior.
+
+
 ## 2026-11-18 — Auto Start receiver diagnostic durability
 
 ### Changed

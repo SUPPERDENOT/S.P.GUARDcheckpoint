@@ -68,7 +68,7 @@ object BatteryMonitoringSettings {
     internal fun resolveEnabled(currentValue: Boolean?, legacyValue: Boolean?): Boolean =
         currentValue ?: legacyValue ?: false
 
-    internal fun canStartFromPowerConnected(enabled: Boolean, batteryOptimizationIgnored: Boolean): Boolean =
+    internal fun canStartFromBackgroundTrigger(enabled: Boolean, batteryOptimizationIgnored: Boolean): Boolean =
         enabled && batteryOptimizationIgnored
 
     private suspend fun migrateIfNeeded(context: Context) {

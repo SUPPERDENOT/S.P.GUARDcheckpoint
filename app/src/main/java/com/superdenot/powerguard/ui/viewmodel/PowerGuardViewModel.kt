@@ -23,6 +23,7 @@ import com.superdenot.powerguard.service.AutoStartCoordinator
 import com.superdenot.powerguard.service.AutoStartRequestResult
 import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
+import com.superdenot.powerguard.worker.ChargingAutoStartScheduler
 import com.superdenot.powerguard.worker.DailyRollupWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -122,14 +123,22 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
             }
             val charging = repository.readDirectSensorSnapshot().isCharging
             when {
-                !enabled && BatteryMonitorService.isStartingOrRunning ->
-                    runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
-                enabled && charging ->
-                    requestBatteryMonitorStartSafely(AutoStartTrigger.APP_FOREGROUND_CHARGING)
-                !charging -> {
-                    AutoStartCoordinator.onChargingDisconnected()
-                    runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
+                !enabled -> {
+                    ChargingAutoStartScheduler.cancel(getApplication())
+                    if (BatteryMonitorService.isStartingOrRunning) {
+                        runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
+                    }
                 }
+                enabled -> {
+                    ChargingAutoStartScheduler.schedule(getApplication())
+                    if (charging) {
+                        requestBatteryMonitorStartSafely(AutoStartTrigger.APP_FOREGROUND_CHARGING)
+                    }
+                }
+            }
+            if (!charging) {
+                AutoStartCoordinator.onChargingDisconnected()
+                runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
             }
         }
     }
@@ -165,13 +174,17 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                 return@launch
             }
             if (!enabled) {
+                ChargingAutoStartScheduler.cancel(getApplication())
                 runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
                     .onFailure { error ->
                         _autoMonitoringError.value = "Pengaturan OFF tersimpan, tetapi layanan belum dapat dihentikan sepenuhnya."
                         Log.e("PowerGuard", "Gagal mengirim perintah STOP layanan", error)
                     }
-            } else if (repository.readDirectSensorSnapshot().isCharging) {
-                requestBatteryMonitorStartSafely(AutoStartTrigger.MONITORING_ENABLED)
+            } else {
+                ChargingAutoStartScheduler.schedule(getApplication(), replaceExisting = true)
+                if (repository.readDirectSensorSnapshot().isCharging) {
+                    requestBatteryMonitorStartSafely(AutoStartTrigger.MONITORING_ENABLED)
+                }
             }
         }
     }

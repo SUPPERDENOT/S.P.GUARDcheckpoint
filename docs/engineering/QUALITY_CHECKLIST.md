@@ -72,3 +72,17 @@ Provide a compact report with:
 - Known risks or remaining work.
 
 A task with a relevant NOT RUN or FAIL item is not fully verified. Do not describe it as complete without stating the limitation.
+
+
+## 2026-11-18 — Background Auto Start implementation checklist
+
+- Scope matches approved Auto Start receiver/WorkManager change: PASS
+- Root cause and existing implementation inspected: PASS
+- Diff limited to approved platform lifecycle and regression-test scope: PASS
+- No duplicate service, preference, or sensor source introduced: PASS
+- UI/UX checklist: N/A — no UI changes
+- Android service/receiver and background-start paths reviewed: PASS
+- Relevant unit tests: NOT RUN — pending branch CI
+- Android build/CI: NOT RUN — pending branch CI
+- Physical-device QA: NOT RUN — requires the user's itel P55 NFC
+- Changelog updated; app version/build number and dependencies unchanged: PASS

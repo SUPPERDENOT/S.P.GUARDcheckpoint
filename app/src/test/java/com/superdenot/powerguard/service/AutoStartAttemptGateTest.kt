@@ -80,6 +80,31 @@ class AutoStartAttemptGateTest {
     }
 
     @Test
+    fun workManagerChargingTriggerRequiresBatteryOptimizationExemptionInBackground() {
+        assertFalse(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.WORK_MANAGER_CHARGING,
+                appForeground = false,
+                batteryOptimizationIgnored = false
+            )
+        )
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.WORK_MANAGER_CHARGING,
+                appForeground = false,
+                batteryOptimizationIgnored = true
+            )
+        )
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.WORK_MANAGER_CHARGING,
+                appForeground = true,
+                batteryOptimizationIgnored = false
+            )
+        )
+    }
+
+    @Test
     fun bootTriggerRetainsItsBackgroundStartPath() {
         assertTrue(
             AutoStartPolicy.isAllowed(
