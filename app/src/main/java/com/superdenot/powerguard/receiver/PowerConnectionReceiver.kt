@@ -38,7 +38,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         )
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
-                ChargingAutoStartScheduler.schedule(context)
+                scheduleEnabledRecovery(context)
                 val detectedAt = SystemClock.elapsedRealtime()
                 if (isDeviceCurrentlyCharging(context)) {
                     // BOOT_COMPLETED remains subject to Android foreground-service type rules.
@@ -60,6 +60,22 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         }
     }
 
+    private fun scheduleEnabledRecovery(context: Context) {
+        val pendingResult = goAsync()
+        val appContext = context.applicationContext
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                ChargingAutoStartScheduler.ensureScheduledIfEnabled(appContext)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal menyiapkan charging Auto Start setelah boot", error)
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
+
     private fun startMonitorServiceSafe(
         context: Context,
         trigger: AutoStartTrigger,
@@ -70,6 +86,9 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         AutoStartDiagnosticLog.record(appContext, "R0_ASYNC_DISPATCH_SCHEDULED trigger=$trigger")
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                if (trigger == AutoStartTrigger.POWER_CONNECTED) {
+                    ChargingAutoStartScheduler.cancelPendingOneTime(appContext)
+                }
                 AutoStartDiagnosticLog.recordAndFlush(
                     appContext,
                     "R0_WORKER_ENTER trigger=$trigger pid=${Process.myPid()} " +
@@ -116,6 +135,13 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                try {
+                    ChargingAutoStartScheduler.armOneTimeIfUnplugged(appContext)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Log.w("PowerGuard", "Gagal mengarm one-time charging Auto Start", error)
+                }
                 AutoStartDiagnosticLog.recordAndFlush(
                     appContext,
                     "R0_WORKER_ENTER action=POWER_DISCONNECTED pid=${Process.myPid()} " +

@@ -34,6 +34,16 @@ class ChargingAutoStartWorkerTest {
         )
     }
 
+
+    @Test
+    fun oneTimeWorkIsArmedOnlyForConfirmedUnpluggedState() {
+        assertEquals(true, shouldArmChargingOneTimeWork(0))
+        assertEquals(false, shouldArmChargingOneTimeWork(null))
+        assertEquals(false, shouldArmChargingOneTimeWork(-1))
+        assertEquals(false, shouldArmChargingOneTimeWork(1))
+        assertEquals(false, shouldArmChargingOneTimeWork(2))
+    }
+
     @Test
     fun platformDeferralOrFailureRequestsRetry() {
         assertEquals(

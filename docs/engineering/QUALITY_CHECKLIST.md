@@ -128,3 +128,21 @@ A task with a relevant NOT RUN or FAIL item is not fully verified. Do not descri
 - UI/UX review: N/A — no UI change
 - Changelog updated; package, SDK, dependencies, app version, and build number unchanged: PASS
 
+
+## 2026-11-19 — Hybrid charging Auto Start recovery
+
+- Scope limited to the one-time charging-constrained recovery path, integration points, tests, and documentation: PASS — source review
+- Existing periodic unique work name, 15-minute interval, charging constraint, and retry mapping preserved: PASS — source review
+- One-time work uses a separate unique name, `KEEP`, and `requiresCharging=true`; no expedited request: PASS — source review
+- One-time work is armed only when Battery Monitoring is ON and `EXTRA_PLUGGED == 0`; unknown plug state fails closed: PASS — source review
+- Application startup, boot, and disconnect arm paths are integrated; worker does not self-rearm: PASS — source review
+- Battery Monitoring OFF cancellation covers periodic and one-time work: PASS — scheduler cancellation API and existing ViewModel call sites
+- Pending one-time work is cancelled on charger connect without deliberately cancelling a RUNNING worker: PASS — source review; timing race still requires device observation
+- Existing Worker outcome mapping and cancellation semantics preserved: PASS — source review
+- Focused unit tests: NOT RUN — pending branch CI
+- Android build/CI: NOT RUN — pending branch CI
+- Physical-device lifecycle / XOS scheduling tests: NOT RUN
+- BatteryMonitorService, RECOVERY_HOLD, sensor cadence, persistence, dependencies, SDK, package, app version, and build number unchanged: PASS — diff scope
+- UI/UX review: N/A — no UI changes
+- Changelog updated and historical entries preserved: PASS
+

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-19 — Hybrid charging Auto Start recovery
+
+### Changed
+- Added a unique one-time WorkManager request constrained by `requiresCharging=true` as the process-dead recovery path. It uses the existing `ChargingAutoStartWorker` and a separate unique name, `powerguard_charging_auto_start_once`.
+- Preserved the existing periodic unique work name `powerguard_charging_auto_start`, its 15-minute minimum interval, charging constraint, and retry/backoff behavior.
+- One-time work uses `ExistingWorkPolicy.KEEP`; it is armed only when Battery Monitoring is ON and the sticky battery intent explicitly reports `EXTRA_PLUGGED == 0`. Unknown or missing plug state fails closed.
+- Arm checks are integrated at application process creation, boot, and charger disconnect. On charger connect, only queued one-time work is cancelled; a RUNNING worker is not deliberately cancelled. The foreground/background fast path remains the dynamic receiver + existing coordinator.
+- Battery Monitoring OFF now cancels both periodic and one-time work through the existing scheduler cancellation API. The Worker independently checks the toggle and retains its existing retry mapping.
+- No expedited work is used with the charging constraint. The Worker does not re-arm itself.
+
+### Verification and limitations
+- Implementation committed on the development branch; Android build and unit tests are pending the branch CI run.
+- WorkManager/JobScheduler execution remains best-effort and OEM-dependent; this architecture does not guarantee process wake-up or real-time start on XOS.
+- Physical-device validation on itel P55 NFC is still required, including process removal, unplugged arming, charger reconnect, toggle OFF cancellation, and duplicate-start checks.
+- BatteryMonitorService, RECOVERY_HOLD, sensor cadence, persistence schema, dependencies, SDK, package, app version, and build number are unchanged.
+
+
 ## 2026-11-18 — Dynamic power-event receiver export experiment
 
 ### Changed
