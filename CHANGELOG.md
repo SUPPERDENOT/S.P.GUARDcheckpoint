@@ -1,3 +1,17 @@
+## 2026-11-18 — Periodic charging Auto Start recovery
+
+### Changed
+- Replaced the one-time charging-constrained fallback with unique periodic WorkManager work using the platform minimum interval of 15 minutes and the existing `setRequiresCharging(true)` constraint.
+- Kept the same unique work name and cancellation path so Battery Monitoring OFF continues to cancel the fallback; ON schedules/replaces the periodic work.
+- Corrected Worker outcome handling: `REQUESTED`, `ALREADY_IN_FLIGHT`, `SERVICE_ALREADY_ACTIVE`, `MONITORING_DISABLED`, and `NOT_CHARGING` complete the current run. `DEFERRED_BY_PLATFORM` and `FAILED` use WorkManager retry/backoff.
+- Added unit tests for the Worker outcome mapping.
+- No BatteryMonitorService, RECOVERY_HOLD, sensor cadence, persistence schema, dependency, SDK, package, app version, or build number changes.
+
+### Limitations and verification
+- Periodic WorkManager is a best-effort recovery check, not a real-time trigger. Its 15-minute interval is a minimum scheduling interval; Android and OEM scheduling may delay execution further.
+- A passing Worker test or CI run cannot prove XOS background scheduling or service startup on the physical itel P55 NFC.
+- Automated verification and physical-device QA are pending for this change.
+
 # Changelog
 
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
