@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.service
 
+import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
@@ -10,8 +11,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 
+/**
+ * Keeps the app's production Application startup (which schedules WorkManager)
+ * out of this focused file-logger unit test.
+ */
+class AutoStartDiagnosticTestApplication : Application()
+
 @RunWith(RobolectricTestRunner::class)
-@Config(application = android.app.Application::class, manifest = Config.NONE)
+@Config(application = AutoStartDiagnosticTestApplication::class, manifest = Config.NONE)
 class AutoStartDiagnosticLogTest {
 
     @Test
