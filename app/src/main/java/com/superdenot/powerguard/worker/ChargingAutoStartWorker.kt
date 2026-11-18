@@ -43,7 +43,8 @@ class ChargingAutoStartWorker(
         }
 
         if (!enabled) {
-            Log.i(TAG, "Battery Monitoring OFF; charging Auto Start worker selesai")
+            Log.i(TAG, "Battery Monitoring OFF; membatalkan charging Auto Start berkala")
+            ChargingAutoStartScheduler.cancel(applicationContext)
             return Result.success()
         }
 
@@ -51,6 +52,11 @@ class ChargingAutoStartWorker(
             context = applicationContext,
             trigger = AutoStartTrigger.WORK_MANAGER_CHARGING
         )
+        if (requestResult == AutoStartRequestResult.MONITORING_DISABLED) {
+            // Preference may have changed after the initial read; do not retain periodic work while OFF.
+            ChargingAutoStartScheduler.cancel(applicationContext)
+        }
+
         return when (requestResult.toChargingAutoStartWorkOutcome()) {
             ChargingAutoStartWorkOutcome.COMPLETE -> Result.success()
             ChargingAutoStartWorkOutcome.RETRY -> Result.retry()
