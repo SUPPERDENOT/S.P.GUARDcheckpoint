@@ -10,6 +10,23 @@ import com.superdenot.powerguard.service.AutoStartRequestResult
 import com.superdenot.powerguard.service.AutoStartTrigger
 import kotlinx.coroutines.CancellationException
 
+internal enum class ChargingAutoStartWorkOutcome {
+    COMPLETE,
+    RETRY
+}
+
+internal fun AutoStartRequestResult.toChargingAutoStartWorkOutcome(): ChargingAutoStartWorkOutcome =
+    when (this) {
+        AutoStartRequestResult.MONITORING_DISABLED,
+        AutoStartRequestResult.REQUESTED,
+        AutoStartRequestResult.ALREADY_IN_FLIGHT,
+        AutoStartRequestResult.NOT_CHARGING,
+        AutoStartRequestResult.SERVICE_ALREADY_ACTIVE -> ChargingAutoStartWorkOutcome.COMPLETE
+
+        AutoStartRequestResult.DEFERRED_BY_PLATFORM,
+        AutoStartRequestResult.FAILED -> ChargingAutoStartWorkOutcome.RETRY
+    }
+
 class ChargingAutoStartWorker(
     appContext: Context,
     workerParams: WorkerParameters
@@ -30,19 +47,13 @@ class ChargingAutoStartWorker(
             return Result.success()
         }
 
-        return when (
-            AutoStartCoordinator.requestStart(
-                context = applicationContext,
-                trigger = AutoStartTrigger.WORK_MANAGER_CHARGING
-            )
-        ) {
-            AutoStartRequestResult.MONITORING_DISABLED -> Result.success()
-            AutoStartRequestResult.REQUESTED,
-            AutoStartRequestResult.ALREADY_IN_FLIGHT,
-            AutoStartRequestResult.NOT_CHARGING,
-            AutoStartRequestResult.SERVICE_ALREADY_ACTIVE,
-            AutoStartRequestResult.DEFERRED_BY_PLATFORM,
-            AutoStartRequestResult.FAILED -> Result.retry()
+        val requestResult = AutoStartCoordinator.requestStart(
+            context = applicationContext,
+            trigger = AutoStartTrigger.WORK_MANAGER_CHARGING
+        )
+        return when (requestResult.toChargingAutoStartWorkOutcome()) {
+            ChargingAutoStartWorkOutcome.COMPLETE -> Result.success()
+            ChargingAutoStartWorkOutcome.RETRY -> Result.retry()
         }
     }
 
