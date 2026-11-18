@@ -2,6 +2,23 @@
 
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
+## 2026-11-18 — Automatic Battery Monitoring startup
+
+### Changed
+- Added a single Auto Start coordinator shared by charger/boot broadcasts, foreground app checks, the Battery Monitoring toggle, and fallback Charging State snapshots.
+- Connected the existing 1.5-second fallback sensor path to the Auto Start gate while the app is foregrounded. Repeated signals are deduplicated against one in-flight request and the Service's existing STARTING/RUNNING state.
+- Preserved the existing background-start restriction for charger broadcasts when the app is not foregrounded; boot-start behavior remains subject to Android foreground-service rules.
+- Added monotonic T0/T1/T2 diagnostic logs: T0 charging detection, T1 successful Foreground Service entry, and T2 RUNNING_CHARGING. Logs include elapsed intervals and attempt/charging-epoch identifiers.
+- Added unit coverage for charging-epoch timestamp retention/reset and request-gate deduplication.
+- Enabled the existing Android CI workflow for this focused development branch.
+
+### Verification
+- Implementation and source review: recorded in the development task report.
+- Unit tests, Android build, and CI: pending workflow execution; no pass is claimed yet.
+- Physical-device verification: pending. The user's previous delay estimate is not treated as a measured baseline; T0/T1/T2 logs will provide actual elapsed-time evidence.
+- Charger-disconnect shutdown and RECOVERY_HOLD behavior were not intentionally changed and remain regression-sensitive checks.
+
+
 ## 2026-11-17
 
 ### Changed
