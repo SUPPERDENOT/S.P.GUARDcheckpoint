@@ -2,6 +2,16 @@
 
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
+## 2026-11-18 — Background Auto Start CI follow-up
+
+### Fixed
+- Updated the existing BatteryMonitoringSettings unit test to call the renamed `canStartFromBackgroundTrigger` helper. The production helper had already been renamed as part of the background-start policy change, but the older test references were missed.
+- No production behavior, dependency, SDK, app version, or build number changed.
+
+### Verification
+- CI run #257 confirmed `:app:compileDebugKotlin` and `:app:assembleDebug` succeeded, but `:app:compileDebugUnitTestKotlin` failed because four test calls still referenced the removed helper name.
+- This follow-up corrects those stale test references. CI rerun and physical-device validation remain pending.
+
 ## 2026-11-18 — Background Auto Start charging trigger
 
 ### Changed

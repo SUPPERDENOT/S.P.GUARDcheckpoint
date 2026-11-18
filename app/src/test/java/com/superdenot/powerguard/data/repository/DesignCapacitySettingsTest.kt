@@ -23,11 +23,11 @@ class DesignCapacitySettingsTest {
         assertFalse(BatteryMonitoringSettings.resolveEnabled(false, true))
     }
 
-    @Test fun powerConnectedStartRequiresEnabledPreferenceAndBatteryExemption() {
-        assertTrue(BatteryMonitoringSettings.canStartFromPowerConnected(true, true))
-        assertFalse(BatteryMonitoringSettings.canStartFromPowerConnected(false, true))
-        assertFalse(BatteryMonitoringSettings.canStartFromPowerConnected(true, false))
-        assertFalse(BatteryMonitoringSettings.canStartFromPowerConnected(false, false))
+    @Test fun backgroundTriggerRequiresEnabledPreferenceAndBatteryExemption() {
+        assertTrue(BatteryMonitoringSettings.canStartFromBackgroundTrigger(true, true))
+        assertFalse(BatteryMonitoringSettings.canStartFromBackgroundTrigger(false, true))
+        assertFalse(BatteryMonitoringSettings.canStartFromBackgroundTrigger(true, false))
+        assertFalse(BatteryMonitoringSettings.canStartFromBackgroundTrigger(false, false))
     }
 
     @Test
@@ -69,6 +69,7 @@ class DesignCapacitySettingsTest {
         assertEquals(null, result.capacityMah)
         assertFalse(result.isManualOverride)
     }
+
     @Test
     fun statusBarIndicatorDefaultsToDisabledBatteryPercentage() {
         val setting = StatusBarIndicatorSettings.resolveSetting(null, null)
@@ -92,5 +93,4 @@ class DesignCapacitySettingsTest {
         assertTrue(setting.enabled)
         assertEquals(StatusBarParameter.BATTERY_PERCENTAGE, setting.parameter)
     }
-
 }

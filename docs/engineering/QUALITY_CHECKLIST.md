@@ -74,6 +74,18 @@ Provide a compact report with:
 A task with a relevant NOT RUN or FAIL item is not fully verified. Do not describe it as complete without stating the limitation.
 
 
+## 2026-11-18 — Background Auto Start CI #257 follow-up
+
+- Root cause identified from CI log: stale unit-test references to the renamed `canStartFromPowerConnected` helper: PASS
+- Production Kotlin compilation and debug APK assembly in CI #257: PASS
+- Unit-test source compilation in CI #257: FAIL — four stale helper references; corrected in follow-up source change, rerun pending
+- Anti-Slop UI Audit Gate in CI #257: PASS
+- Follow-up unit-test/CI verification: NOT RUN — awaiting new Actions run
+- UI/UX review: N/A — no UI change
+- Physical-device QA: NOT RUN — requires itel P55 NFC
+- Runtime Battery Monitoring lifecycle and RECOVERY_HOLD regression checks: NOT RUN
+
+
 ## 2026-11-18 — Background Auto Start implementation checklist
 
 - Scope matches approved Auto Start receiver/WorkManager change: PASS
