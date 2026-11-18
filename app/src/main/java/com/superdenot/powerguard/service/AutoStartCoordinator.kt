@@ -95,6 +95,9 @@ internal object AutoStartCoordinator {
     @Volatile
     private var appForeground = false
 
+    val isAppForeground: Boolean
+        get() = appForeground
+
     fun setAppForeground(isForeground: Boolean) {
         appForeground = isForeground
         Log.d(TAG, "App foreground=$isForeground")
