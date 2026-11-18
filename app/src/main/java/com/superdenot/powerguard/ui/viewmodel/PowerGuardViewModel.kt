@@ -19,6 +19,8 @@ import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
+import com.superdenot.powerguard.service.AutoStartCoordinator
+import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.worker.DailyRollupWorker
 import kotlinx.coroutines.CancellationException
@@ -33,13 +35,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PowerGuardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = BatteryRepository(application)
-    private val autoStartRequestInFlight = AtomicBoolean(false)
     private val _fallbackLiveState = MutableStateFlow(repository.readDirectSensorSnapshot())
     private val _fallbackUpdatedAtElapsedRealtime = MutableStateFlow(SystemClock.elapsedRealtime())
     val liveState: StateFlow<LiveBatteryState> = repository.liveServiceState
@@ -108,6 +108,10 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         refreshPermissionsAndUsage()
     }
 
+    fun setAppForeground(isForeground: Boolean) {
+        AutoStartCoordinator.setAppForeground(isForeground)
+    }
+
     fun startMonitorIfCharging() {
         viewModelScope.launch(Dispatchers.IO) {
             val enabled = runCatching { repository.isBatteryMonitoringEnabled() }.getOrElse { error ->
@@ -119,9 +123,15 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
             when {
                 !enabled && BatteryMonitorService.isStartingOrRunning ->
                     runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
-                enabled && charging && !BatteryMonitorService.isStartingOrRunning ->
-                    requestBatteryMonitorStartSafely()
-                else -> runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
+                enabled && charging ->
+                    AutoStartCoordinator.requestStart(
+                        context = getApplication(),
+                        trigger = AutoStartTrigger.APP_FOREGROUND_CHARGING
+                    )
+                !charging -> {
+                    AutoStartCoordinator.onChargingDisconnected()
+                    runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
+                }
             }
         }
     }
@@ -163,24 +173,11 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                         Log.e("PowerGuard", "Gagal mengirim perintah STOP layanan", error)
                     }
             } else if (repository.readDirectSensorSnapshot().isCharging) {
-                requestBatteryMonitorStartSafely()
+                AutoStartCoordinator.requestStart(
+                    context = getApplication(),
+                    trigger = AutoStartTrigger.MONITORING_ENABLED
+                )
             }
-        }
-    }
-
-    private fun requestBatteryMonitorStartSafely() {
-        if (BatteryMonitorService.isStartingOrRunning ||
-            !autoStartRequestInFlight.compareAndSet(false, true)
-        ) return
-        try {
-            BatteryMonitorService.requestStartService(getApplication(), manual = false)
-            _autoMonitoringError.value = null
-        } catch (error: Exception) {
-            _autoMonitoringError.value =
-                "Preferensi ON tersimpan, tetapi layanan belum aktif. Periksa izin dan pembatasan Android."
-            Log.e("PowerGuard", "Battery Monitoring gagal dimulai: ${error.message}", error)
-        } finally {
-            autoStartRequestInFlight.set(false)
         }
     }
 
@@ -203,9 +200,19 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                     isServiceRunning.value && lastUpdate > 0L && age in 0L..5_000L
                 },
                 readSnapshot = repository::readDirectSensorSnapshot,
-                onSnapshot = {
-                    _fallbackLiveState.value = it
-                    _fallbackUpdatedAtElapsedRealtime.value = SystemClock.elapsedRealtime()
+                onSnapshot = { snapshot ->
+                    val detectedAt = SystemClock.elapsedRealtime()
+                    _fallbackLiveState.value = snapshot
+                    _fallbackUpdatedAtElapsedRealtime.value = detectedAt
+                    if (snapshot.isCharging) {
+                        AutoStartCoordinator.requestStart(
+                            context = getApplication(),
+                            trigger = AutoStartTrigger.APP_FOREGROUND_CHARGING,
+                            observedAtElapsedRealtime = detectedAt
+                        )
+                    } else {
+                        AutoStartCoordinator.onChargingDisconnected()
+                    }
                 },
                 onReadError = { error ->
                     Log.w(
