@@ -146,6 +146,7 @@ internal object AutoStartCoordinator {
 
             val epoch = gate.recordChargingDetection(observedAtElapsedRealtime)
             if (epoch.isNew) {
+                AutoStartDiagnosticLog.record(appContext, "T0 charging detected epoch=${epoch.epochId} trigger=$trigger")
                 Log.i(
                     TAG,
                     "T0 charging detected; epoch=${epoch.epochId}; elapsedRealtime=${epoch.detectedAtElapsedRealtime}; trigger=$trigger"

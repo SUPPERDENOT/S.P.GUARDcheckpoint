@@ -418,6 +418,8 @@ class BatteryMonitorService : Service() {
             ActorLifecycleState.STOPPED,
             ActorLifecycleState.RECOVERY_HOLD -> {
                 val now = SystemClock.elapsedRealtime()
+                AutoStartDiagnosticLog.record(this, "AUTO_START aborted state=$newState attempt=${timing.attemptId} epoch=${timing.epochId} elapsedSinceT0=${now - timing.t0ElapsedRealtime}ms")
+                AutoStartDiagnosticLog.record(this, "AUTO_START aborted state=$newState attempt=${timing.attemptId} epoch=${timing.epochId} elapsedSinceT0=${now - timing.t0ElapsedRealtime}ms")
                 Log.w(
                     "SPG_AUTO_START",
                     "Auto Start did not reach RUNNING_CHARGING; state=$newState; " +
