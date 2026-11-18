@@ -16,7 +16,7 @@ internal class FallbackSensorPoller(
     suspend fun runWhileActive(
         isServiceDataFresh: () -> Boolean,
         readSnapshot: () -> LiveBatteryState,
-        onSnapshot: (LiveBatteryState) -> Unit,
+        onSnapshot: suspend (LiveBatteryState) -> Unit,
         onReadError: (Throwable) -> Unit
     ) {
         while (currentCoroutineContext().isActive) {
