@@ -185,7 +185,11 @@ internal object AutoStartCoordinator {
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            AutoStartDiagnosticLog.record(context, "COORDINATOR exception trigger=$trigger type=${error.javaClass.simpleName}")
+            val detail = error.message.orEmpty().replace('\n', ' ').replace('\r', ' ').take(180)
+            AutoStartDiagnosticLog.record(
+                context,
+                "COORDINATOR exception trigger=$trigger type=${error.javaClass.simpleName} detail=$detail"
+            )
             Log.e(TAG, "Auto Start request failed; trigger=$trigger; ${error.message}", error)
             AutoStartRequestResult.FAILED
         } finally {

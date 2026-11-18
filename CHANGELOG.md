@@ -2,6 +2,18 @@
 
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
+## 2026-11-18 — Auto Start receiver diagnostic durability
+
+### Changed
+- Added a serialized critical-log write barrier with filesystem sync for BroadcastReceiver lifecycle markers. The receiver records entry, worker dispatch, coordinator result, and completion before releasing its asynchronous broadcast result.
+- Added process ID and foreground-state context to receiver diagnostics, plus bounded exception details for coordinator start failures and Foreground Service promotion failures.
+- Added a Robolectric regression test verifying queued events are written before a durable marker returns and are present in an exported snapshot.
+- No Auto Start policy, Battery Monitoring lifecycle, RECOVERY_HOLD, sensor cadence, session persistence, SDK, dependency, or app-version behavior was intentionally changed.
+
+### Verification
+- Source implementation and regression test added; CI verification pending for this commit.
+- Physical-device reproduction on itel P55 NFC pending; a passing unit test/build does not prove broadcast delivery on the device.
+
 ## 2026-11-18 — Auto Start diagnostic export
 
 ### Added

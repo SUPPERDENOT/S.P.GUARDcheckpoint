@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.SystemClock
+import android.os.Process
 import android.util.Log
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
@@ -29,7 +30,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class PowerConnectionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        AutoStartDiagnosticLog.record(context, "R0 receiver received action=${intent.action ?: "null"}")
+        val receiverAction = intent.action ?: "null"
+        AutoStartDiagnosticLog.record(
+            context,
+            "R0_RECEIVER_ENTER action=$receiverAction pid=${Process.myPid()} appForeground=${AutoStartCoordinator.isAppForeground}"
+        )
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
                 val detectedAt = SystemClock.elapsedRealtime()
@@ -60,22 +65,46 @@ class PowerConnectionReceiver : BroadcastReceiver() {
     ) {
         val pendingResult = goAsync()
         val appContext = context.applicationContext
+        AutoStartDiagnosticLog.record(appContext, "R0_ASYNC_DISPATCH_SCHEDULED trigger=$trigger")
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_WORKER_ENTER trigger=$trigger pid=${Process.myPid()} " +
+                        "receiverElapsed=$detectedAtElapsedRealtime appForeground=${AutoStartCoordinator.isAppForeground}"
+                )
+                AutoStartDiagnosticLog.recordAndFlush(appContext, "R0_COORDINATOR_DISPATCH trigger=$trigger")
                 AutoStartDiagnosticLog.record(appContext, "R4 receiver queued Auto Start trigger=$trigger")
                 val result = AutoStartCoordinator.requestStart(
                     context = appContext,
                     trigger = trigger,
                     observedAtElapsedRealtime = detectedAtElapsedRealtime
                 )
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_COORDINATOR_RESULT result=$result trigger=$trigger"
+                )
                 AutoStartDiagnosticLog.record(appContext, "R4 coordinator result=$result trigger=$trigger")
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                AutoStartDiagnosticLog.record(appContext, "RECEIVER Auto Start exception=${error.javaClass.simpleName}")
+                val detail = error.message.orEmpty().replace('\n', ' ').replace('\r', ' ').take(180)
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_RECEIVER_EXCEPTION trigger=$trigger type=${error.javaClass.simpleName} detail=$detail"
+                )
                 Log.e("PowerGuard", "Gagal memproses Auto Start dari receiver: ${error.message}", error)
             } finally {
-                pendingResult.finish()
+                try {
+                    withContext(NonCancellable) {
+                        AutoStartDiagnosticLog.recordAndFlush(
+                            appContext,
+                            "R0_PENDING_RESULT_FINISH trigger=$trigger"
+                        )
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
             }
         }
     }
@@ -85,6 +114,11 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_WORKER_ENTER action=POWER_DISCONNECTED pid=${Process.myPid()} " +
+                        "appForeground=${AutoStartCoordinator.isAppForeground}"
+                )
                 if (BatteryMonitorService.isStartingOrRunning ||
                     BatteryMonitorService.hasActiveServiceSessionFor()
                 ) {
@@ -103,7 +137,16 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                 Log.e("PowerGuard", "Gagal memproses charger terlepas atau mereset penahanan STOP", error)
                 scheduleGuardedBackgroundCleanup(appContext)
             } finally {
-                pendingResult.finish()
+                try {
+                    withContext(NonCancellable) {
+                        AutoStartDiagnosticLog.recordAndFlush(
+                            appContext,
+                            "R0_PENDING_RESULT_FINISH action=POWER_DISCONNECTED"
+                        )
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
             }
         }
     }

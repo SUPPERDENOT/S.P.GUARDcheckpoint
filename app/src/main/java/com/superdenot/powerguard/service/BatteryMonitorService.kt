@@ -515,7 +515,15 @@ class BatteryMonitorService : Service() {
             startForegroundCompat(buildMonitorNotification("Memulai pemantauan sensor daya..."))
         }
         if (fgResult.isFailure) {
-            AutoStartDiagnosticLog.record(this, "T1 foreground promotion failed type=${fgResult.exceptionOrNull()?.javaClass?.simpleName}")
+            val promotionError = fgResult.exceptionOrNull()
+            val detail = promotionError?.message.orEmpty()
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .take(180)
+            AutoStartDiagnosticLog.record(
+                this,
+                "T1 foreground promotion failed type=${promotionError?.javaClass?.simpleName} detail=$detail"
+            )
             removePendingStart(gen)
             lifecycleChannel.trySend(LifecycleCommand.StartFailed(gen))
             stopSelfIfStaleAndIdle(startId, gen)

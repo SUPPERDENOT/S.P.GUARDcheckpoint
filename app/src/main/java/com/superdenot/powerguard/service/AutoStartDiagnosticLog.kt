@@ -3,9 +3,13 @@ package com.superdenot.powerguard.service
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.util.concurrent.Executors
 
 /**
@@ -25,22 +29,50 @@ internal object AutoStartDiagnosticLog {
     }
 
     fun record(context: Context, event: String) {
-        val safeEvent = event.replace('\n', ' ').replace('\r', ' ').take(500)
+        val safeEvent = sanitize(event)
         val elapsed = SystemClock.elapsedRealtime()
         Log.i(TAG, safeEvent)
         runCatching {
             writer.execute {
                 runCatching {
-                    val logFile = logFile(context.applicationContext)
-                    logFile.parentFile?.mkdirs()
-                    rotateIfNeeded(logFile)
-                    logFile.appendText("$elapsed ms | $safeEvent\n", Charsets.UTF_8)
+                    appendRecord(context.applicationContext, elapsed, safeEvent, syncToDisk = false)
                 }.onFailure { error ->
                     Log.w(TAG, "Diagnostic file write failed: ${error.javaClass.simpleName}")
                 }
             }
         }.onFailure { error ->
             Log.w(TAG, "Diagnostic queue rejected an event: ${error.javaClass.simpleName}")
+        }
+    }
+
+    /**
+     * Persists a critical lifecycle marker before returning. The single writer
+     * serializes this barrier after previously queued records; fd.sync() asks
+     * the filesystem to flush the marker before the receiver releases goAsync().
+     */
+    suspend fun recordAndFlush(context: Context, event: String): Boolean {
+        val safeEvent = sanitize(event)
+        val elapsed = SystemClock.elapsedRealtime()
+        Log.i(TAG, safeEvent)
+        val completion = CompletableDeferred<Unit>()
+
+        return try {
+            writer.execute {
+                try {
+                    appendRecord(context.applicationContext, elapsed, safeEvent, syncToDisk = true)
+                    completion.complete(Unit)
+                } catch (error: Exception) {
+                    completion.completeExceptionally(error)
+                }
+            }
+            completion.await()
+            true
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            val cause = error.cause ?: error
+            Log.w(TAG, "Diagnostic durable write failed: ${cause.javaClass.simpleName}")
+            false
         }
     }
 
@@ -68,6 +100,29 @@ internal object AutoStartDiagnosticLog {
             snapshot
         }.get()
     }
+
+    private fun appendRecord(
+        context: Context,
+        elapsedRealtime: Long,
+        event: String,
+        syncToDisk: Boolean
+    ) {
+        val logFile = logFile(context)
+        val parent = logFile.parentFile
+        if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.isDirectory) {
+            throw IOException("Unable to create Auto Start diagnostic directory")
+        }
+        rotateIfNeeded(logFile)
+
+        FileOutputStream(logFile, true).use { output ->
+            output.write("$elapsedRealtime ms | $event\n".toByteArray(Charsets.UTF_8))
+            output.flush()
+            if (syncToDisk) output.fd.sync()
+        }
+    }
+
+    private fun sanitize(event: String): String =
+        event.replace('\n', ' ').replace('\r', ' ').take(500)
 
     private fun logFile(context: Context): File =
         File(File(context.filesDir, DIRECTORY), LOG_NAME)
