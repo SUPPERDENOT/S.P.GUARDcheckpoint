@@ -119,7 +119,7 @@ internal object AutoStartCoordinator {
             return AutoStartRequestResult.ALREADY_IN_FLIGHT
         }
 
-        try {
+        return try {
             val appContext = context.applicationContext
             if (!BatteryMonitoringSettings.isEnabled(appContext)) {
                 Log.i(TAG, "Battery Monitoring OFF; Auto Start ignored; trigger=$trigger")
