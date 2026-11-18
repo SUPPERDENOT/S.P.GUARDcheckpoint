@@ -10,8 +10,8 @@ All notable changes to Superd Power Guard are documented here. Implementation an
 - Added FileProvider access limited to the diagnostic export cache directory. The diagnostic logger records technical markers only; it does not collect battery sensor readings, account identifiers, or user content.
 
 ### Verification
-- Implementation is on the development branch; Android CI/build and unit-test verification pending.
-- Physical-device export/share and Auto Start reproduction: pending.
+- Android CI run #251 passed on commit `ea4f6fd7e4e7b204ee72871844237e238adbd534`: `testDebugUnitTest`, `assembleDebug`, and the Anti-Slop UI Audit Gate succeeded; debug APK and unit-test report artifacts were uploaded.
+- Physical-device export/share and Auto Start reproduction: pending; CI success does not verify FileProvider sharing or runtime log capture on the itel P55 NFC.
 - No Auto Start policy, Battery Monitoring lifecycle, RECOVERY_HOLD, sensor polling, Room schema, app version, or dependency changes intended.
 
 ## 2026-11-18 — Automatic Battery Monitoring startup
