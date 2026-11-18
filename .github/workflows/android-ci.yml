@@ -6,6 +6,7 @@ on:
       - hardening/p0-recovery
       - feature/live-status-bar-p1
       - ui/industrial-instrument-antislop
+      - fix/auto-start-coordinator-timing
   pull_request:
     branches:
       - main
