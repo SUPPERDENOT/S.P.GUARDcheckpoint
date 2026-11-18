@@ -98,3 +98,18 @@ A task with a relevant NOT RUN or FAIL item is not fully verified. Do not descri
 - Android build/CI: NOT RUN — pending branch CI
 - Physical-device QA: NOT RUN — requires the user's itel P55 NFC
 - Changelog updated; app version/build number and dependencies unchanged: PASS
+
+## 2026-11-18 — Periodic charging Auto Start recovery
+
+- Scope limited to charging fallback scheduling, Worker result mapping, regression tests, and documentation: PASS
+- Existing Worker, scheduler, coordinator, WorkManager dependency (2.10.0), and project standards inspected: PASS
+- Accepted/in-flight/already-active/disabled/not-charging outcomes no longer trigger unnecessary retry: PASS — source review
+- Deferred/failed outcomes retain WorkManager retry handling: PASS — source review
+- Periodic request constrained to charging with a 15-minute minimum interval: PASS — source review
+- BatteryMonitorService, RECOVERY_HOLD, sensor cadence, persistence, package, SDK, dependencies, and app version unchanged: PASS — diff scope
+- New Worker outcome unit tests: NOT RUN — awaiting branch CI
+- Android build/CI: NOT RUN — awaiting branch Actions run
+- Runtime lifecycle / RECOVERY_HOLD regression checks: NOT RUN
+- Physical-device QA on itel P55 NFC: NOT RUN
+- UI/UX review: N/A — no UI changes
+- Changelog updated and historical entries preserved: PASS
