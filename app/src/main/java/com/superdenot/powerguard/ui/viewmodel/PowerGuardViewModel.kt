@@ -204,13 +204,13 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                     val detectedAt = SystemClock.elapsedRealtime()
                     _fallbackLiveState.value = snapshot
                     _fallbackUpdatedAtElapsedRealtime.value = detectedAt
-                    if (snapshot.isCharging) {
+                    if (snapshot.isCharging && !BatteryMonitorService.isStartingOrRunning) {
                         AutoStartCoordinator.requestStart(
                             context = getApplication(),
                             trigger = AutoStartTrigger.APP_FOREGROUND_CHARGING,
                             observedAtElapsedRealtime = detectedAt
                         )
-                    } else {
+                    } else if (!snapshot.isCharging) {
                         AutoStartCoordinator.onChargingDisconnected()
                     }
                 },
