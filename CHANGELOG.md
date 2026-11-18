@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-18 — Dynamic power-event receiver export experiment
+
+### Changed
+- Changed only the application-lifetime dynamic receiver registration in `PowerGuardApp.kt` from `ContextCompat.RECEIVER_NOT_EXPORTED` to `ContextCompat.RECEIVER_EXPORTED` for the protected system power-connect and power-disconnect broadcasts.
+- This is a controlled compatibility experiment to compare delivery on the target itel/XOS device. It does not change the manifest receiver, WorkManager fallback, AutoStartCoordinator, BatteryMonitorService, service policy, or Battery Monitoring lifecycle.
+- Because an exported dynamic receiver can receive other unprotected broadcasts, keep the filter restricted to the two system power actions and do not add unrelated actions.
+
+### Verification and limitations
+- Source change committed on the development branch. Android CI/build and physical-device A/B verification are pending.
+- `RECEIVER_EXPORTED` does not bypass Android cached-process scheduling, OEM background restrictions, or Foreground Service start policy.
+- On Android 14/API 34 and later, some context-registered broadcasts may be queued while the app is cached and delivered after it leaves cached state; record delayed delivery as a distinct outcome rather than assuming the broadcast was dropped.
+- Physical-device scenarios remain required: (A) plug in shortly after Home; (B) wait until the process is cached/frozen, then plug in and observe whether delivery occurs after thaw/resume. Compare receiver-entry and coordinator events in `AutoStartDiagnosticLog`.
+
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
 ## 2026-11-18 — Periodic charging Auto Start recovery
