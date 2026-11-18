@@ -17,6 +17,16 @@ internal enum class AutoStartTrigger {
     MONITORING_ENABLED
 }
 
+internal enum class AutoStartRequestResult {
+    REQUESTED,
+    ALREADY_IN_FLIGHT,
+    MONITORING_DISABLED,
+    NOT_CHARGING,
+    SERVICE_ALREADY_ACTIVE,
+    DEFERRED_BY_PLATFORM,
+    FAILED
+}
+
 internal data class ChargingDetectionEpoch(
     val epochId: Long,
     val detectedAtElapsedRealtime: Long,
@@ -72,7 +82,7 @@ internal object AutoStartPolicy {
         batteryOptimizationIgnored: Boolean
     ): Boolean = when (trigger) {
         AutoStartTrigger.BOOT_COMPLETED -> true
-        AutoStartTrigger.POWER_CONNECTED -> appForeground || batteryOptimizationIgnored
+        AutoStartTrigger.POWER_CONNECTED -> appForeground || BatteryMonitoringSettings.canStartFromPowerConnected(true, batteryOptimizationIgnored)
         AutoStartTrigger.APP_FOREGROUND_CHARGING,
         AutoStartTrigger.MONITORING_ENABLED -> appForeground
     }
@@ -100,28 +110,28 @@ internal object AutoStartCoordinator {
         context: Context,
         trigger: AutoStartTrigger,
         observedAtElapsedRealtime: Long = SystemClock.elapsedRealtime()
-    ) {
+    ): AutoStartRequestResult {
         if (!gate.tryAcquire()) {
             Log.d(TAG, "Duplicate Auto Start request ignored; trigger=$trigger")
-            return
+            return AutoStartRequestResult.ALREADY_IN_FLIGHT
         }
 
         try {
             val appContext = context.applicationContext
             if (!BatteryMonitoringSettings.isEnabled(appContext)) {
                 Log.i(TAG, "Battery Monitoring OFF; Auto Start ignored; trigger=$trigger")
-                return
+                return AutoStartRequestResult.MONITORING_DISABLED
             }
 
             if (!isDeviceCurrentlyCharging(appContext)) {
                 onChargingDisconnected()
                 Log.d(TAG, "Charging State is not CHARGING; trigger=$trigger")
-                return
+                return AutoStartRequestResult.NOT_CHARGING
             }
 
             if (BatteryMonitorService.isStartingOrRunning) {
                 Log.d(TAG, "Service already STARTING/RUNNING; trigger=$trigger")
-                return
+                return AutoStartRequestResult.SERVICE_ALREADY_ACTIVE
             }
 
             val batteryOptimizationIgnored = if (
@@ -135,7 +145,7 @@ internal object AutoStartCoordinator {
 
             if (!AutoStartPolicy.isAllowed(trigger, appForeground, batteryOptimizationIgnored)) {
                 Log.w(TAG, "Auto Start deferred by Android background-start policy; trigger=$trigger")
-                return
+                return AutoStartRequestResult.DEFERRED_BY_PLATFORM
             }
 
             val epoch = gate.recordChargingDetection(observedAtElapsedRealtime)
@@ -155,10 +165,12 @@ internal object AutoStartCoordinator {
                 autoStartEpochId = epoch.epochId,
                 autoStartT0ElapsedRealtime = epoch.detectedAtElapsedRealtime
             )
+            AutoStartRequestResult.REQUESTED
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             Log.e(TAG, "Auto Start request failed; trigger=$trigger; ${error.message}", error)
+            AutoStartRequestResult.FAILED
         } finally {
             gate.release()
         }
