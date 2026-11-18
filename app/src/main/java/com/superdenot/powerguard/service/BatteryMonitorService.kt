@@ -76,6 +76,13 @@ class BatteryMonitorService : Service() {
         RECOVERY_HOLD
     }
 
+    private data class AutoStartTiming(
+        val attemptId: Long,
+        val epochId: Long,
+        val t0ElapsedRealtime: Long,
+        val t1ElapsedRealtime: Long
+    )
+
     private enum class SessionCleanupOutcome {
         FINALIZED,
         ALREADY_CLOSED,
@@ -220,6 +227,9 @@ class BatteryMonitorService : Service() {
     private var monitorLoopStopping: Boolean = false
     private var activeRunGeneration: Long = 0L
     private var manualMonitoringRequested: Boolean = false
+
+    @Volatile
+    private var autoStartTiming: AutoStartTiming? = null
 
     // Pemisahan status proses finalisasi, status cleanup DB, dan keberhasilan penyimpanan data lengkap
     @Volatile
@@ -390,6 +400,32 @@ class BatteryMonitorService : Service() {
                 }
             }
         }
+
+        val timing = autoStartTiming ?: return
+        when (newState) {
+            ActorLifecycleState.RUNNING_CHARGING -> {
+                val t2 = SystemClock.elapsedRealtime()
+                Log.i(
+                    "SPG_AUTO_START",
+                    "T2 RUNNING_CHARGING; attempt=${timing.attemptId}; epoch=${timing.epochId}; " +
+                        "elapsedRealtime=$t2; T1_to_T2=${t2 - timing.t1ElapsedRealtime}ms; " +
+                        "T0_to_T2=${t2 - timing.t0ElapsedRealtime}ms"
+                )
+                autoStartTiming = null
+            }
+            ActorLifecycleState.STOPPED,
+            ActorLifecycleState.RECOVERY_HOLD -> {
+                val now = SystemClock.elapsedRealtime()
+                Log.w(
+                    "SPG_AUTO_START",
+                    "Auto Start did not reach RUNNING_CHARGING; state=$newState; " +
+                        "attempt=${timing.attemptId}; epoch=${timing.epochId}; " +
+                        "elapsedSinceT0=${now - timing.t0ElapsedRealtime}ms"
+                )
+                autoStartTiming = null
+            }
+            else -> Unit
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -444,6 +480,9 @@ class BatteryMonitorService : Service() {
     private fun dispatchStartCommand(startId: Int, manual: Boolean, intent: Intent) {
         val fromRequestStart = intent.getBooleanExtra(EXTRA_FROM_REQUEST_START, false)
         val extraGen = intent.getLongExtra(EXTRA_START_GENERATION, -1L)
+        val autoStartAttemptId = intent.getLongExtra(EXTRA_AUTO_START_ATTEMPT_ID, -1L)
+        val autoStartEpochId = intent.getLongExtra(EXTRA_AUTO_START_EPOCH_ID, -1L)
+        val autoStartT0 = intent.getLongExtra(EXTRA_AUTO_START_T0_ELAPSED_REALTIME, -1L)
 
         val gen = if (fromRequestStart && extraGen > 0L) {
             synchronized(lifecycleLock) {
@@ -476,6 +515,21 @@ class BatteryMonitorService : Service() {
             lifecycleChannel.trySend(LifecycleCommand.StartFailed(gen))
             stopSelfIfStaleAndIdle(startId, gen)
             return
+        }
+
+        if (!manual && autoStartAttemptId > 0L && autoStartEpochId > 0L && autoStartT0 > 0L) {
+            val t1 = SystemClock.elapsedRealtime()
+            autoStartTiming = AutoStartTiming(
+                attemptId = autoStartAttemptId,
+                epochId = autoStartEpochId,
+                t0ElapsedRealtime = autoStartT0,
+                t1ElapsedRealtime = t1
+            )
+            Log.i(
+                "SPG_AUTO_START",
+                "T1 Foreground Service entered; attempt=$autoStartAttemptId; epoch=$autoStartEpochId; " +
+                    "elapsedRealtime=$t1; T0_to_T1=${t1 - autoStartT0}ms"
+            )
         }
 
         if (isAlreadyStale) {
@@ -3324,6 +3378,9 @@ class BatteryMonitorService : Service() {
         private const val EXTRA_FROM_REQUEST_START = "com.superdenot.powerguard.EXTRA_FROM_REQUEST_START"
         private const val EXTRA_START_GENERATION = "com.superdenot.powerguard.EXTRA_START_GENERATION"
         private const val EXTRA_STOP_GENERATION = "com.superdenot.powerguard.EXTRA_STOP_GENERATION"
+        private const val EXTRA_AUTO_START_ATTEMPT_ID = "com.superdenot.powerguard.EXTRA_AUTO_START_ATTEMPT_ID"
+        private const val EXTRA_AUTO_START_EPOCH_ID = "com.superdenot.powerguard.EXTRA_AUTO_START_EPOCH_ID"
+        private const val EXTRA_AUTO_START_T0_ELAPSED_REALTIME = "com.superdenot.powerguard.EXTRA_AUTO_START_T0_ELAPSED_REALTIME"
 
         private const val CHANNEL_MONITOR = "powerguard_live_monitor"
         private const val CHANNEL_ANOMALY = "powerguard_anomaly_alerts"
@@ -3652,7 +3709,13 @@ class BatteryMonitorService : Service() {
             }
         }
 
-        fun requestStartService(context: Context, manual: Boolean) {
+        fun requestStartService(
+            context: Context,
+            manual: Boolean,
+            autoStartAttemptId: Long? = null,
+            autoStartEpochId: Long? = null,
+            autoStartT0ElapsedRealtime: Long? = null
+        ) {
             val gen = registerPendingStart()
             val targetInstance = synchronized(lifecycleLock) { activeInstance }
             targetInstance?.lifecycleChannel?.trySend(LifecycleCommand.PrepareStart(gen))
@@ -3661,6 +3724,9 @@ class BatteryMonitorService : Service() {
                 action = if (manual) ACTION_START_MANUAL_MONITORING else ACTION_START_MONITORING
                 putExtra(EXTRA_FROM_REQUEST_START, true)
                 putExtra(EXTRA_START_GENERATION, gen)
+                autoStartAttemptId?.let { putExtra(EXTRA_AUTO_START_ATTEMPT_ID, it) }
+                autoStartEpochId?.let { putExtra(EXTRA_AUTO_START_EPOCH_ID, it) }
+                autoStartT0ElapsedRealtime?.let { putExtra(EXTRA_AUTO_START_T0_ELAPSED_REALTIME, it) }
             }
             runCatching {
                 ContextCompat.startForegroundService(context, serviceIntent)
