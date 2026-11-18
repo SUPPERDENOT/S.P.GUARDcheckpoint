@@ -30,7 +30,7 @@ class PowerGuardApp : Application() {
             this,
             receiver,
             filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_EXPORTED
         )
         chargingEventsReceiver = receiver
     }
