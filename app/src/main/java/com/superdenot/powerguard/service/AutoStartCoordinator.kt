@@ -9,7 +9,6 @@ import android.os.SystemClock
 import android.util.Log
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
 import kotlinx.coroutines.CancellationException
-import java.util.concurrent.atomic.AtomicLong
 
 internal enum class AutoStartTrigger {
     POWER_CONNECTED,
@@ -59,8 +58,23 @@ internal class AutoStartAttemptGate {
 
     fun nextAttemptId(): Long = synchronized(lock) { ++nextAttemptId }
 
-    fun resetChargingEpoch() = synchronized(lock) {
+    fun resetChargingEpoch(): Boolean = synchronized(lock) {
+        val hadEpoch = chargingEpoch != null
         chargingEpoch = null
+        hadEpoch
+    }
+}
+
+internal object AutoStartPolicy {
+    fun isAllowed(
+        trigger: AutoStartTrigger,
+        appForeground: Boolean,
+        batteryOptimizationIgnored: Boolean
+    ): Boolean = when (trigger) {
+        AutoStartTrigger.BOOT_COMPLETED -> true
+        AutoStartTrigger.POWER_CONNECTED -> appForeground || batteryOptimizationIgnored
+        AutoStartTrigger.APP_FOREGROUND_CHARGING,
+        AutoStartTrigger.MONITORING_ENABLED -> appForeground
     }
 }
 
@@ -77,8 +91,9 @@ internal object AutoStartCoordinator {
     }
 
     fun onChargingDisconnected() {
-        gate.resetChargingEpoch()
-        Log.d(TAG, "Charging epoch reset after disconnect")
+        if (gate.resetChargingEpoch()) {
+            Log.d(TAG, "Charging epoch reset after disconnect")
+        }
     }
 
     suspend fun requestStart(
@@ -109,10 +124,17 @@ internal object AutoStartCoordinator {
                 return
             }
 
-            if ((trigger == AutoStartTrigger.APP_FOREGROUND_CHARGING ||
-                    trigger == AutoStartTrigger.MONITORING_ENABLED) && !appForeground
+            val batteryOptimizationIgnored = if (
+                trigger == AutoStartTrigger.POWER_CONNECTED && !appForeground
             ) {
-                Log.d(TAG, "Foreground Auto Start deferred because app is not foreground; trigger=$trigger")
+                val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+                powerManager.isIgnoringBatteryOptimizations(appContext.packageName)
+            } else {
+                false
+            }
+
+            if (!AutoStartPolicy.isAllowed(trigger, appForeground, batteryOptimizationIgnored)) {
+                Log.w(TAG, "Auto Start deferred by Android background-start policy; trigger=$trigger")
                 return
             }
 
@@ -122,17 +144,6 @@ internal object AutoStartCoordinator {
                     TAG,
                     "T0 charging detected; epoch=${epoch.epochId}; elapsedRealtime=${epoch.detectedAtElapsedRealtime}; trigger=$trigger"
                 )
-            }
-
-            if (trigger == AutoStartTrigger.POWER_CONNECTED && !appForeground) {
-                val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
-                if (!powerManager.isIgnoringBatteryOptimizations(appContext.packageName)) {
-                    Log.w(
-                        TAG,
-                        "Auto Start deferred: app background and battery-optimization exemption unavailable; epoch=${epoch.epochId}"
-                    )
-                    return
-                }
             }
 
             val attemptId = gate.nextAttemptId()
