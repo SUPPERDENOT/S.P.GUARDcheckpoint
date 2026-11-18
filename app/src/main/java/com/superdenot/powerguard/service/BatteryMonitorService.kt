@@ -3737,8 +3737,8 @@ class BatteryMonitorService : Service() {
             AutoStartDiagnosticLog.record(context, "R4 ContextCompat.startForegroundService invoking manual=$manual generation=$gen")
             runCatching {
                 ContextCompat.startForegroundService(context, serviceIntent)
-            }.onSuccess { component ->
-                AutoStartDiagnosticLog.record(context, "R4 startForegroundService returned component=${component?.className ?: "null"}")
+            }.onSuccess {
+                AutoStartDiagnosticLog.record(context, "R4 startForegroundService call returned")
             }.onFailure { error ->
                 AutoStartDiagnosticLog.record(context, "R4 startForegroundService threw type=${error.javaClass.simpleName}")
                 removePendingStart(gen)
