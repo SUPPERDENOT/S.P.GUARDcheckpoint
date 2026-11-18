@@ -31,7 +31,7 @@ internal data class ChargingDetectionEpoch(
     val epochId: Long,
     val detectedAtElapsedRealtime: Long,
     val isNew: Boolean
-}
+)
 
 /**
  * Process-local gate shared by receiver and ViewModel triggers.
