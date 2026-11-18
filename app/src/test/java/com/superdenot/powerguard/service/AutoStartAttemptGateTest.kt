@@ -53,4 +53,58 @@ class AutoStartAttemptGateTest {
         assertEquals(1L, gate.nextAttemptId())
         assertEquals(2L, gate.nextAttemptId())
     }
+
+    @Test
+    fun powerConnectedBackgroundTriggerRequiresBatteryOptimizationExemption() {
+        assertFalse(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.POWER_CONNECTED,
+                appForeground = false,
+                batteryOptimizationIgnored = false
+            )
+        )
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.POWER_CONNECTED,
+                appForeground = false,
+                batteryOptimizationIgnored = true
+            )
+        )
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.POWER_CONNECTED,
+                appForeground = true,
+                batteryOptimizationIgnored = false
+            )
+        )
+    }
+
+    @Test
+    fun bootTriggerRetainsItsBackgroundStartPath() {
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.BOOT_COMPLETED,
+                appForeground = false,
+                batteryOptimizationIgnored = false
+            )
+        )
+    }
+
+    @Test
+    fun appDrivenTriggersRequireForegroundActivity() {
+        assertFalse(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.APP_FOREGROUND_CHARGING,
+                appForeground = false,
+                batteryOptimizationIgnored = true
+            )
+        )
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.MONITORING_ENABLED,
+                appForeground = true,
+                batteryOptimizationIgnored = false
+            )
+        )
+    }
 }
