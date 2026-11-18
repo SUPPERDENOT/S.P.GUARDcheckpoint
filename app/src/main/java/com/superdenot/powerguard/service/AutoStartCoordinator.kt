@@ -134,6 +134,14 @@ internal object AutoStartCoordinator {
                 return AutoStartRequestResult.SERVICE_ALREADY_ACTIVE
             }
 
+            val epoch = gate.recordChargingDetection(observedAtElapsedRealtime)
+            if (epoch.isNew) {
+                Log.i(
+                    TAG,
+                    "T0 charging detected; epoch=${epoch.epochId}; elapsedRealtime=${epoch.detectedAtElapsedRealtime}; trigger=$trigger"
+                )
+            }
+
             val batteryOptimizationIgnored = if (
                 trigger == AutoStartTrigger.POWER_CONNECTED && !appForeground
             ) {
@@ -146,14 +154,6 @@ internal object AutoStartCoordinator {
             if (!AutoStartPolicy.isAllowed(trigger, appForeground, batteryOptimizationIgnored)) {
                 Log.w(TAG, "Auto Start deferred by Android background-start policy; trigger=$trigger")
                 return AutoStartRequestResult.DEFERRED_BY_PLATFORM
-            }
-
-            val epoch = gate.recordChargingDetection(observedAtElapsedRealtime)
-            if (epoch.isNew) {
-                Log.i(
-                    TAG,
-                    "T0 charging detected; epoch=${epoch.epochId}; elapsedRealtime=${epoch.detectedAtElapsedRealtime}; trigger=$trigger"
-                )
             }
 
             val attemptId = gate.nextAttemptId()
