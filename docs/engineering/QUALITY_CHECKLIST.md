@@ -114,3 +114,17 @@ A task with a relevant NOT RUN or FAIL item is not fully verified. Do not descri
 - Physical-device QA on itel P55 NFC: NOT RUN
 - UI/UX review: N/A — no UI changes
 - Changelog updated and historical entries preserved: PASS
+
+## 2026-11-18 — Dynamic power-event receiver export experiment
+
+- Scope limited to changing the application-lifetime dynamic receiver flag to `RECEIVER_EXPORTED` and documenting the controlled device experiment: PASS — source review
+- Receiver filter remains limited to `ACTION_POWER_CONNECTED` and `ACTION_POWER_DISCONNECTED`: PASS — source review
+- Manifest receiver, WorkManager scheduler/worker, AutoStartCoordinator, BatteryMonitorService, and Battery Monitoring lifecycle unchanged: PASS — change scope
+- Android build and unit tests: NOT RUN — awaiting branch CI
+- Physical-device A/B test on itel P55 NFC (immediate-after-Home and cached/frozen-process scenarios): NOT RUN
+- AutoStartDiagnosticLog comparison for receiver delivery, delayed delivery after thaw, and coordinator outcome: NOT RUN
+- Exported receiver exposure reviewed: PASS — only the two protected system power actions are registered; do not add unrelated actions
+- Cached-process scheduling and OEM background restrictions: NOT proven resolved by this flag change; physical evidence required
+- UI/UX review: N/A — no UI change
+- Changelog updated; package, SDK, dependencies, app version, and build number unchanged: PASS
+
