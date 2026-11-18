@@ -5,14 +5,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
-import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
-import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
+import com.superdenot.powerguard.service.AutoStartCoordinator
+import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.service.TargetSessionLookupResult
 import kotlinx.coroutines.CancellationException
@@ -29,10 +30,10 @@ class PowerConnectionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
+                val detectedAt = SystemClock.elapsedRealtime()
                 if (isDeviceCurrentlyCharging(context)) {
-                    // BOOT_COMPLETED is an Android background-FGS exemption, subject to
-                    // foreground-service-type restrictions on the device's OS version.
-                    startMonitorServiceSafe(context, requiresBatteryOptimizationExemption = false)
+                    // BOOT_COMPLETED remains subject to Android foreground-service type rules.
+                    startMonitorServiceSafe(context, AutoStartTrigger.BOOT_COMPLETED, detectedAt)
                 } else if (!BatteryMonitorService.isStartingOrRunning &&
                     !BatteryMonitorService.hasActiveServiceSessionFor()
                 ) {
@@ -40,10 +41,11 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                 }
             }
             Intent.ACTION_POWER_CONNECTED -> {
-                // POWER_CONNECTED is not itself a general background-FGS exemption.
-                startMonitorServiceSafe(context, requiresBatteryOptimizationExemption = true)
+                val detectedAt = SystemClock.elapsedRealtime()
+                startMonitorServiceSafe(context, AutoStartTrigger.POWER_CONNECTED, detectedAt)
             }
             Intent.ACTION_POWER_DISCONNECTED -> {
+                AutoStartCoordinator.onChargingDisconnected()
                 handlePowerDisconnected(context)
             }
         }
@@ -51,38 +53,22 @@ class PowerConnectionReceiver : BroadcastReceiver() {
 
     private fun startMonitorServiceSafe(
         context: Context,
-        requiresBatteryOptimizationExemption: Boolean
+        trigger: AutoStartTrigger,
+        detectedAtElapsedRealtime: Long
     ) {
         val pendingResult = goAsync()
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val enabled = BatteryMonitoringSettings.isEnabled(appContext)
-                val allowed = if (requiresBatteryOptimizationExemption) {
-                    val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
-                    BatteryMonitoringSettings.canStartFromPowerConnected(
-                        enabled = enabled,
-                        batteryOptimizationIgnored =
-                            powerManager.isIgnoringBatteryOptimizations(appContext.packageName)
-                    )
-                } else {
-                    // Avoid an unnecessary system-service dependency for the BOOT_COMPLETED path.
-                    enabled
-                }
-
-                if (allowed) {
-                    BatteryMonitorService.requestStartService(appContext, manual = false)
-                } else if (!enabled) {
-                    Log.i("PowerGuard", "Battery Monitoring OFF; pemicu charger/boot diabaikan")
-                } else {
-                    Log.w(
-                        "PowerGuard",
-                        "Auto-start saat charger terhubung dilewati: pengecualian optimasi baterai belum diberikan"
-                    )
-                }
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                Log.e("PowerGuard", "Gagal memulai Foreground Service dari receiver: ${error.message}", error)
+                AutoStartCoordinator.requestStart(
+                    context = appContext,
+                    trigger = trigger,
+                    observedAtElapsedRealtime = detectedAtElapsedRealtime
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal memproses Auto Start dari receiver: ${error.message}", error)
             } finally {
                 pendingResult.finish()
             }
