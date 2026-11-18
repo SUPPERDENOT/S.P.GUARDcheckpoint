@@ -12,6 +12,7 @@ import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
+import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.service.AutoStartCoordinator
 import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class PowerConnectionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        AutoStartDiagnosticLog.record(context, "R0 receiver received action=${intent.action ?: "null"}")
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
                 val detectedAt = SystemClock.elapsedRealtime()
@@ -60,14 +62,17 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                AutoStartCoordinator.requestStart(
+                AutoStartDiagnosticLog.record(appContext, "R4 receiver queued Auto Start trigger=$trigger")
+                val result = AutoStartCoordinator.requestStart(
                     context = appContext,
                     trigger = trigger,
                     observedAtElapsedRealtime = detectedAtElapsedRealtime
                 )
+                AutoStartDiagnosticLog.record(appContext, "R4 coordinator result=$result trigger=$trigger")
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                AutoStartDiagnosticLog.record(appContext, "RECEIVER Auto Start exception=${error.javaClass.simpleName}")
                 Log.e("PowerGuard", "Gagal memproses Auto Start dari receiver: ${error.message}", error)
             } finally {
                 pendingResult.finish()

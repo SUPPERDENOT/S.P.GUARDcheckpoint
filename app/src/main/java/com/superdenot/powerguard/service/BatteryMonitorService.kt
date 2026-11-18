@@ -290,6 +290,7 @@ class BatteryMonitorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        AutoStartDiagnosticLog.record(this, "R5 service onCreate")
         synchronized(lifecycleLock) {
             activeInstance = this
         }
@@ -405,6 +406,7 @@ class BatteryMonitorService : Service() {
         when (newState) {
             ActorLifecycleState.RUNNING_CHARGING -> {
                 val t2 = SystemClock.elapsedRealtime()
+                AutoStartDiagnosticLog.record(this, "T2 RUNNING_CHARGING attempt=${timing.attemptId} epoch=${timing.epochId} T0_to_T2=${t2 - timing.t0ElapsedRealtime}ms")
                 Log.i(
                     "SPG_AUTO_START",
                     "T2 RUNNING_CHARGING; attempt=${timing.attemptId}; epoch=${timing.epochId}; " +
@@ -429,6 +431,7 @@ class BatteryMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        AutoStartDiagnosticLog.record(this, "R5 service onStartCommand action=${intent?.action ?: "null"} startId=$startId")
         synchronized(lifecycleLock) {
             instanceLatestObservedCommandId.updateAndGet { prev -> maxOf(prev, startId) }
         }
@@ -511,6 +514,7 @@ class BatteryMonitorService : Service() {
             startForegroundCompat(buildMonitorNotification("Memulai pemantauan sensor daya..."))
         }
         if (fgResult.isFailure) {
+            AutoStartDiagnosticLog.record(this, "T1 foreground promotion failed type=${fgResult.exceptionOrNull()?.javaClass?.simpleName}")
             removePendingStart(gen)
             lifecycleChannel.trySend(LifecycleCommand.StartFailed(gen))
             stopSelfIfStaleAndIdle(startId, gen)
@@ -519,6 +523,7 @@ class BatteryMonitorService : Service() {
 
         if (!manual && autoStartAttemptId > 0L && autoStartEpochId > 0L && autoStartT0 > 0L) {
             val t1 = SystemClock.elapsedRealtime()
+            AutoStartDiagnosticLog.record(this, "T1 foreground promotion succeeded attempt=$autoStartAttemptId epoch=$autoStartEpochId T0_to_T1=${t1 - autoStartT0}ms")
             autoStartTiming = AutoStartTiming(
                 attemptId = autoStartAttemptId,
                 epochId = autoStartEpochId,
@@ -3728,9 +3733,13 @@ class BatteryMonitorService : Service() {
                 autoStartEpochId?.let { putExtra(EXTRA_AUTO_START_EPOCH_ID, it) }
                 autoStartT0ElapsedRealtime?.let { putExtra(EXTRA_AUTO_START_T0_ELAPSED_REALTIME, it) }
             }
+            AutoStartDiagnosticLog.record(context, "R4 ContextCompat.startForegroundService invoking manual=$manual generation=$gen")
             runCatching {
                 ContextCompat.startForegroundService(context, serviceIntent)
+            }.onSuccess { component ->
+                AutoStartDiagnosticLog.record(context, "R4 startForegroundService returned component=${component?.className ?: "null"}")
             }.onFailure { error ->
+                AutoStartDiagnosticLog.record(context, "R4 startForegroundService threw type=${error.javaClass.simpleName}")
                 removePendingStart(gen)
                 val failInstance = synchronized(lifecycleLock) { activeInstance }
                 failInstance?.lifecycleChannel?.trySend(LifecycleCommand.StartFailed(gen))

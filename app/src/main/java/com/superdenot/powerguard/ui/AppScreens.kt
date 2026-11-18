@@ -1,6 +1,9 @@
 package com.superdenot.powerguard.ui
 
+import android.content.ClipData
+import android.content.Intent
 import android.os.SystemClock
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.core.content.FileProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,12 +23,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.domain.model.StatusBarParameter
+import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
@@ -268,6 +274,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    var isExportingDiagnosticLog by remember { mutableStateOf(false) }
+    val screenScope = rememberCoroutineScope()
     LazyColumn(Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("PENGATURAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -368,6 +376,61 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Settings, null)
                         Text("  Buka Initial Setup")
+                    }
+                }
+            }
+        }
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Diagnostik Auto Start", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Simpan catatan teknis aktivasi monitoring ke file lokal untuk dianalisis. Tidak berisi data sensor atau konten pribadi.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        enabled = !isExportingDiagnosticLog,
+                        onClick = {
+                            isExportingDiagnosticLog = true
+                            screenScope.launch {
+                                try {
+                                    val snapshot = AutoStartDiagnosticLog.createExportSnapshot(context)
+                                    val uri = FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        snapshot
+                                    )
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        clipData = ClipData.newUri(
+                                            context.contentResolver,
+                                            "Auto Start Diagnostic Log",
+                                            uri
+                                        )
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Bagikan diagnostic log"))
+                                } catch (error: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Gagal menyiapkan diagnostic log: ${error.javaClass.simpleName}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } finally {
+                                    isExportingDiagnosticLog = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Rounded.Share, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (isExportingDiagnosticLog) "Menyiapkan log..." else "Bagikan Diagnostic Log")
                     }
                 }
             }

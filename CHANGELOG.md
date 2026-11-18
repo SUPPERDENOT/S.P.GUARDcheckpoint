@@ -2,6 +2,18 @@
 
 All notable changes to Superd Power Guard are documented here. Implementation and device-testing status are tracked separately.
 
+## 2026-11-18 — Auto Start diagnostic export
+
+### Added
+- Added bounded, app-private Auto Start diagnostic logging for receiver delivery, Battery Monitoring preference, charging-state checks, background-start policy, service request, Foreground Service promotion, and RUNNING_CHARGING transition.
+- Added a temporary Settings action to create and share a diagnostic log snapshot through Android's system Sharesheet. Exported files are stored in app cache; active logs remain in app-private storage and rotate at a bounded size.
+- Added FileProvider access limited to the diagnostic export cache directory. The diagnostic logger records technical markers only; it does not collect battery sensor readings, account identifiers, or user content.
+
+### Verification
+- Implementation is on the development branch; Android CI/build and unit-test verification pending.
+- Physical-device export/share and Auto Start reproduction: pending.
+- No Auto Start policy, Battery Monitoring lifecycle, RECOVERY_HOLD, sensor polling, Room schema, app version, or dependency changes intended.
+
 ## 2026-11-18 — Automatic Battery Monitoring startup
 
 ### Changed
