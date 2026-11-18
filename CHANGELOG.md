@@ -11,7 +11,7 @@
 - No expedited work is used with the charging constraint. The Worker does not re-arm itself.
 
 ### Verification and limitations
-- Implementation committed on the development branch; Android build and unit tests are pending the branch CI run.
+- CI #271 on commit `36d067508441a9d89b87223e4da489488503037c`: PASS — `gradle --no-daemon testDebugUnitTest assembleDebug`, including debug APK assembly and unit tests; Anti-Slop UI Audit Gate also PASS. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44362064874).
 - WorkManager/JobScheduler execution remains best-effort and OEM-dependent; this architecture does not guarantee process wake-up or real-time start on XOS.
 - Physical-device validation on itel P55 NFC is still required, including process removal, unplugged arming, charger reconnect, toggle OFF cancellation, and duplicate-start checks.
 - BatteryMonitorService, RECOVERY_HOLD, sensor cadence, persistence schema, dependencies, SDK, package, app version, and build number are unchanged.

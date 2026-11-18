@@ -139,8 +139,9 @@ A task with a relevant NOT RUN or FAIL item is not fully verified. Do not descri
 - Battery Monitoring OFF cancellation covers periodic and one-time work: PASS — scheduler cancellation API and existing ViewModel call sites
 - Pending one-time work is cancelled on charger connect without deliberately cancelling a RUNNING worker: PASS — source review; timing race still requires device observation
 - Existing Worker outcome mapping and cancellation semantics preserved: PASS — source review
-- Focused unit tests: NOT RUN — pending branch CI
-- Android build/CI: NOT RUN — pending branch CI
+- Focused unit tests: PASS — CI #271, `testDebugUnitTest`; unit-test report artifact uploaded
+- Android build/CI: PASS — CI #271, `assembleDebug`; debug APK artifact uploaded
+- Anti-Slop UI Audit Gate: PASS — CI #271
 - Physical-device lifecycle / XOS scheduling tests: NOT RUN
 - BatteryMonitorService, RECOVERY_HOLD, sensor cadence, persistence, dependencies, SDK, package, app version, and build number unchanged: PASS — diff scope
 - UI/UX review: N/A — no UI changes
