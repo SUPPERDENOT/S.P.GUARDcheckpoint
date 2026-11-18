@@ -63,6 +63,12 @@ class MainActivity : ComponentActivity() {
                     notificationGranted = it
                     vm.startMonitorIfCharging()
                 }
+                LifecycleEventEffect(Lifecycle.Event.ON_START) {
+                    vm.setAppForeground(true)
+                }
+                LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+                    vm.setAppForeground(false)
+                }
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     vm.startMonitorIfCharging()
                     vm.refreshPermissionsAndUsage()
