@@ -337,10 +337,10 @@ interface BatteryDao {
                 totalMahDelivered = targetTotalMah,
                 // Recovery snapshots can lag behind a newer Room flush. Never replace a
                 // durable non-zero average with an older checkpoint value.
-                avgCurrentMa = if (!existing.hasCurrentData && recoveredHasCurrentData) recoveredAvgCurrentMa else existing.avgCurrentMa,
-                maxTempCelsius = if (recoveredHasTemperatureData || existing.hasTemperatureData) targetMaxTemp else existing.maxTempCelsius,
-                hasCurrentData = existing.hasCurrentData || recoveredHasCurrentData,
-                hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData,
+                avgCurrentMa = if (!existing.hasCurrentData && (recoveredHasCurrentData || recoveredSample?.isCurrentAvailable == true)) recoveredAvgCurrentMa else existing.avgCurrentMa,
+                maxTempCelsius = if (recoveredHasTemperatureData || recoveredSample?.isTemperatureAvailable == true || existing.hasTemperatureData) targetMaxTemp else existing.maxTempCelsius,
+                hasCurrentData = existing.hasCurrentData || recoveredHasCurrentData || recoveredSample?.isCurrentAvailable == true,
+                hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData || recoveredSample?.isTemperatureAvailable == true,
                 isAnomaly = mergedAnomaly,
                 anomalyReason = mergedReason
             )
