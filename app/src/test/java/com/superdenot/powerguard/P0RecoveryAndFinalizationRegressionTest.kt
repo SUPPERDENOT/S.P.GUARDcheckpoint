@@ -87,7 +87,9 @@ class P0RecoveryAndFinalizationRegressionTest {
             recoveredMaxTempCelsius: Float,
             recoveredHasAnomaly: Boolean,
             recoveredAnomalyReason: String?,
-            recoveredSample: BatterySampleEntity?
+            recoveredSample: BatterySampleEntity?,
+            recoveredHasCurrentData: Boolean,
+            recoveredHasTemperatureData: Boolean
         ): Boolean {
             onReconcileEntered?.complete(Unit)
             allowReconcileProceed?.await()
@@ -101,7 +103,9 @@ class P0RecoveryAndFinalizationRegressionTest {
                 recoveredMaxTempCelsius = recoveredMaxTempCelsius,
                 recoveredHasAnomaly = recoveredHasAnomaly,
                 recoveredAnomalyReason = recoveredAnomalyReason,
-                recoveredSample = recoveredSample
+                recoveredSample = recoveredSample,
+                recoveredHasCurrentData = recoveredHasCurrentData,
+                recoveredHasTemperatureData = recoveredHasTemperatureData
             )
         }
 
