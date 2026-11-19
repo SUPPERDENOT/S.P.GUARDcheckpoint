@@ -264,6 +264,9 @@ class BatteryMonitorService : Service() {
     @Volatile
     private var statusBarIndicatorSetting: StatusBarIndicatorSetting = StatusBarIndicatorSetting()
 
+    @Volatile
+    private var batteryMonitoringEnabledForIndicator: Boolean = false
+
     @VisibleForTesting
     internal var daoOverride: BatteryDao? = null
 
@@ -323,8 +326,14 @@ class BatteryMonitorService : Service() {
     private fun observeStatusBarIndicatorSettings() {
         serviceScope.launch {
             StatusBarIndicatorSettings.observe(applicationContext).collect { setting ->
-                // The existing monitoring loop applies the new icon on its next notification refresh.
                 statusBarIndicatorSetting = setting
+                refreshStatusBarIndicatorNotification(_liveState.value)
+            }
+        }
+        serviceScope.launch {
+            BatteryMonitoringSettings.observe(applicationContext).collect { enabled ->
+                batteryMonitoringEnabledForIndicator = enabled
+                refreshStatusBarIndicatorNotification(_liveState.value)
             }
         }
     }
@@ -414,6 +423,8 @@ class BatteryMonitorService : Service() {
                 }
             }
         }
+
+        refreshStatusBarIndicatorNotification(_liveState.value)
 
         val timing = autoStartTiming ?: return
         when (newState) {
@@ -1908,6 +1919,7 @@ class BatteryMonitorService : Service() {
                 notificationSummaryToPost?.let { summary ->
                     notificationManager.notify(MONITOR_NOTIFICATION_ID, buildMonitorNotification(summary))
                 }
+                refreshStatusBarIndicatorNotification(_liveState.value)
             } catch (ce: CancellationException) {
                 throw ce
             } catch (error: Throwable) {
@@ -3380,8 +3392,20 @@ class BatteryMonitorService : Service() {
             enableVibration(true)
         }
 
+        val statusBarIndicatorChannel = NotificationChannel(
+            CHANNEL_STATUS_BAR_INDICATOR,
+            "Status Bar Indicator",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Menampilkan satu metrik baterai pilihan pengguna pada status bar."
+            setShowBadge(false)
+            setSound(null, null)
+            enableVibration(false)
+        }
+
         notificationManager.createNotificationChannel(monitorChannel)
         notificationManager.createNotificationChannel(alertChannel)
+        notificationManager.createNotificationChannel(statusBarIndicatorChannel)
     }
 
     private fun resolveNotificationBatteryState(): LiveBatteryState {
@@ -3404,6 +3428,24 @@ class BatteryMonitorService : Service() {
         anomalyCode: String? = null
     ): Notification = buildAnomalyAlertNotification(alertMessage, anomalyCode)
 
+    @VisibleForTesting
+    internal fun setStatusBarIndicatorSettingForTesting(setting: StatusBarIndicatorSetting) {
+        statusBarIndicatorSetting = setting
+    }
+
+    @VisibleForTesting
+    internal fun setBatteryMonitoringEnabledForTesting(enabled: Boolean) {
+        batteryMonitoringEnabledForIndicator = enabled
+    }
+
+    @VisibleForTesting
+    internal fun buildStatusBarIndicatorNotificationForTesting(state: LiveBatteryState): Notification =
+        buildStatusBarIndicatorNotification(state)
+
+    @VisibleForTesting
+    internal fun refreshStatusBarIndicatorNotificationForTesting(state: LiveBatteryState) =
+        refreshStatusBarIndicatorNotification(state)
+
     private fun buildMonitorNotification(contentText: String): Notification {
         val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val state = resolveNotificationBatteryState()
@@ -3413,18 +3455,11 @@ class BatteryMonitorService : Service() {
         val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
             context = applicationContext, spec = visualSpec
         )
-        val statusBarIcon = if (statusBarIndicatorSetting.enabled) {
-            val statusBarText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
-            LiveStatusBarRenderer.render(statusBarText, resources.displayMetrics.density)?.let(IconCompat::createWithBitmap)
-        } else {
-            null
-        }
-
         return NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle("SUPERD GUARD")
             .setContentText(contentText)
             .setSubText(visualSpec.subText)
-            .setSmallIcon(statusBarIcon ?: IconCompat.createWithResource(this, visualSpec.smallIconResId))
+            .setSmallIcon(visualSpec.smallIconResId)
             .setColor(visualSpec.accentColor)
             .setLargeIcon(largeIcon)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -3432,6 +3467,52 @@ class BatteryMonitorService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
+    }
+
+    private fun buildStatusBarIndicatorNotification(state: LiveBatteryState): Notification {
+        val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+        val bitmap = LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density)
+        val openAppIntent = PendingIntent.getActivity(
+            this,
+            STATUS_BAR_INDICATOR_NOTIFICATION_ID,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        val builder = NotificationCompat.Builder(this, CHANNEL_STATUS_BAR_INDICATOR)
+            .setContentTitle("SUPERD POWER GUARD")
+            .setContentText("Status Bar Indicator • $displayText")
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(openAppIntent)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setShowWhen(false)
+        if (bitmap != null) builder.setSmallIcon(IconCompat.createWithBitmap(bitmap))
+        else builder.setSmallIcon(R.drawable.ic_status_standby)
+        return builder.build()
+    }
+
+    private fun refreshStatusBarIndicatorNotification(state: LiveBatteryState) {
+        if (!::notificationManager.isInitialized) return
+        val shouldShow = batteryMonitoringEnabledForIndicator &&
+            statusBarIndicatorSetting.enabled &&
+            (actorState == ActorLifecycleState.RUNNING_CHARGING ||
+                actorState == ActorLifecycleState.RUNNING_MANUAL ||
+                actorState == ActorLifecycleState.RECOVERY_HOLD) &&
+            !destroyRequested.get()
+        if (!shouldShow) {
+            notificationManager.cancel(STATUS_BAR_INDICATOR_NOTIFICATION_ID)
+            return
+        }
+        try {
+            notificationManager.notify(
+                STATUS_BAR_INDICATOR_NOTIFICATION_ID,
+                buildStatusBarIndicatorNotification(state)
+            )
+        } catch (error: Exception) {
+            Log.w("PowerGuard", "Gagal memperbarui Status Bar Indicator notification: " + error.message, error)
+        }
     }
 
     private fun buildAnomalyAlertNotification(alertMessage: String, anomalyCode: String? = null): Notification {
@@ -3458,6 +3539,9 @@ class BatteryMonitorService : Service() {
     }
 
     override fun onDestroy() {
+        if (::notificationManager.isInitialized) {
+            notificationManager.cancel(STATUS_BAR_INDICATOR_NOTIFICATION_ID)
+        }
         if (destroyRequested.compareAndSet(false, true)) {
             lifecycleChannel.trySend(LifecycleCommand.Destroy)
             lifecycleChannel.close()
@@ -3482,8 +3566,10 @@ class BatteryMonitorService : Service() {
 
         private const val CHANNEL_MONITOR = "powerguard_live_monitor"
         private const val CHANNEL_ANOMALY = "powerguard_anomaly_alerts"
+        private const val CHANNEL_STATUS_BAR_INDICATOR = "powerguard_status_bar_indicator"
         private const val MONITOR_NOTIFICATION_ID = 1001
         private const val ANOMALY_NOTIFICATION_ID = 1002
+        private const val STATUS_BAR_INDICATOR_NOTIFICATION_ID = 1003
 
         private const val SAMPLE_FLUSH_BATCH_SIZE = 60
         private const val MAX_SAMPLE_BUFFER_SIZE = 300
