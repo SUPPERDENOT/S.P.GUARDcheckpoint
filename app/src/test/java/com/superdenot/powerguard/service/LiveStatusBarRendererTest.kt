@@ -176,4 +176,20 @@ class LiveStatusBarRendererTest {
         }
     }
 
+
+    @Test
+    fun chargingStatusIsUnavailableWhenStatusSensorIsNotExposedAndZeroReadingsRemainValid() {
+        val state = LiveBatteryState(
+            currentMa = 0,
+            tempCelsius = 0f,
+            isCharging = false,
+            isCurrentAvailable = true,
+            isTemperatureAvailable = true,
+            isChargingStatusAvailable = false
+        )
+        assertEquals("N/A", LiveStatusBarRenderer.format(state, StatusBarParameter.CHARGING_STATUS))
+        assertEquals("0.0A", LiveStatusBarRenderer.format(state, StatusBarParameter.CURRENT))
+        assertEquals("0°", LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
+    }
+
 }

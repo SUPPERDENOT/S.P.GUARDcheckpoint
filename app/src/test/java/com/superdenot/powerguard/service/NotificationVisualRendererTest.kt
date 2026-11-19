@@ -287,4 +287,62 @@ class NotificationVisualRendererTest {
         }
     }
 
+
+    @Test
+    fun statusBarIndicatorUsesIndependentLowImportanceSilentNotification() {
+        val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
+        val service = controller.get()
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        try {
+            service.setStatusBarIndicatorSettingForTesting(
+                com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
+                    enabled = true,
+                    parameter = com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
+                )
+            )
+            service.setBatteryMonitoringEnabledForTesting(true)
+            val unavailable = LiveBatteryState(
+                isCurrentAvailable = false,
+                isChargingStatusAvailable = false
+            )
+            val indicator = service.buildStatusBarIndicatorNotificationForTesting(unavailable)
+            assertTrue(indicator.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("N/A"))
+
+            val channel = manager.getNotificationChannel("powerguard_status_bar_indicator")
+            assertNotNull(channel)
+            assertEquals(android.app.NotificationManager.IMPORTANCE_LOW, channel!!.importance)
+            assertFalse(channel.shouldVibrate())
+            assertEquals(null, channel.sound)
+
+            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
+            assertTrue(manager.activeNotifications.any { it.id == 1003 })
+
+            service.setStatusBarIndicatorSettingForTesting(
+                com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = false)
+            )
+            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
+            assertFalse(manager.activeNotifications.any { it.id == 1003 })
+        } finally {
+            controller.destroy()
+        }
+    }
+
+    @Test
+    fun monitorNotificationSmallIconIsIndependentFromStatusBarIndicatorSelection() {
+        val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
+        val service = controller.get()
+        try {
+            service.setStatusBarIndicatorSettingForTesting(
+                com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
+                    enabled = true,
+                    parameter = com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
+                )
+            )
+            val notification = service.buildMonitorNotificationForTesting("Monitoring")
+            assertEquals(R.drawable.ic_status_standby, notification.icon)
+        } finally {
+            controller.destroy()
+        }
+    }
+
 }
