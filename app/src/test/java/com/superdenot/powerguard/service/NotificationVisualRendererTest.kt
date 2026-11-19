@@ -342,6 +342,7 @@ class NotificationVisualRendererTest {
         val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
         val service = controller.get()
         try {
+            val baselineIcon = service.buildMonitorNotificationForTesting("Monitoring").icon
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
                     enabled = true,
@@ -349,7 +350,7 @@ class NotificationVisualRendererTest {
                 )
             )
             val notification = service.buildMonitorNotificationForTesting("Monitoring")
-            assertEquals(R.drawable.ic_status_standby, notification.icon)
+            assertEquals(baselineIcon, notification.icon)
         } finally {
             controller.destroy()
         }
