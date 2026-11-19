@@ -19,7 +19,9 @@ data class ChargingSessionEntity(
     val chargerType: String,
     val isAnomaly: Boolean = false,
     val anomalyReason: String? = null,
-    val deepSleepRatio: Float = 0f
+    val deepSleepRatio: Float = 0f,
+    val hasCurrentData: Boolean = false,
+    val hasTemperatureData: Boolean = false
 )
 
 @Entity(
@@ -44,7 +46,14 @@ data class BatterySampleEntity(
     val voltageMv: Int,
     val tempCelsius: Float,
     val powerWatt: Float,
-    val isScreenOn: Boolean
+    val isScreenOn: Boolean,
+    val isLevelAvailable: Boolean = false,
+    val isCurrentAvailable: Boolean = false,
+    val isVoltageAvailable: Boolean = false,
+    val isTemperatureAvailable: Boolean = false,
+    val isPowerAvailable: Boolean = false,
+    val isChargingStatusAvailable: Boolean = false,
+    val isCharging: Boolean = false
 )
 
 @Entity(tableName = "battery_health_logs")

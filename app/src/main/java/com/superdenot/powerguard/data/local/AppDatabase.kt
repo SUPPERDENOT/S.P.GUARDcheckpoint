@@ -17,8 +17,8 @@ import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
         BatteryHealthEntity::class,
         DailyRollupEntity::class
     ],
-    version = 1,
-    exportSchema = false
+    version = 2,
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -34,7 +34,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "powerguard_db"
-                ).build()
+                ).addMigrations(DatabaseMigrations.MIGRATION_1_2).build()
                 INSTANCE = instance
                 instance
             }

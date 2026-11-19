@@ -90,15 +90,17 @@ interface BatteryDao {
             lastSample != null && lastSample.batteryLevel in 0..100 -> lastSample.batteryLevel
             else -> fresh.startLevel
         }
+        val validCurrentSamples = samples.filter { it.isCurrentAvailable }
+        val validTemperatureSamples = samples.filter { it.isTemperatureAvailable }
         val consistentAvgCurrentMa = when {
-            fresh.avgCurrentMa != 0 -> fresh.avgCurrentMa
-            samples.isNotEmpty() -> samples.map { it.currentMa.toLong() }.average().toInt()
+            fresh.hasCurrentData -> fresh.avgCurrentMa
+            validCurrentSamples.isNotEmpty() -> validCurrentSamples.map { it.currentMa.toLong() }.average().toInt()
             else -> 0
         }
-        val consistentMaxTemp = maxOf(
-            fresh.maxTempCelsius,
-            samples.maxOfOrNull { it.tempCelsius } ?: 0f
-        )
+        val consistentMaxTemp = if (fresh.hasTemperatureData || validTemperatureSamples.isNotEmpty()) {
+            maxOf(fresh.maxTempCelsius.takeIf { fresh.hasTemperatureData } ?: 0f,
+                validTemperatureSamples.maxOfOrNull { it.tempCelsius } ?: 0f)
+        } else 0f
         val consistentTotalMah = if (fresh.totalMahDelivered > 0.0) {
             fresh.totalMahDelivered
         } else if (samples.size >= 2) {
@@ -109,7 +111,7 @@ interface BatteryDao {
                 val dtMs = current.timestamp - previous.timestamp
                 // Sampel lama memakai wall-clock; jangan menebak arus selama jeda panjang
                 // (mis. proses mati/terhenti) atau timestamp yang tidak berurutan.
-                if (dtMs in 1L..5_000L) {
+                if (dtMs in 1L..5_000L && previous.isCurrentAvailable && current.isCurrentAvailable) {
                     val previousCurrentMa = previous.currentMa.coerceAtLeast(0)
                     val currentCurrentMa = current.currentMa.coerceAtLeast(0)
                     val averageCurrentMa = (previousCurrentMa + currentCurrentMa) / 2.0
@@ -127,7 +129,9 @@ interface BatteryDao {
                 endLevel = consistentEndLevel,
                 totalMahDelivered = consistentTotalMah,
                 avgCurrentMa = consistentAvgCurrentMa,
-                maxTempCelsius = consistentMaxTemp
+                maxTempCelsius = consistentMaxTemp,
+                hasCurrentData = fresh.hasCurrentData || validCurrentSamples.isNotEmpty(),
+                hasTemperatureData = fresh.hasTemperatureData || validTemperatureSamples.isNotEmpty()
             )
         )
         return getSessionById(fresh.id)?.endTime != null
@@ -262,8 +266,10 @@ interface BatteryDao {
         updateSession(
             currentSession.copy(
                 totalMahDelivered = targetTotalMah,
-                avgCurrentMa = if (avgCurrentMa != 0) avgCurrentMa else currentSession.avgCurrentMa,
-                maxTempCelsius = targetMaxTemp,
+                avgCurrentMa = if (sample.isCurrentAvailable || currentSession.hasCurrentData) avgCurrentMa else currentSession.avgCurrentMa,
+                maxTempCelsius = if (sample.isTemperatureAvailable || currentSession.hasTemperatureData) targetMaxTemp else currentSession.maxTempCelsius,
+                hasCurrentData = currentSession.hasCurrentData || sample.isCurrentAvailable,
+                hasTemperatureData = currentSession.hasTemperatureData || sample.isTemperatureAvailable,
                 isAnomaly = currentSession.isAnomaly || hasAnomaly,
                 anomalyReason = mergedReason,
                 deepSleepRatio = deepSleepRatio
@@ -329,12 +335,10 @@ interface BatteryDao {
                 totalMahDelivered = targetTotalMah,
                 // Recovery snapshots can lag behind a newer Room flush. Never replace a
                 // durable non-zero average with an older checkpoint value.
-                avgCurrentMa = if (existing.avgCurrentMa == 0 && recoveredAvgCurrentMa != 0) {
-                    recoveredAvgCurrentMa
-                } else {
-                    existing.avgCurrentMa
-                },
-                maxTempCelsius = targetMaxTemp,
+                avgCurrentMa = if (!existing.hasCurrentData && recoveredSample?.isCurrentAvailable == true) recoveredAvgCurrentMa else existing.avgCurrentMa,
+                maxTempCelsius = if (recoveredSample?.isTemperatureAvailable == true || existing.hasTemperatureData) targetMaxTemp else existing.maxTempCelsius,
+                hasCurrentData = existing.hasCurrentData || recoveredSample?.isCurrentAvailable == true,
+                hasTemperatureData = existing.hasTemperatureData || recoveredSample?.isTemperatureAvailable == true,
                 isAnomaly = mergedAnomaly,
                 anomalyReason = mergedReason
             )
@@ -416,8 +420,10 @@ interface BatteryDao {
                 endTime = resolvedEndTime,
                 endLevel = resolvedEndLevel,
                 totalMahDelivered = targetTotalMah,
-                avgCurrentMa = if (avgCurrentMa != 0) avgCurrentMa else targetSession.avgCurrentMa,
-                maxTempCelsius = targetMaxTemp,
+                avgCurrentMa = if (finalSample?.isCurrentAvailable == true || targetSession.hasCurrentData) avgCurrentMa else targetSession.avgCurrentMa,
+                maxTempCelsius = if (finalSample?.isTemperatureAvailable == true || targetSession.hasTemperatureData) targetMaxTemp else targetSession.maxTempCelsius,
+                hasCurrentData = targetSession.hasCurrentData || finalSample?.isCurrentAvailable == true,
+                hasTemperatureData = targetSession.hasTemperatureData || finalSample?.isTemperatureAvailable == true,
                 isAnomaly = targetSession.isAnomaly || hasAnomaly,
                 anomalyReason = mergedReason,
                 deepSleepRatio = deepSleepRatio
