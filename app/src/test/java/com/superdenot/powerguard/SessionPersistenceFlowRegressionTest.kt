@@ -121,7 +121,7 @@ class SessionPersistenceFlowRegressionTest {
             BatterySampleEntity(
                 sessionId = sessionId, timestamp = 10_000L, batteryLevel = 52,
                 currentMa = 3_600, voltageMv = 4_200, tempCelsius = 36.0f,
-                powerWatt = 15.0f, isScreenOn = true
+                powerWatt = 15.0f, isScreenOn = true, isCurrentAvailable = true, isTemperatureAvailable = true
             ),
             BatterySampleEntity(
                 sessionId = sessionId, timestamp = 11_000L, batteryLevel = 53,
@@ -301,4 +301,78 @@ class SessionPersistenceFlowRegressionTest {
         assertEquals(SampleFlushStatus.SESSION_CLOSED_OR_MISSING, status)
         assertTrue(dao.getSamplesForSessionFlow(sessionId).first().isEmpty())
     }
+    @Test
+    fun unavailableMetricsAreExcludedButMeasuredZeroRemainsAvailable() = runBlocking {
+        val dao = database.batteryDao()
+        val sessionId = dao.insertSession(
+            ChargingSessionEntity(
+                startTime = 1_000L,
+                startLevel = 50,
+                chargerType = "AC Adapter"
+            )
+        )
+        val unavailable = BatterySampleEntity(
+            sessionId = sessionId,
+            timestamp = 2_000L,
+            batteryLevel = 0,
+            currentMa = 1_500,
+            voltageMv = 4_200,
+            tempCelsius = 49f,
+            powerWatt = 6.3f,
+            isScreenOn = false
+        )
+        assertEquals(
+            SampleFlushStatus.FLUSHED,
+            dao.persistSampleAndUpdateSessionAtomically(
+                sample = unavailable,
+                totalMahDelivered = 0.0,
+                avgCurrentMa = 1_500,
+                maxTempCelsius = 49f,
+                hasAnomaly = false,
+                anomalyReason = null,
+                deepSleepRatio = 0f
+            )
+        )
+        val unavailableSession = dao.getSessionById(sessionId)!!
+        assertEquals(0, unavailableSession.avgCurrentMa)
+        assertEquals(0f, unavailableSession.maxTempCelsius, 0.001f)
+        assertTrue(!unavailableSession.hasCurrentData)
+        assertTrue(!unavailableSession.hasTemperatureData)
+
+        val measuredZero = BatterySampleEntity(
+            sessionId = sessionId,
+            timestamp = 3_000L,
+            batteryLevel = 0,
+            currentMa = 0,
+            voltageMv = 0,
+            tempCelsius = 0f,
+            powerWatt = 0f,
+            isScreenOn = false,
+            isLevelAvailable = true,
+            isCurrentAvailable = true,
+            isVoltageAvailable = true,
+            isTemperatureAvailable = true,
+            isPowerAvailable = true,
+            isChargingStatusAvailable = true,
+            isCharging = false
+        )
+        assertEquals(
+            SampleFlushStatus.FLUSHED,
+            dao.persistSampleAndUpdateSessionAtomically(
+                sample = measuredZero,
+                totalMahDelivered = 0.0,
+                avgCurrentMa = 0,
+                maxTempCelsius = 0f,
+                hasAnomaly = false,
+                anomalyReason = null,
+                deepSleepRatio = 0f
+            )
+        )
+        val zeroSession = dao.getSessionById(sessionId)!!
+        assertTrue(zeroSession.hasCurrentData)
+        assertTrue(zeroSession.hasTemperatureData)
+        assertEquals(0, zeroSession.avgCurrentMa)
+        assertEquals(0f, zeroSession.maxTempCelsius, 0.001f)
+    }
+
 }
