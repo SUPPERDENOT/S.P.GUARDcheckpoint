@@ -1476,6 +1476,10 @@ class BatteryMonitorService : Service() {
 
         val compactedSample = if (entriesSnapshot.isNotEmpty()) {
             val metrics = computeWeightedBatchMetrics(entriesSnapshot)
+            if (metrics.isTemperatureAvailable) {
+                hasSessionTemperatureData = true
+                maxSessionTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius)
+            }
             SessionRecoveryStore.PersistedSessionRecovery(
                 sessionId = sessionId,
                 accumulatedMah = accumulatedMah,
@@ -2201,11 +2205,11 @@ class BatteryMonitorService : Service() {
                     persistedDurationSec = sessionSeconds
                 )
                 hasSessionTemperatureData = reconciledLatest.hasTemperatureData ||
-                    unappliedRecovery?.hasTemperatureData == true || state.isTemperatureAvailable
+                    unappliedRecovery?.hasTemperatureData == true || unappliedRecovery?.sampleIsTemperatureAvailable == true || state.isTemperatureAvailable
                 maxSessionTemp = maxOf(
                     reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
                     state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
-                    unappliedRecovery?.takeIf { it.hasTemperatureData }?.maxSessionTemp ?: 0f
+                    unappliedRecovery?.takeIf { it.hasTemperatureData || it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
                 )
 
                 if (unappliedRecovery?.hasCurrentData == true && unappliedRecovery.currentReadingsCount > 0L) {
@@ -2251,12 +2255,12 @@ class BatteryMonitorService : Service() {
                     unappliedRecovery?.accumulatedMah ?: 0.0
                 )
                 hasSessionTemperatureData = hasSessionTemperatureData || reconciledLatest.hasTemperatureData ||
-                    unappliedRecovery?.hasTemperatureData == true || state.isTemperatureAvailable
+                    unappliedRecovery?.hasTemperatureData == true || unappliedRecovery?.sampleIsTemperatureAvailable == true || state.isTemperatureAvailable
                 maxSessionTemp = maxOf(
                     maxSessionTemp,
                     reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
                     state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
-                    unappliedRecovery?.takeIf { it.hasTemperatureData }?.maxSessionTemp ?: 0f
+                    unappliedRecovery?.takeIf { it.hasTemperatureData || it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
                 )
                 if (sampleBuffer.isEmpty() && unappliedRecovery != null) {
                     val pendingSampleState = unappliedRecovery.toCompactedLiveBatteryState()
