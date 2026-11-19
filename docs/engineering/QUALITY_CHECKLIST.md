@@ -1,10 +1,12 @@
-## 2026-11-19 — Reproducible debug signing (verification pending)
+## 2026-11-19 — Reproducible debug signing (verified)
 
-- Dedicated development keystore added at `app/debug.keystore`: PASS — alias and credentials verified with keytool.
+- Dedicated development keystore added at `app/debug.keystore`: PASS — alias and credentials verified with keytool; SHA-1 fingerprint `AF:4C:A2:92:11:1D:E4:58:2F:A2:18:76:C3:EF:D4:F9:7C:0C:7C:B2`.
 - Only `buildTypes.debug` is explicitly assigned the repository debug signing config: PASS — source review.
 - Release signing configuration and release build type: N/A — untouched.
-- `assembleDebug` after this change: NOT RUN — awaiting CI.
-- `testDebugUnitTest` after this change: NOT RUN — awaiting CI.
+- `assembleDebug`: PASS — GitHub Actions #322, attempt 2.
+- `testDebugUnitTest`: PASS — 136 passed, 0 failed, 0 errors, 0 skipped; XML reports checked from workflow artifact.
+- Anti-Slop UI Audit Gate: PASS — GitHub Actions #322.
+- CI attempt 1: FAIL — one assertion in the existing `NotificationVisualRendererTest` (line 331); rerun attempt 2 passed without source changes.
 - Physical install/update test: NOT RUN — requires device validation.
 - Debug signing key is development-only and must never be used for production/release signing.
 - One-time migration note: an already-installed APK signed with a different debug certificate must be uninstalled before installing this fixed-signature build; subsequent local/CI debug updates use the same certificate.

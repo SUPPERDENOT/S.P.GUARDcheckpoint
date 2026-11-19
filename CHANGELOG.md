@@ -1,4 +1,4 @@
-## 2026-11-19 — Reproducible debug signing (implementasi; CI menunggu)
+## 2026-11-19 — Reproducible debug signing (selesai; CI PASS)
 
 ### Perubahan
 - Menambahkan `app/debug.keystore` tetap dengan alias `androiddebugkey`, store/key password standar `android`, RSA 2048, dan sertifikat pengembangan.
@@ -8,7 +8,9 @@
 
 ### Status verifikasi
 - Source/configuration review: PASS.
-- `assembleDebug` dan `testDebugUnitTest` setelah perubahan: NOT RUN — menunggu GitHub Actions.
+- GitHub Actions #322, attempt 2, pada commit `e4e26dfe2cff4bb25379583c80138fc95414b329`: **PASS** — `testDebugUnitTest`, `assembleDebug`, dan Anti-Slop UI Audit Gate.
+- Unit test: **136 passed, 0 failed, 0 errors, 0 skipped**; laporan XML workflow diverifikasi. Attempt 1 sempat gagal pada satu assertion di `NotificationVisualRendererTest` baris 331; rerun job (attempt 2) lulus tanpa perubahan source.
+- Debug APK dan unit-test report berhasil diunggah sebagai artifact workflow.
 - Pengujian instalasi/update pada perangkat fisik: NOT RUN.
 - Catatan kompatibilitas: APK lama yang ditandatangani dengan debug key lain tidak dapat diperbarui dengan key baru. Jika signature lama berbeda, uninstall satu kali sebelum memasang APK bertanda tangan tetap ini; setelah itu build lokal dan CI dapat saling memperbarui selama menggunakan keystore repository yang sama.
 - Branch `main` tidak disentuh; merge tetap HOLD.
