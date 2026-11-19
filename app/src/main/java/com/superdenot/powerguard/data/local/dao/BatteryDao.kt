@@ -306,7 +306,9 @@ interface BatteryDao {
         recoveredMaxTempCelsius: Float,
         recoveredHasAnomaly: Boolean,
         recoveredAnomalyReason: String?,
-        recoveredSample: BatterySampleEntity?
+        recoveredSample: BatterySampleEntity?,
+        recoveredHasCurrentData: Boolean = false,
+        recoveredHasTemperatureData: Boolean = false
     ): Boolean {
         val existing = getSessionById(sessionId) ?: return false
         if (recoveredSample != null && recoveredSample.sessionId == sessionId) {
@@ -335,10 +337,10 @@ interface BatteryDao {
                 totalMahDelivered = targetTotalMah,
                 // Recovery snapshots can lag behind a newer Room flush. Never replace a
                 // durable non-zero average with an older checkpoint value.
-                avgCurrentMa = if (!existing.hasCurrentData && recoveredSample?.isCurrentAvailable == true) recoveredAvgCurrentMa else existing.avgCurrentMa,
-                maxTempCelsius = if (recoveredSample?.isTemperatureAvailable == true || existing.hasTemperatureData) targetMaxTemp else existing.maxTempCelsius,
-                hasCurrentData = existing.hasCurrentData || recoveredSample?.isCurrentAvailable == true,
-                hasTemperatureData = existing.hasTemperatureData || recoveredSample?.isTemperatureAvailable == true,
+                avgCurrentMa = if (!existing.hasCurrentData && recoveredHasCurrentData) recoveredAvgCurrentMa else existing.avgCurrentMa,
+                maxTempCelsius = if (recoveredHasTemperatureData || existing.hasTemperatureData) targetMaxTemp else existing.maxTempCelsius,
+                hasCurrentData = existing.hasCurrentData || recoveredHasCurrentData,
+                hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData,
                 isAnomaly = mergedAnomaly,
                 anomalyReason = mergedReason
             )
