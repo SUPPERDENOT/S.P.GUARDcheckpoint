@@ -84,7 +84,9 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
             Log.e("PowerGuard", "Gagal mengamati preferensi Battery Monitoring; pemantauan dinonaktifkan", error)
             emit(false)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+        // Poller membaca value secara langsung; eager collection menjaga preferensi tetap aktual
+        // meskipun tidak ada composable yang sedang mengoleksi StateFlow ini.
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val statusBarIndicatorSetting: StateFlow<StatusBarIndicatorSetting> =
         repository.statusBarIndicatorSettingFlow
