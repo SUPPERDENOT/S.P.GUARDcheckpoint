@@ -12,10 +12,11 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * Renders a compact, monochrome glyph suitable for a notification small icon.
+ * Renders the selected metric for the dedicated Status Bar Indicator notification only.
+ * The Monitoring Notification keeps its independent drawable from NotificationVisualRenderer.
  *
- * Dimensions and typography are density-scaled, following the proven Wattz status-icon
- * approach. SystemUI still controls the final status-bar slot size.
+ * Dimensions and typography are density-scaled. SystemUI still controls the final status-bar
+ * slot size and may alter how the small icon is presented.
  */
 internal object LiveStatusBarRenderer {
 
