@@ -87,7 +87,7 @@ interface BatteryDao {
         )
         val consistentEndLevel = when {
             fallbackEndLevel in 0..100 -> fallbackEndLevel
-            lastSample != null && lastSample.batteryLevel in 0..100 -> lastSample.batteryLevel
+            lastSample != null && lastSample.isLevelAvailable && lastSample.batteryLevel in 0..100 -> lastSample.batteryLevel
             else -> fresh.startLevel
         }
         val validCurrentSamples = samples.filter { it.isCurrentAvailable }
