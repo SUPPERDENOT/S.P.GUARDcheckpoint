@@ -288,6 +288,7 @@ class BatteryMonitorService : Service() {
     private val sessionDurationTracker = ChargingSessionDurationTracker()
     private var sessionSeconds: Long = 0L
     private var maxSessionTemp: Float = 0f
+    private var hasSessionTemperatureData: Boolean = false
     private var currentSumForAvg: Long = 0L
     private var currentReadingsCount: Long = 0L
     private val alertedAnomalyCodes = mutableSetOf<String>()
@@ -1479,7 +1480,9 @@ class BatteryMonitorService : Service() {
                 sessionId = sessionId,
                 accumulatedMah = accumulatedMah,
                 sessionSeconds = sessionSeconds,
-                maxSessionTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius),
+                maxSessionTemp = if (hasSessionTemperatureData || metrics.isTemperatureAvailable) maxOf(maxSessionTemp, metrics.maxTempCelsius) else 0f,
+                hasCurrentData = currentReadingsCount > 0L,
+                hasTemperatureData = hasSessionTemperatureData || metrics.isTemperatureAvailable,
                 currentSumForAvg = currentSumForAvg,
                 currentReadingsCount = currentReadingsCount,
                 alertedAnomalyCodes = alertedAnomalyCodes.toSet(),
@@ -1509,7 +1512,9 @@ class BatteryMonitorService : Service() {
                 sessionId = sessionId,
                 accumulatedMah = accumulatedMah,
                 sessionSeconds = sessionSeconds,
-                maxSessionTemp = maxSessionTemp,
+                maxSessionTemp = if (hasSessionTemperatureData) maxSessionTemp else 0f,
+                hasCurrentData = currentReadingsCount > 0L,
+                hasTemperatureData = hasSessionTemperatureData,
                 currentSumForAvg = currentSumForAvg,
                 currentReadingsCount = currentReadingsCount,
                 alertedAnomalyCodes = alertedAnomalyCodes.toSet(),
@@ -1654,6 +1659,7 @@ class BatteryMonitorService : Service() {
         sessionDurationTracker.reset()
         sessionSeconds = 0L
         maxSessionTemp = 0f
+        hasSessionTemperatureData = false
         currentSumForAvg = 0L
         currentReadingsCount = 0L
         alertedAnomalyCodes.clear()
@@ -1813,8 +1819,11 @@ class BatteryMonitorService : Service() {
                                 elapsedRealtimeMs = SystemClock.elapsedRealtime(),
                                 isCurrentAvailable = effectiveSensor.isCurrentAvailable
                             )
-                            if (effectiveSensor.isTemperatureAvailable && effectiveSensor.tempCelsius > maxSessionTemp) {
-                                maxSessionTemp = effectiveSensor.tempCelsius
+                            if (effectiveSensor.isTemperatureAvailable) {
+                                hasSessionTemperatureData = true
+                                if (effectiveSensor.tempCelsius > maxSessionTemp) {
+                                    maxSessionTemp = effectiveSensor.tempCelsius
+                                }
                             }
                             if (effectiveSensor.isCurrentAvailable) {
                                 currentSumForAvg += effectiveSensor.currentMa
@@ -2031,8 +2040,8 @@ class BatteryMonitorService : Service() {
                                         recoveredHasAnomaly = persisted.alertedAnomalyCodes.isNotEmpty(),
                                         recoveredAnomalyReason = anomalyReason,
                                         recoveredSample = sampleEntity,
-                                        recoveredHasCurrentData = persisted.currentReadingsCount > 0L,
-                                        recoveredHasTemperatureData = persisted.sampleIsTemperatureAvailable
+                                        recoveredHasCurrentData = persisted.hasCurrentData || persisted.sampleIsCurrentAvailable,
+                                        recoveredHasTemperatureData = persisted.hasTemperatureData || persisted.sampleIsTemperatureAvailable
                                     )
                                 }.onFailure { error ->
                                     Log.e(
@@ -2191,13 +2200,15 @@ class BatteryMonitorService : Service() {
                     elapsedRealtimeMs = SystemClock.elapsedRealtime(),
                     persistedDurationSec = sessionSeconds
                 )
+                hasSessionTemperatureData = reconciledLatest.hasTemperatureData ||
+                    unappliedRecovery?.hasTemperatureData == true || state.isTemperatureAvailable
                 maxSessionTemp = maxOf(
                     reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
                     state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
-                    unappliedRecovery?.takeIf { it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
+                    unappliedRecovery?.takeIf { it.hasTemperatureData }?.maxSessionTemp ?: 0f
                 )
 
-                if (unappliedRecovery != null && unappliedRecovery.currentReadingsCount > 0L) {
+                if (unappliedRecovery?.hasCurrentData == true && unappliedRecovery.currentReadingsCount > 0L) {
                     currentSumForAvg = unappliedRecovery.currentSumForAvg
                     currentReadingsCount = unappliedRecovery.currentReadingsCount
                 } else if (reconciledLatest.hasCurrentData && elapsedFromDbSec > 0L) {
@@ -2227,7 +2238,7 @@ class BatteryMonitorService : Service() {
                             endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                             state = pendingSampleState,
                             weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
+                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.hasTemperatureData } ?: 0f.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
                         )
                     )
                 } else {
@@ -2239,11 +2250,13 @@ class BatteryMonitorService : Service() {
                     reconciledLatest.totalMahDelivered,
                     unappliedRecovery?.accumulatedMah ?: 0.0
                 )
+                hasSessionTemperatureData = hasSessionTemperatureData || reconciledLatest.hasTemperatureData ||
+                    unappliedRecovery?.hasTemperatureData == true || state.isTemperatureAvailable
                 maxSessionTemp = maxOf(
                     maxSessionTemp,
                     reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
                     state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
-                    unappliedRecovery?.takeIf { it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
+                    unappliedRecovery?.takeIf { it.hasTemperatureData }?.maxSessionTemp ?: 0f
                 )
                 if (sampleBuffer.isEmpty() && unappliedRecovery != null) {
                     val pendingSampleState = unappliedRecovery.toCompactedLiveBatteryState()
@@ -2256,7 +2269,7 @@ class BatteryMonitorService : Service() {
                                 endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                                 state = pendingSampleState,
                                 weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                                maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
+                                maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.hasTemperatureData } ?: 0f
                             )
                         )
                     }
@@ -2367,6 +2380,7 @@ class BatteryMonitorService : Service() {
             persistedDurationSec = 0L
         )
         maxSessionTemp = if (state.isTemperatureAvailable) state.tempCelsius else 0f
+        hasSessionTemperatureData = state.isTemperatureAvailable
         currentSumForAvg = 0L
         currentReadingsCount = 0L
         activeSessionId = insertedId
@@ -2780,8 +2794,8 @@ class BatteryMonitorService : Service() {
                 recoveredHasAnomaly = alertedAnomalyCodes.isNotEmpty(),
                 recoveredAnomalyReason = anomalyReason,
                 recoveredSample = pendingSample,
-                recoveredHasCurrentData = currentReadingsCount > 0L,
-                recoveredHasTemperatureData = pendingEntriesSnapshot.any { it.state.isTemperatureAvailable } ||
+                recoveredHasCurrentData = currentReadingsCount > 0L || pendingSample?.isCurrentAvailable == true,
+                recoveredHasTemperatureData = hasSessionTemperatureData || pendingEntriesSnapshot.any { it.state.isTemperatureAvailable } ||
                     pendingSample?.isTemperatureAvailable == true
             )
         }.getOrDefault(false)
@@ -3704,8 +3718,8 @@ class BatteryMonitorService : Service() {
                                                 recoveredHasAnomaly = persisted.alertedAnomalyCodes.isNotEmpty(),
                                                 recoveredAnomalyReason = persisted.alertedAnomalyCodes.joinToString(", ").ifEmpty { null },
                                                 recoveredSample = sampleEntity,
-                                        recoveredHasCurrentData = persisted.currentReadingsCount > 0L,
-                                        recoveredHasTemperatureData = persisted.sampleIsTemperatureAvailable
+                                        recoveredHasCurrentData = persisted.hasCurrentData || persisted.sampleIsCurrentAvailable,
+                                        recoveredHasTemperatureData = persisted.hasTemperatureData || persisted.sampleIsTemperatureAvailable
                                             )
                                         }.onFailure { error ->
                                             Log.e(
