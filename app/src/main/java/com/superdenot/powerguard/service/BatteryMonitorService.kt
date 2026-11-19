@@ -2364,7 +2364,7 @@ class BatteryMonitorService : Service() {
             elapsedRealtimeMs = SystemClock.elapsedRealtime(),
             persistedDurationSec = 0L
         )
-        maxSessionTemp = state.tempCelsius
+        maxSessionTemp = if (state.isTemperatureAvailable) state.tempCelsius else 0f
         currentSumForAvg = 0L
         currentReadingsCount = 0L
         activeSessionId = insertedId
@@ -2397,7 +2397,11 @@ class BatteryMonitorService : Service() {
                 voltageMv = metrics.weightedVoltageMv,
                 powerWatt = metrics.weightedPowerWatt,
                 tempCelsius = metrics.weightedTempCelsius,
-                deepSleepRatio = metrics.weightedDeepSleepRatio
+                deepSleepRatio = metrics.weightedDeepSleepRatio,
+                isCurrentAvailable = metrics.isCurrentAvailable,
+                isVoltageAvailable = metrics.isVoltageAvailable,
+                isTemperatureAvailable = metrics.isTemperatureAvailable,
+                isPowerAvailable = metrics.isPowerAvailable
             )
             sampleBuffer.subList(0, compactCount).clear()
             sampleBuffer.add(
