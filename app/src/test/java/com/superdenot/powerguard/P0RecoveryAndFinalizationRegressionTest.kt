@@ -284,6 +284,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 startLevel = 25,
                 totalMahDelivered = 500.0,
                 avgCurrentMa = 1400,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 36.0f,
                 chargerType = "FAST (AC Adapter)"
             )
@@ -1646,6 +1648,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 startLevel = 25,
                 totalMahDelivered = 300.0,
                 avgCurrentMa = 1400,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 36.0f,
                 chargerType = "AC Adapter"
             )
