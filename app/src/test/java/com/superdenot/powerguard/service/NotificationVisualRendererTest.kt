@@ -328,22 +328,22 @@ class NotificationVisualRendererTest {
             assertEquals(null, channel.sound)
 
             service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertTrue(manager.activeNotifications.any { it.id == 1003 })
+            assertTrue(Shadows.shadowOf(manager).getNotification(1003) != null)
 
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = false)
             )
             service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertFalse(manager.activeNotifications.any { it.id == 1003 })
+            assertFalse(Shadows.shadowOf(manager).getNotification(1003) != null)
 
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = true)
             )
             service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertTrue(manager.activeNotifications.any { it.id == 1003 })
+            assertTrue(Shadows.shadowOf(manager).getNotification(1003) != null)
             service.setBatteryMonitoringEnabledForTesting(false)
             service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertFalse(manager.activeNotifications.any { it.id == 1003 })
+            assertFalse(Shadows.shadowOf(manager).getNotification(1003) != null)
         } finally {
             controller.destroy()
         }
