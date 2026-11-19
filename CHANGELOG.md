@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-11-19 — Physical-device Auto Start validation (itel P55 NFC)
+
+### Test results
+- Dynamic receiver while the SPG process is alive: **PASS** — `SPG_AutoStart_Filtered.txt` records two successful charging-triggered coordinator paths reaching `RUNNING_CHARGING`; T0→T2 was 403 ms and 146 ms respectively.
+- Auto Start after swipe/remove-task process death: **FAIL** — ActivityManager records the SPG process killed with reason `remove task`; no subsequent SPG receiver, coordinator, or Worker execution is evidenced in the supplied capture. Charger-event rejection messages at that point belong to other applications.
+- JobScheduler `CHARGING` constraint: **FAIL / BLOCKED** — in `spg_job_and_battrey.txt`, SPG WorkManager jobs `#u0a283/4` and `#u0a283/6` both require charging, list `CHARGING` as unsatisfied, and report `Ready: false`.
+- Worker execution: **NOT VERIFIED** — the not-ready JobScheduler snapshots do not prove that `ChargingAutoStartWorker.doWork()` started or returned a result.
+- BatteryService snapshot: reports `AC powered: true`, `status: 2`, and level 79% at that capture. A separate capture reported 83% at a different time; these values are not treated as simultaneous readings.
+
+### Capture identity and limitations
+- The Auto Start log uses UID `u0a282`; the later JobScheduler dump uses `u0a283`. The user confirms an APK reinstall occurred between test sessions, explaining the UID change. The files must not be interpreted as one continuous process session.
+- The battery and JobScheduler commands in `spg_job_and_battrey.txt` were captured in the same script with a 3-second gap. BatteryService's connected/charging snapshot and JobScheduler's unsatisfied `CHARGING` constraint therefore coexist in that capture; this proves the observed state mismatch, not its underlying cause.
+- Attribution to a Unisoc HAL defect or a missing/delayed `BatteryManager.ACTION_CHARGING` broadcast is **NOT VERIFIED**. No HAL/framework trace in these files establishes that mechanism.
+- Locking SUPERD POWER GUARD in Recent Apps remains an **UNTESTED mitigation option**, not a validated workaround or guaranteed solution.
+- No application source, build configuration, dependency, package, SDK, app version, or runtime behavior was changed for this documentation entry. No merge to `main` was performed.
+
 ## 2026-11-19 — Hybrid charging Auto Start recovery
 
 ### Changed
