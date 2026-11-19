@@ -101,10 +101,13 @@ fun ChargingCurveChart(
                 )
             }
         } else {
-            val minMa = min(0f, samples.minOf { it.currentMa.toFloat() })
-            val maxMa = max(500f, samples.maxOf { it.currentMa.toFloat() })
-            val minTemp = min(20f, samples.minOf { it.tempCelsius })
-            val maxTemp = max(50f, samples.maxOf { it.tempCelsius })
+            val currentSamples = samples.filter { it.isCurrentAvailable }
+            val temperatureSamples = samples.filter { it.isTemperatureAvailable }
+            val levelSamples = samples.filter { it.isLevelAvailable }
+            val minMa = if (currentSamples.isNotEmpty()) min(0f, currentSamples.minOf { it.currentMa.toFloat() }) else 0f
+            val maxMa = if (currentSamples.isNotEmpty()) max(500f, currentSamples.maxOf { it.currentMa.toFloat() }) else 500f
+            val minTemp = if (temperatureSamples.isNotEmpty()) min(20f, temperatureSamples.minOf { it.tempCelsius }) else 20f
+            val maxTemp = if (temperatureSamples.isNotEmpty()) max(50f, temperatureSamples.maxOf { it.tempCelsius }) else 50f
 
             Canvas(
                 modifier = Modifier
@@ -148,16 +151,23 @@ fun ChargingCurveChart(
 
                 fun buildPath(
                     valueSelector: (BatterySampleEntity) -> Float,
+                    availabilitySelector: (BatterySampleEntity) -> Boolean,
                     minValue: Float,
                     maxValue: Float
                 ): Path {
                     val path = Path()
+                    var segmentOpen = false
                     samples.forEachIndexed { index, sample ->
-                        val point = Offset(
-                            x = index * stepX,
-                            y = pointY(valueSelector(sample), minValue, maxValue)
-                        )
-                        if (index == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
+                        if (!availabilitySelector(sample)) {
+                            segmentOpen = false
+                        } else {
+                            val point = Offset(
+                                x = index * stepX,
+                                y = pointY(valueSelector(sample), minValue, maxValue)
+                            )
+                            if (segmentOpen) path.lineTo(point.x, point.y) else path.moveTo(point.x, point.y)
+                            segmentOpen = true
+                        }
                     }
                     return path
                 }
@@ -173,17 +183,17 @@ fun ChargingCurveChart(
                 }
 
                 drawPath(
-                    path = buildPath({ it.batteryLevel.toFloat() }, 0f, 100f),
+                    path = buildPath({ it.batteryLevel.toFloat() }, { it.isLevelAvailable }, 0f, 100f),
                     color = CyanFastCharge,
                     style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
                 )
                 drawPath(
-                    path = buildPath({ it.tempCelsius }, minTemp, maxTemp),
+                    path = buildPath({ it.tempCelsius }, { it.isTemperatureAvailable }, minTemp, maxTemp),
                     color = AmberThermal,
                     style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
                 )
                 drawPath(
-                    path = buildPath({ it.currentMa.toFloat() }, minMa, maxMa),
+                    path = buildPath({ it.currentMa.toFloat() }, { it.isCurrentAvailable }, minMa, maxMa),
                     color = EmeraldCharge,
                     style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                 )
@@ -196,21 +206,27 @@ fun ChargingCurveChart(
                     end = Offset(focusX, chartHeight),
                     strokeWidth = 1.dp.toPx()
                 )
-                drawCircle(
-                    color = EmeraldCharge,
-                    radius = 5.dp.toPx(),
-                    center = Offset(focusX, pointY(focus.currentMa.toFloat(), minMa, maxMa))
-                )
-                drawCircle(
-                    color = AmberThermal,
-                    radius = 4.dp.toPx(),
-                    center = Offset(focusX, pointY(focus.tempCelsius, minTemp, maxTemp))
-                )
-                drawCircle(
-                    color = CyanFastCharge,
-                    radius = 4.dp.toPx(),
-                    center = Offset(focusX, pointY(focus.batteryLevel.toFloat(), 0f, 100f))
-                )
+                if (focus.isCurrentAvailable) {
+                    drawCircle(
+                        color = EmeraldCharge,
+                        radius = 5.dp.toPx(),
+                        center = Offset(focusX, pointY(focus.currentMa.toFloat(), minMa, maxMa))
+                    )
+                }
+                if (focus.isTemperatureAvailable) {
+                    drawCircle(
+                        color = AmberThermal,
+                        radius = 4.dp.toPx(),
+                        center = Offset(focusX, pointY(focus.tempCelsius, minTemp, maxTemp))
+                    )
+                }
+                if (focus.isLevelAvailable) {
+                    drawCircle(
+                        color = CyanFastCharge,
+                        radius = 4.dp.toPx(),
+                        center = Offset(focusX, pointY(focus.batteryLevel.toFloat(), 0f, 100f))
+                    )
+                }
             }
 
             selectedSample?.let { sample ->
@@ -232,9 +248,21 @@ fun ChargingCurveChart(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            TooltipValue("Arus", String.format(Locale.US, "%+d mA", sample.currentMa), EmeraldCharge)
-                            TooltipValue("Suhu", String.format(Locale.US, "%.1f°C", sample.tempCelsius), AmberThermal)
-                            TooltipValue("Baterai", "${sample.batteryLevel}%", CyanFastCharge)
+                            TooltipValue(
+                                "Arus",
+                                if (sample.isCurrentAvailable) String.format(Locale.US, "%+d mA", sample.currentMa) else "Tidak tersedia",
+                                EmeraldCharge
+                            )
+                            TooltipValue(
+                                "Suhu",
+                                if (sample.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", sample.tempCelsius) else "Tidak tersedia",
+                                AmberThermal
+                            )
+                            TooltipValue(
+                                "Baterai",
+                                if (sample.isLevelAvailable) "${sample.batteryLevel}%" else "Tidak tersedia",
+                                CyanFastCharge
+                            )
                         }
                     }
                 }
@@ -247,11 +275,17 @@ fun ChargingCurveChart(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            val peakMa = samples.maxOf { it.currentMa }
-            val minSampleMa = samples.minOf { it.currentMa }
-            val peakTemp = samples.maxOf { it.tempCelsius }
+            val peakMa = currentSamples.maxOfOrNull { it.currentMa }
+            val minSampleMa = currentSamples.minOfOrNull { it.currentMa }
+            val peakTemp = temperatureSamples.maxOfOrNull { it.tempCelsius }
+            val currentSummary = if (peakMa != null && minSampleMa != null) {
+                "Puncak Arus: ${if (peakMa > 0) "+$peakMa" else "$peakMa"} mA • Terendah: ${if (minSampleMa > 0) "+$minSampleMa" else "$minSampleMa"} mA"
+            } else {
+                "Arus: Tidak tersedia"
+            }
+            val temperatureSummary = peakTemp?.let { "Suhu Maks: ${String.format(Locale.US, "%.1f", it)}°C" } ?: "Suhu: Tidak tersedia"
             Text(
-                text = "Puncak Arus: ${if (peakMa > 0) "+$peakMa" else "$peakMa"} mA • Terendah: ${if (minSampleMa > 0) "+$minSampleMa" else "$minSampleMa"} mA • Suhu Maks: ${String.format(Locale.US, "%.1f", peakTemp)}°C (${samples.size} titik)",
+                text = "$currentSummary • $temperatureSummary (${samples.size} titik)",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
