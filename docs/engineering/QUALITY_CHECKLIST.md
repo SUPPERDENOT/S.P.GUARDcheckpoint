@@ -1,3 +1,28 @@
+## 2026-11-19 — Unified service lifecycle and persistent notification (implementation review)
+
+- Source/diff review: PASS — lifecycle call paths, Room-write gates, notification ID/channel references, and changed-file scope reviewed.
+- Approved scope and branch target `fix/auto-start-coordinator-timing`: PASS — changes limited to service lifecycle, preference synchronization, notification consolidation, regression coverage, and documentation.
+- Keep-alive rule: PASS — policy resolves Monitoring OR Status Bar Indicator OR RECOVERY_HOLD.
+- Four toggle combinations: PASS — policy regression tests added for STOPPED, HUD_ONLY, and MONITORING_ACTIVE.
+- RECOVERY_HOLD precedence: PASS — policy test covers both toggles OFF while recovery remains required; service handlers retain the recovery-first path.
+- Immediate Room write gate: PASS — Monitoring OFF closes the in-memory recording gate synchronously before the actor performs finalization.
+- HUD_ONLY Room safety: PASS — charger-connect handler does not call `recoverOrStartChargingSession()` when Monitoring is OFF; monitoring loop bypasses sample aggregation/buffering/persistence while in HUD_ONLY.
+- Monitoring ON while unplugged: PASS — service remains in MONITORING_STANDBY with the sensor loop stopped when Status Bar Indicator is OFF; when the indicator is ON, it uses HUD_ONLY to keep live metrics updated without Room writes. Explicit manual start remains a separate RUNNING_MANUAL path.
+- ON→OFF finalization: PASS — settings actor and explicit toggle-stop path finalize under `sharedSessionMutex`; successful finalization clears active session state so repeated sync commands do not re-finalize an already completed session.
+- Recovery retry: PASS — checkpoint retry path no longer creates a new charging session when Monitoring is OFF.
+- Charger connect/disconnect: PASS — receiver/coordinator synchronize an active service; disconnect finalizes the charging session and returns to MONITORING_STANDBY or HUD_ONLY according to the toggles. The charging-constrained WorkManager fallback is scheduled when either feature toggle is ON.
+- Persistent notification: PASS — ID 1001 is the sole persistent service card; ID 1003 is cancelled during startup and its old channel is deleted; ID 1002 remains separate.
+- Dynamic/static icon selection: PASS — LiveStatusBarRenderer is used only for ID 1001 when Status Bar Indicator is ON; static NotificationVisualRenderer icon is the fallback.
+- Anti-flicker: PASS — signature deduplication, 4-second body throttle, and cache reset on toggle/metric/mode changes implemented.
+- Charging fallback scheduler: PASS — periodic and one-time charging-constrained work is retained when either feature toggle is ON.
+- Android background-start policy: PASS — coordinator retains foreground/background eligibility checks; no attempt to bypass platform restrictions.
+- Unit/regression tests: NOT RUN — pending GitHub Actions.
+- Android build / assembleDebug: NOT RUN — pending GitHub Actions.
+- Anti-Slop UI Audit Gate: NOT RUN — no Compose screen/layout changed; notification-specific visual behavior is covered by Robolectric regression tests.
+- Physical-device QA: NOT RUN — target-device validation still required.
+- CHANGELOG updated; package, application ID, SDK, dependencies, version, and release signing unchanged.
+- Branch `main` untouched; merge and push remain prohibited.
+
 ## 2026-11-19 — Reproducible debug signing (verified)
 
 - Dedicated development keystore added at `app/debug.keystore`: PASS — alias and credentials verified with keytool; SHA-1 fingerprint `AF:4C:A2:92:11:1D:E4:58:2F:A2:18:76:C3:EF:D4:F9:7C:0C:7C:B2`.

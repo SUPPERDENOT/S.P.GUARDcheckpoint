@@ -145,17 +145,28 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                 }
             )
             val charging = repository.readDirectSensorSnapshot().isCharging
+            val indicatorEnabled = executeSuspendFailClosed(
+                operation = { repository.isStatusBarIndicatorEnabled() },
+                onFailure = { error ->
+                    Log.e("PowerGuard", "Preferensi Status Bar Indicator gagal dibaca; layanan tidak diasumsikan aktif", error)
+                    false
+                }
+            )
             when {
-                !enabled -> {
+                enabled -> {
+                    ChargingAutoStartScheduler.schedule(getApplication())
+                    requestBatteryMonitorStartSafely(
+                        if (charging) AutoStartTrigger.APP_FOREGROUND_CHARGING else AutoStartTrigger.MONITORING_ENABLED
+                    )
+                }
+                indicatorEnabled -> {
+                    ChargingAutoStartScheduler.schedule(getApplication())
+                    requestBatteryMonitorStartSafely(AutoStartTrigger.STATUS_BAR_INDICATOR_ENABLED)
+                }
+                else -> {
                     ChargingAutoStartScheduler.cancel(getApplication())
                     if (BatteryMonitorService.isStartingOrRunning) {
                         runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
-                    }
-                }
-                enabled -> {
-                    ChargingAutoStartScheduler.schedule(getApplication())
-                    if (charging) {
-                        requestBatteryMonitorStartSafely(AutoStartTrigger.APP_FOREGROUND_CHARGING)
                     }
                 }
             }
@@ -181,6 +192,19 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                     Unit
                 }
             )
+            if (enabled) {
+                ChargingAutoStartScheduler.schedule(getApplication(), replaceExisting = true)
+                requestBatteryMonitorStartSafely(AutoStartTrigger.STATUS_BAR_INDICATOR_ENABLED)
+            } else {
+                val monitoringEnabled = executeSuspendFailClosed(
+                    operation = { repository.isBatteryMonitoringEnabled() },
+                    onFailure = { false }
+                )
+                if (!monitoringEnabled) ChargingAutoStartScheduler.cancel(getApplication())
+                if (BatteryMonitorService.isStartingOrRunning) {
+                    BatteryMonitorService.requestSyncSettings(getApplication())
+                }
+            }
         }
     }
 
@@ -209,7 +233,15 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                 return@launch
             }
             if (!enabled) {
-                ChargingAutoStartScheduler.cancel(getApplication())
+                val indicatorEnabled = executeSuspendFailClosed(
+                    operation = { repository.isStatusBarIndicatorEnabled() },
+                    onFailure = { false }
+                )
+                if (indicatorEnabled) {
+                    ChargingAutoStartScheduler.schedule(getApplication(), replaceExisting = true)
+                } else {
+                    ChargingAutoStartScheduler.cancel(getApplication())
+                }
                 runCatching { BatteryMonitorService.requestStopMonitoring(getApplication()) }
                     .onFailure { error ->
                         _autoMonitoringError.value = "Pengaturan OFF tersimpan, tetapi layanan belum dapat dihentikan sepenuhnya."
@@ -217,9 +249,7 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                     }
             } else {
                 ChargingAutoStartScheduler.schedule(getApplication(), replaceExisting = true)
-                if (repository.readDirectSensorSnapshot().isCharging) {
-                    requestBatteryMonitorStartSafely(AutoStartTrigger.MONITORING_ENABLED)
-                }
+                requestBatteryMonitorStartSafely(AutoStartTrigger.MONITORING_ENABLED)
             }
         }
     }

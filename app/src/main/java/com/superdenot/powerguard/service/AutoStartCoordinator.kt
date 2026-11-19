@@ -8,6 +8,8 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CancellationException
 
 internal enum class AutoStartTrigger {
@@ -15,7 +17,8 @@ internal enum class AutoStartTrigger {
     WORK_MANAGER_CHARGING,
     BOOT_COMPLETED,
     APP_FOREGROUND_CHARGING,
-    MONITORING_ENABLED
+    MONITORING_ENABLED,
+    STATUS_BAR_INDICATOR_ENABLED
 }
 
 internal enum class AutoStartRequestResult {
@@ -86,7 +89,8 @@ internal object AutoStartPolicy {
         AutoStartTrigger.POWER_CONNECTED,
         AutoStartTrigger.WORK_MANAGER_CHARGING -> appForeground || BatteryMonitoringSettings.canStartFromBackgroundTrigger(true, batteryOptimizationIgnored)
         AutoStartTrigger.APP_FOREGROUND_CHARGING,
-        AutoStartTrigger.MONITORING_ENABLED -> appForeground
+        AutoStartTrigger.MONITORING_ENABLED,
+        AutoStartTrigger.STATUS_BAR_INDICATOR_ENABLED -> appForeground
     }
 }
 
@@ -125,28 +129,30 @@ internal object AutoStartCoordinator {
         return try {
             val appContext = context.applicationContext
             val monitoringEnabled = BatteryMonitoringSettings.isEnabled(appContext)
-            AutoStartDiagnosticLog.record(appContext, "R1 Battery Monitoring enabled=$monitoringEnabled trigger=$trigger")
-            if (!monitoringEnabled) {
-                Log.i(TAG, "Battery Monitoring OFF; Auto Start ignored; trigger=$trigger")
+            val indicatorEnabled = StatusBarIndicatorSettings.observe(appContext).first().enabled
+            AutoStartDiagnosticLog.record(appContext, "R1 monitoring=$monitoringEnabled statusBarIndicator=$indicatorEnabled trigger=$trigger")
+            if (!ServiceOperationPolicy.shouldKeepServiceAlive(monitoringEnabled, indicatorEnabled, false)) {
+                Log.i(TAG, "Both feature toggles OFF; Auto Start ignored; trigger=$trigger")
                 return AutoStartRequestResult.MONITORING_DISABLED
             }
 
             val charging = isDeviceCurrentlyCharging(appContext)
             AutoStartDiagnosticLog.record(appContext, "R2 chargingState=$charging trigger=$trigger")
-            if (!charging) {
-                onChargingDisconnected()
-                Log.d(TAG, "Charging State is not CHARGING; trigger=$trigger")
-                return AutoStartRequestResult.NOT_CHARGING
-            }
+            if (!charging) onChargingDisconnected()
 
             val serviceActive = BatteryMonitorService.isStartingOrRunning
             AutoStartDiagnosticLog.record(appContext, "COORDINATOR serviceStartingOrRunning=$serviceActive")
             if (serviceActive) {
-                Log.d(TAG, "Service already STARTING/RUNNING; trigger=$trigger")
+                BatteryMonitorService.requestSyncSettings(appContext)
+                Log.d(TAG, "Service already active; settings sync requested; trigger=$trigger")
                 return AutoStartRequestResult.SERVICE_ALREADY_ACTIVE
             }
 
-            val epoch = gate.recordChargingDetection(observedAtElapsedRealtime)
+            val epoch = if (charging) {
+                gate.recordChargingDetection(observedAtElapsedRealtime)
+            } else {
+                ChargingDetectionEpoch(0L, observedAtElapsedRealtime, false)
+            }
             if (epoch.isNew) {
                 AutoStartDiagnosticLog.record(appContext, "T0 charging detected epoch=${epoch.epochId} trigger=$trigger")
                 Log.i(
@@ -175,13 +181,13 @@ internal object AutoStartCoordinator {
 
             val attemptId = gate.nextAttemptId()
             Log.i(TAG, "Auto Start request accepted; attempt=$attemptId; epoch=${epoch.epochId}; trigger=$trigger")
-            AutoStartDiagnosticLog.record(appContext, "R4 startService request attempt=$attemptId epoch=${epoch.epochId} trigger=$trigger")
+            AutoStartDiagnosticLog.record(appContext, "R4 startService request attempt=$attemptId epoch=" + epoch.epochId + " trigger=$trigger")
             BatteryMonitorService.requestStartService(
                 context = appContext,
                 manual = false,
-                autoStartAttemptId = attemptId,
-                autoStartEpochId = epoch.epochId,
-                autoStartT0ElapsedRealtime = epoch.detectedAtElapsedRealtime
+                autoStartAttemptId = if (charging) attemptId else null,
+                autoStartEpochId = if (charging) epoch.epochId else null,
+                autoStartT0ElapsedRealtime = if (charging) epoch.detectedAtElapsedRealtime else null
             )
             AutoStartDiagnosticLog.record(appContext, "R4 startService call returned attempt=$attemptId")
             AutoStartRequestResult.REQUESTED

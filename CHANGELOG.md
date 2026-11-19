@@ -1,3 +1,38 @@
+## 2026-11-19 — Unified service lifecycle and persistent notification (implementation; verification pending)
+
+### Scope
+- Consolidate the persistent foreground-service notification to ID `1001`; preserve transient anomaly notification ID `1002`.
+- Apply the approved service keep-alive rule: Battery Monitoring OR Status Bar Indicator OR RECOVERY_HOLD.
+- Separate `HUD_ONLY`, `MONITORING_STANDBY`, charging recording, and `RECOVERY_HOLD` actor modes.
+- Prevent charger transitions in HUD-only mode from starting Room sessions or appending new samples.
+- Preserve Android background Foreground Service start restrictions.
+
+### Implementation
+- Added `ServiceOperationPolicy` to derive STOPPED / HUD_ONLY / MONITORING_ACTIVE / RECOVERY_HOLD and centralize the keep-alive and Room-recording gates.
+- `BatteryMonitorService` now reconciles both preferences through its lifecycle actor. The Monitoring OFF request closes the in-memory Room-write gate synchronously before the next sensor-loop tick. Monitoring OFF finalizes an existing session under `sharedSessionMutex`; if Status Bar Indicator remains ON, the service transitions to HUD_ONLY. If Monitoring remains ON while unplugged, the actor uses HUD_ONLY when Status Bar Indicator is ON (live sensor display without Room writes), or MONITORING_STANDBY when the indicator is OFF (sensor loop stopped). A successful recovery retry cannot create a new charging session while Monitoring is OFF.
+- HUD_ONLY reads live sensor state for display but bypasses session creation, sample buffering, and Room sample writes. RECOVERY_HOLD remains the highest-priority safety state and keeps the service alive until the pending data is safely finalized/reconciled.
+- Removed the active ID `1003` notification path and stopped creating its old channel. Startup cancels any stale ID `1003` notification and deletes the legacy channel. The single ID `1001` notification uses `LiveStatusBarRenderer` when Status Bar Indicator is ON and the static `NotificationVisualRenderer` icon otherwise.
+- ID `1001` is ongoing, only-alert-once, and silent. `PersistentNotificationRenderGate` deduplicates the `iconKey|title|body` signature and throttles body-only updates to 4 seconds; toggle, metric, and actor-mode changes reset the render cache. ID `1002` remains independent.
+- Auto Start and the charging-constrained WorkManager fallback now check both feature toggles. An already-running service receives an actor synchronization command rather than another start request. Boot recovery also considers HUD-only mode. Platform background-start policy remains in force.
+
+### Regression coverage added/updated
+- Four toggle combinations and RECOVERY_HOLD precedence.
+- Room recording gate for HUD_ONLY versus charging Monitoring mode.
+- ON→OFF session-finalization transition policy.
+- Charger transitions in HUD_ONLY.
+- Notification ID `1001`, legacy ID/channel cleanup, dynamic/static small-icon selection, and independent anomaly ID `1002`.
+- Persistent-notification signature deduplication and 4-second body throttle.
+
+### Verification status
+- Source/diff review: **PASS** — lifecycle branches, Room-write gates, notification ID/channel references, and branch diff reviewed.
+- Unit/regression tests: **NOT RUN** — pending branch CI.
+- Android debug build: **NOT RUN** — pending branch CI.
+- Anti-Slop UI Audit Gate: **NOT RUN** — notification surface only; no Compose screen layout changed.
+- Physical-device validation: **NOT RUN** — verify all four toggle combinations, HUD-only charger connect/disconnect, single notification card, icon visibility, and recovery-hold behavior on the target device.
+- Branch `main`: untouched. No merge or push requested.
+
+---
+
 ## 2026-11-19 — Reproducible debug signing (selesai; CI PASS)
 
 ### Perubahan

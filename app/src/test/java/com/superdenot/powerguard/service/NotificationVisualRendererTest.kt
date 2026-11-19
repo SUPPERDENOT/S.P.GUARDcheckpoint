@@ -294,75 +294,85 @@ class NotificationVisualRendererTest {
 
 
     @Test
-    fun statusBarIndicatorUsesIndependentLowImportanceSilentNotification() {
+    fun statusBarIndicatorUsesSinglePersistentNotificationId1001AndDeletesLegacyChannel() {
         val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
         val service = controller.get()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         try {
+            service.setActorRunningForTesting()
+            service.setBatteryMonitoringEnabledForTesting(false)
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
                     enabled = true,
                     parameter = com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
                 )
             )
-            service.setBatteryMonitoringEnabledForTesting(true)
-            service.setActorRunningForTesting()
-            val unavailable = LiveBatteryState(
-                isCurrentAvailable = false,
-                isChargingStatusAvailable = false
-            )
-            val indicator = service.buildStatusBarIndicatorNotificationForTesting(unavailable)
-            assertNotNull(indicator.smallIcon)
-            assertEquals(
-                "N/A",
-                LiveStatusBarRenderer.format(
-                    unavailable,
-                    com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
-                )
-            )
+            val unavailable = LiveBatteryState(isCurrentAvailable = false, isChargingStatusAvailable = false)
+            service.refreshStatusBarIndicatorNotificationForTesting(unavailable, force = true)
 
-            val channel = manager.getNotificationChannel("powerguard_status_bar_indicator")
+            assertNotNull(Shadows.shadowOf(manager).getNotification(1001))
+            assertEquals(null, Shadows.shadowOf(manager).getNotification(1003))
+            assertEquals(null, manager.getNotificationChannel("powerguard_status_bar_indicator"))
+
+            val channel = manager.getNotificationChannel("powerguard_live_monitor")
             assertNotNull(channel)
             assertEquals(android.app.NotificationManager.IMPORTANCE_LOW, channel!!.importance)
-            assertFalse(channel.shouldVibrate())
-            assertEquals(null, channel.sound)
-
-            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertTrue(Shadows.shadowOf(manager).getNotification(1003) != null)
+            val hudNotification = service.buildMonitorNotificationForTesting("Sensor live • N/A")
+            assertNotNull(hudNotification.smallIcon)
+            assertTrue((hudNotification.flags and Notification.FLAG_ONGOING_EVENT) != 0)
+            assertTrue((hudNotification.flags and Notification.FLAG_ONLY_ALERT_ONCE) != 0)
 
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = false)
             )
-            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertFalse(Shadows.shadowOf(manager).getNotification(1003) != null)
-
-            service.setStatusBarIndicatorSettingForTesting(
-                com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = true)
-            )
-            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertTrue(Shadows.shadowOf(manager).getNotification(1003) != null)
-            service.setBatteryMonitoringEnabledForTesting(false)
-            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
-            assertFalse(Shadows.shadowOf(manager).getNotification(1003) != null)
+            service.refreshStatusBarIndicatorNotificationForTesting(unavailable, force = true)
+            assertNotNull(Shadows.shadowOf(manager).getNotification(1001))
+            assertEquals(null, Shadows.shadowOf(manager).getNotification(1003))
         } finally {
             controller.destroy()
         }
     }
 
     @Test
-    fun monitorNotificationSmallIconIsIndependentFromStatusBarIndicatorSelection() {
+    fun persistentNotificationUsesDynamicMetricIconOnlyWhenIndicatorToggleIsEnabled() {
         val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
         val service = controller.get()
         try {
-            val baselineIcon = service.buildMonitorNotificationForTesting("Monitoring").icon
+            val state = LiveBatteryState(
+                currentMa = 2450,
+                isCurrentAvailable = true,
+                isCharging = true,
+                isChargingStatusAvailable = true
+            )
+            service.setStatusBarIndicatorSettingForTesting(
+                com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = false)
+            )
+            val staticNotification = service.buildMonitorNotificationForTesting("Monitoring")
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
                     enabled = true,
                     parameter = com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
                 )
             )
-            val notification = service.buildMonitorNotificationForTesting("Monitoring")
-            assertEquals(baselineIcon, notification.icon)
+            val dynamicNotification = service.buildMonitorNotificationForTesting("Monitoring")
+
+            assertNotNull(staticNotification.smallIcon)
+            assertNotNull(dynamicNotification.smallIcon)
+            assertEquals(android.graphics.drawable.Icon.TYPE_RESOURCE, staticNotification.smallIcon.type)
+            assertEquals(android.graphics.drawable.Icon.TYPE_BITMAP, dynamicNotification.smallIcon.type)
+        } finally {
+            controller.destroy()
+        }
+    }
+
+    @Test
+    fun anomalyAlertRemainsOnIndependentNotificationId1002() {
+        val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
+        val service = controller.get()
+        try {
+            val anomaly = service.buildAnomalyAlertNotificationForTesting("Suhu baterai tinggi (42.5°C).")
+            assertEquals("SUPERD GUARD • Peringatan Daya", anomaly.extras.getCharSequence(Notification.EXTRA_TITLE))
+            assertNotNull(anomaly.smallIcon)
         } finally {
             controller.destroy()
         }

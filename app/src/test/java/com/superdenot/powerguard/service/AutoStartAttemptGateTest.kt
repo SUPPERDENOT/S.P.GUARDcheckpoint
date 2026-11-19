@@ -131,5 +131,19 @@ class AutoStartAttemptGateTest {
                 batteryOptimizationIgnored = false
             )
         )
+        assertTrue(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.STATUS_BAR_INDICATOR_ENABLED,
+                appForeground = true,
+                batteryOptimizationIgnored = false
+            )
+        )
+        assertFalse(
+            AutoStartPolicy.isAllowed(
+                AutoStartTrigger.STATUS_BAR_INDICATOR_ENABLED,
+                appForeground = false,
+                batteryOptimizationIgnored = true
+            )
+        )
     }
 }

@@ -39,15 +39,9 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
                 scheduleEnabledRecovery(context)
-                val detectedAt = SystemClock.elapsedRealtime()
-                if (isDeviceCurrentlyCharging(context)) {
-                    // BOOT_COMPLETED remains subject to Android foreground-service type rules.
-                    startMonitorServiceSafe(context, AutoStartTrigger.BOOT_COMPLETED, detectedAt)
-                } else if (!BatteryMonitorService.isStartingOrRunning &&
-                    !BatteryMonitorService.hasActiveServiceSessionFor()
-                ) {
-                    scheduleGuardedBackgroundCleanup(context)
-                }
+                // Coordinator checks both feature toggles; HUD-only must also survive reboot.
+                // Android's foreground-service start restrictions remain enforced by the platform.
+                startMonitorServiceSafe(context, AutoStartTrigger.BOOT_COMPLETED, SystemClock.elapsedRealtime())
             }
             Intent.ACTION_POWER_CONNECTED -> {
                 val detectedAt = SystemClock.elapsedRealtime()
@@ -106,6 +100,13 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                     "R0_COORDINATOR_RESULT result=$result trigger=$trigger"
                 )
                 AutoStartDiagnosticLog.record(appContext, "R4 coordinator result=$result trigger=$trigger")
+                if (trigger == AutoStartTrigger.BOOT_COMPLETED &&
+                    result == com.superdenot.powerguard.service.AutoStartRequestResult.MONITORING_DISABLED &&
+                    !BatteryMonitorService.isStartingOrRunning &&
+                    !BatteryMonitorService.hasActiveServiceSessionFor()
+                ) {
+                    executeGuardedBackgroundCleanupNow(appContext)
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -150,14 +151,10 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                 if (BatteryMonitorService.isStartingOrRunning ||
                     BatteryMonitorService.hasActiveServiceSessionFor()
                 ) {
-                    val stopSessionIntent = Intent(appContext, BatteryMonitorService::class.java).apply {
-                        action = BatteryMonitorService.ACTION_STOP_CHARGING_SESSION
+                    val synchronized = BatteryMonitorService.requestSyncSettings(appContext)
+                    if (!synchronized && !BatteryMonitorService.isStartingOrRunning) {
+                        scheduleGuardedBackgroundCleanup(appContext)
                     }
-                    val delivered = runCatching {
-                        appContext.startService(stopSessionIntent)
-                    }.isSuccess
-
-                    if (!delivered) scheduleGuardedBackgroundCleanup(appContext)
                 } else {
                     scheduleGuardedBackgroundCleanup(appContext)
                 }

@@ -13,6 +13,7 @@ import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.service.BatteryMonitorService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
 class BatteryRepository(private val context: Context) {
@@ -37,6 +38,7 @@ class BatteryRepository(private val context: Context) {
         StatusBarIndicatorSettings.observe(context)
 
     suspend fun isBatteryMonitoringEnabled(): Boolean = BatteryMonitoringSettings.isEnabled(context)
+    suspend fun isStatusBarIndicatorEnabled(): Boolean = StatusBarIndicatorSettings.observe(context).first().enabled
     suspend fun setBatteryMonitoringEnabled(enabled: Boolean) = BatteryMonitoringSettings.setEnabled(context, enabled)
     suspend fun setStatusBarIndicatorEnabled(enabled: Boolean) =
         StatusBarIndicatorSettings.setEnabled(context, enabled)

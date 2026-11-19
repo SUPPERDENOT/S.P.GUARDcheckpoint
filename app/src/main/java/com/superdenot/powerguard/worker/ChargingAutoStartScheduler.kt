@@ -14,6 +14,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
@@ -25,7 +27,7 @@ object ChargingAutoStartScheduler {
     private const val TAG = "SPG_CHARGING_SCHEDULER"
 
     /**
-     * Called only after Battery Monitoring has been confirmed ON.
+     * Called after either service feature toggle has been confirmed ON.
      * Keeps the established periodic fallback and arms a persistent one-time
      * charging-constrained request only when the device is confirmed unplugged.
      */
@@ -57,11 +59,11 @@ object ChargingAutoStartScheduler {
 
     /**
      * Application and boot entry point. A failed preference read is propagated
-     * to the caller; callers log it and do not assume monitoring is enabled.
+     * to the caller; callers log it and do not assume either service feature is enabled.
      */
     suspend fun ensureScheduledIfEnabled(context: Context) {
         val appContext = context.applicationContext
-        if (BatteryMonitoringSettings.isEnabled(appContext)) {
+        if (hasAnyServiceFeatureEnabled(appContext)) {
             schedule(appContext)
         } else {
             cancel(appContext)
@@ -74,12 +76,15 @@ object ChargingAutoStartScheduler {
      */
     suspend fun armOneTimeIfUnplugged(context: Context): Boolean {
         val appContext = context.applicationContext
-        if (!BatteryMonitoringSettings.isEnabled(appContext)) {
+        if (!hasAnyServiceFeatureEnabled(appContext)) {
             cancelOneTime(appContext)
             return false
         }
         return enqueueOneTimeIfConfirmedUnplugged(appContext)
     }
+
+    private suspend fun hasAnyServiceFeatureEnabled(context: Context): Boolean =
+        BatteryMonitoringSettings.isEnabled(context) || StatusBarIndicatorSettings.observe(context).first().enabled
 
     private fun enqueueOneTimeIfConfirmedUnplugged(context: Context): Boolean {
         val batteryIntent = context.registerReceiver(
@@ -140,7 +145,7 @@ object ChargingAutoStartScheduler {
         WorkManager.getInstance(context.applicationContext).cancelUniqueWork(ONE_TIME_WORK_NAME)
     }
 
-    /** Cancels both persistent charging paths; used whenever Battery Monitoring is OFF. */
+    /** Cancels both persistent charging paths; used whenever both service feature toggles are OFF. */
     fun cancel(context: Context) {
         val workManager = WorkManager.getInstance(context.applicationContext)
         workManager.cancelUniqueWork(UNIQUE_WORK_NAME)
