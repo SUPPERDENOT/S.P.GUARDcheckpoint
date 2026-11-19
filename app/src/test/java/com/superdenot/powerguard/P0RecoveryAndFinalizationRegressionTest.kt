@@ -249,6 +249,8 @@ class P0RecoveryAndFinalizationRegressionTest {
             maxSessionTemp = maxTemp,
             currentSumForAvg = currentSum,
             currentReadingsCount = currentCount,
+            hasCurrentData = true,
+            hasTemperatureData = true,
             alertedAnomalyCodes = anomalyCodes,
             pendingBatchTimestampMs = batchTimestampMs,
             hasPendingSample = hasPendingSample,
@@ -2508,6 +2510,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 .remove(prefix + "sample_power_available")
                 .remove(prefix + "sample_charging_status_available")
                 .remove(prefix + "sample_is_charging")
+                .remove(prefix + "has_current_data")
+                .remove(prefix + "has_temperature_data")
                 .commit()
         )
         val legacyLoaded = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
@@ -2518,6 +2522,11 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertFalse(legacyLoaded.sampleIsPowerAvailable)
         assertFalse(legacyLoaded.sampleIsChargingStatusAvailable)
         assertFalse(legacyLoaded.sampleIsCharging)
+        assertFalse(legacyLoaded.hasCurrentData)
+        assertFalse(legacyLoaded.hasTemperatureData)
+        assertEquals(0L, legacyLoaded.currentReadingsCount)
+        assertEquals(0L, legacyLoaded.currentSumForAvg)
+        assertEquals(0f, legacyLoaded.maxSessionTemp, 0.001f)
     }
 
     @Test
