@@ -323,6 +323,15 @@ class NotificationVisualRendererTest {
             )
             service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
             assertFalse(manager.activeNotifications.any { it.id == 1003 })
+
+            service.setStatusBarIndicatorSettingForTesting(
+                com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = true)
+            )
+            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
+            assertTrue(manager.activeNotifications.any { it.id == 1003 })
+            service.setBatteryMonitoringEnabledForTesting(false)
+            service.refreshStatusBarIndicatorNotificationForTesting(unavailable)
+            assertFalse(manager.activeNotifications.any { it.id == 1003 })
         } finally {
             controller.destroy()
         }
