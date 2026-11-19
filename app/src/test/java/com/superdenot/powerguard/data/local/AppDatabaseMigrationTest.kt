@@ -1,8 +1,11 @@
 package com.superdenot.powerguard.data.local
 
 import android.content.Context
+import android.app.Application
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -35,7 +38,11 @@ data class V1ChargingSession(
     val deepSleepRatio: Float
 )
 
-@Entity(tableName = "battery_samples")
+@Entity(
+    tableName = "battery_samples",
+    foreignKeys = [ForeignKey(entity = V1ChargingSession::class, parentColumns = ["id"], childColumns = ["sessionId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["sessionId"]), Index(value = ["timestamp"])]
+)
 data class V1BatterySample(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: Long,
@@ -71,8 +78,10 @@ data class V1DailyRollup(
 @Database(entities = [V1ChargingSession::class, V1BatterySample::class, V1BatteryHealth::class, V1DailyRollup::class], version = 1, exportSchema = false)
 abstract class AppDatabaseV1 : RoomDatabase()
 
+class MigrationTestApplication : Application()
+
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [34], application = MigrationTestApplication::class, manifest = Config.NONE)
 class AppDatabaseMigrationTest {
     private lateinit var context: Context
     private lateinit var legacy: AppDatabaseV1

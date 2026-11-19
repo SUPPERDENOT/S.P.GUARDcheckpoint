@@ -254,6 +254,13 @@ class P0RecoveryAndFinalizationRegressionTest {
             sampleTempCelsius = maxTemp,
             samplePowerWatt = 6.375f,
             sampleIsScreenOn = false,
+            sampleIsLevelAvailable = true,
+            sampleIsCurrentAvailable = true,
+            sampleIsVoltageAvailable = true,
+            sampleIsTemperatureAvailable = true,
+            sampleIsPowerAvailable = true,
+            sampleIsChargingStatusAvailable = true,
+            sampleIsCharging = true,
             sampleWeight = sampleWeight,
             dbSessionsClosed = dbSessionsClosed,
             failureReason = "Test checkpoint"

@@ -63,7 +63,14 @@ class SessionPersistenceFlowRegressionTest {
             voltageMv = 4_200,
             tempCelsius = 36.5f,
             powerWatt = 8.4f,
-            isScreenOn = true
+            isScreenOn = true,
+            isLevelAvailable = true,
+            isCurrentAvailable = true,
+            isVoltageAvailable = true,
+            isTemperatureAvailable = true,
+            isPowerAvailable = true,
+            isChargingStatusAvailable = true,
+            isCharging = true
         )
 
         val status = dao.persistSampleAndUpdateSessionAtomically(
@@ -104,12 +111,12 @@ class SessionPersistenceFlowRegressionTest {
             BatterySampleEntity(
                 sessionId = sessionId, timestamp = 1_000L, batteryLevel = 50,
                 currentMa = 1_800, voltageMv = 4_200, tempCelsius = 36.0f,
-                powerWatt = 7.5f, isScreenOn = true
+                powerWatt = 7.5f, isScreenOn = true, isCurrentAvailable = true, isTemperatureAvailable = true
             ),
             BatterySampleEntity(
                 sessionId = sessionId, timestamp = 2_000L, batteryLevel = 51,
                 currentMa = 3_600, voltageMv = 4_200, tempCelsius = 36.0f,
-                powerWatt = 15.0f, isScreenOn = true
+                powerWatt = 15.0f, isScreenOn = true, isCurrentAvailable = true, isTemperatureAvailable = true
             ),
             BatterySampleEntity(
                 sessionId = sessionId, timestamp = 10_000L, batteryLevel = 52,
@@ -119,7 +126,7 @@ class SessionPersistenceFlowRegressionTest {
             BatterySampleEntity(
                 sessionId = sessionId, timestamp = 11_000L, batteryLevel = 53,
                 currentMa = -1_800, voltageMv = 4_200, tempCelsius = 36.0f,
-                powerWatt = -7.5f, isScreenOn = true
+                powerWatt = -7.5f, isScreenOn = true, isCurrentAvailable = true, isTemperatureAvailable = true
             )
         )
         samples.forEach { dao.insertSample(it) }
@@ -189,6 +196,7 @@ class SessionPersistenceFlowRegressionTest {
                 startTime = 1_000L,
                 startLevel = 30,
                 avgCurrentMa = 2_100,
+                hasCurrentData = true,
                 totalMahDelivered = 100.0,
                 chargerType = "AC Adapter"
             )
@@ -222,7 +230,8 @@ class SessionPersistenceFlowRegressionTest {
                 recoveredMaxTempCelsius = 37f,
                 recoveredHasAnomaly = false,
                 recoveredAnomalyReason = null,
-                recoveredSample = null
+                recoveredSample = null,
+                recoveredHasCurrentData = true
             )
         )
         assertEquals(1_800, dao.getSessionById(missingAverageSessionId)!!.avgCurrentMa)
