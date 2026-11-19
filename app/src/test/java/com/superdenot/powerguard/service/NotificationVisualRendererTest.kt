@@ -1,5 +1,7 @@
 package com.superdenot.powerguard.service
 
+import android.Manifest
+import android.app.Application
 import android.app.Notification
 import android.content.Context
 import android.graphics.Bitmap
@@ -22,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -33,6 +36,8 @@ class NotificationVisualRendererTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
+        Shadows.shadowOf(context.applicationContext as Application)
+            .grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         NotificationVisualRenderer.clearCacheForTesting()
     }
 
