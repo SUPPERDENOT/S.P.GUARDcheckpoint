@@ -1,3 +1,17 @@
+## 2026-11-19 — Tahap 1: propagasi availability dan integritas riwayat (sedang dikerjakan)
+
+### Scope disetujui
+- Sinkronisasi README dengan Application ID final `com.superdenot.superdguard` dan aturan bahwa protokol charging tidak boleh ditebak dari tegangan/arus/daya.
+- Propagasi availability sensor dari Engine/Normalizer/Integrator/Service sampai Room dan checkpoint `RECOVERY_HOLD`.
+- Migrasi Room v1→v2 non-destruktif, pembaruan chart, serta regression/unit test termasuk `AppDatabaseMigrationTest`.
+
+### Status verifikasi
+- Dokumentasi diperbarui pada commit ini.
+- Implementasi source, unit test, `testDebugUnitTest`, `AppDatabaseMigrationTest`, dan `assembleDebug`: **NOT RUN / belum selesai**.
+- Tahap 2 belum dimulai. HOLD terhadap merge ke `main` tetap berlaku.
+
+---
+
 # Changelog
 
 ## 2026-11-19 — Physical-device Auto Start validation (itel P55 NFC)

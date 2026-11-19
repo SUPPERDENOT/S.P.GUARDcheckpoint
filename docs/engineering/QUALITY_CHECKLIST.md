@@ -1,3 +1,18 @@
+## 2026-11-19 — Tahap 1 availability persistence (in progress)
+
+- Scope Tahap 1 disetujui dan branch target diverifikasi: PASS — `fix/auto-start-coordinator-timing`.
+- README/Application ID dan batasan diagnostik protokol charging: PASS — dokumentasi pada commit Tahap 1 docs.
+- Propagasi availability Engine → Normalizer → Integrator → Service → Room: NOT RUN — implementasi belum selesai.
+- `RECOVERY_HOLD` mempertahankan flags availability: NOT RUN.
+- Room migration v1→v2 non-destruktif dan schema export: NOT RUN.
+- Chart memutus garis pada sampel unavailable dan tooltip menampilkan unavailable: NOT RUN.
+- Unit/regression tests termasuk `AppDatabaseMigrationTest`: NOT RUN.
+- `testDebugUnitTest` dan `assembleDebug`: NOT RUN — menunggu implementasi selesai dan CI branch.
+- Pengujian perangkat fisik: NOT RUN — bukan target verifikasi source Tahap 1.
+- Tahap 2 dan merge ke `main`: HOLD.
+
+---
+
 # SPG Quality Checklist
 
 Complete this checklist for every meaningful code change. For documentation-only changes, mark code/runtime checks N/A and state why.

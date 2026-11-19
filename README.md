@@ -6,7 +6,7 @@ SuperD Power Guard adalah aplikasi Android untuk memantau kondisi baterai dan me
 
 > **Nama produk:** SUPERD POWER GUARD  
 > **Nama launcher yang dituju:** SuperD Guard  
-> **Application ID:** `com.superdenot.powerguard`
+> **Application ID:** `com.superdenot.superdguard`
 
 ---
 
@@ -67,12 +67,12 @@ Implementasi mencakup:
 
 Informasi berikut penting agar hasil aplikasi tidak disalahartikan:
 
-1. **Fast Charging adalah estimasi.** Status ini ditentukan menggunakan ambang tegangan, arus, dan daya yang dibaca aplikasi. Android tidak menyediakan satu indikator universal yang menjamin protokol fast charging aktif. Hasil dapat berbeda antarperangkat.
+1. **Protokol charging tidak ditebak.** Status protokol hanya ditampilkan jika perangkat/API menyediakan informasi yang dapat diverifikasi. Jika tidak tersedia, aplikasi menampilkan `Unknown` atau `Not Exposed by Device`. Tegangan, arus, dan daya tidak digunakan untuk menyimpulkan protokol maupun status fast charging.
 2. **Arus dan daya bukan alat ukur laboratorium.** Nilainya mengikuti sensor dan pelaporan perangkat. Nilai dapat berbeda dari output adaptor atau pengukuran USB eksternal.
 3. **Suhu yang ditampilkan adalah suhu baterai yang dilaporkan sistem**, bukan suhu permukaan casing atau suhu ruangan.
 4. **Deteksi anomali bersifat heuristik.** Peringatan harus dipakai sebagai petunjuk pemeriksaan, bukan kesimpulan teknis final.
 5. **Tidak ada janji auto-cut universal.** Android dan mayoritas perangkat tidak memberi aplikasi pihak ketiga akses umum untuk memutus aliran listrik charger. Pembatasan pengisian hanya mungkin jika produsen menyediakan mekanisme yang kompatibel.
-6. **Dukungan sensor tidak seragam.** Sebagian perangkat dapat mengembalikan nilai nol, tidak lengkap, atau memiliki polaritas arus yang berbeda.
+6. **Dukungan sensor tidak seragam.** Sebagian perangkat dapat tidak mengekspos metrik tertentu. Nilai nol yang valid harus dibedakan dari data yang tidak tersedia; aplikasi menyimpan status ketersediaan metrik agar riwayat tidak mengarang pembacaan.
 
 ## Teknologi
 
@@ -156,7 +156,7 @@ Izin sistem dapat berbeda perilakunya menurut versi Android dan kebijakan masing
 
 ## Status pengembangan
 
-Proyek masih dalam tahap pengembangan dan validasi. Branch `hardening/p0-recovery` berisi pekerjaan penguatan pemantauan live, fallback sensor, pemulihan sesi, serta regression test.
+Proyek masih dalam tahap pengembangan dan validasi. Branch pengembangan aktif untuk pekerjaan ini adalah `fix/auto-start-coordinator-timing`. Status fitur dan verifikasi mengikuti commit serta hasil CI pada branch tersebut.
 
 **Belum dianggap rilis stabil untuk semua perangkat.** Keberhasilan CI dan unit test menunjukkan pemeriksaan otomatis lolos pada lingkungan build, bukan jaminan bahwa seluruh kombinasi perangkat dan versi Android sudah tervalidasi.
 
