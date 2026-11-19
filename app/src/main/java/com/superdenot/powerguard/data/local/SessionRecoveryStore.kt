@@ -119,6 +119,8 @@ object SessionRecoveryStore {
     private const val FIELD_FAILURE_REASON = "failure_reason"
     private const val FIELD_PERSISTED_AT_MS = "persisted_at_ms"
     private const val FIELD_RECOVERY_STATUS = "recovery_status"
+    private const val FIELD_HAS_CURRENT_DATA = "has_current_data"
+    private const val FIELD_HAS_TEMPERATURE_DATA = "has_temperature_data"
 
     // Kunci legacy unscoped (tetap dideteksi untuk migrasi aman / deteksi korup)
     private const val LEGACY_KEY_HAS_RECORD = "has_record"
@@ -389,6 +391,8 @@ object SessionRecoveryStore {
             accumulatedMah = maxOf(existing.accumulatedMah, incoming.accumulatedMah),
             sessionSeconds = maxOf(existing.sessionSeconds, incoming.sessionSeconds),
             maxSessionTemp = maxOf(existing.maxSessionTemp, incoming.maxSessionTemp),
+            hasCurrentData = existing.hasCurrentData || incoming.hasCurrentData,
+            hasTemperatureData = existing.hasTemperatureData || incoming.hasTemperatureData,
             currentSumForAvg = mergedSum,
             currentReadingsCount = mergedCount,
             alertedAnomalyCodes = existing.alertedAnomalyCodes + incoming.alertedAnomalyCodes,
@@ -678,15 +682,21 @@ object SessionRecoveryStore {
             ?: return CheckpointLoadResult.Corrupt("recovery_status hilang atau korup", expectedSessionId)
         val parsedStatus = RecoveryStatus.entries.firstOrNull { it.name == rawStatus }
             ?: return CheckpointLoadResult.Corrupt("recovery_status tidak dikenal ($rawStatus)", expectedSessionId)
+        val hasCurrentData = runCatching { optionalAvailability(FIELD_HAS_CURRENT_DATA) }
+            .getOrElse { return CheckpointLoadResult.Corrupt("has_current_data korup", expectedSessionId) }
+        val hasTemperatureData = runCatching { optionalAvailability(FIELD_HAS_TEMPERATURE_DATA) }
+            .getOrElse { return CheckpointLoadResult.Corrupt("has_temperature_data korup", expectedSessionId) }
 
         return CheckpointLoadResult.Loaded(
             PersistedSessionRecovery(
                 sessionId = expectedSessionId,
                 accumulatedMah = accumulatedMah,
                 sessionSeconds = sessionSeconds,
-                maxSessionTemp = maxSessionTemp,
-                currentSumForAvg = currentSumForAvg,
-                currentReadingsCount = currentReadingsCount,
+                maxSessionTemp = if (hasTemperatureData) maxSessionTemp else 0f,
+                currentSumForAvg = if (hasCurrentData) currentSumForAvg else 0L,
+                currentReadingsCount = if (hasCurrentData) currentReadingsCount else 0L,
+                hasCurrentData = hasCurrentData,
+                hasTemperatureData = hasTemperatureData,
                 alertedAnomalyCodes = anomalyCodes,
                 pendingBatchTimestampMs = pendingBatchTs,
                 hasPendingSample = hasPendingSample,
@@ -767,6 +777,8 @@ object SessionRecoveryStore {
             .putFloat(sessionKey(sid, FIELD_MAX_TEMP), record.maxSessionTemp)
             .putLong(sessionKey(sid, FIELD_CURRENT_SUM), record.currentSumForAvg)
             .putLong(sessionKey(sid, FIELD_CURRENT_COUNT), record.currentReadingsCount)
+            .putBoolean(sessionKey(sid, FIELD_HAS_CURRENT_DATA), record.hasCurrentData)
+            .putBoolean(sessionKey(sid, FIELD_HAS_TEMPERATURE_DATA), record.hasTemperatureData)
             .putStringSet(sessionKey(sid, FIELD_ANOMALY_CODES), record.alertedAnomalyCodes.toSet())
             .putLong(sessionKey(sid, FIELD_PENDING_BATCH_TS), record.pendingBatchTimestampMs)
             .putBoolean(sessionKey(sid, FIELD_HAS_PENDING_SAMPLE), record.hasPendingSample)
@@ -945,6 +957,8 @@ object SessionRecoveryStore {
                     verified.maxSessionTemp == recordToWrite.maxSessionTemp &&
                     verified.currentSumForAvg == recordToWrite.currentSumForAvg &&
                     verified.currentReadingsCount == recordToWrite.currentReadingsCount &&
+                    verified.hasCurrentData == recordToWrite.hasCurrentData &&
+                    verified.hasTemperatureData == recordToWrite.hasTemperatureData &&
                     verified.alertedAnomalyCodes == recordToWrite.alertedAnomalyCodes &&
                     verified.pendingBatchTimestampMs == recordToWrite.pendingBatchTimestampMs &&
                     verified.hasPendingSample == recordToWrite.hasPendingSample &&
@@ -1127,6 +1141,8 @@ object SessionRecoveryStore {
         val sampleTempCelsius: Float,
         val samplePowerWatt: Float,
         val sampleIsScreenOn: Boolean,
+        val hasCurrentData: Boolean = false,
+        val hasTemperatureData: Boolean = false,
         val sampleIsLevelAvailable: Boolean = false,
         val sampleIsCurrentAvailable: Boolean = false,
         val sampleIsVoltageAvailable: Boolean = false,
