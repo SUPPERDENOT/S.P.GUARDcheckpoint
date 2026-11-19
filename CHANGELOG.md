@@ -1,14 +1,27 @@
-## 2026-11-19 — Tahap 1: propagasi availability dan integritas riwayat (sedang dikerjakan)
+## 2026-11-19 — Tahap 1: propagasi availability dan integritas riwayat (selesai)
 
 ### Scope disetujui
-- Sinkronisasi README dengan Application ID final `com.superdenot.superdguard` dan aturan bahwa protokol charging tidak boleh ditebak dari tegangan/arus/daya.
 - Propagasi availability sensor dari Engine/Normalizer/Integrator/Service sampai Room dan checkpoint `RECOVERY_HOLD`.
-- Migrasi Room v1→v2 non-destruktif, pembaruan chart, serta regression/unit test termasuk `AppDatabaseMigrationTest`.
+- Migrasi Room v1→v2 secara non-destruktif dengan default availability `false` untuk data lama.
+- Pemutusan segmen kurva pada sampel unavailable serta status unavailable pada tooltip.
+- Regression/unit tests untuk migrasi, persistence, recovery, dan perlindungan nilai nol yang benar-benar terukur.
+
+### Implementasi
+- Room schema dinaikkan ke v2; seluruh kolom availability baru memiliki Kotlin default `false` dan SQL default `0`.
+- `BatteryDao` menghitung agregat current/temperature hanya dari data valid, menjaga data lama tanpa menandainya sebagai hasil pengukuran yang terverifikasi, dan mengintegrasikan mAh hanya pada pasangan sampel arus yang valid.
+- `SessionRecoveryStore` mempertahankan validasi payload, ownership `sessionId`, merge same-session, serta verifikasi read-back pasca-`commit()`. Checkpoint lama membaca availability sebagai `false`; merge sampel memilih flags sesuai snapshot terbaru dan menggabungkan flags batch berbeda secara konsisten.
+- `BatteryMonitorService` meneruskan availability ke integrator, agregasi berbobot, persistence, sampel final, dan checkpoint `RECOVERY_HOLD`.
+- `ChargingCurveChart` memutus garis di titik unavailable dan menampilkan “Tidak tersedia” pada tooltip; nilai 0 tetap ditampilkan jika flag availability bernilai true.
+- Commit 2A: `7339b1ec` — Room schema, migrasi, dan DAO. Commit 2B: rangkaian implementasi/recovery/regression test hingga `71f438bb`. Commit 3: `48d6c6c0` — finalisasi chart availability.
 
 ### Status verifikasi
-- Dokumentasi diperbarui pada commit ini.
-- Implementasi source, unit test, `testDebugUnitTest`, `AppDatabaseMigrationTest`, dan `assembleDebug`: **NOT RUN / belum selesai**.
-- Tahap 2 belum dimulai. HOLD terhadap merge ke `main` tetap berlaku.
+- GitHub Actions #306 pada commit `48d6c6c0f3354f1e1d80ac1e6b74a9f552542e2c`: **PASS** — `testDebugUnitTest`, `assembleDebug`, dan Anti-Slop UI Audit Gate.
+- Unit test: **129 passed, 0 failed, 0 errors, 0 skipped**; termasuk `AppDatabaseMigrationTest`.
+- Debug APK dan unit-test report berhasil diunggah sebagai artifact workflow.
+- Pengujian perangkat fisik: **NOT RUN** — perubahan ini diverifikasi pada level source, unit test, migrasi, dan build; belum dilakukan validasi runtime perangkat.
+- Tahap 2 belum dimulai. Branch `main` tidak disentuh; HOLD terhadap merge tetap berlaku.
+
+[GitHub Actions #306](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44479587142)
 
 ---
 

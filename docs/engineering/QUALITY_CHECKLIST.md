@@ -1,15 +1,19 @@
-## 2026-11-19 — Tahap 1 availability persistence (in progress)
+## 2026-11-19 — Tahap 1 availability persistence (completed)
 
-- Scope Tahap 1 disetujui dan branch target diverifikasi: PASS — `fix/auto-start-coordinator-timing`.
-- README/Application ID dan batasan diagnostik protokol charging: PASS — dokumentasi pada commit Tahap 1 docs.
-- Propagasi availability Engine → Normalizer → Integrator → Service → Room: NOT RUN — implementasi belum selesai.
-- `RECOVERY_HOLD` mempertahankan flags availability: NOT RUN.
-- Room migration v1→v2 non-destruktif dan schema export: NOT RUN.
-- Chart memutus garis pada sampel unavailable dan tooltip menampilkan unavailable: NOT RUN.
-- Unit/regression tests termasuk `AppDatabaseMigrationTest`: NOT RUN.
-- `testDebugUnitTest` dan `assembleDebug`: NOT RUN — menunggu implementasi selesai dan CI branch.
-- Pengujian perangkat fisik: NOT RUN — bukan target verifikasi source Tahap 1.
+- Scope Tahap 1 dan branch target `fix/auto-start-coordinator-timing`: PASS.
+- Availability domain Engine/Normalizer/Integrator: PASS — sensor/status availability diteruskan tanpa mengubah measured zero menjadi unavailable.
+- BatteryMonitorService: PASS — mAh integrator, current average, temperature maximum, weighted buffer, Room sample, dan final sample digate oleh availability.
+- `RECOVERY_HOLD`: PASS — checkpoint lama default availability false; aggregate availability disimpan; same-session merge dan flags sampel konsisten; validasi ownership dan read-back verification tetap dipertahankan.
+- Room v1→v2: PASS — migrasi additive `ALTER TABLE ... ADD COLUMN ... DEFAULT 0`; data sesi/sampel lama dipertahankan; schema export aktif.
+- DAO aggregates: PASS — current/temperature hanya memakai sampel valid; mAh tidak mengintegrasikan interval yang melintasi sampel unavailable; nilai 0 valid tetap diterima.
+- Charging curve: PASS — path terputus pada unavailable samples; tooltip menunjukkan “Tidak tersedia”; measured zero tetap diplot jika available.
+- Unit/regression tests: PASS — 129 tests, 0 failed/errors/skipped; `AppDatabaseMigrationTest` termasuk.
+- GitHub Actions #306: PASS — `testDebugUnitTest`, `assembleDebug`, dan Anti-Slop UI Audit Gate.
+- Debug APK dan unit-test report artifacts: PASS — diunggah oleh workflow.
+- UI/UX review: PASS — hanya perilaku data chart yang diubah; arah visual dan komponen yang ada dipertahankan.
+- Pengujian perangkat fisik: NOT RUN — tidak diklaim sebagai verifikasi source/CI.
 - Tahap 2 dan merge ke `main`: HOLD.
+
 
 ---
 
