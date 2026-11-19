@@ -2194,7 +2194,7 @@ class BatteryMonitorService : Service() {
                 maxSessionTemp = maxOf(
                     reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
                     state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
-                    unappliedRecovery?.maxSessionTemp?.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
+                    unappliedRecovery?.takeIf { it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
                 )
 
                 if (unappliedRecovery != null && unappliedRecovery.currentReadingsCount > 0L) {
@@ -2227,7 +2227,7 @@ class BatteryMonitorService : Service() {
                             endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                             state = pendingSampleState,
                             weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
+                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
                         )
                     )
                 } else {
@@ -2243,7 +2243,7 @@ class BatteryMonitorService : Service() {
                     maxSessionTemp,
                     reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
                     state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
-                    unappliedRecovery?.maxSessionTemp?.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
+                    unappliedRecovery?.takeIf { it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
                 )
                 if (sampleBuffer.isEmpty() && unappliedRecovery != null) {
                     val pendingSampleState = unappliedRecovery.toCompactedLiveBatteryState()
@@ -2256,7 +2256,7 @@ class BatteryMonitorService : Service() {
                                 endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                                 state = pendingSampleState,
                                 weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                                maxTempCelsius = unappliedRecovery.maxSessionTemp
+                                maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
                             )
                         )
                     }
@@ -2962,7 +2962,7 @@ class BatteryMonitorService : Service() {
         val healthLog = buildHealthLogEntityIfEligible(sessionId, existingSession, endLevel, now)
         val effectiveMaxTemp = maxOf(
             maxSessionTemp,
-            pendingEntriesSnapshot.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
+            pendingEntriesSnapshot.filter { it.state.isTemperatureAvailable }.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
         )
 
         val status = dao.finalizeSessionAtomically(
