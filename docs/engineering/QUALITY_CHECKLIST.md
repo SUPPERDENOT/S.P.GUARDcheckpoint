@@ -1,3 +1,15 @@
+## 2026-11-19 — Reproducible debug signing (verification pending)
+
+- Dedicated development keystore added at `app/debug.keystore`: PASS — alias and credentials verified with keytool.
+- Only `buildTypes.debug` is explicitly assigned the repository debug signing config: PASS — source review.
+- Release signing configuration and release build type: N/A — untouched.
+- `assembleDebug` after this change: NOT RUN — awaiting CI.
+- `testDebugUnitTest` after this change: NOT RUN — awaiting CI.
+- Physical install/update test: NOT RUN — requires device validation.
+- Debug signing key is development-only and must never be used for production/release signing.
+- One-time migration note: an already-installed APK signed with a different debug certificate must be uninstalled before installing this fixed-signature build; subsequent local/CI debug updates use the same certificate.
+- Branch `main` untouched; merge remains HOLD.
+
 ## 2026-11-19 — Tahap 2 lifecycle fallback dan Status Bar Indicator (completed)
 
 - Scope sesuai persetujuan Tahap 2: PASS.

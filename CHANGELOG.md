@@ -1,3 +1,20 @@
+## 2026-11-19 — Reproducible debug signing (implementasi; CI menunggu)
+
+### Perubahan
+- Menambahkan `app/debug.keystore` tetap dengan alias `androiddebugkey`, store/key password standar `android`, RSA 2048, dan sertifikat pengembangan.
+- Mengarahkan hanya `buildTypes.debug` ke `signingConfigs.debug` pada `app/build.gradle.kts`. Konfigurasi release tidak diubah.
+- Fingerprint sertifikat debug tetap: SHA-1 `AF:4C:A2:92:11:1D:E4:58:2F:A2:18:76:C3:EF:D4:F9:7C:0C:7C:B2`; SHA-256 `9B:46:72:71:9E:99:5A:93:32:FF:DD:FF:4B:8B:07:36:45:0D:31:4F:C9:C0:D9:14:4B:F8:95:F7:A1:A8:63:1F`.
+- Keystore ini khusus pengembangan dan berada di repository; jangan gunakan untuk release/production signing.
+
+### Status verifikasi
+- Source/configuration review: PASS.
+- `assembleDebug` dan `testDebugUnitTest` setelah perubahan: NOT RUN — menunggu GitHub Actions.
+- Pengujian instalasi/update pada perangkat fisik: NOT RUN.
+- Catatan kompatibilitas: APK lama yang ditandatangani dengan debug key lain tidak dapat diperbarui dengan key baru. Jika signature lama berbeda, uninstall satu kali sebelum memasang APK bertanda tangan tetap ini; setelah itu build lokal dan CI dapat saling memperbarui selama menggunakan keystore repository yang sama.
+- Branch `main` tidak disentuh; merge tetap HOLD.
+
+---
+
 ## 2026-11-19 — Tahap 2: lifecycle fallback dan pemisahan Status Bar Indicator (selesai)
 
 ### Scope disetujui
