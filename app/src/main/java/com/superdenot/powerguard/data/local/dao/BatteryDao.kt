@@ -260,13 +260,14 @@ interface BatteryDao {
             .ifEmpty { null }
 
         val targetTotalMah = maxOf(currentSession.totalMahDelivered, totalMahDelivered)
-        val targetMaxTemp = maxOf(currentSession.maxTempCelsius, maxTempCelsius)
+        val hasTemperatureData = currentSession.hasTemperatureData || sample.isTemperatureAvailable
+        val targetMaxTemp = if (hasTemperatureData) maxOf(currentSession.maxTempCelsius, maxTempCelsius) else currentSession.maxTempCelsius
 
         updateSession(
             currentSession.copy(
                 totalMahDelivered = targetTotalMah,
                 avgCurrentMa = if (sample.isCurrentAvailable || currentSession.hasCurrentData) avgCurrentMa else currentSession.avgCurrentMa,
-                maxTempCelsius = if (sample.isTemperatureAvailable || currentSession.hasTemperatureData) targetMaxTemp else currentSession.maxTempCelsius,
+                maxTempCelsius = targetMaxTemp,
                 hasCurrentData = currentSession.hasCurrentData || sample.isCurrentAvailable,
                 hasTemperatureData = currentSession.hasTemperatureData || sample.isTemperatureAvailable,
                 isAnomaly = currentSession.isAnomaly || hasAnomaly,
@@ -329,7 +330,9 @@ interface BatteryDao {
             .ifEmpty { null }
 
         val targetTotalMah = maxOf(existing.totalMahDelivered, recoveredTotalMah)
-        val targetMaxTemp = maxOf(existing.maxTempCelsius, recoveredMaxTempCelsius)
+        val hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData ||
+            recoveredSample?.isTemperatureAvailable == true
+        val targetMaxTemp = if (hasTemperatureData) maxOf(existing.maxTempCelsius, recoveredMaxTempCelsius) else existing.maxTempCelsius
 
         updateSession(
             existing.copy(
@@ -337,7 +340,7 @@ interface BatteryDao {
                 // Recovery snapshots can lag behind a newer Room flush. Never replace a
                 // durable non-zero average with an older checkpoint value.
                 avgCurrentMa = if (!existing.hasCurrentData && (recoveredHasCurrentData || recoveredSample?.isCurrentAvailable == true)) recoveredAvgCurrentMa else existing.avgCurrentMa,
-                maxTempCelsius = if (recoveredHasTemperatureData || recoveredSample?.isTemperatureAvailable == true || existing.hasTemperatureData) targetMaxTemp else existing.maxTempCelsius,
+                maxTempCelsius = targetMaxTemp,
                 hasCurrentData = existing.hasCurrentData || recoveredHasCurrentData || recoveredSample?.isCurrentAvailable == true,
                 hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData || recoveredSample?.isTemperatureAvailable == true,
                 isAnomaly = mergedAnomaly,
@@ -414,7 +417,8 @@ interface BatteryDao {
         val resolvedEndTime = maxOf(endTime, targetSession.startTime)
         val resolvedEndLevel = if (endLevel in 0..100) endLevel else targetSession.startLevel
         val targetTotalMah = maxOf(targetSession.totalMahDelivered, totalMahDelivered)
-        val targetMaxTemp = maxOf(targetSession.maxTempCelsius, maxTempCelsius)
+        val hasTemperatureData = targetSession.hasTemperatureData || finalSample?.isTemperatureAvailable == true
+        val targetMaxTemp = if (hasTemperatureData) maxOf(targetSession.maxTempCelsius, maxTempCelsius) else targetSession.maxTempCelsius
 
         updateSession(
             targetSession.copy(
@@ -422,7 +426,7 @@ interface BatteryDao {
                 endLevel = resolvedEndLevel,
                 totalMahDelivered = targetTotalMah,
                 avgCurrentMa = if (finalSample?.isCurrentAvailable == true || targetSession.hasCurrentData) avgCurrentMa else targetSession.avgCurrentMa,
-                maxTempCelsius = if (finalSample?.isTemperatureAvailable == true || targetSession.hasTemperatureData) targetMaxTemp else targetSession.maxTempCelsius,
+                maxTempCelsius = targetMaxTemp,
                 hasCurrentData = targetSession.hasCurrentData || finalSample?.isCurrentAvailable == true,
                 hasTemperatureData = targetSession.hasTemperatureData || finalSample?.isTemperatureAvailable == true,
                 isAnomaly = targetSession.isAnomaly || hasAnomaly,
