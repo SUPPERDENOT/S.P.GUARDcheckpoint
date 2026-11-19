@@ -101,4 +101,60 @@ class FallbackSensorPollerTest {
 
         assertEquals(listOf(40, 41, 42), levels)
     }
+
+    @Test
+    fun pausesPollingWhenAppIsBackgroundedAndResumesWhenForegroundReturns() = runTest {
+        val poller = FallbackSensorPoller()
+        var foreground = false
+        var reads = 0
+        backgroundScope.launch {
+            poller.runWhileActive(
+                isAppForeground = { foreground },
+                isBatteryMonitoringEnabled = { true },
+                isServiceDataFresh = { false },
+                readSnapshot = { reads++; LiveBatteryState(level = 70) },
+                onSnapshot = {},
+                onReadError = { throw AssertionError("Unexpected sensor error", it) }
+            )
+        }
+        runCurrent()
+        advanceTimeBy(3_000L)
+        runCurrent()
+        assertEquals(0, reads)
+        foreground = true
+        advanceTimeBy(1_500L)
+        runCurrent()
+        assertEquals(1, reads)
+    }
+
+    @Test
+    fun pausesPollingWhenBatteryMonitoringIsOffAndRequiresBothGatesToResume() = runTest {
+        val poller = FallbackSensorPoller()
+        var foreground = true
+        var enabled = false
+        var reads = 0
+        backgroundScope.launch {
+            poller.runWhileActive(
+                isAppForeground = { foreground },
+                isBatteryMonitoringEnabled = { enabled },
+                isServiceDataFresh = { false },
+                readSnapshot = { reads++; LiveBatteryState(level = 71) },
+                onSnapshot = {},
+                onReadError = { throw AssertionError("Unexpected sensor error", it) }
+            )
+        }
+        runCurrent()
+        advanceTimeBy(1_500L)
+        runCurrent()
+        assertEquals(0, reads)
+        enabled = true
+        advanceTimeBy(1_500L)
+        runCurrent()
+        assertEquals(1, reads)
+        foreground = false
+        advanceTimeBy(1_500L)
+        runCurrent()
+        assertEquals(1, reads)
+    }
+
 }
