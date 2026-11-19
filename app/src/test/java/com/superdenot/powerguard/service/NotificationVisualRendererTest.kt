@@ -307,7 +307,14 @@ class NotificationVisualRendererTest {
                 isChargingStatusAvailable = false
             )
             val indicator = service.buildStatusBarIndicatorNotificationForTesting(unavailable)
-            assertTrue(indicator.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("N/A"))
+            assertNotNull(indicator.smallIcon)
+            assertEquals(
+                "N/A",
+                LiveStatusBarRenderer.format(
+                    unavailable,
+                    com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
+                )
+            )
 
             val channel = manager.getNotificationChannel("powerguard_status_bar_indicator")
             assertNotNull(channel)
