@@ -2473,4 +2473,73 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals(610.0, faultDao.getSessionById(sessionId)!!.totalMahDelivered, 0.001)
     }
 
+
+    @Test
+    fun recoveryCheckpoint_preservesAvailabilityAndLegacyMissingFlagsDefaultFalse() = runTest {
+        val sessionId = 909_001L
+        val valid = buildRecoveryCheckpoint(sessionId).copy(
+            sampleIsLevelAvailable = true,
+            sampleIsCurrentAvailable = true,
+            sampleIsVoltageAvailable = true,
+            sampleIsTemperatureAvailable = true,
+            sampleIsPowerAvailable = true,
+            sampleIsChargingStatusAvailable = true,
+            sampleIsCharging = true
+        )
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, valid).isSuccess)
+        val loaded = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertTrue(loaded.sampleIsCurrentAvailable)
+        assertTrue(loaded.sampleIsTemperatureAvailable)
+        assertTrue(loaded.sampleIsChargingStatusAvailable)
+        assertTrue(loaded.sampleIsCharging)
+
+        val prefs = context.getSharedPreferences("powerguard_session_recovery", Context.MODE_PRIVATE)
+        val prefix = "s_${sessionId}_"
+        assertTrue(
+            prefs.edit()
+                .remove(prefix + "sample_level_available")
+                .remove(prefix + "sample_current_available")
+                .remove(prefix + "sample_voltage_available")
+                .remove(prefix + "sample_temp_available")
+                .remove(prefix + "sample_power_available")
+                .remove(prefix + "sample_charging_status_available")
+                .remove(prefix + "sample_is_charging")
+                .commit()
+        )
+        val legacyLoaded = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertFalse(legacyLoaded.sampleIsLevelAvailable)
+        assertFalse(legacyLoaded.sampleIsCurrentAvailable)
+        assertFalse(legacyLoaded.sampleIsVoltageAvailable)
+        assertFalse(legacyLoaded.sampleIsTemperatureAvailable)
+        assertFalse(legacyLoaded.sampleIsPowerAvailable)
+        assertFalse(legacyLoaded.sampleIsChargingStatusAvailable)
+        assertFalse(legacyLoaded.sampleIsCharging)
+    }
+
+    @Test
+    fun recoveryCheckpoint_sameTimestampMergeUsesPrimaryAvailabilityFlags() = runTest {
+        val sessionId = 909_002L
+        val first = buildRecoveryCheckpoint(sessionId).copy(
+            sampleWeight = 1,
+            sampleIsCurrentAvailable = true,
+            sampleIsTemperatureAvailable = false,
+            persistedAtMs = 1_000L
+        )
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, first).isSuccess)
+        val newer = first.copy(
+            sampleWeight = 2,
+            sampleCurrentMa = 0,
+            sampleTempCelsius = 0f,
+            sampleIsCurrentAvailable = false,
+            sampleIsTemperatureAvailable = true,
+            persistedAtMs = 2_000L
+        )
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, newer).isSuccess)
+        val merged = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertFalse(merged.sampleIsCurrentAvailable)
+        assertTrue(merged.sampleIsTemperatureAvailable)
+        assertEquals(0, merged.sampleCurrentMa)
+        assertEquals(0f, merged.sampleTempCelsius, 0.001f)
+    }
+
 }
