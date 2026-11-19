@@ -1,42 +1,37 @@
 package com.superdenot.powerguard.domain.engine
 
-/**
- * Mengintegrasikan arus charging menjadi mAh berdasarkan waktu monotonic aktual.
- * Menggunakan integrasi trapezoidal agar perubahan arus antar-sampel tidak
- * diasumsikan langsung konstan pada nilai sampel terbaru.
- *
- * Sampel pertama hanya menetapkan baseline. Gap terlalu panjang dibuang agar
- * arus lama tidak diekstrapolasi saat loop/service sempat tertahan.
- */
+/** Trapezoidal mAh integration; unavailable samples break the integration baseline. */
 class ChargingMahIntegrator(
     private val maxSampleGapMs: Long = DEFAULT_MAX_SAMPLE_GAP_MS
 ) {
     private var lastSampleElapsedRealtimeMs: Long? = null
     private var lastPositiveCurrentMa: Int = 0
 
-    init {
-        require(maxSampleGapMs > 0L)
-    }
+    init { require(maxSampleGapMs > 0L) }
 
-    fun addSample(currentMa: Int, elapsedRealtimeMs: Long): Double {
+    fun addSample(
+        currentMa: Int,
+        elapsedRealtimeMs: Long,
+        isCurrentAvailable: Boolean = true
+    ): Double {
+        if (!isCurrentAvailable) {
+            reset()
+            return 0.0
+        }
         val previousTime = lastSampleElapsedRealtimeMs
         if (previousTime == null) {
             lastSampleElapsedRealtimeMs = elapsedRealtimeMs
             lastPositiveCurrentMa = currentMa.coerceAtLeast(0)
             return 0.0
         }
-
         if (elapsedRealtimeMs <= previousTime) return 0.0
-
         val deltaMs = elapsedRealtimeMs - previousTime
         val positiveCurrentMa = currentMa.coerceAtLeast(0)
         lastSampleElapsedRealtimeMs = elapsedRealtimeMs
-
         if (deltaMs > maxSampleGapMs) {
             lastPositiveCurrentMa = positiveCurrentMa
             return 0.0
         }
-
         val averageCurrentMa = (lastPositiveCurrentMa.toDouble() + positiveCurrentMa.toDouble()) / 2.0
         lastPositiveCurrentMa = positiveCurrentMa
         return averageCurrentMa * deltaMs.toDouble() / MILLIS_PER_HOUR

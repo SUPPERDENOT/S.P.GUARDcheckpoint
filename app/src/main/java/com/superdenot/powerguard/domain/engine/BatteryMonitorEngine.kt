@@ -67,8 +67,12 @@ class BatteryMonitorEngine(private val context: Context) {
         val tempCelsius = tempTenths / 10f
 
         val rawCurrent = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
-        val isCurrentAvailable = rawCurrent != Int.MIN_VALUE
-        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(rawCurrent, isCharging)
+        val isCurrentAvailable = rawCurrent != Int.MIN_VALUE && isChargingStatusAvailable
+        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(
+            rawCurrent,
+            isCharging,
+            isChargingStatusAvailable
+        )
 
         val isPowerAvailable = isVoltageAvailable && isCurrentAvailable
         val powerWatt = if (isPowerAvailable) {
