@@ -301,6 +301,7 @@ class NotificationVisualRendererTest {
                 )
             )
             service.setBatteryMonitoringEnabledForTesting(true)
+            service.setActorRunningForTesting()
             val unavailable = LiveBatteryState(
                 isCurrentAvailable = false,
                 isChargingStatusAvailable = false
