@@ -133,11 +133,15 @@ class BatteryMonitorService : Service() {
         val weight: Int = 1,
         val maxTempCelsius: Float = state.tempCelsius,
         // Simpan jumlah berbobot asli agar pemadatan berulang tidak mengakumulasi galat pembulatan.
-        val weightedCurrentMaSum: Long = state.currentMa.toLong() * weight.coerceAtLeast(1),
-        val weightedVoltageMvSum: Long = state.voltageMv.toLong() * weight.coerceAtLeast(1),
-        val weightedTempCelsiusSum: Double = state.tempCelsius.toDouble() * weight.coerceAtLeast(1),
-        val weightedPowerWattSum: Double = state.powerWatt.toDouble() * weight.coerceAtLeast(1),
-        val weightedDeepSleepRatioSum: Double = state.deepSleepRatio.toDouble() * weight.coerceAtLeast(1)
+        val weightedCurrentMaSum: Long = if (state.isCurrentAvailable) state.currentMa.toLong() * weight.coerceAtLeast(1) else 0L,
+        val weightedVoltageMvSum: Long = if (state.isVoltageAvailable) state.voltageMv.toLong() * weight.coerceAtLeast(1) else 0L,
+        val weightedTempCelsiusSum: Double = if (state.isTemperatureAvailable) state.tempCelsius.toDouble() * weight.coerceAtLeast(1) else 0.0,
+        val weightedPowerWattSum: Double = if (state.isPowerAvailable) state.powerWatt.toDouble() * weight.coerceAtLeast(1) else 0.0,
+        val weightedDeepSleepRatioSum: Double = state.deepSleepRatio.toDouble() * weight.coerceAtLeast(1),
+        val weightedCurrentMaWeight: Int = if (state.isCurrentAvailable) weight.coerceAtLeast(1) else 0,
+        val weightedVoltageMvWeight: Int = if (state.isVoltageAvailable) weight.coerceAtLeast(1) else 0,
+        val weightedTempCelsiusWeight: Int = if (state.isTemperatureAvailable) weight.coerceAtLeast(1) else 0,
+        val weightedPowerWattWeight: Int = if (state.isPowerAvailable) weight.coerceAtLeast(1) else 0
     )
 
     private data class WeightedBatchMetrics(
@@ -148,6 +152,14 @@ class BatteryMonitorService : Service() {
         val weightedTempCelsiusSum: Double,
         val weightedPowerWattSum: Double,
         val weightedDeepSleepRatioSum: Double,
+        val weightedCurrentMaWeight: Int,
+        val weightedVoltageMvWeight: Int,
+        val weightedTempCelsiusWeight: Int,
+        val weightedPowerWattWeight: Int,
+        val isCurrentAvailable: Boolean,
+        val isVoltageAvailable: Boolean,
+        val isTemperatureAvailable: Boolean,
+        val isPowerAvailable: Boolean,
         val weightedCurrentMa: Int,
         val weightedVoltageMv: Int,
         val weightedTempCelsius: Float,
@@ -1353,11 +1365,19 @@ class BatteryMonitorService : Service() {
         val weightedTempCelsiusSum = entries.sumOf { it.weightedTempCelsiusSum }
         val weightedPowerWattSum = entries.sumOf { it.weightedPowerWattSum }
         val weightedDeepSleepRatioSum = entries.sumOf { it.weightedDeepSleepRatioSum }
-        val weightedCurrentMa = (weightedCurrentMaSum / totalWeight).toInt()
-        val weightedVoltageMv = (weightedVoltageMvSum / totalWeight).toInt()
-        val weightedTempCelsius = (weightedTempCelsiusSum / totalWeight).toFloat()
-        val maxTempCelsius = entries.maxOf { maxOf(it.maxTempCelsius, it.state.tempCelsius) }
-        val weightedPowerWatt = (weightedPowerWattSum / totalWeight).toFloat()
+        val weightedCurrentMaWeight = entries.sumOf { it.weightedCurrentMaWeight }
+        val weightedVoltageMvWeight = entries.sumOf { it.weightedVoltageMvWeight }
+        val weightedTempCelsiusWeight = entries.sumOf { it.weightedTempCelsiusWeight }
+        val weightedPowerWattWeight = entries.sumOf { it.weightedPowerWattWeight }
+        val isCurrentAvailable = weightedCurrentMaWeight > 0
+        val isVoltageAvailable = weightedVoltageMvWeight > 0
+        val isTemperatureAvailable = weightedTempCelsiusWeight > 0
+        val isPowerAvailable = weightedPowerWattWeight > 0
+        val weightedCurrentMa = if (isCurrentAvailable) (weightedCurrentMaSum / weightedCurrentMaWeight).toInt() else 0
+        val weightedVoltageMv = if (isVoltageAvailable) (weightedVoltageMvSum / weightedVoltageMvWeight).toInt() else 0
+        val weightedTempCelsius = if (isTemperatureAvailable) (weightedTempCelsiusSum / weightedTempCelsiusWeight).toFloat() else 0f
+        val maxTempCelsius = entries.filter { it.state.isTemperatureAvailable }.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
+        val weightedPowerWatt = if (isPowerAvailable) (weightedPowerWattSum / weightedPowerWattWeight).toFloat() else 0f
         val weightedDeepSleepRatio = (weightedDeepSleepRatioSum / totalWeight).toFloat().coerceIn(0f, 1f)
         return WeightedBatchMetrics(
             totalWeight = totalWeight,
@@ -1367,6 +1387,14 @@ class BatteryMonitorService : Service() {
             weightedTempCelsiusSum = weightedTempCelsiusSum,
             weightedPowerWattSum = weightedPowerWattSum,
             weightedDeepSleepRatioSum = weightedDeepSleepRatioSum,
+            weightedCurrentMaWeight = weightedCurrentMaWeight,
+            weightedVoltageMvWeight = weightedVoltageMvWeight,
+            weightedTempCelsiusWeight = weightedTempCelsiusWeight,
+            weightedPowerWattWeight = weightedPowerWattWeight,
+            isCurrentAvailable = isCurrentAvailable,
+            isVoltageAvailable = isVoltageAvailable,
+            isTemperatureAvailable = isTemperatureAvailable,
+            isPowerAvailable = isPowerAvailable,
             weightedCurrentMa = weightedCurrentMa,
             weightedVoltageMv = weightedVoltageMv,
             weightedTempCelsius = weightedTempCelsius,
@@ -1463,6 +1491,13 @@ class BatteryMonitorService : Service() {
                 sampleTempCelsius = metrics.weightedTempCelsius,
                 samplePowerWatt = metrics.weightedPowerWatt,
                 sampleIsScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false),
+                sampleIsLevelAvailable = metrics.latestState.isLevelAvailable,
+                sampleIsCurrentAvailable = metrics.isCurrentAvailable,
+                sampleIsVoltageAvailable = metrics.isVoltageAvailable,
+                sampleIsTemperatureAvailable = metrics.isTemperatureAvailable,
+                sampleIsPowerAvailable = metrics.isPowerAvailable,
+                sampleIsChargingStatusAvailable = metrics.latestState.isChargingStatusAvailable,
+                sampleIsCharging = metrics.latestState.isCharging,
                 sampleWeight = metrics.totalWeight,
                 sampleSpanDurationMs = metrics.spanDurationMs,
                 dbSessionsClosed = dbSessionsClosed,
@@ -1775,13 +1810,16 @@ class BatteryMonitorService : Service() {
                             sessionSeconds = sessionDurationTracker.elapsedSeconds(SystemClock.elapsedRealtime())
                             accumulatedMah += chargingMahIntegrator.addSample(
                                 currentMa = effectiveSensor.currentMa,
-                                elapsedRealtimeMs = SystemClock.elapsedRealtime()
+                                elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                                isCurrentAvailable = effectiveSensor.isCurrentAvailable
                             )
-                            if (effectiveSensor.tempCelsius > maxSessionTemp) {
+                            if (effectiveSensor.isTemperatureAvailable && effectiveSensor.tempCelsius > maxSessionTemp) {
                                 maxSessionTemp = effectiveSensor.tempCelsius
                             }
-                            currentSumForAvg += effectiveSensor.currentMa
-                            currentReadingsCount++
+                            if (effectiveSensor.isCurrentAvailable) {
+                                currentSumForAvg += effectiveSensor.currentMa
+                                currentReadingsCount++
+                            }
 
                             val anomaly = anomalyDetector.evaluate(effectiveSensor, isScreenOn)
                             if (anomaly.isAnomaly && anomaly.code != null && anomaly.message != null) {
@@ -2375,7 +2413,11 @@ class BatteryMonitorService : Service() {
                     weightedVoltageMvSum = metrics.weightedVoltageMvSum,
                     weightedTempCelsiusSum = metrics.weightedTempCelsiusSum,
                     weightedPowerWattSum = metrics.weightedPowerWattSum,
-                    weightedDeepSleepRatioSum = metrics.weightedDeepSleepRatioSum
+                    weightedDeepSleepRatioSum = metrics.weightedDeepSleepRatioSum,
+                    weightedCurrentMaWeight = metrics.weightedCurrentMaWeight,
+                    weightedVoltageMvWeight = metrics.weightedVoltageMvWeight,
+                    weightedTempCelsiusWeight = metrics.weightedTempCelsiusWeight,
+                    weightedPowerWattWeight = metrics.weightedPowerWattWeight
                 )
             )
         }
@@ -2406,7 +2448,14 @@ class BatteryMonitorService : Service() {
             voltageMv = metrics.weightedVoltageMv,
             tempCelsius = metrics.weightedTempCelsius,
             powerWatt = metrics.weightedPowerWatt,
-            isScreenOn = isScreenOn
+            isScreenOn = isScreenOn,
+            isLevelAvailable = latest.isLevelAvailable,
+            isCurrentAvailable = metrics.isCurrentAvailable,
+            isVoltageAvailable = metrics.isVoltageAvailable,
+            isTemperatureAvailable = metrics.isTemperatureAvailable,
+            isPowerAvailable = metrics.isPowerAvailable,
+            isChargingStatusAvailable = latest.isChargingStatusAvailable,
+            isCharging = latest.isCharging
         )
 
         val flushStatus = try {
@@ -2603,7 +2652,14 @@ class BatteryMonitorService : Service() {
             voltageMv = metrics.weightedVoltageMv,
             tempCelsius = metrics.weightedTempCelsius,
             powerWatt = metrics.weightedPowerWatt,
-            isScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false)
+            isScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false),
+            isLevelAvailable = latest.isLevelAvailable,
+            isCurrentAvailable = metrics.isCurrentAvailable,
+            isVoltageAvailable = metrics.isVoltageAvailable,
+            isTemperatureAvailable = metrics.isTemperatureAvailable,
+            isPowerAvailable = metrics.isPowerAvailable,
+            isChargingStatusAvailable = latest.isChargingStatusAvailable,
+            isCharging = latest.isCharging
         )
     }
 
