@@ -95,12 +95,11 @@ interface BatteryDao {
         val consistentAvgCurrentMa = when {
             fresh.hasCurrentData -> fresh.avgCurrentMa
             validCurrentSamples.isNotEmpty() -> validCurrentSamples.map { it.currentMa.toLong() }.average().toInt()
-            else -> 0
+            else -> fresh.avgCurrentMa
         }
         val consistentMaxTemp = if (fresh.hasTemperatureData || validTemperatureSamples.isNotEmpty()) {
-            maxOf(fresh.maxTempCelsius.takeIf { fresh.hasTemperatureData } ?: 0f,
-                validTemperatureSamples.maxOfOrNull { it.tempCelsius } ?: 0f)
-        } else 0f
+            maxOf(fresh.maxTempCelsius, validTemperatureSamples.maxOfOrNull { it.tempCelsius } ?: 0f)
+        } else fresh.maxTempCelsius
         val consistentTotalMah = if (fresh.totalMahDelivered > 0.0) {
             fresh.totalMahDelivered
         } else if (samples.size >= 2) {
