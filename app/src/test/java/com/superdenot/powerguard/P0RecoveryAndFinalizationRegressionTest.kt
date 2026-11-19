@@ -1163,6 +1163,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 startLevel = 28,
                 totalMahDelivered = 340.0,
                 avgCurrentMa = 1650,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "FAST (AC Adapter)"
             )
@@ -1189,6 +1191,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 85,
                 totalMahDelivered = 1920.0,
                 avgCurrentMa = 2100,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 38.8f,
                 chargerType = "AC Adapter",
                 anomalyReason = "THERMAL_THROTTLING",
@@ -1459,6 +1463,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 55,
                 totalMahDelivered = 400.0,
                 avgCurrentMa = 1500,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "AC Adapter"
             )
@@ -2152,6 +2158,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 60,
                 totalMahDelivered = 500.0,
                 avgCurrentMa = 1500,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "AC Adapter",
                 isAnomaly = true,
@@ -2472,6 +2480,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 60,
                 totalMahDelivered = 400.0,
                 avgCurrentMa = 1500,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "AC Adapter"
             )
