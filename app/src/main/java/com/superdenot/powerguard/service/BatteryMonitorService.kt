@@ -2238,7 +2238,7 @@ class BatteryMonitorService : Service() {
                             endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                             state = pendingSampleState,
                             weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.hasTemperatureData } ?: 0f.takeIf { unappliedRecovery.sampleIsTemperatureAvailable } ?: 0f
+                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.hasTemperatureData } ?: 0f
                         )
                     )
                 } else {
@@ -3237,6 +3237,7 @@ class BatteryMonitorService : Service() {
             sessionDurationTracker.reset()
         }
         this.maxSessionTemp = maxSessionTemp
+        this.hasSessionTemperatureData = maxSessionTemp > 0f || bufferedSamples.any { it.isTemperatureAvailable }
         this.currentSumForAvg = currentSumForAvg
         this.currentReadingsCount = currentReadingsCount
         this.alertedAnomalyCodes.clear()
