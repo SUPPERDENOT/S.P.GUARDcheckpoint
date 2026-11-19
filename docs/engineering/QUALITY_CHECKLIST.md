@@ -9,9 +9,9 @@
 - Status Bar Indicator: PASS — notification ID 1003 dan channel terpisah; channel IMPORTANCE_LOW, tanpa suara/getar; update hanya saat kedua toggle ON dan service aktif.
 - Cleanup indikator: PASS — status toggle OFF, Battery Monitoring OFF, actor STOPPED, dan service onDestroy membatalkan notification indikator.
 - Kebenaran data: PASS — formatter menampilkan N/A untuk metric/status yang unavailable dan mempertahankan measured zero yang valid.
-- Regression/unit tests: PASS — 136 tests pada workflow final.
-- Android build: PASS — assembleDebug pada workflow final; APK debug berhasil diunggah.
-- Anti-Slop UI Audit Gate: PASS — workflow #317.
+- Regression/unit tests: PASS — 136 tests pada workflow final #320; test harness memberikan POST_NOTIFICATIONS dan memakai ShadowNotificationManager untuk verifikasi notification posting/cancel.
+- Android build: PASS — assembleDebug pada workflow #320; APK debug berhasil diunggah.
+- Anti-Slop UI Audit Gate: PASS — workflow #320.
 - UI screen review: N/A — tidak ada perubahan layout/screen Compose; perubahan visual terbatas pada notification surface yang tidak dicakup DESIGN.md.
 - Pengujian perangkat fisik: NOT RUN — status ikon di System UI, suara/getar channel pada OEM, serta lifecycle polling di perangkat nyata masih perlu diuji.
 - CHANGELOG dan checklist diperbarui; app version/build number, package, SDK, dan dependencies tidak diubah.

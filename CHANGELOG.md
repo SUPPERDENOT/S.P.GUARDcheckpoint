@@ -16,14 +16,14 @@
 - Formatter indikator tetap membedakan nilai 0 yang valid dari sensor/status charging yang unavailable (`N/A`).
 
 ### Status verifikasi
-- GitHub Actions #317 pada commit `c1a679079bee52d050a3f73a12f60cc529990ba3`: **PASS** — `testDebugUnitTest`, `assembleDebug`, dan Anti-Slop UI Audit Gate.
-- Unit test: **136 tests** — seluruhnya lulus pada workflow final.
+- GitHub Actions #320 pada commit `87794ef755cb6a4a78d8d008aba9619e8d38afc1`: **PASS** — `testDebugUnitTest`, `assembleDebug`, dan Anti-Slop UI Audit Gate.
+- Unit test: **136 tests** — seluruhnya lulus pada workflow final. Commit aplikasi utama `c1a679079bee52d050a3f73a12f60cc529990ba3` juga lulus pada workflow #317.
 - Debug APK dan unit-test report berhasil diunggah sebagai artifact workflow.
-- CI iterasi awal menemukan assertion test notification yang tidak stabil pada pembacaan extras Robolectric; assertion diperbaiki dengan menguji kontrak formatter unavailable secara langsung. Workflow final #317 PASS.
+- Iterasi CI awal menemukan dua masalah pada test harness notification: pembacaan `Notification.EXTRA_TEXT` dan inspeksi `activeNotifications` tidak stabil pada Robolectric. Regression test diperbaiki dengan menguji formatter secara langsung, memberi izin `POST_NOTIFICATIONS`, dan memeriksa hasil melalui `ShadowNotificationManager`. Workflow final #320 PASS.
 - Pengujian perangkat fisik: **NOT RUN** — visibilitas ikon di System UI, perilaku channel OEM, dan polling pada transisi foreground/background tetap memerlukan validasi pada perangkat.
 - Branch `main` tidak disentuh. Merge tetap **HOLD** sampai Tahap 2 dan pengujian fisik disetujui.
 
-[GitHub Actions #317](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44484915097)
+[GitHub Actions #320](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44487118987)
 
 ---
 
