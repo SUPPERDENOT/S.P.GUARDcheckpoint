@@ -103,7 +103,6 @@ fun ChargingCurveChart(
         } else {
             val currentSamples = samples.filter { it.isCurrentAvailable }
             val temperatureSamples = samples.filter { it.isTemperatureAvailable }
-            val levelSamples = samples.filter { it.isLevelAvailable }
             val minMa = if (currentSamples.isNotEmpty()) min(0f, currentSamples.minOf { it.currentMa.toFloat() }) else 0f
             val maxMa = if (currentSamples.isNotEmpty()) max(500f, currentSamples.maxOf { it.currentMa.toFloat() }) else 500f
             val minTemp = if (temperatureSamples.isNotEmpty()) min(20f, temperatureSamples.minOf { it.tempCelsius }) else 20f
@@ -159,6 +158,7 @@ fun ChargingCurveChart(
                     var segmentOpen = false
                     samples.forEachIndexed { index, sample ->
                         if (!availabilitySelector(sample)) {
+                            // Missing readings terminate the current segment; never interpolate across unavailable data.
                             segmentOpen = false
                         } else {
                             val point = Offset(
