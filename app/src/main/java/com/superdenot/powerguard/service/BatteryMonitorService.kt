@@ -2030,7 +2030,9 @@ class BatteryMonitorService : Service() {
                                         recoveredMaxTempCelsius = persisted.maxSessionTemp,
                                         recoveredHasAnomaly = persisted.alertedAnomalyCodes.isNotEmpty(),
                                         recoveredAnomalyReason = anomalyReason,
-                                        recoveredSample = sampleEntity
+                                        recoveredSample = sampleEntity,
+                                        recoveredHasCurrentData = persisted.currentReadingsCount > 0L,
+                                        recoveredHasTemperatureData = persisted.sampleIsTemperatureAvailable
                                     )
                                 }.onFailure { error ->
                                     Log.e(
@@ -2777,7 +2779,10 @@ class BatteryMonitorService : Service() {
                 recoveredMaxTempCelsius = effectiveMaxTemp,
                 recoveredHasAnomaly = alertedAnomalyCodes.isNotEmpty(),
                 recoveredAnomalyReason = anomalyReason,
-                recoveredSample = pendingSample
+                recoveredSample = pendingSample,
+                recoveredHasCurrentData = currentReadingsCount > 0L,
+                recoveredHasTemperatureData = pendingEntriesSnapshot.any { it.state.isTemperatureAvailable } ||
+                    pendingSample?.isTemperatureAvailable == true
             )
         }.getOrDefault(false)
 
@@ -3698,7 +3703,9 @@ class BatteryMonitorService : Service() {
                                                 recoveredMaxTempCelsius = persisted.maxSessionTemp,
                                                 recoveredHasAnomaly = persisted.alertedAnomalyCodes.isNotEmpty(),
                                                 recoveredAnomalyReason = persisted.alertedAnomalyCodes.joinToString(", ").ifEmpty { null },
-                                                recoveredSample = sampleEntity
+                                                recoveredSample = sampleEntity,
+                                        recoveredHasCurrentData = persisted.currentReadingsCount > 0L,
+                                        recoveredHasTemperatureData = persisted.sampleIsTemperatureAvailable
                                             )
                                         }.onFailure { error ->
                                             Log.e(
