@@ -106,6 +106,13 @@ object SessionRecoveryStore {
     private const val FIELD_SAMPLE_TEMP = "sample_temp"
     private const val FIELD_SAMPLE_WATT = "sample_watt"
     private const val FIELD_SAMPLE_SCREEN_ON = "sample_screen_on"
+    private const val FIELD_SAMPLE_LEVEL_AVAILABLE = "sample_level_available"
+    private const val FIELD_SAMPLE_CURRENT_AVAILABLE = "sample_current_available"
+    private const val FIELD_SAMPLE_VOLTAGE_AVAILABLE = "sample_voltage_available"
+    private const val FIELD_SAMPLE_TEMP_AVAILABLE = "sample_temp_available"
+    private const val FIELD_SAMPLE_POWER_AVAILABLE = "sample_power_available"
+    private const val FIELD_SAMPLE_CHARGING_STATUS_AVAILABLE = "sample_charging_status_available"
+    private const val FIELD_SAMPLE_IS_CHARGING = "sample_is_charging"
     private const val FIELD_SAMPLE_WEIGHT = "sample_weight"
     private const val FIELD_SAMPLE_SPAN_MS = "sample_span_ms"
     private const val FIELD_DB_SESSIONS_CLOSED = "db_sessions_closed"
@@ -244,6 +251,13 @@ object SessionRecoveryStore {
         val mergedScreenOn: Boolean
         val mergedWeight: Int
         val mergedSpanMs: Long
+        var mergedLevelAvailable = false
+        var mergedCurrentAvailable = false
+        var mergedVoltageAvailable = false
+        var mergedTemperatureAvailable = false
+        var mergedPowerAvailable = false
+        var mergedChargingStatusAvailable = false
+        var mergedIsCharging = false
 
         when {
             !incoming.hasPendingSample && existing.hasPendingSample -> {
@@ -257,6 +271,13 @@ object SessionRecoveryStore {
                 mergedScreenOn = existing.sampleIsScreenOn
                 mergedWeight = existing.sampleWeight.coerceAtLeast(1)
                 mergedSpanMs = existing.sampleSpanDurationMs.coerceAtLeast(0L)
+                mergedLevelAvailable = existing.sampleIsLevelAvailable
+                mergedCurrentAvailable = existing.sampleIsCurrentAvailable
+                mergedVoltageAvailable = existing.sampleIsVoltageAvailable
+                mergedTemperatureAvailable = existing.sampleIsTemperatureAvailable
+                mergedPowerAvailable = existing.sampleIsPowerAvailable
+                mergedChargingStatusAvailable = existing.sampleIsChargingStatusAvailable
+                mergedIsCharging = existing.sampleIsCharging
             }
             incoming.hasPendingSample && !existing.hasPendingSample -> {
                 mergedPendingTs = incoming.pendingBatchTimestampMs
@@ -269,6 +290,13 @@ object SessionRecoveryStore {
                 mergedScreenOn = incoming.sampleIsScreenOn
                 mergedWeight = incoming.sampleWeight.coerceAtLeast(1)
                 mergedSpanMs = incoming.sampleSpanDurationMs.coerceAtLeast(0L)
+                mergedLevelAvailable = incoming.sampleIsLevelAvailable
+                mergedCurrentAvailable = incoming.sampleIsCurrentAvailable
+                mergedVoltageAvailable = incoming.sampleIsVoltageAvailable
+                mergedTemperatureAvailable = incoming.sampleIsTemperatureAvailable
+                mergedPowerAvailable = incoming.sampleIsPowerAvailable
+                mergedChargingStatusAvailable = incoming.sampleIsChargingStatusAvailable
+                mergedIsCharging = incoming.sampleIsCharging
             }
             incoming.hasPendingSample && existing.hasPendingSample -> {
                 if (existing.pendingBatchTimestampMs == incoming.pendingBatchTimestampMs) {
@@ -287,6 +315,13 @@ object SessionRecoveryStore {
                     mergedScreenOn = primary.sampleIsScreenOn
                     mergedWeight = maxOf(existing.sampleWeight, incoming.sampleWeight).coerceAtLeast(1)
                     mergedSpanMs = maxOf(existing.sampleSpanDurationMs, incoming.sampleSpanDurationMs).coerceAtLeast(0L)
+                    mergedLevelAvailable = primary.sampleIsLevelAvailable
+                    mergedCurrentAvailable = primary.sampleIsCurrentAvailable
+                    mergedVoltageAvailable = primary.sampleIsVoltageAvailable
+                    mergedTemperatureAvailable = primary.sampleIsTemperatureAvailable
+                    mergedPowerAvailable = primary.sampleIsPowerAvailable
+                    mergedChargingStatusAvailable = primary.sampleIsChargingStatusAvailable
+                    mergedIsCharging = primary.sampleIsCharging
                 } else {
                     // Gabungkan dua batch tertunda berbeda milik sesi yang sama secara tertimbang agar tidak ada sampel hilang
                     val w1 = existing.sampleWeight.coerceAtLeast(1).toLong()
@@ -308,11 +343,23 @@ object SessionRecoveryStore {
                     mergedPendingTs = earliestStart
                     mergedHasSample = true
                     mergedLevel = later.sampleBatteryLevel
-                    mergedCurrentMa = ((existing.sampleCurrentMa.toLong() * w1 + incoming.sampleCurrentMa.toLong() * w2) / totalW).toInt()
-                    mergedVoltageMv = ((existing.sampleVoltageMv.toLong() * w1 + incoming.sampleVoltageMv.toLong() * w2) / totalW).toInt()
-                    mergedTemp = ((existing.sampleTempCelsius.toDouble() * w1 + incoming.sampleTempCelsius.toDouble() * w2) / totalW).toFloat()
-                    mergedPower = ((existing.samplePowerWatt.toDouble() * w1 + incoming.samplePowerWatt.toDouble() * w2) / totalW).toFloat()
+                    fun validWeighted(a: Double, wa: Long, va: Boolean, b: Double, wb: Long, vb: Boolean): Double {
+                        val denominator = (if (va) wa else 0L) + (if (vb) wb else 0L)
+                        if (denominator == 0L) return 0.0
+                        return ((if (va) a * wa else 0.0) + (if (vb) b * wb else 0.0)) / denominator
+                    }
+                    mergedCurrentMa = validWeighted(existing.sampleCurrentMa.toDouble(), w1, existing.sampleIsCurrentAvailable, incoming.sampleCurrentMa.toDouble(), w2, incoming.sampleIsCurrentAvailable).toInt()
+                    mergedVoltageMv = validWeighted(existing.sampleVoltageMv.toDouble(), w1, existing.sampleIsVoltageAvailable, incoming.sampleVoltageMv.toDouble(), w2, incoming.sampleIsVoltageAvailable).toInt()
+                    mergedTemp = validWeighted(existing.sampleTempCelsius.toDouble(), w1, existing.sampleIsTemperatureAvailable, incoming.sampleTempCelsius.toDouble(), w2, incoming.sampleIsTemperatureAvailable).toFloat()
+                    mergedPower = validWeighted(existing.samplePowerWatt.toDouble(), w1, existing.sampleIsPowerAvailable, incoming.samplePowerWatt.toDouble(), w2, incoming.sampleIsPowerAvailable).toFloat()
                     mergedScreenOn = later.sampleIsScreenOn
+                    mergedLevelAvailable = later.sampleIsLevelAvailable
+                    mergedCurrentAvailable = existing.sampleIsCurrentAvailable || incoming.sampleIsCurrentAvailable
+                    mergedVoltageAvailable = existing.sampleIsVoltageAvailable || incoming.sampleIsVoltageAvailable
+                    mergedTemperatureAvailable = existing.sampleIsTemperatureAvailable || incoming.sampleIsTemperatureAvailable
+                    mergedPowerAvailable = existing.sampleIsPowerAvailable || incoming.sampleIsPowerAvailable
+                    mergedChargingStatusAvailable = later.sampleIsChargingStatusAvailable
+                    mergedIsCharging = later.sampleIsCharging
                     mergedWeight = totalW.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                     mergedSpanMs = (latestEnd - earliestStart).coerceAtLeast(0L)
                 }
@@ -328,6 +375,13 @@ object SessionRecoveryStore {
                 mergedScreenOn = incoming.sampleIsScreenOn
                 mergedWeight = 1
                 mergedSpanMs = 0L
+                mergedLevelAvailable = incoming.sampleIsLevelAvailable
+                mergedCurrentAvailable = incoming.sampleIsCurrentAvailable
+                mergedVoltageAvailable = incoming.sampleIsVoltageAvailable
+                mergedTemperatureAvailable = incoming.sampleIsTemperatureAvailable
+                mergedPowerAvailable = incoming.sampleIsPowerAvailable
+                mergedChargingStatusAvailable = incoming.sampleIsChargingStatusAvailable
+                mergedIsCharging = incoming.sampleIsCharging
             }
         }
 
@@ -346,6 +400,13 @@ object SessionRecoveryStore {
             sampleTempCelsius = mergedTemp,
             samplePowerWatt = mergedPower,
             sampleIsScreenOn = mergedScreenOn,
+            sampleIsLevelAvailable = mergedLevelAvailable,
+            sampleIsCurrentAvailable = mergedCurrentAvailable,
+            sampleIsVoltageAvailable = mergedVoltageAvailable,
+            sampleIsTemperatureAvailable = mergedTemperatureAvailable,
+            sampleIsPowerAvailable = mergedPowerAvailable,
+            sampleIsChargingStatusAvailable = mergedChargingStatusAvailable,
+            sampleIsCharging = mergedIsCharging,
             sampleWeight = mergedWeight,
             sampleSpanDurationMs = mergedSpanMs,
             dbSessionsClosed = existing.dbSessionsClosed || incoming.dbSessionsClosed
@@ -562,6 +623,17 @@ object SessionRecoveryStore {
             ?: return CheckpointLoadResult.Corrupt("sample_watt hilang atau korup", expectedSessionId)
         val sampleScreenOn = (allEntries[k(FIELD_SAMPLE_SCREEN_ON)] as? Boolean)
             ?: return CheckpointLoadResult.Corrupt("sample_screen_on hilang atau korup", expectedSessionId)
+        fun optionalAvailability(field: String): Boolean {
+            val raw = allEntries[k(field)] ?: return false
+            return raw as? Boolean ?: throw IllegalArgumentException("$field bukan Boolean")
+        }
+        val sampleIsLevelAvailable = runCatching { optionalAvailability(FIELD_SAMPLE_LEVEL_AVAILABLE) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_level_available korup", expectedSessionId) }
+        val sampleIsCurrentAvailable = runCatching { optionalAvailability(FIELD_SAMPLE_CURRENT_AVAILABLE) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_current_available korup", expectedSessionId) }
+        val sampleIsVoltageAvailable = runCatching { optionalAvailability(FIELD_SAMPLE_VOLTAGE_AVAILABLE) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_voltage_available korup", expectedSessionId) }
+        val sampleIsTemperatureAvailable = runCatching { optionalAvailability(FIELD_SAMPLE_TEMP_AVAILABLE) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_temp_available korup", expectedSessionId) }
+        val sampleIsPowerAvailable = runCatching { optionalAvailability(FIELD_SAMPLE_POWER_AVAILABLE) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_power_available korup", expectedSessionId) }
+        val sampleIsChargingStatusAvailable = runCatching { optionalAvailability(FIELD_SAMPLE_CHARGING_STATUS_AVAILABLE) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_charging_status_available korup", expectedSessionId) }
+        val sampleIsCharging = runCatching { optionalAvailability(FIELD_SAMPLE_IS_CHARGING) }.getOrElse { return CheckpointLoadResult.Corrupt("sample_is_charging korup", expectedSessionId) }
 
         val rawSampleWeight = allEntries[k(FIELD_SAMPLE_WEIGHT)]
         val sampleWeight = when (rawSampleWeight) {
@@ -624,6 +696,13 @@ object SessionRecoveryStore {
                 sampleTempCelsius = sampleTemp,
                 samplePowerWatt = sampleWatt,
                 sampleIsScreenOn = sampleScreenOn,
+                sampleIsLevelAvailable = sampleIsLevelAvailable,
+                sampleIsCurrentAvailable = sampleIsCurrentAvailable,
+                sampleIsVoltageAvailable = sampleIsVoltageAvailable,
+                sampleIsTemperatureAvailable = sampleIsTemperatureAvailable,
+                sampleIsPowerAvailable = sampleIsPowerAvailable,
+                sampleIsChargingStatusAvailable = sampleIsChargingStatusAvailable,
+                sampleIsCharging = sampleIsCharging,
                 sampleWeight = sampleWeight,
                 sampleSpanDurationMs = sampleSpanMs,
                 dbSessionsClosed = dbSessionsClosed,
@@ -697,6 +776,13 @@ object SessionRecoveryStore {
             .putFloat(sessionKey(sid, FIELD_SAMPLE_TEMP), record.sampleTempCelsius)
             .putFloat(sessionKey(sid, FIELD_SAMPLE_WATT), record.samplePowerWatt)
             .putBoolean(sessionKey(sid, FIELD_SAMPLE_SCREEN_ON), record.sampleIsScreenOn)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_LEVEL_AVAILABLE), record.sampleIsLevelAvailable)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_CURRENT_AVAILABLE), record.sampleIsCurrentAvailable)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_VOLTAGE_AVAILABLE), record.sampleIsVoltageAvailable)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_TEMP_AVAILABLE), record.sampleIsTemperatureAvailable)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_POWER_AVAILABLE), record.sampleIsPowerAvailable)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_CHARGING_STATUS_AVAILABLE), record.sampleIsChargingStatusAvailable)
+            .putBoolean(sessionKey(sid, FIELD_SAMPLE_IS_CHARGING), record.sampleIsCharging)
             .putInt(sessionKey(sid, FIELD_SAMPLE_WEIGHT), record.sampleWeight.coerceAtLeast(1))
             .putLong(sessionKey(sid, FIELD_SAMPLE_SPAN_MS), record.sampleSpanDurationMs.coerceAtLeast(0L))
             .putBoolean(sessionKey(sid, FIELD_DB_SESSIONS_CLOSED), record.dbSessionsClosed)
@@ -868,6 +954,13 @@ object SessionRecoveryStore {
                     verified.sampleTempCelsius == recordToWrite.sampleTempCelsius &&
                     verified.samplePowerWatt == recordToWrite.samplePowerWatt &&
                     verified.sampleIsScreenOn == recordToWrite.sampleIsScreenOn &&
+                    verified.sampleIsLevelAvailable == recordToWrite.sampleIsLevelAvailable &&
+                    verified.sampleIsCurrentAvailable == recordToWrite.sampleIsCurrentAvailable &&
+                    verified.sampleIsVoltageAvailable == recordToWrite.sampleIsVoltageAvailable &&
+                    verified.sampleIsTemperatureAvailable == recordToWrite.sampleIsTemperatureAvailable &&
+                    verified.sampleIsPowerAvailable == recordToWrite.sampleIsPowerAvailable &&
+                    verified.sampleIsChargingStatusAvailable == recordToWrite.sampleIsChargingStatusAvailable &&
+                    verified.sampleIsCharging == recordToWrite.sampleIsCharging &&
                     verified.sampleWeight == recordToWrite.sampleWeight.coerceAtLeast(1) &&
                     verified.sampleSpanDurationMs == recordToWrite.sampleSpanDurationMs.coerceAtLeast(0L) &&
                     verified.dbSessionsClosed == recordToWrite.dbSessionsClosed &&
@@ -1034,6 +1127,13 @@ object SessionRecoveryStore {
         val sampleTempCelsius: Float,
         val samplePowerWatt: Float,
         val sampleIsScreenOn: Boolean,
+        val sampleIsLevelAvailable: Boolean = false,
+        val sampleIsCurrentAvailable: Boolean = false,
+        val sampleIsVoltageAvailable: Boolean = false,
+        val sampleIsTemperatureAvailable: Boolean = false,
+        val sampleIsPowerAvailable: Boolean = false,
+        val sampleIsChargingStatusAvailable: Boolean = false,
+        val sampleIsCharging: Boolean = false,
         val sampleWeight: Int = 1,
         val sampleSpanDurationMs: Long = 0L,
         val dbSessionsClosed: Boolean,
@@ -1054,7 +1154,14 @@ object SessionRecoveryStore {
                 voltageMv = sampleVoltageMv,
                 tempCelsius = sampleTempCelsius,
                 powerWatt = samplePowerWatt,
-                isScreenOn = sampleIsScreenOn
+                isScreenOn = sampleIsScreenOn,
+                isLevelAvailable = sampleIsLevelAvailable,
+                isCurrentAvailable = sampleIsCurrentAvailable,
+                isVoltageAvailable = sampleIsVoltageAvailable,
+                isTemperatureAvailable = sampleIsTemperatureAvailable,
+                isPowerAvailable = sampleIsPowerAvailable,
+                isChargingStatusAvailable = sampleIsChargingStatusAvailable,
+                isCharging = sampleIsCharging
             )
         }
 
@@ -1066,9 +1173,15 @@ object SessionRecoveryStore {
                 voltageMv = sampleVoltageMv,
                 powerWatt = samplePowerWatt,
                 tempCelsius = sampleTempCelsius,
-                isCharging = true,
+                isCharging = sampleIsCharging,
                 sessionMahDelivered = accumulatedMah,
-                sessionDurationSec = sessionSeconds
+                sessionDurationSec = sessionSeconds,
+                isLevelAvailable = sampleIsLevelAvailable,
+                isCurrentAvailable = sampleIsCurrentAvailable,
+                isVoltageAvailable = sampleIsVoltageAvailable,
+                isTemperatureAvailable = sampleIsTemperatureAvailable,
+                isPowerAvailable = sampleIsPowerAvailable,
+                isChargingStatusAvailable = sampleIsChargingStatusAvailable
             )
         }
     }
