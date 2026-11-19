@@ -1,3 +1,22 @@
+## 2026-11-19 — Tahap 2 lifecycle fallback dan Status Bar Indicator (completed)
+
+- Scope sesuai persetujuan Tahap 2: PASS.
+- Audit MainActivity lifecycle: PASS — hook ON_START/ON_STOP yang sudah ada mengirim status foreground; tidak diperlukan perubahan source pada MainActivity.
+- FallbackSensorPoller lifecycle gate: PASS — polling hanya membaca ketika app foreground, Battery Monitoring ON, dan data service tidak fresh; gate diperiksa sebelum/sesudah snapshot.
+- Pencegahan loop ganda: PASS — satu job disimpan pada ViewModel dan start guard memeriksa job aktif; perubahan foreground/background hanya mengubah gate, bukan membuat loop baru.
+- ViewModel coroutine cancellation: PASS — operasi suspend memakai helper try/catch yang melempar ulang CancellationException; error operasional biasa tetap fail-closed.
+- Monitoring Notification: PASS — small icon berasal dari NotificationVisualRenderer dan tidak lagi bergantung pada LiveStatusBarRenderer.
+- Status Bar Indicator: PASS — notification ID 1003 dan channel terpisah; channel IMPORTANCE_LOW, tanpa suara/getar; update hanya saat kedua toggle ON dan service aktif.
+- Cleanup indikator: PASS — status toggle OFF, Battery Monitoring OFF, actor STOPPED, dan service onDestroy membatalkan notification indikator.
+- Kebenaran data: PASS — formatter menampilkan N/A untuk metric/status yang unavailable dan mempertahankan measured zero yang valid.
+- Regression/unit tests: PASS — 136 tests pada workflow final.
+- Android build: PASS — assembleDebug pada workflow final; APK debug berhasil diunggah.
+- Anti-Slop UI Audit Gate: PASS — workflow #317.
+- UI screen review: N/A — tidak ada perubahan layout/screen Compose; perubahan visual terbatas pada notification surface yang tidak dicakup DESIGN.md.
+- Pengujian perangkat fisik: NOT RUN — status ikon di System UI, suara/getar channel pada OEM, serta lifecycle polling di perangkat nyata masih perlu diuji.
+- CHANGELOG dan checklist diperbarui; app version/build number, package, SDK, dan dependencies tidak diubah.
+- Branch main tidak disentuh; merge tetap HOLD.
+
 ## 2026-11-19 — Tahap 1 availability persistence (completed)
 
 - Scope Tahap 1 dan branch target `fix/auto-start-coordinator-timing`: PASS.

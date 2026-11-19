@@ -1,3 +1,32 @@
+## 2026-11-19 — Tahap 2: lifecycle fallback dan pemisahan Status Bar Indicator (selesai)
+
+### Scope disetujui
+- Membatasi fallback sensor polling pada kondisi App Foreground = TRUE, Battery Monitoring = ON, dan data service tidak fresh.
+- Memastikan coroutine suspend di ViewModel meneruskan `CancellationException` dan tetap fail-closed untuk error operasional.
+- Memisahkan Status Bar Indicator dari ikon Monitoring Notification melalui notification ID dan channel tersendiri.
+- Membersihkan indikator ketika salah satu toggle terkait OFF atau service berhenti, serta menampilkan unavailable ketika data terpilih tidak tersedia.
+
+### Implementasi
+- `MainActivity` sudah memiliki lifecycle hook `ON_START` / `ON_STOP` untuk mengirim status foreground. Integrasi yang sudah benar dipertahankan; `PowerGuardViewModel` kini menyimpan status itu dalam `StateFlow` yang menjadi gate poller.
+- `FallbackSensorPoller` membaca snapshot hanya jika aplikasi foreground, Battery Monitoring aktif, dan data service tidak fresh. Kondisi diperiksa sebelum dan sesudah pembacaan; satu job poller dijaga agar transisi lifecycle tidak membuat loop ganda.
+- Preferensi Battery Monitoring memakai eager collection di ViewModel agar nilai gate tetap aktual meskipun tidak ada composable yang sedang mengoleksi StateFlow.
+- Operasi suspend yang sebelumnya dibungkus `runCatching` menggunakan penanganan yang melempar ulang `CancellationException`; error operasional biasa tetap ditangani secara fail-closed.
+- `buildMonitorNotification()` memakai ikon dari `NotificationVisualRenderer` secara independen. `LiveStatusBarRenderer` hanya digunakan oleh Status Bar Indicator.
+- Status Bar Indicator memakai notification ID `1003` dan channel `powerguard_status_bar_indicator` dengan `IMPORTANCE_LOW`, tanpa suara/getar. Indikator hanya diposting saat Battery Monitoring dan Status Bar Indicator sama-sama ON serta service aktif; indikator dibersihkan saat toggle OFF atau service dihentikan.
+- Formatter indikator tetap membedakan nilai 0 yang valid dari sensor/status charging yang unavailable (`N/A`).
+
+### Status verifikasi
+- GitHub Actions #317 pada commit `c1a679079bee52d050a3f73a12f60cc529990ba3`: **PASS** — `testDebugUnitTest`, `assembleDebug`, dan Anti-Slop UI Audit Gate.
+- Unit test: **136 tests** — seluruhnya lulus pada workflow final.
+- Debug APK dan unit-test report berhasil diunggah sebagai artifact workflow.
+- CI iterasi awal menemukan assertion test notification yang tidak stabil pada pembacaan extras Robolectric; assertion diperbaiki dengan menguji kontrak formatter unavailable secara langsung. Workflow final #317 PASS.
+- Pengujian perangkat fisik: **NOT RUN** — visibilitas ikon di System UI, perilaku channel OEM, dan polling pada transisi foreground/background tetap memerlukan validasi pada perangkat.
+- Branch `main` tidak disentuh. Merge tetap **HOLD** sampai Tahap 2 dan pengujian fisik disetujui.
+
+[GitHub Actions #317](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44484915097)
+
+---
+
 ## 2026-11-19 — Tahap 1: propagasi availability dan integritas riwayat (selesai)
 
 ### Scope disetujui
