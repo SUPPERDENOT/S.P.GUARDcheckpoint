@@ -147,3 +147,18 @@ A task with a relevant NOT RUN or FAIL item is not fully verified. Do not descri
 - UI/UX review: N/A — no UI changes
 - Changelog updated and historical entries preserved: PASS
 
+
+
+## 2026-11-19 — Physical-device Auto Start validation (itel P55 NFC)
+
+Evidence reviewed: `SPG_AutoStart_Filtered.txt` and `spg_job_and_battrey.txt`. These are separate captures/test sessions; the UID differs (`u0a282` in the Auto Start log and `u0a283` in the JobScheduler dump). The user confirms an APK reinstall occurred between sessions, so the UID difference is expected and must not be treated as one continuous process identity. The battery dump records 79%; 83% was observed in a separate capture at a different time and is not a conflicting same-time measurement.
+
+- Dynamic receiver while the SPG process is alive: **PASS** — the log records T0 charging detection, accepted coordinator request, Foreground Service entry, and `RUNNING_CHARGING` (T0→T2 403 ms for epoch 1; 146 ms for epoch 2).
+- Auto Start after swipe/remove-task process death: **FAIL** — ActivityManager records SPG process termination with reason `remove task`; the subsequent charger-event warnings shown are for other packages, with no SPG receiver/coordinator/worker execution evidence in this capture.
+- JobScheduler `CHARGING` constraint: **FAIL / BLOCKED** — the two SPG WorkManager jobs (`#u0a283/4` and `#u0a283/6`) both require charging, report `CHARGING` under Unsatisfied constraints, and show `Ready: false`.
+- Worker execution: **NOT VERIFIED** — the dump establishes that the jobs were not ready; it does not show the Worker body starting or returning a result.
+- BatteryService snapshot: **PASS as a reported system state only** — `AC powered: true`, `status: 2`, level 79% at the capture. This does not establish that JobScheduler's charging constraint was satisfied.
+- Locking SUPERD POWER GUARD in Recent Apps: **NOT RUN** — possible operational mitigation only; no result is claimed until separately tested.
+- Root cause attribution to Unisoc HAL / a missing or delayed `ACTION_CHARGING` event: **NOT VERIFIED** — the captures prove the unsatisfied JobScheduler constraint, not the underlying framework/HAL cause.
+- Android build and unit tests: **N/A** — documentation-only recording of device evidence; no application source or runtime behavior changed in this entry.
+- Changelog cross-reference and evidence limitations recorded: **PASS**.
