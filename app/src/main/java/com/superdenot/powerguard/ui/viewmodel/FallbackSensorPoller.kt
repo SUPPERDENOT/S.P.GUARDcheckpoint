@@ -14,15 +14,20 @@ internal class FallbackSensorPoller(
     private val intervalMs: Long = 1_500L
 ) {
     suspend fun runWhileActive(
+        isAppForeground: () -> Boolean,
+        isBatteryMonitoringEnabled: () -> Boolean,
         isServiceDataFresh: () -> Boolean,
         readSnapshot: () -> LiveBatteryState,
         onSnapshot: suspend (LiveBatteryState) -> Unit,
         onReadError: (Throwable) -> Unit
     ) {
         while (currentCoroutineContext().isActive) {
-            if (!isServiceDataFresh()) {
+            if (isAppForeground() && isBatteryMonitoringEnabled() && !isServiceDataFresh()) {
                 try {
-                    onSnapshot(readSnapshot())
+                    val snapshot = readSnapshot()
+                    if (isAppForeground() && isBatteryMonitoringEnabled() && !isServiceDataFresh()) {
+                        onSnapshot(snapshot)
+                    }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {

@@ -21,6 +21,8 @@ class FallbackSensorPollerTest {
 
         backgroundScope.launch {
             poller.runWhileActive(
+                isAppForeground = { true },
+                isBatteryMonitoringEnabled = { true },
                 isServiceDataFresh = { false },
                 readSnapshot = {
                     reads++
@@ -51,6 +53,8 @@ class FallbackSensorPollerTest {
 
         backgroundScope.launch {
             poller.runWhileActive(
+                isAppForeground = { true },
+                isBatteryMonitoringEnabled = { true },
                 isServiceDataFresh = { serviceDataFresh },
                 readSnapshot = {
                     reads++
@@ -80,6 +84,8 @@ class FallbackSensorPollerTest {
 
         backgroundScope.launch {
             poller.runWhileActive(
+                isAppForeground = { true },
+                isBatteryMonitoringEnabled = { true },
                 isServiceDataFresh = { false },
                 readSnapshot = { LiveBatteryState(level = nextLevel++) },
                 onSnapshot = { levels += it.level },

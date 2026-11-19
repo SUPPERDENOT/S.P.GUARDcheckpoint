@@ -26,6 +26,7 @@ import com.superdenot.powerguard.service.BatteryMonitorService
 import com.superdenot.powerguard.worker.ChargingAutoStartScheduler
 import com.superdenot.powerguard.worker.DailyRollupWorker
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,10 +39,26 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+
+internal suspend fun <T> executeSuspendFailClosed(
+    operation: suspend () -> T,
+    onFailure: (Exception) -> T
+): T {
+    return try {
+        operation()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        onFailure(error)
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class PowerGuardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = BatteryRepository(application)
+    private val _appForeground = MutableStateFlow(false)
+    private var fallbackSensorJob: Job? = null
     private val _fallbackLiveState = MutableStateFlow(repository.readDirectSensorSnapshot())
     private val _fallbackUpdatedAtElapsedRealtime = MutableStateFlow(SystemClock.elapsedRealtime())
     val liveState: StateFlow<LiveBatteryState> = repository.liveServiceState
@@ -111,16 +128,20 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun setAppForeground(isForeground: Boolean) {
+        _appForeground.value = isForeground
         AutoStartCoordinator.setAppForeground(isForeground)
     }
 
     fun startMonitorIfCharging() {
         viewModelScope.launch(Dispatchers.IO) {
-            val enabled = runCatching { repository.isBatteryMonitoringEnabled() }.getOrElse { error ->
-                Log.e("PowerGuard", "Preferensi Battery Monitoring gagal dibaca; layanan ditahan", error)
-                _autoMonitoringError.value = "Preferensi pemantauan tidak dapat dibaca; layanan dinonaktifkan."
-                false
-            }
+            val enabled = executeSuspendFailClosed(
+                operation = { repository.isBatteryMonitoringEnabled() },
+                onFailure = { error ->
+                    Log.e("PowerGuard", "Preferensi Battery Monitoring gagal dibaca; layanan ditahan", error)
+                    _autoMonitoringError.value = "Preferensi pemantauan tidak dapat dibaca; layanan dinonaktifkan."
+                    false
+                }
+            )
             val charging = repository.readDirectSensorSnapshot().isCharging
             when {
                 !enabled -> {
@@ -138,26 +159,38 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
             }
             if (!charging) {
                 AutoStartCoordinator.onChargingDisconnected()
-                runCatching { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) }
+                executeSuspendFailClosed(
+                    operation = { BatteryMonitorService.recoverOrReconcileOnAppLaunch(getApplication()) },
+                    onFailure = { error ->
+                        Log.e("PowerGuard", "Rekonsiliasi sesi saat startup gagal; state dipertahankan", error)
+                        Unit
+                    }
+                )
             }
         }
     }
 
     fun setStatusBarIndicatorEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { repository.setStatusBarIndicatorEnabled(enabled) }
-                .onFailure { error ->
+            executeSuspendFailClosed(
+                operation = { repository.setStatusBarIndicatorEnabled(enabled) },
+                onFailure = { error ->
                     Log.e("PowerGuard", "Gagal menyimpan status indikator status bar", error)
+                    Unit
                 }
+            )
         }
     }
 
     fun setStatusBarParameter(parameter: StatusBarParameter) {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { repository.setStatusBarParameter(parameter) }
-                .onFailure { error ->
+            executeSuspendFailClosed(
+                operation = { repository.setStatusBarParameter(parameter) },
+                onFailure = { error ->
                     Log.e("PowerGuard", "Gagal menyimpan parameter indikator status bar", error)
+                    Unit
                 }
+            )
         }
     }
 
@@ -221,9 +254,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun startFallbackSensorLoop() {
+        if (fallbackSensorJob?.isActive == true) return
         val poller = FallbackSensorPoller()
-        viewModelScope.launch(Dispatchers.IO) {
+        fallbackSensorJob = viewModelScope.launch(Dispatchers.IO) {
             poller.runWhileActive(
+                isAppForeground = { _appForeground.value },
+                isBatteryMonitoringEnabled = { batteryMonitoringEnabled.value },
                 isServiceDataFresh = {
                     val lastUpdate = lastSensorUpdateElapsedRealtime.value
                     val age = SystemClock.elapsedRealtime() - lastUpdate
