@@ -6,7 +6,7 @@
 - Confirmed `applicationId = "com.superdenot.superdguard"` and Kotlin namespace `com.superdenot.powerguard`; README already contains the correct Application ID and the About screen metadata was corrected.
 
 ### Diagnostics and lifecycle
-- Battery current normalization now preserves the signed battery-side current while external power is connected; a negative reading is classified as `NET_DRAIN_CHARGING` only when current data is available.
+- Battery current normalization preserves signed battery-side current while external power is connected; sustained negative current with available sensor data is classified as `NET_DRAIN_CHARGING` after the existing three-minute no-input window.
 - Charging protocol remains `Not Exposed by Device`; no V/A/W threshold is used to infer a fast-charging protocol.
 - Retained the independent Battery Monitoring and Status Bar Indicator toggles, fresh-install OFF defaults, OR-gate service keep-alive policy (including RECOVERY_HOLD), and active Room-session finalization when Battery Monitoring turns OFF.
 

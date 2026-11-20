@@ -32,7 +32,7 @@ internal class ChargingProgressTracker(
     }
 
     fun evaluate(state: LiveBatteryState, nowElapsedMs: Long): Issue? {
-        if (!state.isCharging || state.level >= 95) {
+        if ((!state.isCharging && !state.isPowerConnected) || state.level >= 95) {
             reset()
             return null
         }

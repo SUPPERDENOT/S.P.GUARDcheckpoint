@@ -5,7 +5,7 @@
 - [x] Application ID is `com.superdenot.superdguard` in Gradle, README, and About; Kotlin namespace remains `com.superdenot.powerguard`.
 - [x] Current polarity is preserved while external power is connected; unplugged current remains normalized as discharge.
 - [x] Regression tests cover positive charge, negative net drain while plugged, unavailable current, and ordinary unplugged discharge.
-- [x] Net-drain classification is guarded by both external-power-connected state and current availability; no protocol is inferred.
+- [x] Net-drain classification requires external power, available current data, and sustained near-zero/negative current through the existing three-minute no-input window; no protocol is inferred.
 - [x] Protocol metadata defaults to `Not Exposed by Device`; no voltage/current/wattage threshold is used as a protocol identity.
 - [x] Battery Monitoring and Status Bar Indicator remain independent; both fresh-install defaults are OFF.
 - [x] Existing OR-gate lifecycle and RECOVERY_HOLD precedence are retained; existing tests cover all toggle combinations and finalization transition.

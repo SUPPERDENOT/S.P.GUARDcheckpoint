@@ -16,6 +16,29 @@ class ChargingProgressTrackerTest {
         assertEquals(ChargingProgressTracker.Issue.NO_CHARGING_INPUT, tracker.evaluate(state, 181_000L))
     }
 
+
+    @Test
+    fun sustainedNetDrainIsTrackedEvenWhenAndroidStatusIsNotCharging() {
+        val tracker = ChargingProgressTracker(noInputThresholdMs = 180_000L)
+        val state = LiveBatteryState(
+            isCharging = false,
+            isPowerConnected = true,
+            level = 40,
+            currentMa = -420
+        )
+        assertNull(tracker.evaluate(state, 1_000L))
+        assertNull(tracker.evaluate(state, 180_999L))
+        assertEquals(ChargingProgressTracker.Issue.NO_CHARGING_INPUT, tracker.evaluate(state, 181_000L))
+    }
+
+    @Test
+    fun unpluggedDischargeDoesNotEnterChargingProgressTracking() {
+        val tracker = ChargingProgressTracker(noInputThresholdMs = 1L)
+        val state = LiveBatteryState(isCharging = false, isPowerConnected = false, level = 40, currentMa = -420)
+        assertNull(tracker.evaluate(state, 1_000L))
+        assertNull(tracker.evaluate(state, 10_000L))
+    }
+
     @Test
     fun unavailableCurrentIsNotEvidenceOfChargerFailure() {
         val tracker = ChargingProgressTracker(noInputThresholdMs = 1L, noLevelProgressThresholdMs = 1L)

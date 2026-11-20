@@ -26,22 +26,13 @@ class AnomalyDetector(private val context: Context) {
     }
 
     fun evaluate(state: LiveBatteryState, isScreenOn: Boolean): AnomalyResult {
-        if (isNetDrainWhilePowerConnected(state)) {
-            chargingProgressTracker.reset()
-            return AnomalyResult(
-                isAnomaly = true,
-                code = "NET_DRAIN_CHARGING",
-                message = "Daya eksternal terhubung, tetapi arus baterai terukur menunjukkan net discharge (${state.currentMa} mA). Ini adalah pembacaan pada sisi baterai, bukan identifikasi protokol atau bukti kerusakan hardware."
-            )
-        }
-
-        if (!state.isCharging || state.level >= 95) {
+        if ((!state.isCharging && !state.isPowerConnected) || state.level >= 95) {
             reset()
             return AnomalyResult(false, null, null)
         }
 
         if (state.isTemperatureAvailable && state.tempCelsius >= 41.0f &&
-            state.isCurrentAvailable && state.currentMa < 500
+            state.isCurrentAvailable && state.currentMa in 0 until 500
         ) {
             // Pause/reset progress timers while thermal control may intentionally limit charging.
             chargingProgressTracker.reset()
@@ -64,11 +55,18 @@ class AnomalyDetector(private val context: Context) {
         } else null
 
         return when (issue) {
-            ChargingProgressTracker.Issue.NO_CHARGING_INPUT -> AnomalyResult(
-                isAnomaly = true,
-                code = "CHARGING_NO_INPUT",
-                message = "Status Android menunjukkan sedang mengisi, tetapi arus baterai terukur hampir nol selama sedikitnya 3 menit. Label pengisian dari ponsel tidak membuktikan daya benar-benar masuk. Periksa adaptor, kabel, dan konektor."
-            )
+            ChargingProgressTracker.Issue.NO_CHARGING_INPUT -> {
+                val netDrain = isNetDrainWhilePowerConnected(state)
+                AnomalyResult(
+                    isAnomaly = true,
+                    code = if (netDrain) "NET_DRAIN_CHARGING" else "CHARGING_NO_INPUT",
+                    message = if (netDrain) {
+                        "Daya eksternal terhubung, tetapi arus baterai terukur menunjukkan net discharge (${state.currentMa} mA) secara berkelanjutan. Ini adalah pembacaan pada sisi baterai, bukan identifikasi protokol atau bukti kerusakan hardware."
+                    } else {
+                        "Status Android menunjukkan sedang mengisi, tetapi arus baterai terukur hampir nol selama sedikitnya 3 menit. Label pengisian dari ponsel tidak membuktikan daya benar-benar masuk. Periksa adaptor, kabel, dan konektor."
+                    }
+                )
+            }
             ChargingProgressTracker.Issue.CHARGING_PROGRESS_STALLED -> {
                 val wakelockHint = if (topApp != null) {
                     " Aktivitas layar mati terdeteksi pada " + topApp.appName + "; beban perangkat mungkin ikut menghambat kenaikan baterai."
