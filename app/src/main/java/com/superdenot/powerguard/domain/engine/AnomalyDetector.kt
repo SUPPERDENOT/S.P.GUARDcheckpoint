@@ -31,7 +31,7 @@ class AnomalyDetector(private val context: Context) {
             return AnomalyResult(false, null, null)
         }
 
-        if (state.isTemperatureAvailable && state.tempCelsius >= 41.0f &&
+        if (state.isCharging && state.isTemperatureAvailable && state.tempCelsius >= 41.0f &&
             state.isCurrentAvailable && state.currentMa in 0 until 500
         ) {
             // Pause/reset progress timers while thermal control may intentionally limit charging.
