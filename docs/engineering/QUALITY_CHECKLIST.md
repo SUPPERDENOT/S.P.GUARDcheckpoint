@@ -1,4 +1,4 @@
-## 2026-11-20 — P0/P1 audit fixes ported onto latest UI baseline (implementation review; CI pending)
+## 2026-11-20 — P0/P1 audit fixes ported onto latest UI baseline (implementation review; CI verified)
 
 - [x] Target branch created directly from `fix/auto-start-coordinator-timing` at `d7dbec01d412b95a8129659a0991a2d43bca6519`.
 - [x] Latest Industrial Instrument UI, five-tab telemetry components, AutoStartCoordinator changes, `DESIGN.md`, `AGENTS.md`, `DEVELOPMENT_WORKFLOW.md`, and `scripts/ui-audit.sh` preserved.
@@ -12,11 +12,12 @@
 - [x] Existing service logic finalizes an active Room session when Battery Monitoring transitions ON→OFF.
 - [x] Notification ID 1001 uses a shared post/publication lock, sequence guard, duplicate gate, and 250 ms power-transition cooldown; stable metric payload updates remain supported.
 - [x] Obsolete root `INSTALL-INSTRUCTIONS.txt` removed; historical changelog/checklist entries preserved.
-- [ ] Anti-Slop UI audit script — NOT RUN; pending CI.
-- [ ] `testDebugUnitTest` — NOT RUN; pending CI.
-- [ ] `assembleDebug` — NOT RUN; pending CI.
+- [x] Anti-Slop UI audit script — PASS in [GitHub Actions run #356](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44712530728).
+- [x] `testDebugUnitTest` — PASS in GitHub Actions run #356.
+- [x] `assembleDebug` — PASS in GitHub Actions run #356; debug APK artifact uploaded.
 - [ ] Physical-device QA — NOT RUN; required before treating Android OEM lifecycle/notification behavior as validated.
 - [x] No SDK, dependency, application version, namespace, application ID, or Room schema change made.
+- [x] CI verified exact source head `0ccb48aada965c748760c7723622810456bad367`; local build was not run.
 - [x] `main` untouched; no merge performed.
 
 ---

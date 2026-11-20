@@ -1,4 +1,4 @@
-## 2026-11-20 — P0/P1 audit fixes ported to latest Industrial Instrument baseline (implementation; CI pending)
+## 2026-11-20 — P0/P1 audit fixes ported to latest Industrial Instrument baseline (CI verified)
 
 ### Scope and compatibility
 - New integration branch is based directly on `fix/auto-start-coordinator-timing` at `d7dbec01d412b95a8129659a0991a2d43bca6519`; only the six approved P0/P1 audit areas are included.
@@ -16,7 +16,9 @@
 
 ### Repository hygiene and verification
 - Removed the obsolete root `INSTALL-INSTRUCTIONS.txt`.
-- Anti-Slop UI audit, unit tests, and debug APK build: pending CI on this integration branch.
+- Anti-Slop UI audit gate: PASS; `testDebugUnitTest`: PASS; `assembleDebug`: PASS in [GitHub Actions run #356](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/44712530728), exact tested head `0ccb48aada965c748760c7723622810456bad367`.
+- CI uploaded `android-debug-apk` (17,059,413 bytes) and `android-unit-test-reports` artifacts.
+- No local build was run in this environment; the build/test verification above is from GitHub Actions.
 - Physical-device QA: not run; CI does not establish OEM notification or sensor behavior.
 
 ---
