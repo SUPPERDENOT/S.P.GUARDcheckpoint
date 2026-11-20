@@ -1,11 +1,13 @@
 package com.superdenot.powerguard
 
+import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
+import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
@@ -32,8 +34,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
 
+/**
+ * Isolates unit tests from production Application startup. The production app schedules
+ * WorkManager work in PowerGuardApp.onCreate(), while Config.NONE intentionally omits
+ * AndroidX Startup's WorkManager initializer from the Robolectric test environment.
+ */
+class PowerGuardTestApplication : Application()
+
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [34], application = PowerGuardTestApplication::class, manifest = Config.NONE)
 class P0RecoveryAndFinalizationRegressionTest {
 
     private lateinit var context: Context
@@ -78,7 +87,9 @@ class P0RecoveryAndFinalizationRegressionTest {
             recoveredMaxTempCelsius: Float,
             recoveredHasAnomaly: Boolean,
             recoveredAnomalyReason: String?,
-            recoveredSample: BatterySampleEntity?
+            recoveredSample: BatterySampleEntity?,
+            recoveredHasCurrentData: Boolean,
+            recoveredHasTemperatureData: Boolean
         ): Boolean {
             onReconcileEntered?.complete(Unit)
             allowReconcileProceed?.await()
@@ -92,7 +103,9 @@ class P0RecoveryAndFinalizationRegressionTest {
                 recoveredMaxTempCelsius = recoveredMaxTempCelsius,
                 recoveredHasAnomaly = recoveredHasAnomaly,
                 recoveredAnomalyReason = recoveredAnomalyReason,
-                recoveredSample = recoveredSample
+                recoveredSample = recoveredSample,
+                recoveredHasCurrentData = recoveredHasCurrentData,
+                recoveredHasTemperatureData = recoveredHasTemperatureData
             )
         }
 
@@ -208,7 +221,6 @@ class P0RecoveryAndFinalizationRegressionTest {
             tempCelsius = tempCelsius,
             isCharging = isCharging,
             chargeSource = if (isCharging) "AC Adapter" else "Discharging",
-            isFastCharging = isCharging,
             sessionMahDelivered = sessionMah,
             sessionDurationSec = sessionDurationSec,
             deepSleepRatio = 0.4f,
@@ -237,6 +249,8 @@ class P0RecoveryAndFinalizationRegressionTest {
             maxSessionTemp = maxTemp,
             currentSumForAvg = currentSum,
             currentReadingsCount = currentCount,
+            hasCurrentData = true,
+            hasTemperatureData = true,
             alertedAnomalyCodes = anomalyCodes,
             pendingBatchTimestampMs = batchTimestampMs,
             hasPendingSample = hasPendingSample,
@@ -246,6 +260,13 @@ class P0RecoveryAndFinalizationRegressionTest {
             sampleTempCelsius = maxTemp,
             samplePowerWatt = 6.375f,
             sampleIsScreenOn = false,
+            sampleIsLevelAvailable = true,
+            sampleIsCurrentAvailable = true,
+            sampleIsVoltageAvailable = true,
+            sampleIsTemperatureAvailable = true,
+            sampleIsPowerAvailable = true,
+            sampleIsChargingStatusAvailable = true,
+            sampleIsCharging = true,
             sampleWeight = sampleWeight,
             dbSessionsClosed = dbSessionsClosed,
             failureReason = "Test checkpoint"
@@ -263,6 +284,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 startLevel = 25,
                 totalMahDelivered = 500.0,
                 avgCurrentMa = 1400,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 36.0f,
                 chargerType = "FAST (AC Adapter)"
             )
@@ -287,7 +310,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         val updatedSession = faultDao.getSessionById(sessionId)
         assertNotNull(updatedSession)
         assertEquals(850.0, updatedSession!!.totalMahDelivered, 0.001)
-        assertEquals(1500, updatedSession.avgCurrentMa)
+        assertEquals("Rata-rata durable Room tidak boleh ditimpa checkpoint recovery", 1400, updatedSession.avgCurrentMa)
         assertEquals(38.5f, updatedSession.maxTempCelsius, 0.01f)
         assertTrue(updatedSession.isAnomaly)
         assertEquals("SLOW_CHARGING", updatedSession.anomalyReason)
@@ -613,6 +636,8 @@ class P0RecoveryAndFinalizationRegressionTest {
      */
     @Test
     fun test07_repeatedFinalization_isIdempotentWithoutDuplicates() = runTest {
+        // PowerProfile may be unavailable in Robolectric; configure an explicit valid source.
+        DesignCapacitySettings.saveManual(context, 5000)
         val sessionId = faultDao.insertSession(
             ChargingSessionEntity(
                 startTime = System.currentTimeMillis() - 3_600_000L,
@@ -1138,6 +1163,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 startLevel = 28,
                 totalMahDelivered = 340.0,
                 avgCurrentMa = 1650,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "FAST (AC Adapter)"
             )
@@ -1164,6 +1191,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 85,
                 totalMahDelivered = 1920.0,
                 avgCurrentMa = 2100,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 38.8f,
                 chargerType = "AC Adapter",
                 anomalyReason = "THERMAL_THROTTLING",
@@ -1434,6 +1463,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 55,
                 totalMahDelivered = 400.0,
                 avgCurrentMa = 1500,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "AC Adapter"
             )
@@ -1576,6 +1607,43 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression: read-back checkpoint harus mempertahankan seluruh payload, termasuk field
+     * yang sebelumnya tidak ikut diverifikasi setelah SharedPreferences.commit().
+     */
+    @Test
+    fun test_checkpointReadBack_preservesEveryPersistedField() {
+        val sessionId = 987654321L
+        val expected = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 731.25,
+            sessionSeconds = 2345L,
+            maxTemp = 41.25f,
+            currentSum = -987654L,
+            currentCount = 321L,
+            anomalyCodes = setOf("SLOW_CHARGING", "HIGH_TEMPERATURE"),
+            batchTimestampMs = 1_700_000_345_678L,
+            sampleWeight = 7,
+            dbSessionsClosed = true
+        ).copy(
+            sampleBatteryLevel = 63,
+            sampleCurrentMa = -1725,
+            sampleVoltageMv = 4187,
+            sampleTempCelsius = 39.75f,
+            samplePowerWatt = -7.224f,
+            sampleIsScreenOn = true,
+            sampleSpanDurationMs = 4567L,
+            failureReason = "full payload verification",
+            recoveryStatus = SessionRecoveryStore.RecoveryStatus.NEEDS_FOLLOW_UP_DB_UNAVAILABLE
+        )
+
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, expected).isSuccess)
+        val loaded = SessionRecoveryStore.loadForSession(context, sessionId)
+            as SessionRecoveryStore.CheckpointLoadResult.Loaded
+
+        assertEquals(expected, loaded.recovery)
+    }
+
+    /**
      * Skenario 25 (v4 P0): Rekonsiliasi berulang tidak menduplikasi sampel maupun menggandakan metrik kumulatif.
      */
     @Test
@@ -1586,6 +1654,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 startLevel = 25,
                 totalMahDelivered = 300.0,
                 avgCurrentMa = 1400,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 36.0f,
                 chargerType = "AC Adapter"
             )
@@ -1612,7 +1682,7 @@ class P0RecoveryAndFinalizationRegressionTest {
 
         val row = faultDao.getSessionById(sessionId)!!
         assertEquals(650.0, row.totalMahDelivered, 0.001)
-        assertEquals(1600, row.avgCurrentMa)
+        assertEquals("Recovery berulang tidak boleh menimpa rata-rata durable Room", 1400, row.avgCurrentMa)
         assertEquals(38.0f, row.maxTempCelsius, 0.01f)
         assertEquals("SLOW_CHARGING", row.anomalyReason)
         assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, batchTs))
@@ -1816,8 +1886,8 @@ class P0RecoveryAndFinalizationRegressionTest {
             ).status
         )
 
-        // Penolakan clear dengan sessionId yang tidak terdaftar tidak memengaruhi A, B, maupun C
-        assertTrue(SessionRecoveryStore.clear(context, expectedSessionId = 9999L))
+        // Clear wajib menolak ID yang bukan pemilik, tanpa memengaruhi A, B, maupun C
+        assertFalse(SessionRecoveryStore.clear(context, expectedSessionId = 9999L))
         assertEquals(3, SessionRecoveryStore.loadAllLoaded(context).size)
         assertEquals(410.0, SessionRecoveryStore.loadForSessionOrNull(context, sessionA)!!.accumulatedMah, 0.001)
         assertEquals(220.0, SessionRecoveryStore.loadForSessionOrNull(context, sessionB)!!.accumulatedMah, 0.001)
@@ -1940,6 +2010,58 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression P0: snapshot incoming dengan count dan bobot sampel yang sama tidak boleh
+     * mengganti statistik/payload existing hanya karena proses save dipanggil ulang.
+     */
+    @Test
+    fun test_mergeSameSession_equalCountAndWeight_preservesExistingSnapshot() {
+        val sessionId = 40_404L
+        val timestamp = 1_700_000_777_000L
+        val existing = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 250.0,
+            sessionSeconds = 120L,
+            currentSum = 125_000L,
+            currentCount = 50L,
+            batchTimestampMs = timestamp,
+            sampleWeight = 5
+        ).copy(sampleBatteryLevel = 48, sampleCurrentMa = 1250)
+
+        val staleIncoming = existing.copy(
+            accumulatedMah = 240.0,
+            sessionSeconds = 115L,
+            currentSumForAvg = 99_000L,
+            sampleBatteryLevel = 47,
+            sampleCurrentMa = 990,
+            failureReason = "stale retry"
+        )
+
+        assertTrue(SessionRecoveryStore.save(context, existing))
+        assertTrue(SessionRecoveryStore.save(context, staleIncoming))
+
+        val merged = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertEquals(125_000L, merged.currentSumForAvg)
+        assertEquals(50L, merged.currentReadingsCount)
+        assertEquals(48, merged.sampleBatteryLevel)
+        assertEquals(1250, merged.sampleCurrentMa)
+        assertEquals(5, merged.sampleWeight)
+        assertEquals(timestamp, merged.pendingBatchTimestampMs)
+
+        // Snapshot dengan timestamp persistensi lebih baru boleh memperbarui nilai pada count sama.
+        val genuinelyNewer = staleIncoming.copy(
+            persistedAtMs = existing.persistedAtMs + 1L,
+            currentSumForAvg = 130_000L,
+            sampleBatteryLevel = 52,
+            sampleCurrentMa = 1300
+        )
+        assertTrue(SessionRecoveryStore.save(context, genuinelyNewer))
+        val refreshed = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertEquals(130_000L, refreshed.currentSumForAvg)
+        assertEquals(52, refreshed.sampleBatteryLevel)
+        assertEquals(1300, refreshed.sampleCurrentMa)
+    }
+
+    /**
      * Skenario 32 (v5 P1): Penggabungan dua batch sampel berbeda pada sessionId yang sama mempertahankan
      * total bobot tertimbang dan metrik gabungan tanpa kehilangan sampel batch sebelumnya.
      */
@@ -1962,6 +2084,15 @@ class P0RecoveryAndFinalizationRegressionTest {
             sampleTempCelsius = 35.0f,
             samplePowerWatt = 4.0f,
             sampleIsScreenOn = false,
+            hasCurrentData = true,
+            hasTemperatureData = true,
+            sampleIsLevelAvailable = true,
+            sampleIsCurrentAvailable = true,
+            sampleIsVoltageAvailable = true,
+            sampleIsTemperatureAvailable = true,
+            sampleIsPowerAvailable = true,
+            sampleIsChargingStatusAvailable = true,
+            sampleIsCharging = true,
             sampleWeight = 100,
             sampleSpanDurationMs = 99_000L,
             dbSessionsClosed = false,
@@ -1983,6 +2114,15 @@ class P0RecoveryAndFinalizationRegressionTest {
             sampleTempCelsius = 38.0f,
             samplePowerWatt = 8.4f,
             sampleIsScreenOn = true,
+            hasCurrentData = true,
+            hasTemperatureData = true,
+            sampleIsLevelAvailable = true,
+            sampleIsCurrentAvailable = true,
+            sampleIsVoltageAvailable = true,
+            sampleIsTemperatureAvailable = true,
+            sampleIsPowerAvailable = true,
+            sampleIsChargingStatusAvailable = true,
+            sampleIsCharging = true,
             sampleWeight = 100,
             sampleSpanDurationMs = 99_000L,
             dbSessionsClosed = false,
@@ -2018,6 +2158,8 @@ class P0RecoveryAndFinalizationRegressionTest {
                 endLevel = 60,
                 totalMahDelivered = 500.0,
                 avgCurrentMa = 1500,
+                hasCurrentData = true,
+                hasTemperatureData = true,
                 maxTempCelsius = 37.0f,
                 chargerType = "AC Adapter",
                 isAnomaly = true,
@@ -2138,6 +2280,122 @@ class P0RecoveryAndFinalizationRegressionTest {
     }
 
     /**
+     * Regression P0: checkpoint lama dengan sessionId benar tetapi payload tertinggal tidak
+     * boleh dianggap sebagai bukti bahwa snapshot RAM sudah durable.
+     */
+    @Test
+    fun test_durabilityGate_rejectsStaleCheckpointForSameSessionId() {
+        val sessionId = 40_405L
+        val stale = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 100.0,
+            sessionSeconds = 60L,
+            maxTemp = 35.0f,
+            currentSum = 60_000L,
+            currentCount = 60L,
+            anomalyCodes = emptySet(),
+            batchTimestampMs = 1_700_000_800_000L,
+            hasPendingSample = false
+        )
+        assertTrue(SessionRecoveryStore.save(context, stale))
+
+        service.seedActiveSessionStateForTesting(
+            sessionId = sessionId,
+            accumulatedMah = 280.0,
+            sessionSeconds = 240L,
+            maxSessionTemp = 38.0f,
+            currentSumForAvg = 360_000L,
+            currentReadingsCount = 240L,
+            alertedAnomalyCodes = setOf("SLOW_CHARGING"),
+            bufferedSamples = listOf(sampleLiveState(level = 49, sessionMah = 280.0, sessionDurationSec = 240L)),
+            pendingBatchTimestampMs = 1_700_000_800_000L
+        )
+
+        assertTrue(
+            "Checkpoint stale tidak boleh melewati durability gate hanya karena sessionId cocok",
+            service.hasUnpersistedRamOnlyDataForTesting(
+                BatteryMonitorService.SessionFinalizationResult.COMPLETE_DATA_FINALIZED
+            )
+        )
+    }
+
+    /**
+     * Regression P0: durability gate wajib memverifikasi seluruh metrik pending sample,
+     * bukan hanya level, bobot, dan rentang waktunya.
+     */
+    @Test
+    fun test_durabilityGate_rejectsPendingSampleWithStaleElectricalMetrics() {
+        val sessionId = 40_406L
+        val timestamp = 1_700_000_810_000L
+        val ramSample = sampleLiveState(level = 49, currentMa = 1800, voltageMv = 4200, tempCelsius = 36.5f)
+        val checkpoint = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            accumulatedMah = 280.0,
+            sessionSeconds = 240L,
+            maxTemp = 38.0f,
+            currentSum = 360_000L,
+            currentCount = 240L,
+            anomalyCodes = setOf("SLOW_CHARGING"),
+            batchTimestampMs = timestamp,
+            sampleWeight = 1
+        ).copy(
+            sampleBatteryLevel = 49,
+            sampleCurrentMa = 100,
+            sampleVoltageMv = 3900,
+            sampleTempCelsius = 30.0f,
+            samplePowerWatt = 0.39f,
+            sampleSpanDurationMs = 0L
+        )
+        assertTrue(SessionRecoveryStore.save(context, checkpoint))
+        service.seedActiveSessionStateForTesting(
+            sessionId = sessionId,
+            accumulatedMah = 280.0,
+            sessionSeconds = 240L,
+            maxSessionTemp = 38.0f,
+            currentSumForAvg = 360_000L,
+            currentReadingsCount = 240L,
+            alertedAnomalyCodes = setOf("SLOW_CHARGING"),
+            bufferedSamples = listOf(ramSample),
+            pendingBatchTimestampMs = timestamp
+        )
+
+        assertTrue(
+            "Checkpoint dengan level/bobot sama tetapi metrik listrik stale harus ditolak",
+            service.hasUnpersistedRamOnlyDataForTesting(
+                BatteryMonitorService.SessionFinalizationResult.COMPLETE_DATA_FINALIZED
+            )
+        )
+    }
+
+    /**
+     * Regression P0: penggabungan batch dekat batas Long tidak boleh overflow dan
+     * menghasilkan rentang durasi negatif atau terpotong.
+     */
+    @Test
+    fun test_mergeSameSession_timestampNearLongMax_saturatesEndWithoutOverflow() {
+        val sessionId = 40_407L
+        val firstTimestamp = Long.MAX_VALUE - 2_000L
+        val first = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            batchTimestampMs = firstTimestamp,
+            sampleWeight = 2
+        ).copy(sampleSpanDurationMs = 5_000L)
+        val second = buildRecoveryCheckpoint(
+            sessionId = sessionId,
+            batchTimestampMs = Long.MAX_VALUE - 1_000L,
+            sampleWeight = 3
+        ).copy(sampleSpanDurationMs = 0L)
+
+        assertTrue(SessionRecoveryStore.save(context, first))
+        assertTrue(SessionRecoveryStore.save(context, second))
+
+        val merged = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertEquals(firstTimestamp, merged.pendingBatchTimestampMs)
+        assertEquals(2_000L, merged.sampleSpanDurationMs)
+        assertEquals(5, merged.sampleWeight)
+    }
+
+    /**
      * Skenario 36 (v5 P0): DATABASE_UNAVAILABLE disertai kegagalan penyimpanan checkpoint
      * tetap menahan shutdown layanan (RECOVERY_HOLD) sampai persistensi terkonfirmasi.
      */
@@ -2205,4 +2463,128 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertFalse("Service berhenti bersih setelah DB pulih dan data terverifikasi", BatteryMonitorService.isRunning)
         assertNotNull(faultDao.getSessionById(sessionId)!!.endTime)
     }
+
+    /**
+     * Regression: retry must not keep an activeSessionId that points to an already-closed Room row.
+     * Once pending data is reconciled, the stale in-memory session is reset so charging can start a
+     * fresh Room session instead of repeatedly writing to the closed row.
+     */
+    @Test
+    fun testClosedActiveSessionRetry_reconcilesThenClearsStaleSessionIdentity() = runTest {
+        val closedTs = System.currentTimeMillis() - 30_000L
+        val sessionId = faultDao.insertSession(
+            ChargingSessionEntity(
+                startTime = closedTs - 600_000L,
+                endTime = closedTs,
+                startLevel = 40,
+                endLevel = 60,
+                totalMahDelivered = 400.0,
+                avgCurrentMa = 1500,
+                hasCurrentData = true,
+                hasTemperatureData = true,
+                maxTempCelsius = 37.0f,
+                chargerType = "AC Adapter"
+            )
+        )
+        val pendingTs = 1_700_000_800_000L
+        service.seedActiveSessionStateForTesting(
+            sessionId = sessionId,
+            accumulatedMah = 610.0,
+            sessionSeconds = 600L,
+            maxSessionTemp = 38.0f,
+            currentSumForAvg = 900_000L,
+            currentReadingsCount = 600L,
+            bufferedSamples = listOf(
+                sampleLiveState(level = 60, sessionMah = 610.0, sessionDurationSec = 600L)
+            ),
+            pendingBatchTimestampMs = pendingTs,
+            samplePersistenceHalted = true
+        )
+
+        assertTrue(service.retryPendingCheckpointAndFinalizationForTest())
+
+        val snapshot = service.getInMemorySessionSnapshotForTesting()
+        assertNull("ID sesi tertutup tidak boleh dipakai lagi", snapshot.activeSessionId)
+        assertEquals(0, snapshot.bufferedSamplesCount)
+        assertFalse(snapshot.samplePersistenceHalted)
+        assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, pendingTs))
+        assertEquals(610.0, faultDao.getSessionById(sessionId)!!.totalMahDelivered, 0.001)
+    }
+
+
+    @Test
+    fun recoveryCheckpoint_preservesAvailabilityAndLegacyMissingFlagsDefaultFalse() = runTest {
+        val sessionId = 909_001L
+        val valid = buildRecoveryCheckpoint(sessionId).copy(
+            sampleIsLevelAvailable = true,
+            sampleIsCurrentAvailable = true,
+            sampleIsVoltageAvailable = true,
+            sampleIsTemperatureAvailable = true,
+            sampleIsPowerAvailable = true,
+            sampleIsChargingStatusAvailable = true,
+            sampleIsCharging = true
+        )
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, valid).isSuccess)
+        val loaded = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertTrue(loaded.sampleIsCurrentAvailable)
+        assertTrue(loaded.sampleIsTemperatureAvailable)
+        assertTrue(loaded.sampleIsChargingStatusAvailable)
+        assertTrue(loaded.sampleIsCharging)
+
+        val prefs = context.getSharedPreferences("powerguard_session_recovery", Context.MODE_PRIVATE)
+        val prefix = "s_${sessionId}_"
+        assertTrue(
+            prefs.edit()
+                .remove(prefix + "sample_level_available")
+                .remove(prefix + "sample_current_available")
+                .remove(prefix + "sample_voltage_available")
+                .remove(prefix + "sample_temp_available")
+                .remove(prefix + "sample_power_available")
+                .remove(prefix + "sample_charging_status_available")
+                .remove(prefix + "sample_is_charging")
+                .remove(prefix + "has_current_data")
+                .remove(prefix + "has_temperature_data")
+                .commit()
+        )
+        val legacyLoaded = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertFalse(legacyLoaded.sampleIsLevelAvailable)
+        assertFalse(legacyLoaded.sampleIsCurrentAvailable)
+        assertFalse(legacyLoaded.sampleIsVoltageAvailable)
+        assertFalse(legacyLoaded.sampleIsTemperatureAvailable)
+        assertFalse(legacyLoaded.sampleIsPowerAvailable)
+        assertFalse(legacyLoaded.sampleIsChargingStatusAvailable)
+        assertFalse(legacyLoaded.sampleIsCharging)
+        assertFalse(legacyLoaded.hasCurrentData)
+        assertFalse(legacyLoaded.hasTemperatureData)
+        assertEquals(0L, legacyLoaded.currentReadingsCount)
+        assertEquals(0L, legacyLoaded.currentSumForAvg)
+        assertEquals(0f, legacyLoaded.maxSessionTemp, 0.001f)
+    }
+
+    @Test
+    fun recoveryCheckpoint_sameTimestampMergeUsesPrimaryAvailabilityFlags() = runTest {
+        val sessionId = 909_002L
+        val first = buildRecoveryCheckpoint(sessionId).copy(
+            sampleWeight = 1,
+            sampleIsCurrentAvailable = true,
+            sampleIsTemperatureAvailable = false,
+            persistedAtMs = 1_000L
+        )
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, first).isSuccess)
+        val newer = first.copy(
+            sampleWeight = 2,
+            sampleCurrentMa = 0,
+            sampleTempCelsius = 0f,
+            sampleIsCurrentAvailable = false,
+            sampleIsTemperatureAvailable = true,
+            persistedAtMs = 2_000L
+        )
+        assertTrue(SessionRecoveryStore.saveForSession(context, sessionId, newer).isSuccess)
+        val merged = SessionRecoveryStore.loadForSessionOrNull(context, sessionId)!!
+        assertFalse(merged.sampleIsCurrentAvailable)
+        assertTrue(merged.sampleIsTemperatureAvailable)
+        assertEquals(0, merged.sampleCurrentMa)
+        assertEquals(0f, merged.sampleTempCelsius, 0.001f)
+    }
+
 }

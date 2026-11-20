@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -19,7 +20,11 @@ data class ChargingSessionEntity(
     val chargerType: String,
     val isAnomaly: Boolean = false,
     val anomalyReason: String? = null,
-    val deepSleepRatio: Float = 0f
+    val deepSleepRatio: Float = 0f,
+    @ColumnInfo(defaultValue = "0")
+    val hasCurrentData: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val hasTemperatureData: Boolean = false
 )
 
 @Entity(
@@ -44,7 +49,21 @@ data class BatterySampleEntity(
     val voltageMv: Int,
     val tempCelsius: Float,
     val powerWatt: Float,
-    val isScreenOn: Boolean
+    val isScreenOn: Boolean,
+    @ColumnInfo(defaultValue = "0")
+    val isLevelAvailable: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val isCurrentAvailable: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val isVoltageAvailable: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val isTemperatureAvailable: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val isPowerAvailable: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val isChargingStatusAvailable: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val isCharging: Boolean = false
 )
 
 @Entity(tableName = "battery_health_logs")

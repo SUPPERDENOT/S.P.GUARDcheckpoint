@@ -11,11 +11,14 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.ContextCompat
 import com.superdenot.powerguard.MainActivity
+import com.superdenot.powerguard.R
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
@@ -24,8 +27,15 @@ import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
+import com.superdenot.powerguard.data.repository.DesignCapacitySettings
+import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
+import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
+import com.superdenot.powerguard.domain.engine.ChargingMahIntegrator
+import com.superdenot.powerguard.domain.engine.ChargingSessionDurationTracker
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +47,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
@@ -49,15 +61,30 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
+internal sealed interface TargetSessionLookupResult {
+    data class Found(val session: ChargingSessionEntity) : TargetSessionLookupResult
+    data object MissingInAccessibleDb : TargetSessionLookupResult
+    data class DatabaseInaccessible(val cause: Throwable?) : TargetSessionLookupResult
+}
+
 class BatteryMonitorService : Service() {
 
     private enum class ActorLifecycleState {
         STOPPED,
         STARTING,
+        HUD_ONLY,
+        MONITORING_STANDBY,
         RUNNING_CHARGING,
         RUNNING_MANUAL,
         RECOVERY_HOLD
     }
+
+    private data class AutoStartTiming(
+        val attemptId: Long,
+        val epochId: Long,
+        val t0ElapsedRealtime: Long,
+        val t1ElapsedRealtime: Long
+    )
 
     private enum class SessionCleanupOutcome {
         FINALIZED,
@@ -107,12 +134,35 @@ class BatteryMonitorService : Service() {
         val endTimestampMs: Long = timestampMs,
         val state: LiveBatteryState,
         val weight: Int = 1,
-        val maxTempCelsius: Float = state.tempCelsius
+        val maxTempCelsius: Float = state.tempCelsius,
+        // Simpan jumlah berbobot asli agar pemadatan berulang tidak mengakumulasi galat pembulatan.
+        val weightedCurrentMaSum: Long = if (state.isCurrentAvailable) state.currentMa.toLong() * weight.coerceAtLeast(1) else 0L,
+        val weightedVoltageMvSum: Long = if (state.isVoltageAvailable) state.voltageMv.toLong() * weight.coerceAtLeast(1) else 0L,
+        val weightedTempCelsiusSum: Double = if (state.isTemperatureAvailable) state.tempCelsius.toDouble() * weight.coerceAtLeast(1) else 0.0,
+        val weightedPowerWattSum: Double = if (state.isPowerAvailable) state.powerWatt.toDouble() * weight.coerceAtLeast(1) else 0.0,
+        val weightedDeepSleepRatioSum: Double = state.deepSleepRatio.toDouble() * weight.coerceAtLeast(1),
+        val weightedCurrentMaWeight: Int = if (state.isCurrentAvailable) weight.coerceAtLeast(1) else 0,
+        val weightedVoltageMvWeight: Int = if (state.isVoltageAvailable) weight.coerceAtLeast(1) else 0,
+        val weightedTempCelsiusWeight: Int = if (state.isTemperatureAvailable) weight.coerceAtLeast(1) else 0,
+        val weightedPowerWattWeight: Int = if (state.isPowerAvailable) weight.coerceAtLeast(1) else 0
     )
 
     private data class WeightedBatchMetrics(
         val totalWeight: Int,
         val spanDurationMs: Long,
+        val weightedCurrentMaSum: Long,
+        val weightedVoltageMvSum: Long,
+        val weightedTempCelsiusSum: Double,
+        val weightedPowerWattSum: Double,
+        val weightedDeepSleepRatioSum: Double,
+        val weightedCurrentMaWeight: Int,
+        val weightedVoltageMvWeight: Int,
+        val weightedTempCelsiusWeight: Int,
+        val weightedPowerWattWeight: Int,
+        val isCurrentAvailable: Boolean,
+        val isVoltageAvailable: Boolean,
+        val isTemperatureAvailable: Boolean,
+        val isPowerAvailable: Boolean,
         val weightedCurrentMa: Int,
         val weightedVoltageMv: Int,
         val weightedTempCelsius: Float,
@@ -173,8 +223,10 @@ class BatteryMonitorService : Service() {
         data class Start(val startId: Int, val manual: Boolean, val generation: Long) : LifecycleCommand
         data class Restart(val startId: Int, val generation: Long) : LifecycleCommand
         data class Stop(val startId: Int, val generation: Long) : LifecycleCommand
+        data class StopMonitoring(val startId: Int, val generation: Long) : LifecycleCommand
         data class AutoStop(val generation: Long) : LifecycleCommand
         data class ChargerConnected(val generation: Long) : LifecycleCommand
+        data object SettingsChanged : LifecycleCommand
         data object Destroy : LifecycleCommand
     }
 
@@ -186,8 +238,14 @@ class BatteryMonitorService : Service() {
     @Volatile
     private var actorState: ActorLifecycleState = ActorLifecycleState.STOPPED
     private var monitorJob: Job? = null
+    private var monitorLoopGeneration: Long = -1L
+    @Volatile
+    private var monitorLoopStopping: Boolean = false
     private var activeRunGeneration: Long = 0L
     private var manualMonitoringRequested: Boolean = false
+
+    @Volatile
+    private var autoStartTiming: AutoStartTiming? = null
 
     // Pemisahan status proses finalisasi, status cleanup DB, dan keberhasilan penyimpanan data lengkap
     @Volatile
@@ -207,6 +265,18 @@ class BatteryMonitorService : Service() {
     private lateinit var powerManager: PowerManager
     private lateinit var notificationManager: NotificationManager
 
+    @Volatile
+    private var statusBarIndicatorSetting: StatusBarIndicatorSetting = StatusBarIndicatorSetting()
+
+    @Volatile
+    private var batteryMonitoringEnabledForIndicator: Boolean = false
+    private val notificationRenderGate = PersistentNotificationRenderGate()
+    private val monitorNotificationPostGate = MonitorNotificationPostGate()
+    private val monitorNotificationPostLock = Any()
+    private val notificationStateSequence = AtomicLong(0L)
+    @Volatile private var lastNotificationBody: String = "Memulai layanan pemantauan..."
+    @Volatile private var lastAppliedMonitoringEnabled: Boolean? = null
+
     @VisibleForTesting
     internal var daoOverride: BatteryDao? = null
 
@@ -216,12 +286,22 @@ class BatteryMonitorService : Service() {
     private fun resolveDao(): BatteryDao = daoOverride ?: database.batteryDao()
     private fun resolveEngine(): BatteryMonitorEngine = engineOverride ?: engine
 
+    private suspend fun effectiveDesignCapacityMah(): Int =
+        runCatching {
+            DesignCapacitySettings.resolve(applicationContext, resolveEngine().designCapacityMah)
+        }.onFailure { error ->
+            Log.w("PowerGuard", "Kapasitas desain tidak dapat dibaca; health log sesi ini dilewati", error)
+        }.getOrDefault(0)
+
     // State sesi dan operasi database dilindungi oleh sharedSessionMutex
     @Volatile
     private var activeSessionId: Long? = null
     private var accumulatedMah: Double = 0.0
+    private val chargingMahIntegrator = ChargingMahIntegrator()
+    private val sessionDurationTracker = ChargingSessionDurationTracker()
     private var sessionSeconds: Long = 0L
     private var maxSessionTemp: Float = 0f
+    private var hasSessionTemperatureData: Boolean = false
     private var currentSumForAvg: Long = 0L
     private var currentReadingsCount: Long = 0L
     private val alertedAnomalyCodes = mutableSetOf<String>()
@@ -236,6 +316,7 @@ class BatteryMonitorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        AutoStartDiagnosticLog.record(this, "R5 service onCreate")
         synchronized(lifecycleLock) {
             activeInstance = this
         }
@@ -245,9 +326,31 @@ class BatteryMonitorService : Service() {
         powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannels()
+        observeStatusBarIndicatorSettings()
         startLifecycleActor()
         if (hasPendingStarts()) {
             lifecycleChannel.trySend(LifecycleCommand.PrepareStart(latestStartGeneration.get()))
+        }
+    }
+
+    private fun observeStatusBarIndicatorSettings() {
+        serviceScope.launch {
+            StatusBarIndicatorSettings.observe(applicationContext).collect { setting ->
+                val changed = statusBarIndicatorSetting != setting
+                statusBarIndicatorSetting = setting
+                if (changed) notificationRenderGate.reset()
+                refreshStatusBarIndicatorNotification(_liveState.value, force = changed)
+                if (changed) lifecycleChannel.trySend(LifecycleCommand.SettingsChanged)
+            }
+        }
+        serviceScope.launch {
+            BatteryMonitoringSettings.observe(applicationContext).collect { enabled ->
+                val changed = batteryMonitoringEnabledForIndicator != enabled
+                batteryMonitoringEnabledForIndicator = enabled
+                if (changed) notificationRenderGate.reset()
+                refreshStatusBarIndicatorNotification(_liveState.value, force = changed)
+                if (changed) lifecycleChannel.trySend(LifecycleCommand.SettingsChanged)
+            }
         }
     }
 
@@ -271,8 +374,10 @@ class BatteryMonitorService : Service() {
                             is LifecycleCommand.Start -> handleStart(command.startId, command.manual, command.generation)
                             is LifecycleCommand.Restart -> handleRestart(command.startId, command.generation)
                             is LifecycleCommand.Stop -> handleStop(command.startId, command.generation)
+                            is LifecycleCommand.StopMonitoring -> handleStopMonitoring(command.startId, command.generation)
                             is LifecycleCommand.AutoStop -> handleAutoStop(command.generation)
                             is LifecycleCommand.ChargerConnected -> handleChargerConnected(command.generation)
+                            LifecycleCommand.SettingsChanged -> handleSettingsChanged()
                             is LifecycleCommand.Destroy -> Unit
                         }
                     } catch (ce: CancellationException) {
@@ -312,6 +417,8 @@ class BatteryMonitorService : Service() {
     }
 
     private fun transitionActorState(newState: ActorLifecycleState) {
+        val stateChanged = actorState != newState
+        if (stateChanged) notificationRenderGate.reset()
         synchronized(lifecycleLock) {
             actorState = newState
             if (activeInstance == null || activeInstance === this) {
@@ -323,7 +430,11 @@ class BatteryMonitorService : Service() {
                     ActorLifecycleState.STARTING -> {
                         _isStartingFlow.value = true
                         _isRunningFlow.value = false
+                        _lastSensorUpdateElapsedRealtime.value = 0L
+                        _lastMonitorError.value = null
                     }
+                    ActorLifecycleState.HUD_ONLY,
+                    ActorLifecycleState.MONITORING_STANDBY,
                     ActorLifecycleState.RUNNING_CHARGING,
                     ActorLifecycleState.RUNNING_MANUAL,
                     ActorLifecycleState.RECOVERY_HOLD -> {
@@ -333,9 +444,40 @@ class BatteryMonitorService : Service() {
                 }
             }
         }
+
+        refreshStatusBarIndicatorNotification(_liveState.value)
+
+        val timing = autoStartTiming ?: return
+        when (newState) {
+            ActorLifecycleState.RUNNING_CHARGING -> {
+                val t2 = SystemClock.elapsedRealtime()
+                AutoStartDiagnosticLog.record(this, "T2 RUNNING_CHARGING attempt=${timing.attemptId} epoch=${timing.epochId} T0_to_T2=${t2 - timing.t0ElapsedRealtime}ms")
+                Log.i(
+                    "SPG_AUTO_START",
+                    "T2 RUNNING_CHARGING; attempt=${timing.attemptId}; epoch=${timing.epochId}; " +
+                        "elapsedRealtime=$t2; T1_to_T2=${t2 - timing.t1ElapsedRealtime}ms; " +
+                        "T0_to_T2=${t2 - timing.t0ElapsedRealtime}ms"
+                )
+                autoStartTiming = null
+            }
+            ActorLifecycleState.STOPPED,
+            ActorLifecycleState.RECOVERY_HOLD -> {
+                val now = SystemClock.elapsedRealtime()
+                AutoStartDiagnosticLog.record(this, "AUTO_START aborted state=$newState attempt=${timing.attemptId} epoch=${timing.epochId} elapsedSinceT0=${now - timing.t0ElapsedRealtime}ms")
+                Log.w(
+                    "SPG_AUTO_START",
+                    "Auto Start did not reach RUNNING_CHARGING; state=$newState; " +
+                        "attempt=${timing.attemptId}; epoch=${timing.epochId}; " +
+                        "elapsedSinceT0=${now - timing.t0ElapsedRealtime}ms"
+                )
+                autoStartTiming = null
+            }
+            else -> Unit
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        AutoStartDiagnosticLog.record(this, "R5 service onStartCommand action=${intent?.action ?: "null"} startId=$startId")
         synchronized(lifecycleLock) {
             instanceLatestObservedCommandId.updateAndGet { prev -> maxOf(prev, startId) }
         }
@@ -347,7 +489,7 @@ class BatteryMonitorService : Service() {
             }
             lifecycleChannel.trySend(LifecycleCommand.PrepareStart(gen))
             val fgResult = runCatching {
-                startForegroundCompat(buildMonitorNotification("Memulihkan pemantauan sensor daya..."))
+                startForegroundCompat("Memulihkan pemantauan sensor daya...")
             }
             if (fgResult.isFailure) {
                 removePendingStart(gen)
@@ -367,6 +509,16 @@ class BatteryMonitorService : Service() {
                 lifecycleChannel.trySend(LifecycleCommand.Stop(startId, stopGen))
                 START_NOT_STICKY
             }
+            ACTION_STOP_MONITORING -> {
+                val stopGen = intent.getLongExtra(EXTRA_STOP_GENERATION, -1L)
+                    .takeIf { it > 0L } ?: registerStopGeneration()
+                lifecycleChannel.trySend(LifecycleCommand.StopMonitoring(startId, stopGen))
+                START_NOT_STICKY
+            }
+            ACTION_SYNC_SETTINGS -> {
+                lifecycleChannel.trySend(LifecycleCommand.SettingsChanged)
+                START_NOT_STICKY
+            }
             ACTION_START_MANUAL_MONITORING -> {
                 dispatchStartCommand(startId = startId, manual = true, intent = intent)
                 START_NOT_STICKY
@@ -381,6 +533,9 @@ class BatteryMonitorService : Service() {
     private fun dispatchStartCommand(startId: Int, manual: Boolean, intent: Intent) {
         val fromRequestStart = intent.getBooleanExtra(EXTRA_FROM_REQUEST_START, false)
         val extraGen = intent.getLongExtra(EXTRA_START_GENERATION, -1L)
+        val autoStartAttemptId = intent.getLongExtra(EXTRA_AUTO_START_ATTEMPT_ID, -1L)
+        val autoStartEpochId = intent.getLongExtra(EXTRA_AUTO_START_EPOCH_ID, -1L)
+        val autoStartT0 = intent.getLongExtra(EXTRA_AUTO_START_T0_ELAPSED_REALTIME, -1L)
 
         val gen = if (fromRequestStart && extraGen > 0L) {
             synchronized(lifecycleLock) {
@@ -406,13 +561,38 @@ class BatteryMonitorService : Service() {
         }
 
         val fgResult = runCatching {
-            startForegroundCompat(buildMonitorNotification("Memulai pemantauan sensor daya..."))
+            startForegroundCompat("Memulai pemantauan sensor daya...")
         }
         if (fgResult.isFailure) {
+            val promotionError = fgResult.exceptionOrNull()
+            val detail = promotionError?.message.orEmpty()
+                .replace('\n', ' ')
+                .replace('\r', ' ')
+                .take(180)
+            AutoStartDiagnosticLog.record(
+                this,
+                "T1 foreground promotion failed type=${promotionError?.javaClass?.simpleName} detail=$detail"
+            )
             removePendingStart(gen)
             lifecycleChannel.trySend(LifecycleCommand.StartFailed(gen))
             stopSelfIfStaleAndIdle(startId, gen)
             return
+        }
+
+        if (!manual && autoStartAttemptId > 0L && autoStartEpochId > 0L && autoStartT0 > 0L) {
+            val t1 = SystemClock.elapsedRealtime()
+            AutoStartDiagnosticLog.record(this, "T1 foreground promotion succeeded attempt=$autoStartAttemptId epoch=$autoStartEpochId T0_to_T1=${t1 - autoStartT0}ms")
+            autoStartTiming = AutoStartTiming(
+                attemptId = autoStartAttemptId,
+                epochId = autoStartEpochId,
+                t0ElapsedRealtime = autoStartT0,
+                t1ElapsedRealtime = t1
+            )
+            Log.i(
+                "SPG_AUTO_START",
+                "T1 Foreground Service entered; attempt=$autoStartAttemptId; epoch=$autoStartEpochId; " +
+                    "elapsedRealtime=$t1; T0_to_T1=${t1 - autoStartT0}ms"
+            )
         }
 
         if (isAlreadyStale) {
@@ -461,9 +641,59 @@ class BatteryMonitorService : Service() {
         if (finalizationResult == SessionFinalizationResult.FAILED || checkpointSavePendingRetry) {
             return true
         }
-        val targetId = activeSessionId ?: return sampleBuffer.isNotEmpty()
+        val targetId = activeSessionId ?: return true
         val persistedCheckpoint = SessionRecoveryStore.loadForSession(applicationContext, targetId)
-        return persistedCheckpoint !is SessionRecoveryStore.CheckpointLoadResult.Loaded
+        val loaded = persistedCheckpoint as? SessionRecoveryStore.CheckpointLoadResult.Loaded ?: return true
+        val checkpoint = loaded.recovery
+
+        // Checkpoint harus benar-benar mencakup snapshot RAM saat ini; keberadaan file
+        // dengan sessionId yang sama saja tidak cukup untuk melewati durability gate.
+        if (checkpoint.sessionId != targetId ||
+            checkpoint.accumulatedMah + 1e-6 < accumulatedMah ||
+            checkpoint.sessionSeconds < sessionSeconds ||
+            checkpoint.maxSessionTemp < maxSessionTemp ||
+            checkpoint.currentReadingsCount < currentReadingsCount ||
+            (checkpoint.currentReadingsCount == currentReadingsCount &&
+                checkpoint.currentSumForAvg != currentSumForAvg) ||
+            !checkpoint.alertedAnomalyCodes.containsAll(alertedAnomalyCodes)
+        ) {
+            return true
+        }
+
+        if (sampleBuffer.isNotEmpty()) {
+            val entries = sampleBuffer.toList()
+            val metrics = computeWeightedBatchMetrics(entries)
+            val earliestTimestamp = entries.minOf { it.timestampMs }
+            val currentSpanMs = metrics.spanDurationMs
+            val currentWeight = metrics.totalWeight
+            val currentEndTimestamp = entries.maxOf { maxOf(it.timestampMs, it.endTimestampMs) }
+            val checkpointEndTimestamp = if (
+                checkpoint.sampleSpanDurationMs > Long.MAX_VALUE - checkpoint.pendingBatchTimestampMs
+            ) Long.MAX_VALUE else checkpoint.pendingBatchTimestampMs + checkpoint.sampleSpanDurationMs
+            val requiredMaxTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius)
+            // Jika bobot identik, kedua payload merepresentasikan batch yang sama sehingga
+            // seluruh metrik listrik harus cocok. Jika checkpoint berbobot lebih besar,
+            // checkpoint dapat mencakup batch terdahulu yang sudah digabung; validasi subset
+            // metrik tidak dapat dilakukan, maka gunakan cakupan waktu + bobot + level terbaru.
+            val sameBatchWeight = checkpoint.sampleWeight == currentWeight
+            if (!checkpoint.hasPendingSample ||
+                checkpoint.sampleWeight < currentWeight ||
+                checkpoint.pendingBatchTimestampMs > earliestTimestamp ||
+                checkpoint.sampleSpanDurationMs < currentSpanMs ||
+                checkpointEndTimestamp < currentEndTimestamp ||
+                checkpoint.sampleBatteryLevel != metrics.latestState.level ||
+                (sameBatchWeight && (
+                    checkpoint.sampleCurrentMa != metrics.weightedCurrentMa ||
+                        checkpoint.sampleVoltageMv != metrics.weightedVoltageMv ||
+                        checkpoint.sampleTempCelsius != metrics.weightedTempCelsius ||
+                        checkpoint.samplePowerWatt != metrics.weightedPowerWatt
+                    )) ||
+                checkpoint.maxSessionTemp < requiredMaxTemp
+            ) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun enterRecoveryHoldLocked(generation: Long, reason: String) {
@@ -475,238 +705,408 @@ class BatteryMonitorService : Service() {
     }
 
     private suspend fun handleStart(startId: Int, manual: Boolean, generation: Long) {
-        if (destroyRequested.get()) return
-        if (!consumePendingStartIfLatest(generation)) {
+        if (destroyRequested.get() || !consumePendingStartIfLatest(generation)) return
+        val monitoring = isBatteryMonitoringEnabled()
+        val indicator = isStatusBarIndicatorEnabled()
+        if (monitoring) lastAppliedMonitoringEnabled = true
+        if (!ServiceOperationPolicy.shouldKeepServiceAlive(monitoring, indicator, actorState == ActorLifecycleState.RECOVERY_HOLD)) {
+            stopForInactiveMonitoring(startId, generation, "Kedua feature toggle OFF saat START")
             return
         }
-
-        if (actorState == ActorLifecycleState.STOPPED) {
-            transitionActorState(ActorLifecycleState.STARTING)
-        }
-
+        if (actorState == ActorLifecycleState.STOPPED) transitionActorState(ActorLifecycleState.STARTING)
         sharedSessionMutex.withLock {
-            if (destroyRequested.get() || generation < latestStartGeneration.get()) {
+            if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
+            val sensor = resolveEngine().readCurrentState()
+            if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
+                retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
             }
-
-            val currentSensor = resolveEngine().readCurrentState()
-            activeRunGeneration = generation
-            if (manual) {
-                manualMonitoringRequested = true
-            } else if (!currentSensor.isCharging) {
-                manualMonitoringRequested = false
-            }
-
-            if (currentSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(currentSensor)
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
-                ensureMonitoringLoopRunning()
-            } else if (manual) {
-                val hasPendingCheckpoint = SessionRecoveryStore.loadAll(applicationContext).isNotEmpty()
-                if (activeSessionId != null || sampleBuffer.isNotEmpty() || hasPendingCheckpoint) {
-                    val finalizationResult = ensureSessionFinalizedSafely()
-                    if (!finalizationResult.isCompleteAndSafeForManualTransition()) {
-                        manualMonitoringRequested = false
-                        if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                            enterRecoveryHoldLocked(generation, "Checkpoint capture gagal saat transisi ke mode manual (result=$finalizationResult)")
-                        } else {
-                            stopMonitoringLoopLocked()
-                            activeRunGeneration = 0L
-                            transitionActorState(ActorLifecycleState.STOPPED)
-                            _liveState.value = LiveBatteryState()
-                            stopForegroundAndSelfIfIdle(startId, generation)
-                        }
-                        return@withLock
-                    }
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_MANUAL)
-                ensureMonitoringLoopRunning()
-            } else {
-                manualMonitoringRequested = false
-                val finalizationResult = ensureSessionFinalizedSafely()
-                if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                    enterRecoveryHoldLocked(generation, "Finalisasi & checkpoint gagal saat start dalam kondisi tidak mengisi daya (result=$finalizationResult)")
+            if (!monitoring) {
+                val result = ensureSessionFinalizedSafely()
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Finalisasi gagal sebelum HUD_ONLY")
                     return@withLock
                 }
+                activeRunGeneration = generation
+                transitionActorState(ActorLifecycleState.HUD_ONLY)
+                publishLiveState(sensor)
+                ensureMonitoringLoopRunning()
+                refreshStatusBarIndicatorNotification(sensor, force = true)
+                return@withLock
+            }
+            if (!sensor.isCharging) {
+                val result = ensureSessionFinalizedSafely()
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Finalisasi gagal saat monitoring standby")
+                    return@withLock
+                }
+                activeRunGeneration = generation
+                manualMonitoringRequested = false
+                val idleState = when {
+                    manual -> ActorLifecycleState.RUNNING_MANUAL
+                    indicator -> ActorLifecycleState.HUD_ONLY
+                    else -> ActorLifecycleState.MONITORING_STANDBY
+                }
+                transitionActorState(idleState)
+                publishLiveState(sensor)
+                if (manual || indicator) ensureMonitoringLoopRunning() else stopMonitoringLoopLocked()
+                return@withLock
+            }
+            activeRunGeneration = generation
+            manualMonitoringRequested = manual
+            if (activeSessionId == null) recoverOrStartChargingSession(sensor)
+            transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+            ensureMonitoringLoopRunning()
+        }
+    }
+
+    private suspend fun isBatteryMonitoringEnabled(): Boolean =
+        runCatching { BatteryMonitoringSettings.isEnabled(applicationContext) }
+            .onFailure { error ->
+                Log.e("PowerGuard", "Preferensi Battery Monitoring gagal dibaca; layanan ditahan", error)
+            }
+            .getOrDefault(false)
+
+    private suspend fun isStatusBarIndicatorEnabled(): Boolean =
+        runCatching { StatusBarIndicatorSettings.observe(applicationContext).first().enabled }
+            .onFailure { error -> Log.e("PowerGuard", "Preferensi Status Bar Indicator gagal dibaca", error) }
+            .getOrDefault(false)
+
+    private fun shouldFinalizeSessionWhenMonitoringDisabled(): Boolean {
+        val pending = hasPendingSessionFinalization()
+        val previous = lastAppliedMonitoringEnabled ?: pending
+        lastAppliedMonitoringEnabled = false
+        return ServiceOperationPolicy.shouldFinalizeSessionOnMonitoringDisable(
+            wasMonitoringEnabled = previous,
+            isMonitoringEnabled = false,
+            hasActiveSession = pending
+        ) || pending
+    }
+
+    private fun hasPendingSessionFinalization(): Boolean {
+        if (activeSessionId != null || hasRecoverableRamOnlyData() || lastIncompleteSessionRecovery != null) return true
+        return runCatching { SessionRecoveryStore.loadAll(applicationContext).isNotEmpty() }.getOrDefault(true)
+    }
+
+    private suspend fun handleSettingsChanged() {
+        if (destroyRequested.get()) return
+        val monitoring = isBatteryMonitoringEnabled()
+        val indicator = isStatusBarIndicatorEnabled()
+        if (monitoring) lastAppliedMonitoringEnabled = true
+        val generation = maxOf(activeRunGeneration, latestStartGeneration.get(), 1L)
+        sharedSessionMutex.withLock {
+            if (destroyRequested.get()) return@withLock
+            val sensor = resolveEngine().readCurrentState()
+            if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
+                retryRecoveryHoldLocked(sensor.isCharging)
+                if (actorState == ActorLifecycleState.RECOVERY_HOLD) return@withLock
+            }
+            if (!monitoring) {
+                val result = if (shouldFinalizeSessionWhenMonitoringDisabled()) {
+                    ensureSessionFinalizedSafely()
+                } else {
+                    SessionFinalizationResult.NO_ACTIVE_SESSION_CLEAN
+                }
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Monitoring OFF: finalisasi belum durable")
+                    return@withLock
+                }
+                if (indicator) {
+                    activeRunGeneration = generation
+                    transitionActorState(ActorLifecycleState.HUD_ONLY)
+                    publishLiveState(sensor)
+                    ensureMonitoringLoopRunning()
+                } else {
+                    stopMonitoringLoopLocked()
+                    activeRunGeneration = 0L
+                    transitionActorState(ActorLifecycleState.STOPPED)
+                    publishLiveState(LiveBatteryState())
+                    stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), generation)
+                }
+            } else {
+                activeRunGeneration = generation
+                if (sensor.isCharging) {
+                    if (activeSessionId == null) recoverOrStartChargingSession(sensor)
+                    transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+                } else {
+                    val result = ensureSessionFinalizedSafely()
+                    if (hasUnpersistedRamOnlyData(result)) {
+                        enterRecoveryHoldLocked(generation, "Monitoring ON unplugged: finalisasi gagal")
+                        return@withLock
+                    }
+                    if (indicator) {
+                        transitionActorState(ActorLifecycleState.HUD_ONLY)
+                        publishLiveState(sensor)
+                        ensureMonitoringLoopRunning()
+                    } else {
+                        transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
+                        publishLiveState(sensor)
+                        stopMonitoringLoopLocked()
+                    }
+                }
+                if (sensor.isCharging) ensureMonitoringLoopRunning()
+            }
+            refreshStatusBarIndicatorNotification(_liveState.value, force = true)
+        }
+    }
+
+    private suspend fun retryRecoveryHoldLocked(isCharging: Boolean) {
+        val result = ensureSessionFinalizedSafely()
+        if (hasUnpersistedRamOnlyData(result)) return
+        samplePersistenceHalted = false
+        val monitoring = isBatteryMonitoringEnabled()
+        val indicator = isStatusBarIndicatorEnabled()
+        if (monitoring) lastAppliedMonitoringEnabled = true
+        when (ServiceOperationPolicy.resolveMode(monitoring, indicator, false, isCharging)) {
+            ServiceOperationMode.STOPPED -> {
                 stopMonitoringLoopLocked()
                 activeRunGeneration = 0L
                 transitionActorState(ActorLifecycleState.STOPPED)
-                _liveState.value = LiveBatteryState()
-                stopForegroundAndSelfIfIdle(startId, generation)
+                publishLiveState(LiveBatteryState())
+                stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), latestStartGeneration.get())
             }
+            ServiceOperationMode.HUD_ONLY -> {
+                activeRunGeneration = maxOf(activeRunGeneration, latestStartGeneration.get(), 1L)
+                transitionActorState(ActorLifecycleState.HUD_ONLY)
+                ensureMonitoringLoopRunning()
+            }
+            ServiceOperationMode.MONITORING_STANDBY -> {
+                activeRunGeneration = maxOf(activeRunGeneration, latestStartGeneration.get(), 1L)
+                transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
+                stopMonitoringLoopLocked()
+            }
+            ServiceOperationMode.MONITORING_ACTIVE -> {
+                activeRunGeneration = maxOf(activeRunGeneration, latestStartGeneration.get(), 1L)
+                if (isCharging) {
+                    val current = resolveEngine().readCurrentState()
+                    if (activeSessionId == null) recoverOrStartChargingSession(current)
+                    transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+                } else if (indicator) {
+                    transitionActorState(ActorLifecycleState.HUD_ONLY)
+                    ensureMonitoringLoopRunning()
+                } else {
+                    transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
+                    stopMonitoringLoopLocked()
+                }
+                if (isCharging) ensureMonitoringLoopRunning()
+            }
+            ServiceOperationMode.RECOVERY_HOLD -> Unit
+        }
+    }
+
+    private suspend fun stopForInactiveMonitoring(startId: Int, generation: Long, reason: String) {
+        if (destroyRequested.get()) return
+        sharedSessionMutex.withLock {
+            if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
+            manualMonitoringRequested = false
+            val result = ensureSessionFinalizedSafely()
+            if (hasUnpersistedRamOnlyData(result)) {
+                enterRecoveryHoldLocked(
+                    maxOf(generation, latestStartGeneration.get(), activeRunGeneration),
+                    reason + "; data belum aman dipersistenkan (result=" + result + ")"
+                )
+                return@withLock
+            }
+            applyConfiguredIdleModeLocked(
+                startId, generation, isBatteryMonitoringEnabled(), isStatusBarIndicatorEnabled()
+            )
         }
     }
 
     private suspend fun handleRestart(startId: Int, generation: Long) {
-        if (destroyRequested.get()) return
-        if (!consumePendingStartIfLatest(generation)) {
+        if (destroyRequested.get() || !consumePendingStartIfLatest(generation)) return
+        val monitoring = isBatteryMonitoringEnabled()
+        val indicator = isStatusBarIndicatorEnabled()
+        if (monitoring) lastAppliedMonitoringEnabled = true
+        if (!ServiceOperationPolicy.shouldKeepServiceAlive(monitoring, indicator, actorState == ActorLifecycleState.RECOVERY_HOLD)) {
+            stopForInactiveMonitoring(startId, generation, "Kedua feature toggle OFF saat service restart")
             return
         }
-
-        if (actorState == ActorLifecycleState.STOPPED) {
-            transitionActorState(ActorLifecycleState.STARTING)
-        }
-
+        if (actorState == ActorLifecycleState.STOPPED) transitionActorState(ActorLifecycleState.STARTING)
         sharedSessionMutex.withLock {
-            if (destroyRequested.get() || generation < latestStartGeneration.get()) {
+            if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
+            val sensor = resolveEngine().readCurrentState()
+            if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
+                retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
             }
-
-            val currentSensor = resolveEngine().readCurrentState()
-            activeRunGeneration = generation
-            manualMonitoringRequested = false
-
-            if (currentSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(currentSensor)
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
-                ensureMonitoringLoopRunning()
-            } else {
-                val finalizationResult = ensureSessionFinalizedSafely()
-                if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                    enterRecoveryHoldLocked(generation, "Finalisasi & checkpoint gagal saat restart service dalam kondisi unplugged (result=$finalizationResult)")
+            if (!monitoring) {
+                val result = ensureSessionFinalizedSafely()
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Finalisasi gagal sebelum restart HUD_ONLY")
                     return@withLock
                 }
-                stopMonitoringLoopLocked()
-                activeRunGeneration = 0L
-                transitionActorState(ActorLifecycleState.STOPPED)
-                _liveState.value = LiveBatteryState()
-                stopForegroundAndSelfIfIdle(startId, generation)
+                activeRunGeneration = generation
+                transitionActorState(ActorLifecycleState.HUD_ONLY)
+                publishLiveState(sensor)
+                ensureMonitoringLoopRunning()
+                return@withLock
             }
+            if (!sensor.isCharging) {
+                val result = ensureSessionFinalizedSafely()
+                if (hasUnpersistedRamOnlyData(result)) {
+                    enterRecoveryHoldLocked(generation, "Finalisasi gagal saat restart unplugged")
+                    return@withLock
+                }
+                activeRunGeneration = generation
+                if (indicator) {
+                    transitionActorState(ActorLifecycleState.HUD_ONLY)
+                    ensureMonitoringLoopRunning()
+                } else {
+                    transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
+                    stopMonitoringLoopLocked()
+                }
+                publishLiveState(sensor)
+                return@withLock
+            }
+            activeRunGeneration = generation
+            manualMonitoringRequested = false
+            if (activeSessionId == null) recoverOrStartChargingSession(sensor)
+            transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+            ensureMonitoringLoopRunning()
         }
     }
 
     private suspend fun handleStop(stopStartId: Int, stopGeneration: Long) {
-        if (destroyRequested.get()) return
-        if (stopGeneration < latestStartGeneration.get() ||
-            stopStartId < instanceLatestStartCommandId.get() ||
-            hasPendingStarts()
-        ) {
-            return
-        }
+        if (destroyRequested.get() || stopGeneration < latestStartGeneration.get() ||
+            stopStartId < instanceLatestStartCommandId.get() || hasPendingStarts()
+        ) return
 
         sharedSessionMutex.withLock {
-            if (destroyRequested.get() ||
-                stopGeneration < latestStartGeneration.get() ||
-                stopStartId < instanceLatestStartCommandId.get() ||
-                hasPendingStarts()
-            ) {
+            if (destroyRequested.get() || stopGeneration < latestStartGeneration.get() ||
+                stopStartId < instanceLatestStartCommandId.get() || hasPendingStarts()
+            ) return@withLock
+
+            val sensor = resolveEngine().readCurrentState()
+            val monitoring = isBatteryMonitoringEnabled()
+            val indicator = isStatusBarIndicatorEnabled()
+            if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
+                retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
             }
-
-            val freshSensor = resolveEngine().readCurrentState()
-            if (freshSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(freshSensor)
-                }
+            if (sensor.isCharging && monitoring) {
+                if (activeSessionId == null) recoverOrStartChargingSession(sensor)
                 transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
                 ensureMonitoringLoopRunning()
                 return@withLock
             }
 
-            if (manualMonitoringRequested || actorState == ActorLifecycleState.RUNNING_MANUAL) {
-                val hasPendingCheckpoint = SessionRecoveryStore.loadAll(applicationContext).isNotEmpty()
-                if (activeSessionId != null || sampleBuffer.isNotEmpty() || hasPendingCheckpoint) {
-                    val finalizationResult = ensureSessionFinalizedSafely()
-                    if (!finalizationResult.isCompleteAndSafeForManualTransition()) {
-                        manualMonitoringRequested = false
-                        if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                            enterRecoveryHoldLocked(maxOf(activeRunGeneration, latestStartGeneration.get()), "Checkpoint capture gagal saat stop sesi charger di mode manual (result=$finalizationResult)")
-                        } else {
-                            stopMonitoringLoopLocked()
-                            activeRunGeneration = 0L
-                            transitionActorState(ActorLifecycleState.STOPPED)
-                            _liveState.value = LiveBatteryState()
-                            stopForegroundAndSelfIfIdle(stopStartId, stopGeneration)
-                        }
-                        return@withLock
-                    }
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_MANUAL)
-                ensureMonitoringLoopRunning()
+            val result = ensureSessionFinalizedSafely()
+            if (hasUnpersistedRamOnlyData(result)) {
+                enterRecoveryHoldLocked(
+                    maxOf(activeRunGeneration, latestStartGeneration.get()),
+                    "Finalisasi sesi saat charger berubah gagal; RECOVERY_HOLD dipertahankan"
+                )
                 return@withLock
             }
+            manualMonitoringRequested = false
+            applyConfiguredIdleModeLocked(stopStartId, stopGeneration, monitoring, indicator)
+        }
+    }
 
-            val finalizationResult = ensureSessionFinalizedSafely()
-            if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                enterRecoveryHoldLocked(maxOf(activeRunGeneration, latestStartGeneration.get()), "Finalisasi & checkpoint gagal saat ACTION_STOP_CHARGING_SESSION (result=$finalizationResult)")
+    /**
+     * Monitoring OFF: finalisasi sesi aktif satu kali, lalu pertahankan HUD_ONLY jika
+     * Status Bar Indicator masih ON. Service hanya berhenti jika kedua toggle OFF dan
+     * tidak ada RECOVERY_HOLD yang membutuhkan perlindungan data.
+     */
+    private suspend fun handleStopMonitoring(stopStartId: Int, stopGeneration: Long) {
+        if (destroyRequested.get() || stopGeneration < latestStartGeneration.get() ||
+            stopStartId < instanceLatestStartCommandId.get() || hasPendingStarts()
+        ) return
+        sharedSessionMutex.withLock {
+            if (destroyRequested.get() || stopGeneration < latestStartGeneration.get() ||
+                stopStartId < instanceLatestStartCommandId.get() || hasPendingStarts()
+            ) return@withLock
+            manualMonitoringRequested = false
+            val result = if (shouldFinalizeSessionWhenMonitoringDisabled()) {
+                ensureSessionFinalizedSafely()
+            } else {
+                SessionFinalizationResult.NO_ACTIVE_SESSION_CLEAN
+            }
+            if (hasUnpersistedRamOnlyData(result)) {
+                enterRecoveryHoldLocked(
+                    maxOf(stopGeneration, latestStartGeneration.get(), activeRunGeneration),
+                    "Monitoring OFF: finalisasi gagal; data RAM/checkpoint tetap dilindungi"
+                )
                 return@withLock
             }
-
-            stopMonitoringLoopLocked()
-            activeRunGeneration = 0L
-            transitionActorState(ActorLifecycleState.STOPPED)
-            _liveState.value = LiveBatteryState()
-            stopForegroundAndSelfIfIdle(stopStartId, stopGeneration)
+            applyConfiguredIdleModeLocked(
+                stopStartId, stopGeneration, false, isStatusBarIndicatorEnabled()
+            )
         }
     }
 
     private suspend fun handleAutoStop(generation: Long) {
-        if (destroyRequested.get()) return
-        if (generation < latestStartGeneration.get() ||
-            generation < activeRunGeneration ||
-            hasPendingStarts()
-        ) {
-            return
-        }
-
+        if (destroyRequested.get() || generation < latestStartGeneration.get() ||
+            generation < activeRunGeneration || hasPendingStarts()
+        ) return
         sharedSessionMutex.withLock {
-            if (destroyRequested.get() ||
-                generation < latestStartGeneration.get() ||
-                generation < activeRunGeneration ||
-                hasPendingStarts()
-            ) {
+            if (destroyRequested.get() || generation < latestStartGeneration.get() ||
+                generation < activeRunGeneration || hasPendingStarts()
+            ) return@withLock
+            val sensor = resolveEngine().readCurrentState()
+            val monitoring = isBatteryMonitoringEnabled()
+            val indicator = isStatusBarIndicatorEnabled()
+            if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
+                retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
             }
-
-            val freshSensor = resolveEngine().readCurrentState()
-            if (freshSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(freshSensor)
-                }
+            if (sensor.isCharging && monitoring) {
+                if (activeSessionId == null) recoverOrStartChargingSession(sensor)
                 transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
                 ensureMonitoringLoopRunning()
                 return@withLock
             }
-
-            if (manualMonitoringRequested || actorState == ActorLifecycleState.RUNNING_MANUAL) {
-                val hasPendingCheckpoint = SessionRecoveryStore.loadAll(applicationContext).isNotEmpty()
-                if (activeSessionId != null || sampleBuffer.isNotEmpty() || hasPendingCheckpoint) {
-                    val finalizationResult = ensureSessionFinalizedSafely()
-                    if (!finalizationResult.isCompleteAndSafeForManualTransition()) {
-                        manualMonitoringRequested = false
-                        if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                            enterRecoveryHoldLocked(generation, "Checkpoint capture gagal saat auto-stop di mode manual (result=$finalizationResult)")
-                        } else {
-                            stopMonitoringLoopLocked()
-                            activeRunGeneration = 0L
-                            transitionActorState(ActorLifecycleState.STOPPED)
-                            _liveState.value = LiveBatteryState()
-                            stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), generation)
-                        }
-                        return@withLock
-                    }
-                }
-                transitionActorState(ActorLifecycleState.RUNNING_MANUAL)
-                ensureMonitoringLoopRunning()
+            val result = ensureSessionFinalizedSafely()
+            if (hasUnpersistedRamOnlyData(result)) {
+                enterRecoveryHoldLocked(generation, "Auto-stop: finalisasi gagal; RECOVERY_HOLD aktif")
                 return@withLock
             }
-
-            val finalizationResult = ensureSessionFinalizedSafely()
-            if (hasUnpersistedRamOnlyData(finalizationResult)) {
-                enterRecoveryHoldLocked(generation, "Finalisasi & checkpoint gagal saat auto-stop; menahan layanan sampai persisten (result=$finalizationResult)")
-                return@withLock
-            }
-
-            stopMonitoringLoopLocked()
-            activeRunGeneration = 0L
-            transitionActorState(ActorLifecycleState.STOPPED)
-            _liveState.value = LiveBatteryState()
-            stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), generation)
+            manualMonitoringRequested = false
+            applyConfiguredIdleModeLocked(instanceLatestObservedCommandId.get(), generation, monitoring, indicator)
         }
+    }
+
+    private suspend fun applyConfiguredIdleModeLocked(
+        startId: Int,
+        generation: Long,
+        monitoringEnabled: Boolean,
+        indicatorEnabled: Boolean
+    ) {
+        when (ServiceOperationPolicy.resolveMode(monitoringEnabled, indicatorEnabled, false, isCharging = false)) {
+            ServiceOperationMode.STOPPED -> {
+                stopMonitoringLoopLocked()
+                activeRunGeneration = 0L
+                transitionActorState(ActorLifecycleState.STOPPED)
+                publishLiveState(LiveBatteryState())
+                stopForegroundAndSelfIfIdle(startId, generation)
+            }
+            ServiceOperationMode.HUD_ONLY -> {
+                activeRunGeneration = maxOf(generation, latestStartGeneration.get(), 1L)
+                manualMonitoringRequested = false
+                transitionActorState(ActorLifecycleState.HUD_ONLY)
+                ensureMonitoringLoopRunning()
+            }
+            ServiceOperationMode.MONITORING_STANDBY -> {
+                activeRunGeneration = maxOf(generation, latestStartGeneration.get(), 1L)
+                manualMonitoringRequested = false
+                transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
+                stopMonitoringLoopLocked()
+            }
+            ServiceOperationMode.MONITORING_ACTIVE -> {
+                activeRunGeneration = maxOf(generation, latestStartGeneration.get(), 1L)
+                manualMonitoringRequested = false
+                if (indicatorEnabled) {
+                    transitionActorState(ActorLifecycleState.HUD_ONLY)
+                    ensureMonitoringLoopRunning()
+                } else {
+                    transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
+                    stopMonitoringLoopLocked()
+                }
+            }
+            ServiceOperationMode.RECOVERY_HOLD -> Unit
+        }
+        refreshStatusBarIndicatorNotification(_liveState.value, force = true)
     }
 
     private suspend fun handleChargerConnected(generation: Long) {
@@ -728,12 +1128,34 @@ class BatteryMonitorService : Service() {
             }
 
             val currentSensor = resolveEngine().readCurrentState()
+            if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
+                retryRecoveryHoldLocked(currentSensor.isCharging)
+                return@withLock
+            }
+            if (!isBatteryMonitoringEnabled()) {
+                if (activeSessionId != null || sampleBuffer.isNotEmpty()) {
+                    val result = ensureSessionFinalizedSafely()
+                    if (hasUnpersistedRamOnlyData(result)) {
+                        enterRecoveryHoldLocked(generation, "HUD_ONLY: sesi lama belum durable")
+                        return@withLock
+                    }
+                }
+                if (isStatusBarIndicatorEnabled()) {
+                    activeRunGeneration = generation
+                    transitionActorState(ActorLifecycleState.HUD_ONLY)
+                    ensureMonitoringLoopRunning()
+                } else {
+                    applyConfiguredIdleModeLocked(
+                        instanceLatestObservedCommandId.get(), generation, false, false
+                    )
+                }
+                return@withLock
+            }
             if (currentSensor.isCharging) {
-                if (activeSessionId == null) {
-                    recoverOrStartChargingSession(currentSensor)
-                } else if (samplePersistenceHalted || checkpointSavePendingRetry) {
-                    val isScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false)
-                    retryPendingCheckpointAndFinalizationLocked(isScreenOn)
+                if (activeSessionId == null) recoverOrStartChargingSession(currentSensor)
+                else if (samplePersistenceHalted || checkpointSavePendingRetry) {
+                    val screenOn = runCatching { powerManager.isInteractive }.getOrDefault(false)
+                    retryPendingCheckpointAndFinalizationLocked(screenOn)
                 }
                 transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
                 ensureMonitoringLoopRunning()
@@ -799,7 +1221,7 @@ class BatteryMonitorService : Service() {
                 if (!keepInMemoryForRamOnlyFailure) {
                     synchronized(lifecycleLock) {
                         if (activeInstance == null || activeInstance === this@BatteryMonitorService) {
-                            _liveState.value = LiveBatteryState()
+                            publishLiveState(LiveBatteryState())
                         }
                     }
                 }
@@ -945,7 +1367,7 @@ class BatteryMonitorService : Service() {
                 sessionId = targetId,
                 endTime = now,
                 endLevel = fallbackLevel,
-                designCapacityMah = resolveEngine().designCapacityMah
+                designCapacityMah = effectiveDesignCapacityMah()
             )
             val verifiedRow = runCatching { dao.getSessionById(targetId) }.getOrNull()
             val targetClosed = (singleStatus == SessionFinalizationStatus.FINALIZED ||
@@ -1015,7 +1437,16 @@ class BatteryMonitorService : Service() {
                 "Fallback single-session exception untuk targetId=$targetId: ${fallbackError.message}; checkpoint persisten dipertahankan",
                 fallbackError
             )
-            FallbackClosureStatus.DATABASE_UNAVAILABLE_FAILED
+            // Jika target sudah tertutup, kegagalan rekonsiliasi adalah kegagalan finalisasi data,
+            // bukan bukti bahwa database tidak tersedia. Pertahankan status FAILED yang spesifik.
+            val targetAlreadyClosed = runCatching {
+                dao.getSessionById(targetId)?.endTime != null
+            }.getOrDefault(false)
+            if (targetAlreadyClosed) {
+                FallbackClosureStatus.FAILED
+            } else {
+                FallbackClosureStatus.DATABASE_UNAVAILABLE_FAILED
+            }
         }
     }
 
@@ -1090,7 +1521,6 @@ class BatteryMonitorService : Service() {
                     return@withContext false
                 }
 
-                removePersistedBufferEntries(pendingEntriesSnapshot)
             }
 
             val sessionOnlyAttempt = runCatching {
@@ -1111,7 +1541,13 @@ class BatteryMonitorService : Service() {
 
             if (sessionOnlyAttempt == SessionFinalizationStatus.FINALIZED) {
                 val verifiedRow = runCatching { dao.getSessionById(targetId) }.getOrNull()
-                verifiedRow?.endTime != null
+                val finalized = verifiedRow?.endTime != null
+                if (finalized) {
+                    // Pertahankan buffer sampai penutupan sesi terverifikasi; retry tetap idempotent
+                    // jika sampel sudah lebih dulu tersimpan pada Upaya B.
+                    removePersistedBufferEntries(pendingEntriesSnapshot)
+                }
+                finalized
             } else {
                 false
             }
@@ -1127,17 +1563,41 @@ class BatteryMonitorService : Service() {
         val startTs = entries.first().timestampMs
         val endTs = entries.maxOf { maxOf(it.timestampMs, it.endTimestampMs) }
         val spanDurationMs = (endTs - startTs).coerceAtLeast(0L)
-        val weightedCurrentMa = (entries.sumOf { it.state.currentMa.toLong() * it.weight.coerceAtLeast(1) } / totalWeight).toInt()
-        val weightedVoltageMv = (entries.sumOf { it.state.voltageMv.toLong() * it.weight.coerceAtLeast(1) } / totalWeight).toInt()
-        val weightedTempCelsius = (entries.sumOf { it.state.tempCelsius.toDouble() * it.weight.coerceAtLeast(1) } / totalWeight).toFloat()
-        val maxTempCelsius = entries.maxOf { maxOf(it.maxTempCelsius, it.state.tempCelsius) }
-        val weightedPowerWatt = (entries.sumOf { it.state.powerWatt.toDouble() * it.weight.coerceAtLeast(1) } / totalWeight).toFloat()
-        val weightedDeepSleepRatio = (entries.sumOf { it.state.deepSleepRatio.toDouble() * it.weight.coerceAtLeast(1) } / totalWeight)
-            .toFloat()
-            .coerceIn(0f, 1f)
+        val weightedCurrentMaSum = entries.sumOf { it.weightedCurrentMaSum }
+        val weightedVoltageMvSum = entries.sumOf { it.weightedVoltageMvSum }
+        val weightedTempCelsiusSum = entries.sumOf { it.weightedTempCelsiusSum }
+        val weightedPowerWattSum = entries.sumOf { it.weightedPowerWattSum }
+        val weightedDeepSleepRatioSum = entries.sumOf { it.weightedDeepSleepRatioSum }
+        val weightedCurrentMaWeight = entries.sumOf { it.weightedCurrentMaWeight }
+        val weightedVoltageMvWeight = entries.sumOf { it.weightedVoltageMvWeight }
+        val weightedTempCelsiusWeight = entries.sumOf { it.weightedTempCelsiusWeight }
+        val weightedPowerWattWeight = entries.sumOf { it.weightedPowerWattWeight }
+        val isCurrentAvailable = weightedCurrentMaWeight > 0
+        val isVoltageAvailable = weightedVoltageMvWeight > 0
+        val isTemperatureAvailable = weightedTempCelsiusWeight > 0
+        val isPowerAvailable = weightedPowerWattWeight > 0
+        val weightedCurrentMa = if (isCurrentAvailable) (weightedCurrentMaSum / weightedCurrentMaWeight).toInt() else 0
+        val weightedVoltageMv = if (isVoltageAvailable) (weightedVoltageMvSum / weightedVoltageMvWeight).toInt() else 0
+        val weightedTempCelsius = if (isTemperatureAvailable) (weightedTempCelsiusSum / weightedTempCelsiusWeight).toFloat() else 0f
+        val maxTempCelsius = entries.filter { it.state.isTemperatureAvailable }.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
+        val weightedPowerWatt = if (isPowerAvailable) (weightedPowerWattSum / weightedPowerWattWeight).toFloat() else 0f
+        val weightedDeepSleepRatio = (weightedDeepSleepRatioSum / totalWeight).toFloat().coerceIn(0f, 1f)
         return WeightedBatchMetrics(
             totalWeight = totalWeight,
             spanDurationMs = spanDurationMs,
+            weightedCurrentMaSum = weightedCurrentMaSum,
+            weightedVoltageMvSum = weightedVoltageMvSum,
+            weightedTempCelsiusSum = weightedTempCelsiusSum,
+            weightedPowerWattSum = weightedPowerWattSum,
+            weightedDeepSleepRatioSum = weightedDeepSleepRatioSum,
+            weightedCurrentMaWeight = weightedCurrentMaWeight,
+            weightedVoltageMvWeight = weightedVoltageMvWeight,
+            weightedTempCelsiusWeight = weightedTempCelsiusWeight,
+            weightedPowerWattWeight = weightedPowerWattWeight,
+            isCurrentAvailable = isCurrentAvailable,
+            isVoltageAvailable = isVoltageAvailable,
+            isTemperatureAvailable = isTemperatureAvailable,
+            isPowerAvailable = isPowerAvailable,
             weightedCurrentMa = weightedCurrentMa,
             weightedVoltageMv = weightedVoltageMv,
             weightedTempCelsius = weightedTempCelsius,
@@ -1218,11 +1678,17 @@ class BatteryMonitorService : Service() {
 
         val compactedSample = if (entriesSnapshot.isNotEmpty()) {
             val metrics = computeWeightedBatchMetrics(entriesSnapshot)
+            if (metrics.isTemperatureAvailable) {
+                hasSessionTemperatureData = true
+                maxSessionTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius)
+            }
             SessionRecoveryStore.PersistedSessionRecovery(
                 sessionId = sessionId,
                 accumulatedMah = accumulatedMah,
                 sessionSeconds = sessionSeconds,
-                maxSessionTemp = maxOf(maxSessionTemp, metrics.maxTempCelsius),
+                maxSessionTemp = if (hasSessionTemperatureData || metrics.isTemperatureAvailable) maxOf(maxSessionTemp, metrics.maxTempCelsius) else 0f,
+                hasCurrentData = currentReadingsCount > 0L,
+                hasTemperatureData = hasSessionTemperatureData || metrics.isTemperatureAvailable,
                 currentSumForAvg = currentSumForAvg,
                 currentReadingsCount = currentReadingsCount,
                 alertedAnomalyCodes = alertedAnomalyCodes.toSet(),
@@ -1234,6 +1700,13 @@ class BatteryMonitorService : Service() {
                 sampleTempCelsius = metrics.weightedTempCelsius,
                 samplePowerWatt = metrics.weightedPowerWatt,
                 sampleIsScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false),
+                sampleIsLevelAvailable = metrics.latestState.isLevelAvailable,
+                sampleIsCurrentAvailable = metrics.isCurrentAvailable,
+                sampleIsVoltageAvailable = metrics.isVoltageAvailable,
+                sampleIsTemperatureAvailable = metrics.isTemperatureAvailable,
+                sampleIsPowerAvailable = metrics.isPowerAvailable,
+                sampleIsChargingStatusAvailable = metrics.latestState.isChargingStatusAvailable,
+                sampleIsCharging = metrics.latestState.isCharging,
                 sampleWeight = metrics.totalWeight,
                 sampleSpanDurationMs = metrics.spanDurationMs,
                 dbSessionsClosed = dbSessionsClosed,
@@ -1245,7 +1718,9 @@ class BatteryMonitorService : Service() {
                 sessionId = sessionId,
                 accumulatedMah = accumulatedMah,
                 sessionSeconds = sessionSeconds,
-                maxSessionTemp = maxSessionTemp,
+                maxSessionTemp = if (hasSessionTemperatureData) maxSessionTemp else 0f,
+                hasCurrentData = currentReadingsCount > 0L,
+                hasTemperatureData = hasSessionTemperatureData,
                 currentSumForAvg = currentSumForAvg,
                 currentReadingsCount = currentReadingsCount,
                 alertedAnomalyCodes = alertedAnomalyCodes.toSet(),
@@ -1365,12 +1840,16 @@ class BatteryMonitorService : Service() {
     }
 
     private fun readSafeBatteryLevelForFinalization(): Int {
+        // Sampel terakhir yang sudah diterima service lebih representatif daripada pembacaan
+        // sensor baru yang dapat gagal/bernilai default ketika lifecycle sedang dihentikan.
+        sampleBuffer.lastOrNull()?.state?.level?.takeIf { it in 0..100 }?.let { return it }
+        _liveState.value.level.takeIf { it in 0..100 && it > 0 }?.let { return it }
         return try {
-            resolveEngine().readCurrentState().level
+            resolveEngine().readCurrentState().level.coerceIn(0, 100)
         } catch (ce: CancellationException) {
             throw ce
         } catch (_: Throwable) {
-            _liveState.value.level.coerceIn(0, 100)
+            0
         }
     }
 
@@ -1382,8 +1861,11 @@ class BatteryMonitorService : Service() {
         nextFlushRetryAtSec = 0L
         checkpointSavePendingRetry = false
         accumulatedMah = 0.0
+        chargingMahIntegrator.reset()
+        sessionDurationTracker.reset()
         sessionSeconds = 0L
         maxSessionTemp = 0f
+        hasSessionTemperatureData = false
         currentSumForAvg = 0L
         currentReadingsCount = 0L
         alertedAnomalyCodes.clear()
@@ -1429,16 +1911,30 @@ class BatteryMonitorService : Service() {
     }
 
     private fun ensureMonitoringLoopRunning() {
-        if (monitorJob?.isActive == true) return
         val runGen = activeRunGeneration
+        val currentJob = monitorJob
+        val currentJobIsHealthy = currentJob?.isActive == true &&
+            monitorLoopGeneration == runGen &&
+            !monitorLoopStopping
+
+        if (currentJobIsHealthy) return
+
+        // Lifecycle handlers call this while holding sharedSessionMutex. Cancelling the
+        // previous job is safe here: its state-mutating loop body also requires that mutex.
+        // Do not join here; the old loop may be waiting for the same mutex.
+        currentJob?.cancel()
+        monitorLoopGeneration = runGen
+        monitorLoopStopping = false
         monitorJob = serviceScope.launch {
             runMonitoringLoop(runGen)
         }
     }
 
     private fun stopMonitoringLoopLocked() {
+        monitorLoopStopping = true
         monitorJob?.cancel()
         monitorJob = null
+        monitorLoopGeneration = -1L
     }
 
     private suspend fun runMonitoringLoop(loopGeneration: Long) {
@@ -1469,6 +1965,12 @@ class BatteryMonitorService : Service() {
                             sessionMah = accumulatedMah,
                             sessionDurationSec = sessionSeconds
                         )
+                        publishLiveState(currentSensor.copy(
+                            sessionMahDelivered = accumulatedMah,
+                            sessionDurationSec = sessionSeconds
+                        ))
+                        _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
+                        _lastMonitorError.value = null
                         if (currentSensor.isCharging) {
                             val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
                             chargerConnectedGenerationToSend = currentGen
@@ -1490,6 +1992,14 @@ class BatteryMonitorService : Service() {
                         sessionMah = accumulatedMah,
                         sessionDurationSec = sessionSeconds
                     )
+                    if (actorState == ActorLifecycleState.HUD_ONLY || !batteryMonitoringEnabledForIndicator) {
+                        val hudState = effectiveSensor.copy(sessionMahDelivered = 0.0, sessionDurationSec = 0L, anomalyAlert = null)
+                        publishLiveState(hudState)
+                        _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
+                        _lastMonitorError.value = null
+                        notificationSummaryToPost = NotificationVisualRenderer.formatStatusBarParameterText(hudState, statusBarIndicatorSetting.parameter)
+                        return@withLock
+                    }
                     val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
 
                     if (effectiveSensor.isCharging) {
@@ -1517,19 +2027,32 @@ class BatteryMonitorService : Service() {
                     if (autoStopGenerationToSend == null) {
                         var activeAlertMsg: String? = null
                         if (activeSessionId != null) {
-                            sessionSeconds++
-                            accumulatedMah += (effectiveSensor.currentMa / 3600.0)
-                            if (effectiveSensor.tempCelsius > maxSessionTemp) {
-                                maxSessionTemp = effectiveSensor.tempCelsius
+                            sessionSeconds = sessionDurationTracker.elapsedSeconds(SystemClock.elapsedRealtime())
+                            accumulatedMah += chargingMahIntegrator.addSample(
+                                currentMa = effectiveSensor.currentMa,
+                                elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                                isCurrentAvailable = effectiveSensor.isCurrentAvailable
+                            )
+                            if (effectiveSensor.isTemperatureAvailable) {
+                                hasSessionTemperatureData = true
+                                if (effectiveSensor.tempCelsius > maxSessionTemp) {
+                                    maxSessionTemp = effectiveSensor.tempCelsius
+                                }
                             }
-                            currentSumForAvg += effectiveSensor.currentMa
-                            currentReadingsCount++
+                            if (effectiveSensor.isCurrentAvailable) {
+                                currentSumForAvg += effectiveSensor.currentMa
+                                currentReadingsCount++
+                            }
 
                             val anomaly = anomalyDetector.evaluate(effectiveSensor, isScreenOn)
                             if (anomaly.isAnomaly && anomaly.code != null && anomaly.message != null) {
                                 activeAlertMsg = anomaly.message
                                 if (alertedAnomalyCodes.add(anomaly.code)) {
-                                    sendAnomalyAlertNotification(anomaly.message)
+                                    sendAnomalyAlertNotification(
+                                        anomaly.message,
+                                        anomaly.code,
+                                        maxSessionTemp.takeIf { hasSessionTemperatureData }
+                                    )
                                 }
                             }
                         } else {
@@ -1541,7 +2064,9 @@ class BatteryMonitorService : Service() {
                             sessionDurationSec = sessionSeconds,
                             anomalyAlert = activeAlertMsg
                         )
-                        _liveState.value = updatedState
+                        publishLiveState(updatedState)
+                        _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
+                        _lastMonitorError.value = null
 
                         if (activeSessionId != null && checkpointSavePendingRetry) {
                             captureIncompleteRecoveryMetadata(
@@ -1567,16 +2092,13 @@ class BatteryMonitorService : Service() {
 
                         val tickCounter = if (activeSessionId != null) sessionSeconds else manualTicks
                         if (tickCounter % 3L == 0L) {
-                            val sign = if (updatedState.currentMa > 0) "+" else ""
-                            val mahText = if (updatedState.isCharging) {
-                                String.format(Locale.US, " | Terisi: %+.1f mAh", accumulatedMah)
-                            } else ""
-                            notificationSummaryToPost = "$sign${updatedState.currentMa} mA (${String.format(Locale.US, "%.1f", updatedState.powerWatt)}W) • ${updatedState.tempCelsius}°C$mahText"
+                            notificationSummaryToPost = NotificationVisualRenderer.formatMonitorContentText(updatedState)
                         }
                     }
                 }
 
                 if (stopLoopForStaleOrStopped) {
+                    monitorLoopStopping = true
                     break
                 }
 
@@ -1584,33 +2106,106 @@ class BatteryMonitorService : Service() {
                     lifecycleChannel.trySend(LifecycleCommand.ChargerConnected(gen))
                 }
 
-                autoStopGenerationToSend?.let { gen ->
-                    lifecycleChannel.trySend(LifecycleCommand.AutoStop(gen))
+                val autoStopGeneration = autoStopGenerationToSend
+                if (autoStopGeneration != null) {
+                    // Mark the loop as exiting before notifying the actor. If the actor
+                    // observes a reconnect immediately, it must replace this still-active job.
+                    monitorLoopStopping = true
+                    lifecycleChannel.trySend(LifecycleCommand.AutoStop(autoStopGeneration))
                     break
                 }
 
                 notificationSummaryToPost?.let { summary ->
-                    notificationManager.notify(MONITOR_NOTIFICATION_ID, buildMonitorNotification(summary))
+                    lastNotificationBody = summary
+                    notifyMonitorNotification(summary)
                 }
+                refreshStatusBarIndicatorNotification(_liveState.value)
             } catch (ce: CancellationException) {
                 throw ce
             } catch (error: Throwable) {
+                _lastMonitorError.value = "${error.javaClass.simpleName}: ${error.message.orEmpty()}".take(240)
                 Log.e("PowerGuard", "Kesalahan iterasi monitoring loop: ${error.message}", error)
+                runCatching {
+                    notifyMonitorNotification("Pemantauan mengalami kendala; mencoba pulih otomatis...", force = true)
+                }.onFailure { notificationError ->
+                    Log.w("PowerGuard", "Gagal memperbarui notifikasi status pemulihan: ${notificationError.message}", notificationError)
+                }
             }
 
             delay(1000L)
         }
     }
 
-    private fun startForegroundCompat(notification: Notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                MONITOR_NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+    private fun startForegroundCompat(contentText: String) {
+        synchronized(monitorNotificationPostLock) {
+            var snapshotSequence = notificationStateSequence.get()
+            var state = resolveNotificationBatteryState()
+            var notification = buildMonitorNotification(contentText, state)
+            var latestSequence = notificationStateSequence.get()
+
+            while (snapshotSequence != latestSequence) {
+                snapshotSequence = latestSequence
+                state = resolveNotificationBatteryState()
+                notification = buildMonitorNotification(contentText, state)
+                latestSequence = notificationStateSequence.get()
+            }
+
+            if (snapshotSequence != latestSequence) return@synchronized
+
+            val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
+                state,
+                actorState == ActorLifecycleState.RECOVERY_HOLD
             )
-        } else {
-            startForeground(MONITOR_NOTIFICATION_ID, notification)
+            val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
+                LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
+            val iconKey = if (hasDynamicIcon) {
+                "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
+            } else {
+                visualSpec.cacheKey
+            }
+            val nowElapsedMs = SystemClock.elapsedRealtime()
+            val payloadSignature = listOf(
+                iconKey,
+                contentText,
+                displayText,
+                state.isCharging.toString(),
+                state.isPowerConnected.toString(),
+                state.chargeSource,
+                actorState.name
+            ).joinToString("|")
+
+            // The mandatory FGS promotion also seeds both deduplication gates.
+            monitorNotificationPostGate.shouldPost(
+                payloadSignature = payloadSignature,
+                criticalStateSignature = state.isPowerConnected.toString(),
+                nowElapsedMs = nowElapsedMs,
+                snapshotSequence = snapshotSequence,
+                latestSequence = latestSequence
+            )
+            notificationRenderGate.evaluate(
+                iconKey,
+                NotificationVisualRenderer.resolveMonitorContentTitle(state),
+                contentText,
+                nowElapsedMs,
+                force = true
+            )
+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(
+                        MONITOR_NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                    )
+                } else {
+                    startForeground(MONITOR_NOTIFICATION_ID, notification)
+                }
+            } catch (error: RuntimeException) {
+                monitorNotificationPostGate.reset()
+                notificationRenderGate.reset()
+                throw error
+            }
         }
     }
 
@@ -1718,7 +2313,9 @@ class BatteryMonitorService : Service() {
                                         recoveredMaxTempCelsius = persisted.maxSessionTemp,
                                         recoveredHasAnomaly = persisted.alertedAnomalyCodes.isNotEmpty(),
                                         recoveredAnomalyReason = anomalyReason,
-                                        recoveredSample = sampleEntity
+                                        recoveredSample = sampleEntity,
+                                        recoveredHasCurrentData = persisted.hasCurrentData || persisted.sampleIsCurrentAvailable,
+                                        recoveredHasTemperatureData = persisted.hasTemperatureData || persisted.sampleIsTemperatureAvailable
                                     )
                                 }.onFailure { error ->
                                     Log.e(
@@ -1862,6 +2459,7 @@ class BatteryMonitorService : Service() {
             val preservingPreviousInMemory = activeSessionId == reconciledLatest.id
             activeSessionId = reconciledLatest.id
             if (!preservingPreviousInMemory) {
+                chargingMahIntegrator.reset()
                 val elapsedFromDbSec = ((System.currentTimeMillis() - reconciledLatest.startTime) / 1000L)
                     .coerceAtLeast(0L)
                 accumulatedMah = maxOf(
@@ -1872,16 +2470,22 @@ class BatteryMonitorService : Service() {
                     elapsedFromDbSec,
                     unappliedRecovery?.sessionSeconds ?: 0L
                 )
+                sessionDurationTracker.startOrResume(
+                    elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                    persistedDurationSec = sessionSeconds
+                )
+                hasSessionTemperatureData = reconciledLatest.hasTemperatureData ||
+                    unappliedRecovery?.hasTemperatureData == true || unappliedRecovery?.sampleIsTemperatureAvailable == true || state.isTemperatureAvailable
                 maxSessionTemp = maxOf(
-                    reconciledLatest.maxTempCelsius,
-                    state.tempCelsius,
-                    unappliedRecovery?.maxSessionTemp ?: 0f
+                    reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
+                    state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
+                    unappliedRecovery?.takeIf { it.hasTemperatureData || it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
                 )
 
-                if (unappliedRecovery != null && unappliedRecovery.currentReadingsCount > 0L) {
+                if (unappliedRecovery?.hasCurrentData == true && unappliedRecovery.currentReadingsCount > 0L) {
                     currentSumForAvg = unappliedRecovery.currentSumForAvg
                     currentReadingsCount = unappliedRecovery.currentReadingsCount
-                } else if (reconciledLatest.avgCurrentMa != 0 && elapsedFromDbSec > 0L) {
+                } else if (reconciledLatest.hasCurrentData && elapsedFromDbSec > 0L) {
                     currentSumForAvg = reconciledLatest.avgCurrentMa.toLong() * elapsedFromDbSec
                     currentReadingsCount = elapsedFromDbSec
                 } else {
@@ -1908,7 +2512,7 @@ class BatteryMonitorService : Service() {
                             endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                             state = pendingSampleState,
                             weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                            maxTempCelsius = unappliedRecovery.maxSessionTemp
+                            maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.hasTemperatureData } ?: 0f
                         )
                     )
                 } else {
@@ -1920,11 +2524,13 @@ class BatteryMonitorService : Service() {
                     reconciledLatest.totalMahDelivered,
                     unappliedRecovery?.accumulatedMah ?: 0.0
                 )
+                hasSessionTemperatureData = hasSessionTemperatureData || reconciledLatest.hasTemperatureData ||
+                    unappliedRecovery?.hasTemperatureData == true || unappliedRecovery?.sampleIsTemperatureAvailable == true || state.isTemperatureAvailable
                 maxSessionTemp = maxOf(
                     maxSessionTemp,
-                    reconciledLatest.maxTempCelsius,
-                    state.tempCelsius,
-                    unappliedRecovery?.maxSessionTemp ?: 0f
+                    reconciledLatest.maxTempCelsius.takeIf { reconciledLatest.hasTemperatureData } ?: 0f,
+                    state.tempCelsius.takeIf { state.isTemperatureAvailable } ?: 0f,
+                    unappliedRecovery?.takeIf { it.hasTemperatureData || it.sampleIsTemperatureAvailable }?.maxSessionTemp ?: 0f
                 )
                 if (sampleBuffer.isEmpty() && unappliedRecovery != null) {
                     val pendingSampleState = unappliedRecovery.toCompactedLiveBatteryState()
@@ -1937,7 +2543,7 @@ class BatteryMonitorService : Service() {
                                 endTimestampMs = unappliedRecovery.pendingBatchTimestampMs + unappliedRecovery.sampleSpanDurationMs.coerceAtLeast(0L),
                                 state = pendingSampleState,
                                 weight = unappliedRecovery.sampleWeight.coerceAtLeast(1),
-                                maxTempCelsius = unappliedRecovery.maxSessionTemp
+                                maxTempCelsius = unappliedRecovery.maxSessionTemp.takeIf { unappliedRecovery.hasTemperatureData } ?: 0f
                             )
                         )
                     }
@@ -2014,7 +2620,7 @@ class BatteryMonitorService : Service() {
             return@withContext
         }
 
-        val modeLabel = if (state.isFastCharging) "FAST (${state.chargeSource})" else state.chargeSource
+        val modeLabel = state.chargeSource
         val session = ChargingSessionEntity(
             startTime = System.currentTimeMillis(),
             startLevel = state.level,
@@ -2041,8 +2647,14 @@ class BatteryMonitorService : Service() {
         sampleBuffer.clear()
 
         accumulatedMah = 0.0
+        chargingMahIntegrator.reset()
         sessionSeconds = 0L
-        maxSessionTemp = state.tempCelsius
+        sessionDurationTracker.startOrResume(
+            elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+            persistedDurationSec = 0L
+        )
+        maxSessionTemp = if (state.isTemperatureAvailable) state.tempCelsius else 0f
+        hasSessionTemperatureData = state.isTemperatureAvailable
         currentSumForAvg = 0L
         currentReadingsCount = 0L
         activeSessionId = insertedId
@@ -2075,7 +2687,11 @@ class BatteryMonitorService : Service() {
                 voltageMv = metrics.weightedVoltageMv,
                 powerWatt = metrics.weightedPowerWatt,
                 tempCelsius = metrics.weightedTempCelsius,
-                deepSleepRatio = metrics.weightedDeepSleepRatio
+                deepSleepRatio = metrics.weightedDeepSleepRatio,
+                isCurrentAvailable = metrics.isCurrentAvailable,
+                isVoltageAvailable = metrics.isVoltageAvailable,
+                isTemperatureAvailable = metrics.isTemperatureAvailable,
+                isPowerAvailable = metrics.isPowerAvailable
             )
             sampleBuffer.subList(0, compactCount).clear()
             sampleBuffer.add(
@@ -2086,7 +2702,16 @@ class BatteryMonitorService : Service() {
                     endTimestampMs = maxOf(head.timestampMs, tail.endTimestampMs),
                     state = compactedState,
                     weight = metrics.totalWeight,
-                    maxTempCelsius = metrics.maxTempCelsius
+                    maxTempCelsius = metrics.maxTempCelsius,
+                    weightedCurrentMaSum = metrics.weightedCurrentMaSum,
+                    weightedVoltageMvSum = metrics.weightedVoltageMvSum,
+                    weightedTempCelsiusSum = metrics.weightedTempCelsiusSum,
+                    weightedPowerWattSum = metrics.weightedPowerWattSum,
+                    weightedDeepSleepRatioSum = metrics.weightedDeepSleepRatioSum,
+                    weightedCurrentMaWeight = metrics.weightedCurrentMaWeight,
+                    weightedVoltageMvWeight = metrics.weightedVoltageMvWeight,
+                    weightedTempCelsiusWeight = metrics.weightedTempCelsiusWeight,
+                    weightedPowerWattWeight = metrics.weightedPowerWattWeight
                 )
             )
         }
@@ -2117,7 +2742,14 @@ class BatteryMonitorService : Service() {
             voltageMv = metrics.weightedVoltageMv,
             tempCelsius = metrics.weightedTempCelsius,
             powerWatt = metrics.weightedPowerWatt,
-            isScreenOn = isScreenOn
+            isScreenOn = isScreenOn,
+            isLevelAvailable = latest.isLevelAvailable,
+            isCurrentAvailable = metrics.isCurrentAvailable,
+            isVoltageAvailable = metrics.isVoltageAvailable,
+            isTemperatureAvailable = metrics.isTemperatureAvailable,
+            isPowerAvailable = metrics.isPowerAvailable,
+            isChargingStatusAvailable = latest.isChargingStatusAvailable,
+            isCharging = latest.isCharging
         )
 
         val flushStatus = try {
@@ -2314,28 +2946,37 @@ class BatteryMonitorService : Service() {
             voltageMv = metrics.weightedVoltageMv,
             tempCelsius = metrics.weightedTempCelsius,
             powerWatt = metrics.weightedPowerWatt,
-            isScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false)
+            isScreenOn = runCatching { powerManager.isInteractive }.getOrDefault(false),
+            isLevelAvailable = latest.isLevelAvailable,
+            isCurrentAvailable = metrics.isCurrentAvailable,
+            isVoltageAvailable = metrics.isVoltageAvailable,
+            isTemperatureAvailable = metrics.isTemperatureAvailable,
+            isPowerAvailable = metrics.isPowerAvailable,
+            isChargingStatusAvailable = latest.isChargingStatusAvailable,
+            isCharging = latest.isCharging
         )
     }
 
-    private fun buildHealthLogEntityIfEligible(
+    private suspend fun buildHealthLogEntityIfEligible(
         sessionId: Long,
         existingSession: ChargingSessionEntity,
         endLevel: Int,
         now: Long
     ): BatteryHealthEntity? {
         if (existingSession.endTime != null) return null
-        val deltaPercent = endLevel - existingSession.startLevel
-        if (deltaPercent < 40 || accumulatedMah <= 300.0) return null
-        val estimatedFullMah = ((accumulatedMah / deltaPercent.toDouble()) * 100.0).toInt()
-        val designMah = resolveEngine().designCapacityMah
-        val healthPct = ((estimatedFullMah.toFloat() / designMah.toFloat()) * 100f).coerceIn(10f, 110f)
+        val designMah = effectiveDesignCapacityMah()
+        val estimate = BatteryHealthEstimator.estimate(
+            totalMahDelivered = accumulatedMah,
+            startLevel = existingSession.startLevel,
+            endLevel = endLevel,
+            designCapacityMah = designMah
+        ) ?: return null
         return BatteryHealthEntity(
             timestamp = now,
             sessionId = sessionId,
-            estimatedCapacityMah = estimatedFullMah,
+            estimatedCapacityMah = estimate.estimatedCapacityMah,
             designCapacityMah = designMah,
-            healthPercentage = healthPct
+            healthPercentage = estimate.healthPercentage
         )
     }
 
@@ -2350,7 +2991,7 @@ class BatteryMonitorService : Service() {
         excludeSessionIds: Set<Long> = emptySet()
     ): Boolean {
         val openSessions = dao.getAllOpenSessions().filter { it.id !in excludeSessionIds }
-        val designMah = resolveEngine().designCapacityMah
+        val designMah = effectiveDesignCapacityMah()
         var allSucceeded = true
         for (openSession in openSessions) {
             val status = runCatching {
@@ -2399,7 +3040,7 @@ class BatteryMonitorService : Service() {
         val hasMissingAnomalyCodes = alertedAnomalyCodes.any { it !in existingAnomalyCodes }
         val effectiveMaxTemp = maxOf(
             maxSessionTemp,
-            pendingEntriesSnapshot.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
+            pendingEntriesSnapshot.filter { it.state.isTemperatureAvailable }.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
         )
 
         val hasNewerMetrics = accumulatedMah > existingSession.totalMahDelivered + 0.0001 ||
@@ -2426,7 +3067,10 @@ class BatteryMonitorService : Service() {
                 recoveredMaxTempCelsius = effectiveMaxTemp,
                 recoveredHasAnomaly = alertedAnomalyCodes.isNotEmpty(),
                 recoveredAnomalyReason = anomalyReason,
-                recoveredSample = pendingSample
+                recoveredSample = pendingSample,
+                recoveredHasCurrentData = currentReadingsCount > 0L || pendingSample?.isCurrentAvailable == true,
+                recoveredHasTemperatureData = hasSessionTemperatureData || pendingEntriesSnapshot.any { it.state.isTemperatureAvailable } ||
+                    pendingSample?.isTemperatureAvailable == true
             )
         }.getOrDefault(false)
 
@@ -2606,7 +3250,7 @@ class BatteryMonitorService : Service() {
         val healthLog = buildHealthLogEntityIfEligible(sessionId, existingSession, endLevel, now)
         val effectiveMaxTemp = maxOf(
             maxSessionTemp,
-            pendingEntriesSnapshot.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
+            pendingEntriesSnapshot.filter { it.state.isTemperatureAvailable }.maxOfOrNull { maxOf(it.maxTempCelsius, it.state.tempCelsius) } ?: 0f
         )
 
         val status = dao.finalizeSessionAtomically(
@@ -2770,10 +3414,38 @@ class BatteryMonitorService : Service() {
                                 samplePersistenceHalted = true
                                 return@withContext false
                             }
+
+                            // Sesi lama sudah tertutup dan seluruh data tertunda berhasil direkonsiliasi.
+                            // Jangan pertahankan activeSessionId yang menunjuk baris tertutup: batch berikutnya
+                            // akan terus ditolak Room dan membuat riwayat sesi tampak membeku.
+                            resetInMemorySessionTracking(clearRecoverySnapshot = true)
                             consecutiveFlushFailures = 0
                             nextFlushRetryAtSec = 0L
                             checkpointSavePendingRetry = false
                             samplePersistenceHalted = false
+
+                            val currentSensor = runCatching { resolveEngine().readCurrentState() }.getOrNull()
+                            if (currentSensor?.isCharging == true &&
+                                !destroyRequested.get() &&
+                                actorState != ActorLifecycleState.STOPPED
+                            ) {
+                                if (isBatteryMonitoringEnabled()) {
+                                    recoverOrStartChargingSession(currentSensor)
+                                    if (activeSessionId == null || samplePersistenceHalted) {
+                                        Log.w(
+                                            "PowerGuard",
+                                            "Sesi baru belum dapat dimulai setelah sesi lama tertutup; persistensi tetap ditahan"
+                                        )
+                                        return@withContext false
+                                    }
+                                } else if (isStatusBarIndicatorEnabled()) {
+                                    // Recovery berhasil, tetapi HUD_ONLY tidak boleh membuat sesi Room baru.
+                                    transitionActorState(ActorLifecycleState.HUD_ONLY)
+                                } else {
+                                    transitionActorState(ActorLifecycleState.STOPPED)
+                                    stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), latestStartGeneration.get())
+                                }
+                            }
                         }
                     }
                 }
@@ -2791,9 +3463,17 @@ class BatteryMonitorService : Service() {
             if (!destroyRequested.get() && actorState != ActorLifecycleState.STOPPED) {
                 val sensor = runCatching { resolveEngine().readCurrentState() }.getOrNull()
                 if (actorState == ActorLifecycleState.RECOVERY_HOLD && sensor?.isCharging == true) {
-                    transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+                    when {
+                        isBatteryMonitoringEnabled() -> transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
+                        isStatusBarIndicatorEnabled() -> transitionActorState(ActorLifecycleState.HUD_ONLY)
+                        else -> {
+                            transitionActorState(ActorLifecycleState.STOPPED)
+                            stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), latestStartGeneration.get())
+                        }
+                    }
                 }
-                if (actorState == ActorLifecycleState.RUNNING_CHARGING ||
+                if (actorState == ActorLifecycleState.HUD_ONLY ||
+                    actorState == ActorLifecycleState.RUNNING_CHARGING ||
                     actorState == ActorLifecycleState.RUNNING_MANUAL
                 ) {
                     ensureMonitoringLoopRunning()
@@ -2836,8 +3516,18 @@ class BatteryMonitorService : Service() {
     ) {
         this.activeSessionId = sessionId
         this.accumulatedMah = accumulatedMah
+        chargingMahIntegrator.reset()
         this.sessionSeconds = sessionSeconds
+        if (sessionId != null) {
+            sessionDurationTracker.startOrResume(
+                elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+                persistedDurationSec = sessionSeconds
+            )
+        } else {
+            sessionDurationTracker.reset()
+        }
         this.maxSessionTemp = maxSessionTemp
+        this.hasSessionTemperatureData = maxSessionTemp > 0f || bufferedSamples.any { it.isTemperatureAvailable }
         this.currentSumForAvg = currentSumForAvg
         this.currentReadingsCount = currentReadingsCount
         this.alertedAnomalyCodes.clear()
@@ -2863,6 +3553,11 @@ class BatteryMonitorService : Service() {
         this.nextFlushRetryAtSec = 0L
         this.checkpointSavePendingRetry = false
     }
+
+    @VisibleForTesting
+    internal fun hasUnpersistedRamOnlyDataForTesting(
+        result: SessionFinalizationResult = SessionFinalizationResult.FAILED
+    ): Boolean = hasUnpersistedRamOnlyData(result)
 
     @VisibleForTesting
     internal fun appendSampleToBufferForTesting(state: LiveBatteryState) {
@@ -2953,7 +3648,18 @@ class BatteryMonitorService : Service() {
         transitionActorState(if (charging) ActorLifecycleState.RUNNING_CHARGING else ActorLifecycleState.RUNNING_MANUAL)
     }
 
+    @VisibleForTesting
+    internal fun setActorHudOnlyForTesting(generation: Long = 1L) {
+        activeRunGeneration = generation
+        latestStartGeneration.updateAndGet { maxOf(it, generation) }
+        transitionActorState(ActorLifecycleState.HUD_ONLY)
+    }
+
     private fun createNotificationChannels() {
+        notificationManager.cancel(LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager.deleteNotificationChannel(LEGACY_CHANNEL_STATUS_BAR_INDICATOR)
+        }
         val monitorChannel = NotificationChannel(
             CHANNEL_MONITOR,
             "Live Power Monitor",
@@ -2975,46 +3681,210 @@ class BatteryMonitorService : Service() {
         notificationManager.createNotificationChannel(alertChannel)
     }
 
-    private fun buildMonitorNotification(contentText: String): Notification {
-        val openAppIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
+    private fun resolveNotificationBatteryState(): LiveBatteryState {
+        return if (_lastSensorUpdateElapsedRealtime.value > 0L) _liveState.value
+        else runCatching { resolveEngine().readCurrentState() }.getOrDefault(_liveState.value)
+    }
 
-        return NotificationCompat.Builder(this, CHANNEL_MONITOR)
-            .setContentTitle("PowerGuard Aktif")
+    private fun resolveMonitorNotificationIcon(): Int {
+        val state = resolveNotificationBatteryState()
+        return NotificationVisualRenderer.resolveMonitorVisualSpec(
+            state, actorState == ActorLifecycleState.RECOVERY_HOLD
+        ).smallIconResId
+    }
+
+    internal fun buildMonitorNotificationForTesting(contentText: String): Notification =
+        buildMonitorNotification(contentText)
+
+    internal fun buildMonitorNotificationForTesting(contentText: String, state: LiveBatteryState): Notification =
+        buildMonitorNotification(contentText, state)
+
+    internal fun buildAnomalyAlertNotificationForTesting(
+        alertMessage: String,
+        anomalyCode: String? = null,
+        peakTemperatureCelsius: Float? = null
+    ): Notification = buildAnomalyAlertNotification(alertMessage, anomalyCode, peakTemperatureCelsius)
+
+    @VisibleForTesting
+    internal fun setStatusBarIndicatorSettingForTesting(setting: StatusBarIndicatorSetting) {
+        statusBarIndicatorSetting = setting
+        notificationRenderGate.reset()
+    }
+
+    @VisibleForTesting
+    internal fun setBatteryMonitoringEnabledForTesting(enabled: Boolean) {
+        batteryMonitoringEnabledForIndicator = enabled
+        notificationRenderGate.reset()
+    }
+
+    @VisibleForTesting
+    internal fun refreshStatusBarIndicatorNotificationForTesting(state: LiveBatteryState, force: Boolean = false) =
+        refreshStatusBarIndicatorNotification(state, force)
+
+    private fun buildMonitorNotification(contentText: String): Notification =
+        buildMonitorNotification(contentText, resolveNotificationBatteryState())
+
+    private fun buildMonitorNotification(contentText: String, state: LiveBatteryState): Notification {
+        val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(state, actorState == ActorLifecycleState.RECOVERY_HOLD)
+        val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+        val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) else null
+        val builder = NotificationCompat.Builder(this, CHANNEL_MONITOR)
+            .setContentTitle(NotificationVisualRenderer.resolveMonitorContentTitle(state))
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(NotificationVisualRenderer.formatMonitorExpandedText(state))
+            )
+            .setColor(visualSpec.accentColor)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .build()
+            .setSilent(true)
+        if (dynamicBitmap != null) builder.setSmallIcon(IconCompat.createWithBitmap(dynamicBitmap))
+        else builder.setSmallIcon(visualSpec.smallIconResId)
+        return builder.build()
     }
 
-    private fun sendAnomalyAlertNotification(alertMessage: String) {
-        val openAppIntent = PendingIntent.getActivity(
-            this,
-            1,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
+    /**
+     * Builds and posts ID 1001 from one coherent state snapshot. State publication uses the
+     * same lock and increments the sequence, so an older render cannot overtake newer telemetry.
+     */
+    private fun publishLiveState(state: LiveBatteryState) {
+        synchronized(monitorNotificationPostLock) {
+            _liveState.value = state
+            notificationStateSequence.incrementAndGet()
+        }
+    }
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ANOMALY)
-            .setContentTitle("⚠️ Peringatan Daya & Pengisian")
-            .setContentText(alertMessage)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(alertMessage))
-            .setSmallIcon(android.R.drawable.stat_notify_error)
+    private fun notifyMonitorNotification(contentText: String, force: Boolean = false) {
+        if (!::notificationManager.isInitialized || destroyRequested.get()) return
+        synchronized(monitorNotificationPostLock) {
+            var snapshotSequence = notificationStateSequence.get()
+            var state = resolveNotificationBatteryState()
+            var notification = buildMonitorNotification(contentText, state)
+            var latestSequence = notificationStateSequence.get()
+
+            while (snapshotSequence != latestSequence) {
+                snapshotSequence = latestSequence
+                state = resolveNotificationBatteryState()
+                notification = buildMonitorNotification(contentText, state)
+                latestSequence = notificationStateSequence.get()
+            }
+            if (snapshotSequence != latestSequence) return@synchronized
+
+            val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
+                state,
+                actorState == ActorLifecycleState.RECOVERY_HOLD
+            )
+            val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
+                LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
+            val iconKey = if (hasDynamicIcon) {
+                "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
+            } else {
+                visualSpec.cacheKey
+            }
+            val payloadSignature = listOf(
+                iconKey,
+                contentText,
+                displayText,
+                state.isCharging.toString(),
+                state.isPowerConnected.toString(),
+                state.chargeSource,
+                actorState.name
+            ).joinToString("|")
+            val nowElapsedMs = SystemClock.elapsedRealtime()
+            val shouldPostTransition = monitorNotificationPostGate.shouldPost(
+                payloadSignature = payloadSignature,
+                criticalStateSignature = state.isPowerConnected.toString(),
+                nowElapsedMs = nowElapsedMs,
+                snapshotSequence = snapshotSequence,
+                latestSequence = latestSequence
+            )
+            if (!shouldPostTransition &&
+                monitorNotificationPostGate.isBounceCoalescing(nowElapsedMs)
+            ) {
+                return@synchronized
+            }
+
+            val decision = notificationRenderGate.evaluate(
+                iconKey,
+                NotificationVisualRenderer.resolveMonitorContentTitle(state),
+                contentText,
+                nowElapsedMs,
+                force || shouldPostTransition
+            )
+            if (shouldPostTransition || decision.shouldNotify) {
+                val notificationToPost = if (decision.body == contentText) {
+                    notification
+                } else {
+                    buildMonitorNotification(decision.body, state)
+                }
+                try {
+                    notificationManager.notify(MONITOR_NOTIFICATION_ID, notificationToPost)
+                } catch (error: RuntimeException) {
+                    monitorNotificationPostGate.reset()
+                    throw error
+                }
+            }
+        }
+    }
+
+    private fun refreshStatusBarIndicatorNotification(state: LiveBatteryState, force: Boolean = false) {
+        if (!::notificationManager.isInitialized || destroyRequested.get()) return
+        if (actorState == ActorLifecycleState.STOPPED) {
+            synchronized(monitorNotificationPostLock) {
+                notificationManager.cancel(MONITOR_NOTIFICATION_ID)
+            }
+            return
+        }
+        notifyMonitorNotification(lastNotificationBody, force)
+    }
+
+    private fun buildAnomalyAlertNotification(
+        alertMessage: String,
+        anomalyCode: String? = null,
+        peakTemperatureCelsius: Float? = null
+    ): Notification {
+        val openAppIntent = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val visualSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(alertMessage, anomalyCode)
+        val formattedLabel = NotificationVisualRenderer.formatAnomalyReason(
+            anomalyCode ?: alertMessage,
+            peakTemperatureCelsius
+        )
+        val expandedText = "$formattedLabel\n$alertMessage"
+        val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
+        return NotificationCompat.Builder(this, CHANNEL_ANOMALY)
+            .setContentTitle("SUPERD GUARD • Peringatan Daya")
+            .setContentText(formattedLabel)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
+            .setSmallIcon(visualSpec.smallIconResId)
+            .setColor(visualSpec.accentColor)
+            .setLargeIcon(largeIcon)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent)
             .setAutoCancel(true)
             .build()
+    }
 
-        notificationManager.notify(ANOMALY_NOTIFICATION_ID, notification)
+    private fun sendAnomalyAlertNotification(
+        alertMessage: String,
+        anomalyCode: String,
+        peakTemperatureCelsius: Float?
+    ) {
+        notificationManager.notify(
+            ANOMALY_NOTIFICATION_ID,
+            buildAnomalyAlertNotification(alertMessage, anomalyCode, peakTemperatureCelsius)
+        )
     }
 
     override fun onDestroy() {
+        if (::notificationManager.isInitialized) {
+            notificationManager.cancel(LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID)
+        }
         if (destroyRequested.compareAndSet(false, true)) {
             lifecycleChannel.trySend(LifecycleCommand.Destroy)
             lifecycleChannel.close()
@@ -3028,14 +3898,22 @@ class BatteryMonitorService : Service() {
         const val ACTION_START_MONITORING = "com.superdenot.powerguard.START_MONITORING"
         const val ACTION_START_MANUAL_MONITORING = "com.superdenot.powerguard.START_MANUAL_MONITORING"
         const val ACTION_STOP_CHARGING_SESSION = "com.superdenot.powerguard.STOP_CHARGING_SESSION"
+        const val ACTION_STOP_MONITORING = "com.superdenot.powerguard.STOP_MONITORING"
+        const val ACTION_SYNC_SETTINGS = "com.superdenot.powerguard.SYNC_SETTINGS"
 
         private const val EXTRA_FROM_REQUEST_START = "com.superdenot.powerguard.EXTRA_FROM_REQUEST_START"
         private const val EXTRA_START_GENERATION = "com.superdenot.powerguard.EXTRA_START_GENERATION"
+        private const val EXTRA_STOP_GENERATION = "com.superdenot.powerguard.EXTRA_STOP_GENERATION"
+        private const val EXTRA_AUTO_START_ATTEMPT_ID = "com.superdenot.powerguard.EXTRA_AUTO_START_ATTEMPT_ID"
+        private const val EXTRA_AUTO_START_EPOCH_ID = "com.superdenot.powerguard.EXTRA_AUTO_START_EPOCH_ID"
+        private const val EXTRA_AUTO_START_T0_ELAPSED_REALTIME = "com.superdenot.powerguard.EXTRA_AUTO_START_T0_ELAPSED_REALTIME"
 
         private const val CHANNEL_MONITOR = "powerguard_live_monitor"
         private const val CHANNEL_ANOMALY = "powerguard_anomaly_alerts"
+        private const val LEGACY_CHANNEL_STATUS_BAR_INDICATOR = "powerguard_status_bar_indicator"
         private const val MONITOR_NOTIFICATION_ID = 1001
         private const val ANOMALY_NOTIFICATION_ID = 1002
+        private const val LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID = 1003
 
         private const val SAMPLE_FLUSH_BATCH_SIZE = 60
         private const val MAX_SAMPLE_BUFFER_SIZE = 300
@@ -3051,6 +3929,12 @@ class BatteryMonitorService : Service() {
         private val _isRunningFlow = MutableStateFlow(false)
         val isRunningFlow: StateFlow<Boolean> = _isRunningFlow.asStateFlow()
 
+        private val _lastSensorUpdateElapsedRealtime = MutableStateFlow(0L)
+        val lastSensorUpdateElapsedRealtime: StateFlow<Long> = _lastSensorUpdateElapsedRealtime.asStateFlow()
+
+        private val _lastMonitorError = MutableStateFlow<String?>(null)
+        val lastMonitorError: StateFlow<String?> = _lastMonitorError.asStateFlow()
+
         private val _isStartingFlow = MutableStateFlow(false)
         val isStartingFlow: StateFlow<Boolean> = _isStartingFlow.asStateFlow()
 
@@ -3064,9 +3948,21 @@ class BatteryMonitorService : Service() {
 
         internal fun hasActiveServiceSessionFor(sessionId: Long? = null): Boolean = synchronized(lifecycleLock) {
             val instance = activeInstance ?: return false
+            if (instance.actorState == ActorLifecycleState.STOPPED && !instance.destroyFinalizationInProgress) {
+                // Actor STOPPED boleh dilewati hanya jika snapshot sesi yang tertinggal sudah
+                // durable di checkpoint. Tanpa checkpoint, data RAM-only wajib tetap dilindungi.
+                val stoppedSessionId = instance.activeSessionId
+                    ?: instance.lastIncompleteSessionRecovery?.sessionId
+                if (stoppedSessionId == null) return false
+                val durableCheckpoint = SessionRecoveryStore.loadForSession(
+                    instance.applicationContext,
+                    stoppedSessionId
+                ) is SessionRecoveryStore.CheckpointLoadResult.Loaded
+                if (!durableCheckpoint) return true
+                return false
+            }
             if (sessionId == null) {
-                instance.activeSessionId != null ||
-                    instance.destroyFinalizationInProgress ||
+                instance.destroyFinalizationInProgress ||
                     instance.actorState != ActorLifecycleState.STOPPED
             } else {
                 instance.activeSessionId == sessionId ||
@@ -3085,6 +3981,36 @@ class BatteryMonitorService : Service() {
 
         private fun hasPendingStarts(): Boolean = synchronized(lifecycleLock) {
             pendingStartGenerations.isNotEmpty()
+        }
+
+        private fun registerStopGeneration(): Long = synchronized(lifecycleLock) {
+            val gen = commandSequence.incrementAndGet()
+            latestStartGeneration.set(gen)
+            pendingStartGenerations.clear()
+            pendingStartCount.set(0)
+            gen
+        }
+
+        fun requestStopMonitoring(context: Context) {
+            val gen = registerStopGeneration()
+            val instance = synchronized(lifecycleLock) { activeInstance }
+            if (instance != null) {
+                // Close the Room write gate synchronously before the next sensor-loop tick.
+                instance.batteryMonitoringEnabledForIndicator = false
+                instance.notificationRenderGate.reset()
+                instance.lifecycleChannel.trySend(LifecycleCommand.SettingsChanged)
+                return
+            }
+            val stopIntent = Intent(context, BatteryMonitorService::class.java).apply {
+                action = ACTION_STOP_MONITORING
+                putExtra(EXTRA_STOP_GENERATION, gen)
+            }
+            context.startService(stopIntent)
+        }
+
+        fun requestSyncSettings(context: Context): Boolean {
+            val instance = synchronized(lifecycleLock) { activeInstance } ?: return false
+            return instance.lifecycleChannel.trySend(LifecycleCommand.SettingsChanged).isSuccess
         }
 
         private fun registerPendingStart(): Long = synchronized(lifecycleLock) {
@@ -3110,12 +4036,6 @@ class BatteryMonitorService : Service() {
                 pendingStartGenerations.remove(generation)
                 pendingStartCount.set(pendingStartGenerations.size)
             }
-        }
-
-        internal sealed interface TargetSessionLookupResult {
-            data class Found(val session: ChargingSessionEntity) : TargetSessionLookupResult
-            data object MissingInAccessibleDb : TargetSessionLookupResult
-            data class DatabaseInaccessible(val cause: Throwable?) : TargetSessionLookupResult
         }
 
         internal suspend fun lookupTargetSessionSafely(
@@ -3161,7 +4081,11 @@ class BatteryMonitorService : Service() {
 
                 val dao = daoOverride ?: AppDatabase.getInstance(appContext).batteryDao()
                 val now = System.currentTimeMillis()
-                val designCapacityMah = runCatching { resolvedEngine.designCapacityMah }.getOrDefault(5000)
+                val designCapacityMah = runCatching {
+                    DesignCapacitySettings.resolve(appContext, resolvedEngine.designCapacityMah)
+                }.onFailure { error ->
+                    Log.w("PowerGuard", "Kapasitas desain tidak tersedia saat startup recovery; health log dilewati", error)
+                }.getOrDefault(0)
 
                 withContext(NonCancellable) {
                     val blockedSessionIds = mutableSetOf<Long>()
@@ -3241,7 +4165,9 @@ class BatteryMonitorService : Service() {
                                                 recoveredMaxTempCelsius = persisted.maxSessionTemp,
                                                 recoveredHasAnomaly = persisted.alertedAnomalyCodes.isNotEmpty(),
                                                 recoveredAnomalyReason = persisted.alertedAnomalyCodes.joinToString(", ").ifEmpty { null },
-                                                recoveredSample = sampleEntity
+                                                recoveredSample = sampleEntity,
+                                        recoveredHasCurrentData = persisted.hasCurrentData || persisted.sampleIsCurrentAvailable,
+                                        recoveredHasTemperatureData = persisted.hasTemperatureData || persisted.sampleIsTemperatureAvailable
                                             )
                                         }.onFailure { error ->
                                             Log.e(
@@ -3279,6 +4205,13 @@ class BatteryMonitorService : Service() {
                                                 )
                                                 if (cleared) {
                                                     blockedSessionIds.remove(persisted.sessionId)
+                                                    val stoppedInstance = activeInstance
+                                                    if (stoppedInstance != null &&
+                                                        stoppedInstance.actorState == ActorLifecycleState.STOPPED &&
+                                                        stoppedInstance.activeSessionId == persisted.sessionId
+                                                    ) {
+                                                        stoppedInstance.resetInMemorySessionTracking(clearRecoverySnapshot = true)
+                                                    }
                                                 } else {
                                                     Log.e(
                                                         "PowerGuard",
@@ -3319,7 +4252,13 @@ class BatteryMonitorService : Service() {
             }
         }
 
-        fun requestStartService(context: Context, manual: Boolean) {
+        fun requestStartService(
+            context: Context,
+            manual: Boolean,
+            autoStartAttemptId: Long? = null,
+            autoStartEpochId: Long? = null,
+            autoStartT0ElapsedRealtime: Long? = null
+        ) {
             val gen = registerPendingStart()
             val targetInstance = synchronized(lifecycleLock) { activeInstance }
             targetInstance?.lifecycleChannel?.trySend(LifecycleCommand.PrepareStart(gen))
@@ -3328,10 +4267,17 @@ class BatteryMonitorService : Service() {
                 action = if (manual) ACTION_START_MANUAL_MONITORING else ACTION_START_MONITORING
                 putExtra(EXTRA_FROM_REQUEST_START, true)
                 putExtra(EXTRA_START_GENERATION, gen)
+                autoStartAttemptId?.let { putExtra(EXTRA_AUTO_START_ATTEMPT_ID, it) }
+                autoStartEpochId?.let { putExtra(EXTRA_AUTO_START_EPOCH_ID, it) }
+                autoStartT0ElapsedRealtime?.let { putExtra(EXTRA_AUTO_START_T0_ELAPSED_REALTIME, it) }
             }
+            AutoStartDiagnosticLog.record(context, "R4 ContextCompat.startForegroundService invoking manual=$manual generation=$gen")
             runCatching {
                 ContextCompat.startForegroundService(context, serviceIntent)
+            }.onSuccess {
+                AutoStartDiagnosticLog.record(context, "R4 startForegroundService call returned")
             }.onFailure { error ->
+                AutoStartDiagnosticLog.record(context, "R4 startForegroundService threw type=${error.javaClass.simpleName}")
                 removePendingStart(gen)
                 val failInstance = synchronized(lifecycleLock) { activeInstance }
                 failInstance?.lifecycleChannel?.trySend(LifecycleCommand.StartFailed(gen))

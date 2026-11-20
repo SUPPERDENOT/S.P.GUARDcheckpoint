@@ -5,13 +5,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.os.SystemClock
+import android.os.Process
 import android.util.Log
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
+import com.superdenot.powerguard.service.AutoStartDiagnosticLog
+import com.superdenot.powerguard.service.AutoStartCoordinator
+import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
+import com.superdenot.powerguard.service.TargetSessionLookupResult
+import com.superdenot.powerguard.worker.ChargingAutoStartScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,48 +31,149 @@ import java.util.concurrent.atomic.AtomicBoolean
 class PowerConnectionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        val receiverAction = intent.action ?: "null"
+        AutoStartDiagnosticLog.record(
+            context,
+            "R0_RECEIVER_ENTER action=$receiverAction pid=${Process.myPid()} appForeground=${AutoStartCoordinator.isAppForeground}"
+        )
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
-                if (isDeviceCurrentlyCharging(context)) {
-                    startMonitorServiceSafe(context)
-                } else if (!BatteryMonitorService.isStartingOrRunning &&
-                    !BatteryMonitorService.hasActiveServiceSessionFor()
-                ) {
-                    scheduleGuardedBackgroundCleanup(context)
-                }
+                scheduleEnabledRecovery(context)
+                // Coordinator checks both feature toggles; HUD-only must also survive reboot.
+                // Android's foreground-service start restrictions remain enforced by the platform.
+                startMonitorServiceSafe(context, AutoStartTrigger.BOOT_COMPLETED, SystemClock.elapsedRealtime())
             }
             Intent.ACTION_POWER_CONNECTED -> {
-                startMonitorServiceSafe(context)
+                val detectedAt = SystemClock.elapsedRealtime()
+                startMonitorServiceSafe(context, AutoStartTrigger.POWER_CONNECTED, detectedAt)
             }
             Intent.ACTION_POWER_DISCONNECTED -> {
+                AutoStartCoordinator.onChargingDisconnected()
                 handlePowerDisconnected(context)
             }
         }
     }
 
-    private fun startMonitorServiceSafe(context: Context) {
-        runCatching {
-            BatteryMonitorService.requestStartService(context, manual = false)
-        }.onFailure { error ->
-            Log.e("PowerGuard", "Gagal memulai Foreground Service: ${error.message}", error)
+    private fun scheduleEnabledRecovery(context: Context) {
+        val pendingResult = goAsync()
+        val appContext = context.applicationContext
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                ChargingAutoStartScheduler.ensureScheduledIfEnabled(appContext)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal menyiapkan charging Auto Start setelah boot", error)
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
+
+    private fun startMonitorServiceSafe(
+        context: Context,
+        trigger: AutoStartTrigger,
+        detectedAtElapsedRealtime: Long
+    ) {
+        val pendingResult = goAsync()
+        val appContext = context.applicationContext
+        AutoStartDiagnosticLog.record(appContext, "R0_ASYNC_DISPATCH_SCHEDULED trigger=$trigger")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (trigger == AutoStartTrigger.POWER_CONNECTED) {
+                    ChargingAutoStartScheduler.cancelPendingOneTime(appContext)
+                }
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_WORKER_ENTER trigger=$trigger pid=${Process.myPid()} " +
+                        "receiverElapsed=$detectedAtElapsedRealtime appForeground=${AutoStartCoordinator.isAppForeground}"
+                )
+                AutoStartDiagnosticLog.recordAndFlush(appContext, "R0_COORDINATOR_DISPATCH trigger=$trigger")
+                AutoStartDiagnosticLog.record(appContext, "R4 receiver queued Auto Start trigger=$trigger")
+                val result = AutoStartCoordinator.requestStart(
+                    context = appContext,
+                    trigger = trigger,
+                    observedAtElapsedRealtime = detectedAtElapsedRealtime
+                )
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_COORDINATOR_RESULT result=$result trigger=$trigger"
+                )
+                AutoStartDiagnosticLog.record(appContext, "R4 coordinator result=$result trigger=$trigger")
+                if (trigger == AutoStartTrigger.BOOT_COMPLETED &&
+                    result == com.superdenot.powerguard.service.AutoStartRequestResult.MONITORING_DISABLED &&
+                    !BatteryMonitorService.isStartingOrRunning &&
+                    !BatteryMonitorService.hasActiveServiceSessionFor()
+                ) {
+                    executeGuardedBackgroundCleanupNow(appContext)
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                val detail = error.message.orEmpty().replace('\n', ' ').replace('\r', ' ').take(180)
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_RECEIVER_EXCEPTION trigger=$trigger type=${error.javaClass.simpleName} detail=$detail"
+                )
+                Log.e("PowerGuard", "Gagal memproses Auto Start dari receiver: ${error.message}", error)
+            } finally {
+                try {
+                    withContext(NonCancellable) {
+                        AutoStartDiagnosticLog.recordAndFlush(
+                            appContext,
+                            "R0_PENDING_RESULT_FINISH trigger=$trigger"
+                        )
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 
     private fun handlePowerDisconnected(context: Context) {
-        if (BatteryMonitorService.isStartingOrRunning || BatteryMonitorService.hasActiveServiceSessionFor()) {
-            val stopSessionIntent = Intent(context, BatteryMonitorService::class.java).apply {
-                action = BatteryMonitorService.ACTION_STOP_CHARGING_SESSION
-            }
-            val delivered = runCatching {
-                context.startService(stopSessionIntent)
-            }.isSuccess
-
-            if (delivered) {
-                return
+        val pendingResult = goAsync()
+        val appContext = context.applicationContext
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                try {
+                    ChargingAutoStartScheduler.armOneTimeIfUnplugged(appContext)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Log.w("PowerGuard", "Gagal mengarm one-time charging Auto Start", error)
+                }
+                AutoStartDiagnosticLog.recordAndFlush(
+                    appContext,
+                    "R0_WORKER_ENTER action=POWER_DISCONNECTED pid=${Process.myPid()} " +
+                        "appForeground=${AutoStartCoordinator.isAppForeground}"
+                )
+                if (BatteryMonitorService.isStartingOrRunning ||
+                    BatteryMonitorService.hasActiveServiceSessionFor()
+                ) {
+                    val synchronized = BatteryMonitorService.requestSyncSettings(appContext)
+                    if (!synchronized && !BatteryMonitorService.isStartingOrRunning) {
+                        scheduleGuardedBackgroundCleanup(appContext)
+                    }
+                } else {
+                    scheduleGuardedBackgroundCleanup(appContext)
+                }
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal memproses charger terlepas atau mereset penahanan STOP", error)
+                scheduleGuardedBackgroundCleanup(appContext)
+            } finally {
+                try {
+                    withContext(NonCancellable) {
+                        AutoStartDiagnosticLog.recordAndFlush(
+                            appContext,
+                            "R0_PENDING_RESULT_FINISH action=POWER_DISCONNECTED"
+                        )
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
             }
         }
-
-        scheduleGuardedBackgroundCleanup(context)
     }
 
     private fun scheduleGuardedBackgroundCleanup(context: Context) {
@@ -175,7 +283,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                                 val persisted = loadResult.recovery
                                 blockedSessionIds.add(persisted.sessionId)
                                 when (val lookup = BatteryMonitorService.lookupTargetSessionSafely(dao, persisted.sessionId)) {
-                                    is BatteryMonitorService.TargetSessionLookupResult.DatabaseInaccessible -> {
+                                    is TargetSessionLookupResult.DatabaseInaccessible -> {
                                         Log.e(
                                             "PowerGuard",
                                             "Cleanup background: database tidak dapat diakses untuk sessionId=${persisted.sessionId}; checkpoint dipertahankan",
@@ -189,7 +297,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                                         )
                                     }
 
-                                    is BatteryMonitorService.TargetSessionLookupResult.MissingInAccessibleDb -> {
+                                    is TargetSessionLookupResult.MissingInAccessibleDb -> {
                                         Log.w(
                                             "PowerGuard",
                                             "Cleanup background: target sessionId=${persisted.sessionId} tidak ditemukan di Room; mempertahankan checkpoint dan menandai butuh tindak lanjut tanpa menutup sesi lain"
@@ -202,7 +310,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                                         )
                                     }
 
-                                    is BatteryMonitorService.TargetSessionLookupResult.Found -> {
+                                    is TargetSessionLookupResult.Found -> {
                                         val targetRow = lookup.session
                                         val avgCurrent = if (persisted.currentReadingsCount > 0L) {
                                             (persisted.currentSumForAvg / persisted.currentReadingsCount).toInt()

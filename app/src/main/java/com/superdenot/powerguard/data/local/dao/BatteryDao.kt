@@ -10,6 +10,7 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
+import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
 import kotlinx.coroutines.flow.Flow
 
 enum class SessionFinalizationStatus {
@@ -86,26 +87,34 @@ interface BatteryDao {
         )
         val consistentEndLevel = when {
             fallbackEndLevel in 0..100 -> fallbackEndLevel
-            lastSample != null && lastSample.batteryLevel in 0..100 -> lastSample.batteryLevel
+            lastSample != null && lastSample.isLevelAvailable && lastSample.batteryLevel in 0..100 -> lastSample.batteryLevel
             else -> fresh.startLevel
         }
+        val validCurrentSamples = samples.filter { it.isCurrentAvailable }
+        val validTemperatureSamples = samples.filter { it.isTemperatureAvailable }
         val consistentAvgCurrentMa = when {
-            fresh.avgCurrentMa != 0 -> fresh.avgCurrentMa
-            samples.isNotEmpty() -> samples.map { it.currentMa.toLong() }.average().toInt()
-            else -> 0
+            fresh.hasCurrentData -> fresh.avgCurrentMa
+            validCurrentSamples.isNotEmpty() -> validCurrentSamples.map { it.currentMa.toLong() }.average().toInt()
+            else -> fresh.avgCurrentMa
         }
-        val consistentMaxTemp = maxOf(
-            fresh.maxTempCelsius,
-            samples.maxOfOrNull { it.tempCelsius } ?: 0f
-        )
+        val consistentMaxTemp = if (fresh.hasTemperatureData || validTemperatureSamples.isNotEmpty()) {
+            maxOf(fresh.maxTempCelsius, validTemperatureSamples.maxOfOrNull { it.tempCelsius } ?: 0f)
+        } else fresh.maxTempCelsius
         val consistentTotalMah = if (fresh.totalMahDelivered > 0.0) {
             fresh.totalMahDelivered
         } else if (samples.size >= 2) {
             var integratedMah = 0.0
             for (i in 1 until samples.size) {
-                val dtSec = ((samples[i].timestamp - samples[i - 1].timestamp) / 1000.0).coerceAtLeast(0.0)
-                if (dtSec > 0.0) {
-                    integratedMah += (samples[i].currentMa / 3600.0) * dtSec
+                val previous = samples[i - 1]
+                val current = samples[i]
+                val dtMs = current.timestamp - previous.timestamp
+                // Sampel lama memakai wall-clock; jangan menebak arus selama jeda panjang
+                // (mis. proses mati/terhenti) atau timestamp yang tidak berurutan.
+                if (dtMs in 1L..5_000L && previous.isCurrentAvailable && current.isCurrentAvailable) {
+                    val previousCurrentMa = previous.currentMa.coerceAtLeast(0)
+                    val currentCurrentMa = current.currentMa.coerceAtLeast(0)
+                    val averageCurrentMa = (previousCurrentMa + currentCurrentMa) / 2.0
+                    integratedMah += averageCurrentMa * dtMs / 3_600_000.0
                 }
             }
             integratedMah.coerceAtLeast(0.0)
@@ -119,7 +128,9 @@ interface BatteryDao {
                 endLevel = consistentEndLevel,
                 totalMahDelivered = consistentTotalMah,
                 avgCurrentMa = consistentAvgCurrentMa,
-                maxTempCelsius = consistentMaxTemp
+                maxTempCelsius = consistentMaxTemp,
+                hasCurrentData = fresh.hasCurrentData || validCurrentSamples.isNotEmpty(),
+                hasTemperatureData = fresh.hasTemperatureData || validTemperatureSamples.isNotEmpty()
             )
         )
         return getSessionById(fresh.id)?.endTime != null
@@ -168,6 +179,26 @@ interface BatteryDao {
     ): SessionFinalizationStatus {
         val existing = getSessionById(sessionId) ?: return SessionFinalizationStatus.TARGET_MISSING
         if (existing.endTime != null) {
+            // Startup/recovery may encounter a row closed by an earlier fallback before its
+            // eligible health snapshot was recorded. Backfill once from the durable row.
+            val resolvedEndLevel = existing.endLevel ?: existing.startLevel
+            val estimate = BatteryHealthEstimator.estimate(
+                totalMahDelivered = existing.totalMahDelivered,
+                startLevel = existing.startLevel,
+                endLevel = resolvedEndLevel,
+                designCapacityMah = designCapacityMah
+            )
+            if (estimate != null && countHealthLogsForSession(sessionId) == 0) {
+                insertHealthLog(
+                    BatteryHealthEntity(
+                        timestamp = existing.endTime,
+                        sessionId = sessionId,
+                        estimatedCapacityMah = estimate.estimatedCapacityMah,
+                        designCapacityMah = designCapacityMah,
+                        healthPercentage = estimate.healthPercentage
+                    )
+                )
+            }
             return SessionFinalizationStatus.ALREADY_CLOSED
         }
 
@@ -182,21 +213,20 @@ interface BatteryDao {
 
         val finalizedRow = getSessionById(sessionId) ?: return SessionFinalizationStatus.TARGET_MISSING
         val resolvedEndLevel = finalizedRow.endLevel ?: finalizedRow.startLevel
-        val deltaPercent = resolvedEndLevel - finalizedRow.startLevel
-        if (deltaPercent >= 40 &&
-            finalizedRow.totalMahDelivered > 300.0 &&
-            designCapacityMah > 0 &&
-            countHealthLogsForSession(sessionId) == 0
-        ) {
-            val estimatedFullMah = ((finalizedRow.totalMahDelivered / deltaPercent.toDouble()) * 100.0).toInt()
-            val healthPct = ((estimatedFullMah.toFloat() / designCapacityMah.toFloat()) * 100f).coerceIn(10f, 110f)
+        val estimate = BatteryHealthEstimator.estimate(
+            totalMahDelivered = finalizedRow.totalMahDelivered,
+            startLevel = finalizedRow.startLevel,
+            endLevel = resolvedEndLevel,
+            designCapacityMah = designCapacityMah
+        )
+        if (estimate != null && countHealthLogsForSession(sessionId) == 0) {
             insertHealthLog(
                 BatteryHealthEntity(
                     timestamp = finalizedRow.endTime ?: endTime,
                     sessionId = sessionId,
-                    estimatedCapacityMah = estimatedFullMah,
+                    estimatedCapacityMah = estimate.estimatedCapacityMah,
                     designCapacityMah = designCapacityMah,
-                    healthPercentage = healthPct
+                    healthPercentage = estimate.healthPercentage
                 )
             )
         }
@@ -230,13 +260,16 @@ interface BatteryDao {
             .ifEmpty { null }
 
         val targetTotalMah = maxOf(currentSession.totalMahDelivered, totalMahDelivered)
-        val targetMaxTemp = maxOf(currentSession.maxTempCelsius, maxTempCelsius)
+        val hasTemperatureData = currentSession.hasTemperatureData || sample.isTemperatureAvailable
+        val targetMaxTemp = if (hasTemperatureData) maxOf(currentSession.maxTempCelsius, maxTempCelsius) else currentSession.maxTempCelsius
 
         updateSession(
             currentSession.copy(
                 totalMahDelivered = targetTotalMah,
-                avgCurrentMa = if (avgCurrentMa != 0) avgCurrentMa else currentSession.avgCurrentMa,
+                avgCurrentMa = if (sample.isCurrentAvailable || currentSession.hasCurrentData) avgCurrentMa else currentSession.avgCurrentMa,
                 maxTempCelsius = targetMaxTemp,
+                hasCurrentData = currentSession.hasCurrentData || sample.isCurrentAvailable,
+                hasTemperatureData = currentSession.hasTemperatureData || sample.isTemperatureAvailable,
                 isAnomaly = currentSession.isAnomaly || hasAnomaly,
                 anomalyReason = mergedReason,
                 deepSleepRatio = deepSleepRatio
@@ -273,7 +306,9 @@ interface BatteryDao {
         recoveredMaxTempCelsius: Float,
         recoveredHasAnomaly: Boolean,
         recoveredAnomalyReason: String?,
-        recoveredSample: BatterySampleEntity?
+        recoveredSample: BatterySampleEntity?,
+        recoveredHasCurrentData: Boolean = false,
+        recoveredHasTemperatureData: Boolean = false
     ): Boolean {
         val existing = getSessionById(sessionId) ?: return false
         if (recoveredSample != null && recoveredSample.sessionId == sessionId) {
@@ -295,13 +330,19 @@ interface BatteryDao {
             .ifEmpty { null }
 
         val targetTotalMah = maxOf(existing.totalMahDelivered, recoveredTotalMah)
-        val targetMaxTemp = maxOf(existing.maxTempCelsius, recoveredMaxTempCelsius)
+        val hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData ||
+            recoveredSample?.isTemperatureAvailable == true
+        val targetMaxTemp = if (hasTemperatureData) maxOf(existing.maxTempCelsius, recoveredMaxTempCelsius) else existing.maxTempCelsius
 
         updateSession(
             existing.copy(
                 totalMahDelivered = targetTotalMah,
-                avgCurrentMa = if (recoveredAvgCurrentMa != 0) recoveredAvgCurrentMa else existing.avgCurrentMa,
+                // Recovery snapshots can lag behind a newer Room flush. Never replace a
+                // durable non-zero average with an older checkpoint value.
+                avgCurrentMa = if (!existing.hasCurrentData && (recoveredHasCurrentData || recoveredSample?.isCurrentAvailable == true)) recoveredAvgCurrentMa else existing.avgCurrentMa,
                 maxTempCelsius = targetMaxTemp,
+                hasCurrentData = existing.hasCurrentData || recoveredHasCurrentData || recoveredSample?.isCurrentAvailable == true,
+                hasTemperatureData = existing.hasTemperatureData || recoveredHasTemperatureData || recoveredSample?.isTemperatureAvailable == true,
                 isAnomaly = mergedAnomaly,
                 anomalyReason = mergedReason
             )
@@ -339,6 +380,20 @@ interface BatteryDao {
         val targetSession = getSessionById(sessionId) ?: return SessionFinalizationStatus.TARGET_MISSING
 
         if (targetSession.endTime != null) {
+            // A concurrent/fallback path may have closed the session after the caller
+            // prepared an eligible health snapshot but before this transaction acquired
+            // the Room write lock. Preserve that snapshot idempotently on the closed path.
+            if (healthLog != null &&
+                healthLog.sessionId == sessionId &&
+                BatteryHealthEstimator.isValidStoredSnapshot(
+                    estimatedCapacityMah = healthLog.estimatedCapacityMah,
+                    designCapacityMah = healthLog.designCapacityMah,
+                    healthPercentage = healthLog.healthPercentage
+                ) &&
+                countHealthLogsForSession(sessionId) == 0
+            ) {
+                insertHealthLog(healthLog)
+            }
             return SessionFinalizationStatus.ALREADY_CLOSED
         }
 
@@ -362,15 +417,18 @@ interface BatteryDao {
         val resolvedEndTime = maxOf(endTime, targetSession.startTime)
         val resolvedEndLevel = if (endLevel in 0..100) endLevel else targetSession.startLevel
         val targetTotalMah = maxOf(targetSession.totalMahDelivered, totalMahDelivered)
-        val targetMaxTemp = maxOf(targetSession.maxTempCelsius, maxTempCelsius)
+        val hasTemperatureData = targetSession.hasTemperatureData || finalSample?.isTemperatureAvailable == true
+        val targetMaxTemp = if (hasTemperatureData) maxOf(targetSession.maxTempCelsius, maxTempCelsius) else targetSession.maxTempCelsius
 
         updateSession(
             targetSession.copy(
                 endTime = resolvedEndTime,
                 endLevel = resolvedEndLevel,
                 totalMahDelivered = targetTotalMah,
-                avgCurrentMa = if (avgCurrentMa != 0) avgCurrentMa else targetSession.avgCurrentMa,
+                avgCurrentMa = if (finalSample?.isCurrentAvailable == true || targetSession.hasCurrentData) avgCurrentMa else targetSession.avgCurrentMa,
                 maxTempCelsius = targetMaxTemp,
+                hasCurrentData = targetSession.hasCurrentData || finalSample?.isCurrentAvailable == true,
+                hasTemperatureData = targetSession.hasTemperatureData || finalSample?.isTemperatureAvailable == true,
                 isAnomaly = targetSession.isAnomaly || hasAnomaly,
                 anomalyReason = mergedReason,
                 deepSleepRatio = deepSleepRatio
@@ -379,6 +437,11 @@ interface BatteryDao {
 
         if (healthLog != null &&
             healthLog.sessionId == sessionId &&
+            BatteryHealthEstimator.isValidStoredSnapshot(
+                estimatedCapacityMah = healthLog.estimatedCapacityMah,
+                designCapacityMah = healthLog.designCapacityMah,
+                healthPercentage = healthLog.healthPercentage
+            ) &&
             countHealthLogsForSession(sessionId) == 0
         ) {
             insertHealthLog(healthLog)

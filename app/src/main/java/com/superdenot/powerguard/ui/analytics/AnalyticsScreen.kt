@@ -3,6 +3,7 @@ package com.superdenot.powerguard.ui.analytics
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,6 +15,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -61,28 +65,41 @@ import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
+import com.superdenot.powerguard.service.NotificationVisualRenderer
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
+    "$startLevel% -> $endLevel%"
+
+
 @Composable
 fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    initialSubTab: Int = 0,
+    visibleSubTabs: List<Int> = listOf(0, 1, 2)
 ) {
-    var selectedSubTab by remember { mutableIntStateOf(0) }
+    val availableTabs = visibleSubTabs.filter { it in 0..2 }.ifEmpty { listOf(0) }
+    var selectedSubTab by remember(availableTabs, initialSubTab) {
+        mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
+    }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas App")
+    val bottomScrollPadding = PaddingValues(
+        bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 12.dp)
     ) {
-        // Segmented tab bar simetris 1 baris (mencegah teks terpotong vertikal)
-        Row(
+        // Segmented tab bar hanya ditampilkan jika halaman memiliki beberapa sub-tab.
+        if (availableTabs.size > 1) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
@@ -93,7 +110,8 @@ fun AnalyticsScreen(
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            subTabs.forEachIndexed { index, title ->
+            availableTabs.forEach { index ->
+                val title = subTabs[index]
                 val isSelected = selectedSubTab == index
                 Surface(
                     onClick = {
@@ -127,21 +145,22 @@ fun AnalyticsScreen(
         }
 
         when (selectedSubTab) {
-            0 -> SessionsAndCurveTab(viewModel)
-            1 -> CyclesAndRollupTab(viewModel)
-            2 -> AppUsageTab(viewModel)
+            0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
+            1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
+            2 -> AppUsageTab(viewModel, bottomScrollPadding)
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
+private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val sessions by viewModel.sessions.collectAsState()
     val selectedSessionId by viewModel.selectedSessionId.collectAsState()
     val samples by viewModel.selectedSessionSamples.collectAsState()
     val liveState by viewModel.liveState.collectAsState()
-
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
+    var showCurve by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessions) {
         if (selectedSessionId == null && sessions.isNotEmpty()) {
@@ -151,22 +170,41 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
         }
     }
 
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        item {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "${sessions.size} sesi tersimpan • pilih sesi untuk detail",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            androidx.compose.material3.TextButton(onClick = { showCurve = !showCurve }) {
+                Text(if (showCurve) "Tutup Kurva" else "Lihat Kurva")
+            }
+        }
+        AnimatedVisibility(
+            visible = showCurve,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
             ChargingCurveChart(samples = samples)
         }
 
-        item {
-            Text(
-                text = "Riwayat Sesi Pengisian (Ketuk untuk detail & grafik)",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
+        LazyColumn(
+            contentPadding = bottomScrollPadding,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
         if (sessions.isEmpty()) {
             item {
                 Text(
@@ -176,26 +214,134 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
                 )
             }
         } else {
+            stickyHeader {
+                SessionTableHeader()
+            }
             items(sessions, key = { it.id }) { session ->
-                val isCurrentActive = session.endTime == null
-                val effectiveEndLevel = session.endLevel ?: if (isCurrentActive) liveState.level else session.startLevel
-                val effectiveEndTime = session.endTime ?: System.currentTimeMillis()
+                val isActive = session.endTime == null
+                val endLevel = session.endLevel ?: if (isActive) liveState.level else session.startLevel
+                val endTime = session.endTime ?: System.currentTimeMillis()
+                val duration = formatDurationIndo(((endTime - session.startTime) / 1000L).coerceAtLeast(0L))
+                val delta = endLevel - session.startLevel
+                val isExpanded = expandedSessionId == session.id
+                val isSelected = selectedSessionId == session.id
 
-                SessionHistoryCard(
-                    session = session,
-                    effectiveEndLevel = effectiveEndLevel,
-                    effectiveEndTime = effectiveEndTime,
-                    isSelected = session.id == selectedSessionId,
-                    isExpanded = session.id == expandedSessionId,
-                    onClick = {
-                        viewModel.selectSessionForCurve(session.id)
-                        expandedSessionId = if (expandedSessionId == session.id) null else session.id
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (isSelected) CyanFastCharge.copy(alpha = 0.10f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(10.dp)
+                        )
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            viewModel.selectSessionForCurve(session.id)
+                            expandedSessionId = if (isExpanded) null else session.id
+                        }
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val dateTime = remember(session.startTime) {
+                            DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
+                                .withZone(ZoneId.systemDefault())
+                                .format(Instant.ofEpochMilli(session.startTime))
+                        }
+                        Text(
+                            text = dateTime + if (isActive) " • Aktif" else "",
+                            modifier = Modifier.weight(0.36f),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = formatSessionLevelRange(session.startLevel, endLevel),
+                            modifier = Modifier.weight(0.18f),
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = String.format(Locale.US, "%.0f", session.totalMahDelivered),
+                            modifier = Modifier.weight(0.20f),
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.End,
+                            color = EmeraldCharge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = duration,
+                            modifier = Modifier.weight(0.26f),
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.End,
+                            maxLines = 2
+                        )
                     }
-                )
+
+                    if (isExpanded) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 9.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SessionDetailMiniBox(
+                                label = "Arus Rata-rata",
+                                value = "${session.avgCurrentMa} mA",
+                                subValue = "Suhu maks. ${String.format(Locale.US, "%.1f", session.maxTempCelsius)}°C",
+                                accent = EmeraldCharge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            SessionDetailMiniBox(
+                                label = "Perubahan Baterai",
+                                value = (if (delta >= 0) "+" else "") + "${delta}%",
+                                subValue = "Daya masuk ${String.format(Locale.US, "%.1f", session.totalMahDelivered)} mAh",
+                                accent = if (delta >= 0) EmeraldCharge else CrimsonAnomaly,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (session.isAnomaly) {
+                            Text(
+                                text = NotificationVisualRenderer.formatAnomalyReason(
+                                    session.anomalyReason,
+                                    session.maxTempCelsius.takeIf { it > 0f }
+                                ),
+                                color = CrimsonAnomaly,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                        Text(
+                            text = "Ketuk sesi lain untuk memuat kurva sesi tersebut",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+                }
             }
         }
 
         item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun SessionTableHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("Waktu", modifier = Modifier.weight(0.36f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Text("Level", modifier = Modifier.weight(0.18f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text("mAh", modifier = Modifier.weight(0.20f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+        Text("Durasi", modifier = Modifier.weight(0.26f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
     }
 }
 
@@ -232,7 +378,8 @@ private fun SessionHistoryCard(
         deltaPct < 0 -> "$deltaPct%"
         else -> "0%"
     }
-    val endPctLabel = if (session.endLevel != null) "${session.endLevel}%" else "$effectiveEndLevel% (Aktif)"
+    val endPctLabel = formatSessionLevelRange(session.startLevel, effectiveEndLevel) +
+        if (session.endLevel == null) " (Aktif)" else ""
 
     Card(
         colors = CardDefaults.cardColors(
@@ -285,9 +432,8 @@ private fun SessionHistoryCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Gunakan Unicode → agar panah tampil rapi tanpa rusak karakter
             Text(
-                text = "Level: ${session.startLevel}% → $endPctLabel ($deltaPctStr)  |  Terisi: ${String.format(Locale.US, "%+.1f mAh", session.totalMahDelivered)}",
+                text = "Level: $endPctLabel ($deltaPctStr)  |  Terisi: ${String.format(Locale.US, "%+.1f mAh", session.totalMahDelivered)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (session.totalMahDelivered >= 0) EmeraldCharge else CrimsonAnomaly
@@ -308,7 +454,7 @@ private fun SessionHistoryCard(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 10.dp)) {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
@@ -324,14 +470,14 @@ private fun SessionHistoryCard(
                         )
                         SessionDetailMiniBox(
                             label = "Persentase Terisi",
-                            value = "$deltaPctStr (${session.startLevel}% → $effectiveEndLevel%)",
+                            value = "$deltaPctStr (${formatSessionLevelRange(session.startLevel, effectiveEndLevel)})",
                             subValue = String.format(Locale.US, "Kapasitas: %+.1f mAh", session.totalMahDelivered),
                             accent = if (deltaPct > 0 || session.totalMahDelivered > 0) EmeraldCharge else CrimsonAnomaly,
                             modifier = Modifier.weight(1f)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -359,7 +505,10 @@ private fun SessionHistoryCard(
             session.anomalyReason?.let { reason ->
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Diagnosa: $reason",
+                    text = NotificationVisualRenderer.formatAnomalyReason(
+                        reason,
+                        session.maxTempCelsius.takeIf { it > 0f }
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = CrimsonAnomaly
                 )
@@ -377,7 +526,7 @@ private fun SessionDetailMiniBox(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = Color.Black.copy(alpha = 0.22f),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(10.dp),
         modifier = modifier
     ) {
@@ -415,10 +564,11 @@ private fun formatDurationIndo(totalSeconds: Long): String {
 }
 
 @Composable
-private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel) {
+private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val rollups by viewModel.dailyRollups.collectAsState()
 
     LazyColumn(
+        contentPadding = bottomScrollPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -493,12 +643,13 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel) {
 }
 
 @Composable
-private fun AppUsageTab(viewModel: PowerGuardViewModel) {
+private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
     val apps by viewModel.appUsageList.collectAsState()
 
     LazyColumn(
+        contentPadding = bottomScrollPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -556,12 +707,21 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val appDisplayName = remember(app.packageName) {
+                            runCatching {
+                                val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
+                                context.packageManager.getApplicationLabel(applicationInfo).toString()
+                                    .takeIf { it.isNotBlank() } ?: app.packageName
+                            }.getOrDefault(app.packageName)
+                        }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(app.appName, fontWeight = FontWeight.Bold)
+                            Text(appDisplayName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 app.packageName,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Text(

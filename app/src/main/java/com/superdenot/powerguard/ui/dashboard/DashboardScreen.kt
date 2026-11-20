@@ -45,6 +45,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,10 +61,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import android.os.SystemClock
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.superdenot.powerguard.BuildConfig
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
@@ -85,10 +88,21 @@ fun DashboardScreen(
     val serviceState by viewModel.liveState.collectAsState()
     val fallbackState by viewModel.fallbackState.collectAsState()
     val isServiceRunning by viewModel.isServiceRunning.collectAsState()
-    val activeState = if (isServiceRunning) serviceState else fallbackState
+    val serviceUpdatedAt by viewModel.lastSensorUpdateElapsedRealtime.collectAsState()
+    val fallbackUpdatedAt by viewModel.fallbackUpdatedAtElapsedRealtime.collectAsState()
+    val activeState = selectDashboardLiveState(
+        isServiceRunning = isServiceRunning,
+        serviceState = serviceState,
+        fallbackState = fallbackState,
+        serviceUpdatedAtElapsedRealtime = serviceUpdatedAt,
+        fallbackUpdatedAtElapsedRealtime = fallbackUpdatedAt,
+        nowElapsedRealtime = SystemClock.elapsedRealtime()
+    )
 
     val latestHealth by viewModel.latestHealth.collectAsState()
-    val designCapacity by viewModel.designCapacityMah.collectAsState()
+    val designCapacity by viewModel.designCapacitySetting.collectAsState()
+    val batteryMonitoringEnabled by viewModel.batteryMonitoringEnabled.collectAsState()
+    val autoMonitoringError by viewModel.autoMonitoringError.collectAsState()
     val isBatteryOptIgnored by viewModel.isBatteryOptimizationIgnored.collectAsState()
     val hasUsagePerm by viewModel.hasUsagePermission.collectAsState()
 
@@ -178,16 +192,16 @@ fun DashboardScreen(
                             }
 
                             Surface(
-                                color = if (activeState.isFastCharging) CyanFastCharge.copy(alpha = 0.2f)
+                                color = if (activeState.isCharging) EmeraldCharge.copy(alpha = 0.16f)
                                 else Color.White.copy(alpha = 0.08f),
                                 shape = RoundedCornerShape(50)
                             ) {
                                 Text(
-                                    text = if (activeState.isFastCharging) "⚡ FAST CHARGING (${activeState.chargeSource})"
-                                    else activeState.chargeSource.uppercase(),
+                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • PROTOCOL ${activeState.chargingProtocol}"
+                                    else "DISCHARGING",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (activeState.isFastCharging) CyanFastCharge else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (activeState.isCharging) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
@@ -328,6 +342,11 @@ fun DashboardScreen(
                                     color = EmeraldCharge,
                                     fontWeight = FontWeight.SemiBold
                                 )
+                                Text(
+                                    text = "Acuan desain saat dicatat: ${latestHealth!!.designCapacityMah} mAh",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             } else {
                                 Text(
                                     text = "Estimasi Real: Belum dikalibrasi (cas >= 40% dalam 1 sesi)",
@@ -336,7 +355,12 @@ fun DashboardScreen(
                                 )
                             }
                             Text(
-                                text = "Kapasitas Desain Pabrik: $designCapacity mAh",
+                                text = "Kapasitas Desain: ${designCapacity.capacityMah?.let { "$it mAh" } ?: "Tidak tersedia"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (designCapacity.isManualOverride) "Sumber: Manual Override" else if (designCapacity.capacityMah != null) "Sumber: Automatic" else "Sumber: Automatic (tidak tersedia)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -348,6 +372,40 @@ fun DashboardScreen(
                                 contentDescription = "Ubah Kapasitas Desain",
                                 tint = CyanFastCharge
                             )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("Battery Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Kontrol utama tersedia di Settings. Layanan hanya berjalan saat Battery Monitoring ON dan charger tersambung.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = when {
+                                isServiceRunning -> "Status: AKTIF — layanan sedang berjalan"
+                                !batteryMonitoringEnabled -> "Status: OFF"
+                                !activeState.isCharging -> "Status: SIAGA — menunggu charger"
+                                !isBatteryOptIgnored -> "Status: OFF — izin latar belakang diperlukan"
+                                else -> "Status: OFF — menunggu aktivasi sistem"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isServiceRunning) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        autoMonitoringError?.let { error ->
+                            Text(error, style = MaterialTheme.typography.bodySmall, color = CrimsonAnomaly)
                         }
                     }
                 }
@@ -387,13 +445,13 @@ fun DashboardScreen(
                                     .fillMaxWidth()
                                     .height(46.dp)
                             ) {
-                                Text("Izinkan Abaikan Optimasi Baterai (Wajib)")
+                                Text("Izinkan Abaikan Optimasi Baterai untuk Auto-start")
                             }
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = EmeraldCharge, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Bebas pembatasan latar belakang Android", style = MaterialTheme.typography.bodySmall)
+                                Text("Pengecualian optimasi baterai aktif", style = MaterialTheme.typography.bodySmall)
                             }
                         }
 
@@ -411,38 +469,6 @@ fun DashboardScreen(
                             }
                         }
 
-                        Button(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.startManualMonitorService()
-                                coroutineScope.launch {
-                                    snackbarHostState.currentSnackbarData?.dismiss()
-                                    snackbarHostState.showSnackbar(
-                                        message = if (isServiceRunning) {
-                                            "✓ Monitor Service berjalan aktif di latar belakang."
-                                        } else {
-                                            "Memulai layanan pemantauan sensor daya..."
-                                        }
-                                    )
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldCharge),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isServiceRunning) Icons.Rounded.CheckCircle else Icons.Rounded.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isServiceRunning) "Monitor Service Aktif" else "Aktifkan Monitor Service",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
                 }
             }
@@ -503,14 +529,14 @@ fun DashboardScreen(
     }
 
     if (showCapacityDialog) {
-        var inputText by remember { mutableStateOf(designCapacity.toString()) }
+        var inputText by remember { mutableStateOf(designCapacity.capacityMah?.toString().orEmpty()) }
         AlertDialog(
             onDismissRequest = { showCapacityDialog = false },
-            title = { Text("Kalibrasi Kapasitas Pabrik (mAh)") },
+            title = { Text("Kapasitas Desain Baterai") },
             text = {
                 Column {
                     Text(
-                        "Masukkan kapasitas baterai resmi spesifikasi ponsel Anda (misal: 5000) untuk akurasi persentase kesehatan baterai.",
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual akan dipakai sampai Anda kembali ke Automatic.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -524,16 +550,27 @@ fun DashboardScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
-                    showCapacityDialog = false
-                }) {
+                TextButton(
+                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
+                    onClick = {
+                        inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
+                        showCapacityDialog = false
+                    }
+                ) {
                     Text("Simpan")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCapacityDialog = false }) {
-                    Text("Batal")
+                Row {
+                    TextButton(onClick = {
+                        viewModel.useAutomaticDesignCapacity()
+                        showCapacityDialog = false
+                    }) {
+                        Text("Gunakan Automatic")
+                    }
+                    TextButton(onClick = { showCapacityDialog = false }) {
+                        Text("Batal")
+                    }
                 }
             }
         )
@@ -562,7 +599,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Superd Power Guard — Info",
+                    text = "SUPERD POWER GUARD — Info",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -577,44 +614,44 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 InfoSectionItem(
-                    title = "1. About SUPERD POWER GUARD",
-                    content = "• Nama Aplikasi: Superd Power Guard\n• Deskripsi & Fungsi: Aplikasi diagnostik baterai canggih untuk pemantauan arus (mA), tegangan (mV), daya (Watt), suhu (°C), dan kesehatan baterai secara real-time.\n• Developer: superdenot\n• Versi: v1.0.0 (Build 2026)"
+                    title = "1. Tentang Aplikasi",
+                    content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.superdguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
                 )
                 InfoSectionItem(
-                    title = "2. License & Copyright",
-                    content = "• Lisensi Utama: MIT License / Open Source Proprietary\n• Informasi Hak Cipta: © 2026 superdenot. Seluruh hak cipta dilindungi undang-undang.\n• Ketentuan Penggunaan: Aplikasi ini disediakan untuk penggunaan personal dan diagnostik perangkat."
+                    title = "2. Fitur Utama",
+                    content = "• Pemantauan level, arus, tegangan, daya, dan suhu baterai.\n• Deteksi sumber daya yang dilaporkan Android (AC, USB, atau wireless).\n• Analisis indikasi anomali pengisian berdasarkan heuristik.\n• Pemantauan otomatis saat charger tersambung dan finalisasi sesi saat dilepas.\n• Riwayat sesi dan ringkasan data baterai yang tersimpan di perangkat."
                 )
                 InfoSectionItem(
-                    title = "3. Open Source Licenses",
-                    content = "• Jetpack Compose & AndroidX Libraries (Google / Apache 2.0)\n• Room Database & WorkManager (Google / Apache 2.0)\n• Kotlin Coroutines & Kotlinx Serialization (JetBrains / Apache 2.0)\n• DataStore Preferences (Google / Apache 2.0)"
+                    title = "3. Lisensi Aplikasi & Hak Cipta",
+                    content = "© 2026 superdenot. Hak cipta atas aplikasi dan kode SUPERD POWER GUARD tetap berada pada pemegang hak cipta. Repository saat ini tidak menyertakan berkas LICENSE yang memberikan lisensi open-source untuk kode aplikasi. Artinya, kode aplikasi tidak otomatis boleh disalin, dimodifikasi, atau didistribusikan ulang. Lisensi komponen pihak ketiga dijelaskan pada bagian berikutnya dan tidak mengubah status lisensi kode aplikasi."
                 )
                 InfoSectionItem(
-                    title = "4. Privacy Policy",
-                    content = "• Informasi Data: Status baterai lokal, sensor daya hardware, dan statistik penggunaan aplikasi (Usage Stats) 24 jam terakhir.\n• Penyimpanan & Penggunaan: Seluruh data sesi dan riwayat disimpan secara lokal di SQLite Room Database perangkat Anda tanpa pengiriman ke server eksternal.\n• Izin Android: Foreground Service, Package Usage Stats, Ignore Battery Optimizations."
+                    title = "4. Open-Source & Third-Party Notices",
+                    content = "Dependency yang dideklarasikan langsung pada konfigurasi build mencakup AndroidX Core, Activity, Lifecycle, Jetpack Compose, Material 3, Room, WorkManager, DataStore, Kotlin Coroutines, JUnit 4, Robolectric, dan AndroidX Test.\n\nLisensi komponen tersebut mengikuti proyek masing-masing; antara lain Apache License 2.0 untuk banyak komponen AndroidX, Kotlin, Coroutines, Room, WorkManager, DataStore, dan Robolectric; serta Eclipse Public License 1.0 untuk JUnit 4. Daftar ini adalah ringkasan dependency langsung, bukan inventaris lengkap seluruh dependency transitif. Setiap komponen tetap dimiliki oleh pengembang/pemegang hak cipta masing-masing. Distribusi aplikasi wajib tetap menyertakan pemberitahuan dan teks lisensi yang diwajibkan oleh dependency yang benar-benar ikut dalam paket."
                 )
                 InfoSectionItem(
-                    title = "5. Terms of Use",
-                    content = "• Pengguna bertanggung jawab penuh atas penggunaan aplikasi pada perangkat masing-masing.\n• Dilarang melakukan dekompilasi, reverse engineering, atau modifikasi tanpa izin resmi dari developer."
+                    title = "5. Privasi & Data",
+                    content = "Data pemantauan baterai, sampel, dan riwayat sesi dikelola secara lokal menggunakan Room Database. Preferensi aplikasi disimpan menggunakan DataStore. Fitur statistik penggunaan aplikasi memerlukan akses Usage Access dari pengaturan Android. Aplikasi tidak menyediakan akun atau fitur sinkronisasi cloud, dan AndroidManifest saat ini tidak mendeklarasikan izin INTERNET. Namun, Android dapat memiliki mekanisme pencadangan perangkat; manifest mengaktifkan allowBackup, sehingga perilaku pencadangan data aplikasi juga bergantung pada versi Android dan pengaturan pencadangan perangkat. Jangan memasukkan informasi pribadi ke aplikasi jika perangkat digunakan bersama."
                 )
                 InfoSectionItem(
-                    title = "6. Disclaimer",
-                    content = "• Hasil pengukuran arus, tegangan, dan estimasi kesehatan baterai (mAh) memiliki keterbatasan akurasi bergantung pada pembacaan HAL (Hardware Abstraction Layer) kernel masing-masing ponsel.\n• Aplikasi ini BUKAN alat diagnosis kerusakan perangkat keras resmi."
+                    title = "6. Izin Android",
+                    content = "Manifest mendeklarasikan izin untuk foreground service khusus, notifikasi, menerima siaran saat perangkat selesai boot, meminta pengecualian optimasi baterai, serta PACKAGE_USAGE_STATS untuk statistik penggunaan aplikasi. Status charger dan boot diproses melalui BroadcastReceiver yang terdaftar di manifest. Akses Usage Stats dan pengecualian optimasi baterai memerlukan persetujuan/tindakan pengguna melalui pengaturan Android. Notifikasi juga mengikuti izin dan kebijakan versi Android yang digunakan."
                 )
                 InfoSectionItem(
-                    title = "7. Battery Measurement Notes",
-                    content = "• Arus (mA): Menunjukkan arus masuk (positif saat charging) atau arus keluar (negatif saat discharging).\n• Daya & Tegangan: Dihitung langsung dari sensor baterai sistem.\n• Variasi Perangkat: Hasil antarperangkat dapat bervariasi bergantung pada dukungan chip power management (PMIC)."
+                    title = "7. Catatan Pengukuran",
+                    content = "• Level baterai, arus, tegangan, suhu, dan status pengisian dibaca dari API/sensor yang disediakan Android dan perangkat; nilai yang tersedia serta akurasinya dapat berbeda antar model dan kondisi.\n• Nilai daya merupakan hasil perhitungan dari data tegangan dan arus yang dilaporkan perangkat, bukan pengukuran laboratorium independen.\n• Protokol pengisian hanya ditampilkan jika benar-benar diekspos oleh sistem atau perangkat. Arus, tegangan, dan daya baterai tidak cukup untuk mengidentifikasi protokol adaptor.\n• Peringatan anomali adalah indikasi berbasis aturan/heuristik aplikasi, bukan diagnosis kerusakan baterai atau perangkat."
                 )
                 InfoSectionItem(
-                    title = "8. Security Notes",
-                    content = "• Keamanan & Pemrosesan: Superd Power Guard tidak mengumpulkan atau mengirimkan data pribadi pengguna ke server eksternal.\n• Transparansi Izin: Seluruh izin aplikasi digunakan semata-mata untuk fungsi pemantauan daya dan diagnostik."
+                    title = "8. Batasan & Disclaimer",
+                    content = "SUPERD POWER GUARD disediakan sebagai alat pemantauan dan informasi, bukan alat ukur laboratorium, layanan sertifikasi, atau alat diagnosis resmi produsen. Hasil dapat dipengaruhi sensor, fuel gauge, kernel, implementasi vendor, dan kebijakan Android. Aplikasi ini tidak menjamin dapat memutus aliran charger atau membatasi pengisian pada semua perangkat. Jangan menggunakan hasil aplikasi sebagai satu-satunya dasar untuk menyimpulkan kondisi baterai atau menentukan tindakan perbaikan."
                 )
                 InfoSectionItem(
-                    title = "9. Version & Build",
-                    content = "• Version Name: 1.0.0\n• Build Number: 20261112\n• Konfigurasi: CompileSDK 35, MinSDK 26 (Android 8.0+)\n• Informasi versi diambil otomatis dari konfigurasi build aplikasi."
+                    title = "9. Teknologi & Credits",
+                    content = "SUPERD POWER GUARD dikembangkan menggunakan Kotlin dan Android Jetpack, termasuk Jetpack Compose, Material 3, AndroidX, Kotlin Coroutines, Room, DataStore, serta WorkManager. Penghargaan diberikan kepada para pengembang dan komunitas yang memelihara proyek-proyek tersebut. Nama, merek dagang, hak cipta, dan lisensi setiap teknologi tetap menjadi milik pemilik masing-masing. Tidak ada afiliasi resmi dengan Google atau proyek pihak ketiga yang dinyatakan."
                 )
                 InfoSectionItem(
-                    title = "10. Credits & Acknowledgements",
-                    content = "• Developer Aplikasi: superdenot\n• Teknologi & Framework: Android Jetpack Compose & Material 3\n• Kontributor & Desain: Tim Komunitas RT 01 / Dapur Ken'Chan Ecosystem\n• Ucapan Terima Kasih: Kepada seluruh pengguna dan kontributor open-source yang mendukung pengembangan."
+                    title = "10. Status Versi",
+                    content = "Versi dan version code diambil langsung dari konfigurasi build aplikasi: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}). Aplikasi masih dalam tahap pengembangan dan validasi lintas perangkat. Keberhasilan build dan unit test tidak berarti seluruh fitur telah diuji atau dijamin bekerja pada semua model ponsel."
                 )
             }
         },
@@ -623,7 +660,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)
             ) {
-                Text("Tutup", fontWeight = FontWeight.Bold, color = Color.black)
+                Text("Tutup", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
     )

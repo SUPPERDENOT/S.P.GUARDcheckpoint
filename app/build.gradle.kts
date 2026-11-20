@@ -5,20 +5,40 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.superdenot.powerguard"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.superdenot.powerguard"
+        applicationId = "com.superdenot.superdguard"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
