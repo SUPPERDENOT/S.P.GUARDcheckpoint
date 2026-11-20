@@ -2088,11 +2088,7 @@ class BatteryMonitorService : Service() {
 
                         val tickCounter = if (activeSessionId != null) sessionSeconds else manualTicks
                         if (tickCounter % 3L == 0L) {
-                            val sign = if (updatedState.currentMa > 0) "+" else ""
-                            val mahText = if (updatedState.isCharging) {
-                                String.format(Locale.US, " | Terisi: %+.1f mAh", accumulatedMah)
-                            } else ""
-                            notificationSummaryToPost = "$sign${updatedState.currentMa} mA (${String.format(Locale.US, "%.1f", updatedState.powerWatt)}W) • ${updatedState.tempCelsius}°C$mahText"
+                            notificationSummaryToPost = NotificationVisualRenderer.formatMonitorContentText(updatedState)
                         }
                     }
                 }
@@ -3732,7 +3728,10 @@ class BatteryMonitorService : Service() {
         val builder = NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle(NotificationVisualRenderer.resolveMonitorContentTitle(state))
             .setContentText(contentText)
-            .setSubText(visualSpec.subText)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(NotificationVisualRenderer.formatMonitorExpandedText(state))
+            )
             .setColor(visualSpec.accentColor)
             .setLargeIcon(largeIcon)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)

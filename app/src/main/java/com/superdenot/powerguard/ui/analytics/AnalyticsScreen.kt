@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -84,6 +87,9 @@ fun AnalyticsScreen(
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
     }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas App")
+    val bottomScrollPadding = PaddingValues(
+        bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    )
 
     Column(
         modifier = Modifier
@@ -138,16 +144,16 @@ fun AnalyticsScreen(
         }
 
         when (selectedSubTab) {
-            0 -> SessionsAndCurveTab(viewModel)
-            1 -> CyclesAndRollupTab(viewModel)
-            2 -> AppUsageTab(viewModel)
+            0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
+            1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
+            2 -> AppUsageTab(viewModel, bottomScrollPadding)
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
+private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val sessions by viewModel.sessions.collectAsState()
     val selectedSessionId by viewModel.selectedSessionId.collectAsState()
     val samples by viewModel.selectedSessionSamples.collectAsState()
@@ -192,6 +198,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
         }
 
         LazyColumn(
+            contentPadding = bottomScrollPadding,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -551,10 +558,11 @@ private fun formatDurationIndo(totalSeconds: Long): String {
 }
 
 @Composable
-private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel) {
+private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val rollups by viewModel.dailyRollups.collectAsState()
 
     LazyColumn(
+        contentPadding = bottomScrollPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -629,12 +637,13 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel) {
 }
 
 @Composable
-private fun AppUsageTab(viewModel: PowerGuardViewModel) {
+private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
     val apps by viewModel.appUsageList.collectAsState()
 
     LazyColumn(
+        contentPadding = bottomScrollPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -692,12 +701,21 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val appDisplayName = remember(app.packageName) {
+                            runCatching {
+                                val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
+                                context.packageManager.getApplicationLabel(applicationInfo).toString()
+                                    .takeIf { it.isNotBlank() } ?: app.packageName
+                            }.getOrDefault(app.packageName)
+                        }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(app.appName, fontWeight = FontWeight.Bold)
+                            Text(appDisplayName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 app.packageName,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Text(

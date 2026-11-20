@@ -79,6 +79,39 @@ internal object NotificationVisualRenderer {
         return "Mengisi Daya • $level"
     }
 
+    fun formatMonitorContentText(state: LiveBatteryState): String {
+        val current = if (state.isCurrentAvailable) {
+            "${if (state.currentMa > 0) "+" else ""}${state.currentMa} mA"
+        } else "Tidak tersedia"
+        val power = if (state.isPowerAvailable) {
+            String.format(Locale.US, "%.1fW", state.powerWatt)
+        } else "Tidak tersedia"
+        val temperature = if (state.isTemperatureAvailable) {
+            String.format(Locale.US, "%.1f°C", state.tempCelsius)
+        } else "Tidak tersedia"
+        val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
+        return "$current ($power) • $temperature • $netCharge"
+    }
+
+    fun formatMonitorExpandedText(state: LiveBatteryState): String {
+        val current = if (state.isCurrentAvailable) {
+            "${if (state.currentMa > 0) "+" else ""}${state.currentMa} mA"
+        } else "Tidak tersedia"
+        val power = if (state.isPowerAvailable) {
+            String.format(Locale.US, "%.1f W", state.powerWatt)
+        } else "Tidak tersedia"
+        val temperature = if (state.isTemperatureAvailable) {
+            String.format(Locale.US, "%.1f°C", state.tempCelsius)
+        } else "Tidak tersedia"
+        val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
+        return listOf(
+            "Arus baterai: $current",
+            "Daya baterai: $power",
+            "Suhu baterai: $temperature",
+            "Muatan bersih: $netCharge"
+        ).joinToString("\n")
+    }
+
     fun resolveMonitorVisualSpec(
         state: LiveBatteryState,
         isRecoveryHold: Boolean = false

@@ -39,7 +39,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.ui.*
-import kotlinx.coroutines.launch
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 
@@ -72,7 +71,9 @@ class MainActivity : ComponentActivity() {
                 }
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     vm.startMonitorIfCharging()
-                    vm.refreshPermissionsAndUsage()
+                    if (!showPermissionSetup && currentTab != 0) {
+                        vm.refreshPermissionsAndUsage()
+                    }
                     notificationGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
                 }
@@ -153,7 +154,7 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { padding ->
                     when (currentTab) {
-                        0 -> SuperdDashboardScreen(vm, padding)
+                        0 -> SuperdDashboardScreen(vm, padding, isActive = !showPermissionSetup)
                         1 -> ChargingScreen(vm, padding)
                         2 -> InsightsScreen(vm, padding)
                         3 -> HistoryScreen(vm, padding)
@@ -179,15 +180,7 @@ class MainActivity : ComponentActivity() {
                         onOpenUsageAccess = {
                             runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
                         },
-                        onRefresh = {
-                            vm.refreshPermissionsAndUsage()
-                            notificationGranted = isNotificationPermissionGranted(context)
-                            formatSystemReadinessSnackbarSummary(
-                                notificationGranted = notificationGranted,
-                                batteryOptimizationIgnored = vm.isBatteryOptimizationIgnored.value,
-                                usageAccessGranted = vm.hasUsagePermission.value
-                            )
-                        },
+                        onResumeRefresh = { vm.refreshPermissionsAndUsage() },
                         onContinue = {
                             setupPrefs.edit().putBoolean("completed", true).apply()
                             showPermissionSetup = false
@@ -208,11 +201,12 @@ private fun InitialPermissionSetup(
     onRequestNotifications: () -> Unit,
     onOpenBatteryOptimization: () -> Unit,
     onOpenUsageAccess: () -> Unit,
-    onRefresh: () -> String,
+    onResumeRefresh: () -> Unit,
     onContinue: () -> Unit
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        onResumeRefresh()
+    }
 
     Dialog(onDismissRequest = onContinue) {
         Surface(
@@ -221,30 +215,18 @@ private fun InitialPermissionSetup(
             tonalElevation = 8.dp,
             modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp)
         ) {
-            Box(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
-                Column(
-                    Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 72.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
+            Column(
+                Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text("PERSIAPAN AWAL", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Text("Siapkan Superd Power Guard", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text("Atur akses yang mendukung notifikasi pemantauan, auto-start saat charger tersambung, dan analisis penggunaan. Anda tetap bisa melanjutkan tanpa memberikan akses opsional.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SetupPermissionRow("Notifikasi pemantauan", "Disarankan agar kartu layanan terlihat di panel notifikasi.", notificationGranted, "IZINKAN", onRequestNotifications)
                 SetupPermissionRow("Optimasi baterai", "Pengecualian membantu Android mengizinkan auto-start saat charger tersambung.", batteryOptimizationIgnored, "ATUR", onOpenBatteryOptimization)
                 SetupPermissionRow("Akses pengguna", "Opsional — diperlukan untuk analisis penggunaan aplikasi.", usageAccessGranted, "ATUR", onOpenUsageAccess)
-                OutlinedButton(
-                    onClick = {
-                        coroutineScope.launch { snackbarHostState.showSnackbar(onRefresh()) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Periksa ulang status") }
                 Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text("Lanjut ke aplikasi") }
                 Text("Akses opsional tidak akan dipaksakan. Anda dapat mengubahnya kapan saja melalui Settings.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                }
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 8.dp, vertical = 8.dp)
-                )
             }
         }
     }
@@ -259,7 +241,7 @@ private fun SetupPermissionRow(
     onAction: () -> Unit
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(14.dp)) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Text(if (granted) "PASS" else "BELUM", color = if (granted) Color(0xFF22C55E) else Color(0xFFEF4444), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)

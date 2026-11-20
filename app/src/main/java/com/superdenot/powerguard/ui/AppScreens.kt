@@ -29,11 +29,16 @@ import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
 import kotlinx.coroutines.launch
 
 @Composable
-fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
+fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (isActive) vm.refreshPermissionsAndUsage()
+    }
     val service by vm.liveState.collectAsState()
     val fallback by vm.fallbackState.collectAsState()
     val running by vm.isServiceRunning.collectAsState()
@@ -45,14 +50,14 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
 
     Box(Modifier.fillMaxSize().padding(padding)) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 18.dp).padding(bottom = 72.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        contentPadding = PaddingValues(
+            bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Column(Modifier.padding(top = 8.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -153,31 +158,11 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     )
                     ReadinessLine("Optimasi baterai", if (batteryOpt) "PASS" else "BELUM", if (batteryOpt) EmeraldCharge else CrimsonAnomaly)
                     ReadinessLine("Akses pengguna", if (usage) "PASS" else "BELUM", if (usage) EmeraldCharge else CrimsonAnomaly)
-                    OutlinedButton(
-                        onClick = {
-                            vm.refreshPermissionsAndUsage()
-                            val message = formatSystemReadinessSnackbarSummary(
-                                notificationGranted = isNotificationPermissionGranted(context),
-                                batteryOptimizationIgnored = vm.isBatteryOptimizationIgnored.value,
-                                usageAccessGranted = vm.hasUsagePermission.value
-                            )
-                            coroutineScope.launch { snackbarHostState.showSnackbar(message) }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Periksa ulang status")
-                    }
                 }
             }
         }
         item { Spacer(Modifier.height(12.dp)) }
     }
-    SnackbarHost(
-        hostState = snackbarHostState,
-        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 8.dp)
-    )
     }
 }
 
@@ -191,14 +176,22 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
 
     LazyColumn(
-        Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
+        contentPadding = PaddingValues(
+            bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("DIAGNOSTIK PENGISIAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-                Text("Analisis pengisian baterai", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Pantau sumber daya, pembacaan baterai, dan perkembangan sesi.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Analisis Pengisian",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
+                )
             }
         }
         item {
@@ -207,7 +200,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 shape = RoundedCornerShape(18.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("LEVEL BATERAI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
@@ -217,13 +210,25 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     DiagnosticLine("Sumber daya", if (state.isCharging) state.chargeSource else "Tidak terhubung")
-                    DiagnosticLine("Protokol", state.chargingProtocol)
+                    DiagnosticLine(
+                        "Protokol",
+                        state.chargingProtocol,
+                        valueWeight = 1.6f,
+                        valueMaxLines = 1,
+                        valueSoftWrap = false
+                    )
                 }
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeading("PEMBACAAN BATERAI", "Nilai pada sisi baterai, bukan keluaran adaptor")
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    "PEMBACAAN BATERAI • SISI BATERAI",
+                    color = CyanFastCharge,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
                     MiniMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
@@ -236,8 +241,14 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionHeading("RINGKASAN SESI", "Perubahan yang tercatat sejak pengisian dimulai")
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "RINGKASAN SESI",
+                        color = CyanFastCharge,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
                     DiagnosticLine("Muatan bersih tercatat", String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered))
                     DiagnosticLine("Durasi sesi", "${state.sessionDurationSec / 60} menit")
                     DiagnosticLine("CPU deep sleep", "${(state.deepSleepRatio * 100).toInt()}%")
@@ -282,7 +293,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     var showInfo by remember { mutableStateOf(false) }
     var isExportingDiagnosticLog by remember { mutableStateOf(false) }
     val screenScope = rememberCoroutineScope()
-    LazyColumn(Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 4.dp),
+        contentPadding = PaddingValues(
+            bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         item {
             Text("PENGATURAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Preferensi aplikasi", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -521,10 +538,24 @@ private fun ReadinessLine(label: String, value: String, valueColor: Color) {
 }
 
 @Composable
-private fun DiagnosticLine(label: String, value: String) {
+private fun DiagnosticLine(
+    label: String,
+    value: String,
+    valueWeight: Float = 1f,
+    valueMaxLines: Int = Int.MAX_VALUE,
+    valueSoftWrap: Boolean = true
+) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            maxLines = valueMaxLines,
+            softWrap = valueSoftWrap,
+            modifier = Modifier.weight(valueWeight)
+        )
     }
 }
 

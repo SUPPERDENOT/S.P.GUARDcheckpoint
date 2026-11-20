@@ -69,6 +69,24 @@ class NotificationVisualRendererTest {
     }
 
     @Test
+    fun monitorNotificationBodyIsCompactAndKeepsSignedBatterySideReadings() {
+        val state = LiveBatteryState(
+            currentMa = -243,
+            powerWatt = -0.9f,
+            tempCelsius = 31.5f,
+            sessionMahDelivered = 0.0
+        )
+        assertEquals(
+            "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+            NotificationVisualRenderer.formatMonitorContentText(state)
+        )
+        assertEquals(
+            "Arus baterai: -243 mA\nDaya baterai: -0.9 W\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh",
+            NotificationVisualRenderer.formatMonitorExpandedText(state)
+        )
+    }
+
+    @Test
     fun resolveMonitorVisualSpec_coversAllBatteryStatesAndDrawables() {
         val standby = NotificationVisualRenderer.resolveMonitorVisualSpec(
             LiveBatteryState(isCharging = false, chargeSource = "Discharging", tempCelsius = 31.0f)
@@ -229,11 +247,27 @@ class NotificationVisualRendererTest {
         try {
             val monitorNotification: Notification =
                 service.buildMonitorNotificationForTesting(
-                    "+1850 mA (7.6W) • 33.0°C",
-                    LiveBatteryState(level = 56, isCharging = true)
+                    "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+                    LiveBatteryState(
+                        level = 56,
+                        currentMa = -243,
+                        powerWatt = -0.9f,
+                        tempCelsius = 31.5f,
+                        sessionMahDelivered = 0.0,
+                        isCharging = true
+                    )
                 )
             assertNotNull(monitorNotification)
             assertEquals("Mengisi Daya • 56%", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
+            assertEquals(
+                "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+                monitorNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
+            )
+            assertEquals(
+                "Arus baterai: -243 mA\nDaya baterai: -0.9 W\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh",
+                monitorNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+            )
+            assertEquals(null, monitorNotification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
             assertNotNull(monitorNotification.smallIcon)
             assertNotEquals(0, monitorNotification.color)
 

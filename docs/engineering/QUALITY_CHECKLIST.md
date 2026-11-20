@@ -1,16 +1,35 @@
-## 2026-11-20 — Physical QA UI polish (implementation review; CI pending)
+## 2026-11-20 — Physical QA follow-up: layout, permission refresh, and notification content (implementation review; CI pending)
+
+- [x] Charging header, Hero padding, divider spacing, 2×2 metric grid, and session summary compacted.
+- [x] Charging protocol value has a weighted, single-line value column.
+- [x] Overview, Charging, Insights, History, and Settings scroll containers reserve at least 96dp plus navigation-bar inset at the bottom.
+- [x] Insights and History nested Analytics lists also receive the bottom content reserve.
+- [x] Removed duplicate manual permission refresh buttons and their Snackbar UI.
+- [x] Added ON_RESUME refresh to Initial Setup and active Overview; activity refresh remains for other tabs and charger-start lifecycle behavior is retained.
+- [x] History range formatter was already correct; repository code search found zero literal `'n` matches in `app/src/main`.
+- [x] Monitor notification ID 1001 no longer sets visual subtext; compact body and expanded BigTextStyle use the same battery-side telemetry snapshot.
+- [x] App activity title resolves from PackageManager with package-name fallback; package subtitle is one-line ellipsized.
+- [x] P0/P1 service lifecycle, normalizer, notification post gate, sequence guard, deduplication, and cooldown logic unchanged.
+- [ ] `./scripts/ui-audit.sh` — pending GitHub Actions.
+- [ ] `gradle --no-daemon testDebugUnitTest assembleDebug` — pending GitHub Actions.
+- [ ] Physical-device QA on itel P55 for 360×800dp layout, permission return refresh, and collapsed/expanded notification — pending.
+- [x] No SDK, dependency, version, namespace, application ID, or Room schema change; `main` untouched.
+
+---
+
+## 2026-11-20 — Physical QA UI polish (implementation review; CI verified)
 
 - [x] Initial Setup refresh action now shows a Snackbar after refreshing Android permission state.
 - [x] Overview Kesiapan Sistem refresh action now shows the same Snackbar summary.
 - [x] Snackbar reports notification permission, battery-optimization exemption, and usage-access state from refreshed values.
-- [x] Session level ranges consistently render as `start% → end%` through an explicit `\\u2192` formatter.
+- [x] Session level ranges consistently render as `start% → end%` through an explicit `\u2192` formatter.
 - [x] Unit test verifies the exact session level range string.
 - [x] Foreground notification title is state-aware and no longer duplicates the app brand in the content title.
 - [x] Notification title formatting has charging, idle/discharging, and unavailable-level test coverage.
 - [x] P0/P1 service lifecycle, current normalizer, notification lock/sequence guard/deduplication/cooldown logic unchanged; only notification title presentation inputs changed.
-- [ ] `./scripts/ui-audit.sh` — NOT RUN locally; pending GitHub Actions.
-- [ ] `gradle --no-daemon testDebugUnitTest assembleDebug` — NOT RUN locally; pending GitHub Actions.
-- [ ] Physical-device QA for these three polish changes — NOT RUN; prior itel P55 P0/P1 verification is separate.
+- [x] Anti-Slop UI audit — PASS in GitHub Actions run #358.
+- [x] `testDebugUnitTest` and `assembleDebug` — PASS in GitHub Actions run #358; APK and unit-test report artifacts uploaded.
+- [ ] Physical-device QA for these three polish changes — not yet confirmed as passing; follow-up screen-recording review identified additional issues.
 - [x] No SDK, dependency, version, namespace, application ID, or Room schema change.
 - [x] `main` untouched; no merge performed.
 

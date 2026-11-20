@@ -1,17 +1,41 @@
-## 2026-11-20 — Physical QA UI polish (implementation; CI pending)
+## 2026-11-20 — Physical QA follow-up: five-tab layout, permission refresh, and notification content (implementation; CI pending)
+
+### UI layout and navigation
+- Tightened the Charging header, Hero card, battery-reading grid, and session summary to reduce the short-screen overflow on 360×800dp devices while retaining a scrollable list for accessibility.
+- Added a 96dp bottom content reserve plus system navigation-bar inset to the scrollable content in Overview, Charging, Insights, History, and Settings.
+- Applied the reserve to the nested Analytics lists used by Insights and History, so the final row remains reachable above bottom navigation.
+- Reduced the Charging page to the concise title "Analisis Pengisian"; the protocol value is constrained to one line with a wider value column.
+
+### Permission refresh and history text
+- Removed the manual "Periksa ulang status" controls and their Snackbar feedback from Initial Setup and Overview.
+- Permission state now refreshes on ON_RESUME in the active Overview screen or Initial Setup modal; other tabs retain the activity-level refresh path. The existing charger-start lifecycle action remains in MainActivity.
+- The History session row already used the Unicode arrow formatter on the audited base. Repository code search for literal `'n` under `app/src/main` returned zero matches, so no redundant source edit was made.
+
+### Monitoring notification and app activity labels
+- Removed the monitor notification's redundant subtext so the dynamic title has more available space.
+- Replaced the long "Terisi:" body wording with a compact single-line battery-side telemetry summary and added expanded BigTextStyle details.
+- App activity titles now resolve through PackageManager with package-name fallback; package subtitles are single-line ellipsized.
+- P0/P1 service lifecycle, current normalizer, notification post gate, sequence guard, deduplication, and cooldown algorithms were not changed.
+
+### Verification
+- Source implementation and regression tests added; GitHub Actions verification pending.
+- Physical-device re-test on itel P55 is pending. The 360×800dp fit and collapsed/expanded notification rendering still require device confirmation.
+- No SDK, dependency, version, namespace, application ID, Room schema, or main-branch change.
+
+## 2026-11-20 — Physical QA UI polish (implementation; CI verified)
 
 ### Readiness feedback
 - Added a Snackbar confirmation to the Initial Setup sheet and the active Overview screen's Kesiapan Sistem card. The message reports refreshed notification permission, battery-optimization exemption, and usage-access states.
 - Reused one readiness-summary formatter so both entry points present the same status vocabulary.
 
 ### History and notification presentation
-- Centralized session battery-level range formatting as `start% → end%` using the explicit Kotlin Unicode escape `\\u2192`; added a unit test for the rendered range.
+- Centralized session battery-level range formatting as `start% → end%` using the explicit Kotlin Unicode escape `\u2192`; added a unit test for the rendered range.
 - Replaced the duplicated foreground notification title with a state-aware title: `Mengisi Daya • level%` while charging, or `Pemantauan Baterai Aktif` while discharging/idle. Unavailable level is shown as `—`.
 - Kept notification publication, sequence validation, deduplication, cooldown, service lifecycle, sensor normalization, and P0/P1 policy logic unchanged. Only notification presentation title inputs were updated.
 
 ### Verification
-- Implementation and focused regression tests added; GitHub Actions verification pending for this commit.
-- The three new polish changes have not yet received separate physical-device QA. Earlier itel P55 verification of the six P0/P1 fixes remains a distinct result.
+- GitHub Actions run #358 on commit `ad890ff02cfb843aa88d04219940f5d0e632db50`: Anti-Slop UI audit PASS, `testDebugUnitTest` PASS, and `assembleDebug` PASS; both APK and unit-test report artifacts uploaded.
+- Physical-device QA for the three polish changes remains separate from CI; the later itel P55 screen-recording review reported direct APK overwrite success and identified the follow-up UI issues recorded in the newer entry at the top of this changelog.
 - No local Gradle build was run in this GitHub-only editing environment.
 
 ---
