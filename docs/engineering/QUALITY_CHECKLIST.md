@@ -1,3 +1,17 @@
+## 2026-11-20 — Notification parameter label and font-safe History range
+
+- [x] HUD_ONLY notification ID 1001 body is formatted from the selected StatusBarParameter using Indonesian labels and the matching measured reading.
+- [x] All six parameter selections have unit coverage; unavailable readings use <Label> • —.
+- [x] Charging status text distinguishes Mengisi (AC), Tidak Mengisi, and exposed USB/Wireless sources.
+- [x] History session range formatter uses ASCII ->; regression test covers 38% -> 38% and a changing range.
+- [x] Scope review: no intended edits to Battery Monitoring / Status Bar Indicator lifecycle, normalizer, notification gate, sequence guard, deduplication, cooldown, persistence, or sensor cadence.
+- [ ] ./scripts/ui-audit.sh — pending branch CI.
+- [ ] gradle --no-daemon testDebugUnitTest assembleDebug — pending branch CI.
+- [ ] Physical-device QA on itel P55 — NOT RUN.
+- [x] No SDK, dependency, package, application version, build number, or Room schema change; main untouched.
+
+---
+
 ## 2026-11-20 — Physical QA follow-up: layout, permission refresh, and notification content (implementation review; CI pending)
 
 - [x] Charging header, Hero padding, divider spacing, 2×2 metric grid (8dp row gap; 10dp metric-card vertical padding), and session summary compacted.

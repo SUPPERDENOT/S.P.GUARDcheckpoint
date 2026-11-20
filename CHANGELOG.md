@@ -1,3 +1,20 @@
+## 2026-11-20 — Notification parameter labels and font-safe History range
+
+### Changed
+- In Status-Bar-Indicator-only (HUD_ONLY) mode, notification ID 1001 now shows the selected parameter's Indonesian label and full formatted reading: temperature, voltage, current, power, battery percentage, or charging status.
+- Unavailable readings use an em dash (—) with the corresponding parameter label; charging status distinguishes Mengisi (AC) from Tidak Mengisi and preserves exposed USB/Wireless source distinctions.
+- History session level ranges now use the font-safe ASCII arrow format start% -> end%; removed the stale Unicode-arrow comment.
+
+### Verification
+- Added unit coverage for all six selected parameter labels, unavailable fallbacks, and charging/not-charging status text.
+- Updated the session range formatter test for 38% -> 38% and a changing level range.
+- Anti-Slop UI audit and gradle --no-daemon testDebugUnitTest assembleDebug: pending branch CI after this commit.
+- Physical-device QA on itel P55: NOT RUN.
+- No Battery Monitoring / Status Bar Indicator lifecycle, normalizer, notification post gate, sequence guard, deduplication, cooldown, sensor cadence, persistence, SDK, dependency, package, or version changes intended.
+- main untouched; merge remains HOLD.
+
+---
+
 ## 2026-11-20 — Physical QA follow-up: five-tab layout, permission refresh, and notification content (implementation; CI pending)
 
 ### UI layout and navigation

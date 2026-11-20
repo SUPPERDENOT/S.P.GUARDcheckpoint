@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.R
 import com.superdenot.powerguard.domain.model.LiveBatteryState
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -68,6 +69,68 @@ class NotificationVisualRendererTest {
         )
     }
 
+    @Test
+    fun statusBarParameterNotificationTextFormatsAllSixSelections() {
+        val state = LiveBatteryState(
+            level = 33,
+            currentMa = -243,
+            voltageMv = 3853,
+            powerWatt = -3.0f,
+            tempCelsius = 36.1f,
+            isCharging = true,
+            isPowerConnected = true,
+            chargeSource = "AC Adapter"
+        )
+        val expected = mapOf(
+            StatusBarParameter.TEMPERATURE to "Suhu • 36.1°C",
+            StatusBarParameter.VOLTAGE to "Tegangan • 3853 mV",
+            StatusBarParameter.CURRENT to "Arus • -243 mA",
+            StatusBarParameter.POWER to "Daya • -3.0 W",
+            StatusBarParameter.BATTERY_PERCENTAGE to "Level Baterai • 33%",
+            StatusBarParameter.CHARGING_STATUS to "Status • Mengisi (AC)"
+        )
+        expected.forEach { (parameter, text) ->
+            assertEquals(
+                "Notification text for $parameter",
+                text,
+                NotificationVisualRenderer.formatStatusBarParameterText(state, parameter)
+            )
+        }
+        assertEquals(
+            "Status • Tidak Mengisi",
+            NotificationVisualRenderer.formatStatusBarParameterText(
+                state.copy(isCharging = false),
+                StatusBarParameter.CHARGING_STATUS
+            )
+        )
+    }
+
+    @Test
+    fun statusBarParameterNotificationTextUsesUnavailableFallbackForEverySelection() {
+        val unavailable = LiveBatteryState(
+            isLevelAvailable = false,
+            isCurrentAvailable = false,
+            isVoltageAvailable = false,
+            isTemperatureAvailable = false,
+            isPowerAvailable = false,
+            isChargingStatusAvailable = false
+        )
+        val expected = mapOf(
+            StatusBarParameter.TEMPERATURE to "Suhu • —",
+            StatusBarParameter.VOLTAGE to "Tegangan • —",
+            StatusBarParameter.CURRENT to "Arus • —",
+            StatusBarParameter.POWER to "Daya • —",
+            StatusBarParameter.BATTERY_PERCENTAGE to "Level Baterai • —",
+            StatusBarParameter.CHARGING_STATUS to "Status • —"
+        )
+        expected.forEach { (parameter, text) ->
+            assertEquals(
+                "Unavailable notification text for $parameter",
+                text,
+                NotificationVisualRenderer.formatStatusBarParameterText(unavailable, parameter)
+            )
+        }
+    }
     @Test
     fun monitorNotificationBodyIsCompactAndKeepsSignedBatterySideReadings() {
         val state = LiveBatteryState(
@@ -387,7 +450,12 @@ class NotificationVisualRendererTest {
             val channel = manager.getNotificationChannel("powerguard_live_monitor")
             assertNotNull(channel)
             assertEquals(android.app.NotificationManager.IMPORTANCE_LOW, channel!!.importance)
-            val hudNotification = service.buildMonitorNotificationForTesting("Sensor live • N/A")
+            val hudBody = NotificationVisualRenderer.formatStatusBarParameterText(
+                unavailable,
+                StatusBarParameter.CURRENT
+            )
+            val hudNotification = service.buildMonitorNotificationForTesting(hudBody, unavailable)
+            assertEquals("Arus • —", hudNotification.extras.getCharSequence(Notification.EXTRA_TEXT))
             assertNotNull(hudNotification.smallIcon)
             assertTrue((hudNotification.flags and Notification.FLAG_ONGOING_EVENT) != 0)
             assertTrue((hudNotification.flags and Notification.FLAG_ONLY_ALERT_ONCE) != 0)

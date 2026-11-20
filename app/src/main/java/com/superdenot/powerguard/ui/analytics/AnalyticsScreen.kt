@@ -72,7 +72,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
-    "$startLevel% \u2192 $endLevel%"
+    "$startLevel% -> $endLevel%"
 
 
 @Composable
@@ -428,7 +428,6 @@ private fun SessionHistoryCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Gunakan Unicode → agar panah tampil rapi tanpa rusak karakter
             Text(
                 text = "Level: $endPctLabel ($deltaPctStr)  |  Terisi: ${String.format(Locale.US, "%+.1f mAh", session.totalMahDelivered)}",
                 style = MaterialTheme.typography.bodyMedium,

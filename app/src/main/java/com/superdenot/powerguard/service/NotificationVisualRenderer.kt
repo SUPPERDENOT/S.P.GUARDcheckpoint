@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import com.superdenot.powerguard.R
 import com.superdenot.powerguard.domain.model.LiveBatteryState
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
@@ -79,6 +80,30 @@ internal object NotificationVisualRenderer {
         return "Mengisi Daya • $level"
     }
 
+    fun formatStatusBarParameterText(state: LiveBatteryState, parameter: StatusBarParameter): String {
+        val (label, reading) = when (parameter) {
+            StatusBarParameter.TEMPERATURE -> "Suhu" to if (state.isTemperatureAvailable) {
+                String.format(Locale.US, "%.1f°C", state.tempCelsius)
+            } else "—"
+            StatusBarParameter.VOLTAGE -> "Tegangan" to if (state.isVoltageAvailable) "${state.voltageMv} mV" else "—"
+            StatusBarParameter.CURRENT -> "Arus" to if (state.isCurrentAvailable) "${state.currentMa} mA" else "—"
+            StatusBarParameter.POWER -> "Daya" to if (state.isPowerAvailable) {
+                String.format(Locale.US, "%.1f W", state.powerWatt)
+            } else "—"
+            StatusBarParameter.BATTERY_PERCENTAGE -> "Level Baterai" to if (state.isLevelAvailable) "${state.level}%" else "—"
+            StatusBarParameter.CHARGING_STATUS -> "Status" to when {
+                !state.isChargingStatusAvailable -> "—"
+                !state.isCharging -> "Tidak Mengisi"
+                else -> when (state.chargeSource) {
+                    "AC Adapter" -> "Mengisi (AC)"
+                    "USB Port" -> "Mengisi (USB)"
+                    "Wireless" -> "Mengisi (Wireless)"
+                    else -> "Mengisi"
+                }
+            }
+        }
+        return "$label • $reading"
+    }
     fun formatMonitorContentText(state: LiveBatteryState): String {
         val current = if (state.isCurrentAvailable) {
             "${if (state.currentMa > 0) "+" else ""}${state.currentMa} mA"

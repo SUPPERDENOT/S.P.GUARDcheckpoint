@@ -1997,7 +1997,7 @@ class BatteryMonitorService : Service() {
                         publishLiveState(hudState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
-                        notificationSummaryToPost = "Sensor live • " + LiveStatusBarRenderer.format(hudState, statusBarIndicatorSetting.parameter)
+                        notificationSummaryToPost = NotificationVisualRenderer.formatStatusBarParameterText(hudState, statusBarIndicatorSetting.parameter)
                         return@withLock
                     }
                     val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
