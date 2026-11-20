@@ -2151,14 +2151,60 @@ class BatteryMonitorService : Service() {
             }
 
             if (snapshotSequence != latestSequence) return@synchronized
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    MONITOR_NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                )
+
+            val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
+                state,
+                actorState == ActorLifecycleState.RECOVERY_HOLD
+            )
+            val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
+                LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
+            val iconKey = if (hasDynamicIcon) {
+                "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
             } else {
-                startForeground(MONITOR_NOTIFICATION_ID, notification)
+                visualSpec.cacheKey
+            }
+            val nowElapsedMs = SystemClock.elapsedRealtime()
+            val payloadSignature = listOf(
+                iconKey,
+                contentText,
+                displayText,
+                state.isCharging.toString(),
+                state.isPowerConnected.toString(),
+                state.chargeSource,
+                actorState.name
+            ).joinToString("|")
+
+            // The mandatory FGS promotion also seeds both deduplication gates.
+            monitorNotificationPostGate.shouldPost(
+                payloadSignature = payloadSignature,
+                criticalStateSignature = state.isPowerConnected.toString(),
+                nowElapsedMs = nowElapsedMs,
+                snapshotSequence = snapshotSequence,
+                latestSequence = latestSequence
+            )
+            notificationRenderGate.evaluate(
+                iconKey,
+                "SUPERD GUARD",
+                contentText,
+                nowElapsedMs,
+                force = true
+            )
+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(
+                        MONITOR_NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                    )
+                } else {
+                    startForeground(MONITOR_NOTIFICATION_ID, notification)
+                }
+            } catch (error: RuntimeException) {
+                monitorNotificationPostGate.reset()
+                notificationRenderGate.reset()
+                throw error
             }
         }
     }
