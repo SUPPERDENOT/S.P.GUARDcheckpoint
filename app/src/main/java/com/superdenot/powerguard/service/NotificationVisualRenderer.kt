@@ -298,11 +298,15 @@ internal object NotificationVisualRenderer {
         }
         val accentColor = if (severity == AnomalySeverity.CRITICAL) COLOR_CRIMSON_ANOMALY else COLOR_AMBER_THERMAL
         val subText = if (severity == AnomalySeverity.CRITICAL) "SUPERD GUARD • CRITICAL" else "SUPERD GUARD • WARNING"
+        val iconResId = R.drawable.ic_status_anomaly
+        val identity = anomalyCode?.trim()?.uppercase(Locale.US)?.takeIf { it.isNotBlank() }
+            ?: normalized.replace(Regex("\\s+"), " ").trim()
+        val cacheKey = "anomaly:${identity.length}:$identity"
         return AnomalyVisualSpec(
-            smallIconResId = R.drawable.ic_status_anomaly,
+            smallIconResId = iconResId,
             accentColor = accentColor,
             subText = subText,
-            cacheKey = "anomaly:${R.drawable.ic_status_anomaly}:$accentColor",
+            cacheKey = cacheKey,
             severity = severity
         )
     }
@@ -324,7 +328,17 @@ internal object NotificationVisualRenderer {
         context: Context,
         spec: AnomalyVisualSpec
     ): Bitmap {
-        return getOrCreateCachedBitmap(context, spec.cacheKey) { appContext, sizePx ->
+        val cacheKey = buildString {
+            append(spec.cacheKey)
+            append(":icon=").append(spec.smallIconResId)
+            append(":accent=").append(spec.accentColor)
+            append(":subText=").append(spec.subText.length).append(':').append(spec.subText)
+            append(":severity=").append(spec.severity.name)
+            append(":arc=").append(COLOR_CYAN_ACCENT)
+            append(":center=").append(ANOMALY_SURFACE_CENTER)
+            append(":edge=").append(ANOMALY_SURFACE_EDGE)
+        }
+        return getOrCreateCachedBitmap(context, cacheKey) { appContext, sizePx ->
             renderBadgeBitmap(
                 context = appContext,
                 sizePx = sizePx,

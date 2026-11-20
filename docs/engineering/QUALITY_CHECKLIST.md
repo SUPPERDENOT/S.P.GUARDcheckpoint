@@ -1,3 +1,19 @@
+## 2026-11-21 — Anomaly bitmap cache identity fix
+
+- [x] Root cause verified: anomaly cache key used only icon resource and severity accent color, so distinct critical anomaly types collided.
+- [x] Bitmap cache key includes semantic anomaly identity, icon resource, accent, label, severity, and all renderer surface/arc colors.
+- [x] Cache lookup derives key from the supplied spec's current rendered properties, so altered spec copies cannot reuse an incompatible bitmap.
+- [x] Regression tests cover identical-spec instance reuse, distinct anomaly-code separation, and changes to icon, accent, label, and severity.
+- [x] ID 1001 LargeIcon omission and live Status Bar Indicator path left untouched by this fix.
+- [x] P0/P1 lifecycle, persistence, RECOVERY_HOLD, current normalization, notification gate, and auto-start logic left untouched.
+- [ ] `./scripts/ui-audit.sh` — pending GitHub Actions.
+- [ ] `gradle --no-daemon testDebugUnitTest assembleDebug` — pending GitHub Actions.
+- [ ] Debug APK and unit-test report artifacts — pending GitHub Actions.
+- [ ] Physical-device QA — NOT RUN; no physical retest is claimed for this cache-only correction.
+- [ ] Five pre-merge gates and squash merge — pending CI and final diff audit.
+
+---
+
 ## 2026-11-21 — Final notification cleanup and anomaly copy
 
 - [x] Monitoring notification ID 1001 no longer attaches a circular LargeIcon; its resource/dynamic small icon remains configured.
@@ -10,7 +26,7 @@
 - [x] `app/debug.keystore` remains intact and configured in the debug signing config.
 - [x] CI #361 on baseline `4898f5a`: PASS across Anti-Slop, unit tests, assembleDebug, and artifact uploads.
 - [x] Physical QA on itel P55 for baseline layout, permission refresh, and notification states: PASS (user-confirmed).
-- [ ] Final cleanup branch CI (`bash scripts/ui-audit.sh` and `gradle --no-daemon testDebugUnitTest assembleDebug`): pending.
+- [ ] CI #362: FAIL — one anomaly bitmap cache test failed; Anti-Slop and assembleDebug passed; report artifact uploaded.
 - [x] P0/P1 core logic untouched: Room transaction/finalization, recovery checkpoint ownership/durability, current normalizer, 250ms notification gate/sequence/dedup/unplug suppression, service operation policy, and auto-start coordinator.
 - [x] No SDK, dependency, app version, build number, namespace, application ID, or Room schema change; confirmed application ID is documented above.
 

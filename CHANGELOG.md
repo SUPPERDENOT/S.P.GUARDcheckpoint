@@ -1,3 +1,20 @@
+## 2026-11-21 — Anomaly bitmap cache identity fix
+
+### Changed
+- Fixed anomaly LargeIcon bitmap cache collisions by including anomaly code/message identity, icon resource, accent color, notification label, severity, and rendered surface/arc colors in the bitmap cache key.
+- Cache lookup derives the complete key from the supplied spec at render time, preventing stale keys after a spec copy changes a rendered property.
+- Identical specs retain exact Bitmap instance reuse; distinct anomaly identities or visual properties receive separate cache entries.
+- Monitoring notification ID 1001, Status Bar Indicator rendering, and P0/P1 lifecycle, persistence, recovery ownership, and sensor behavior remain unchanged.
+
+### Verification
+- Regression tests cover identical-spec reuse, distinct anomaly-code separation, and changes to icon, accent, label, and severity.
+- Local `./scripts/ui-audit.sh`: NOT RUN in this GitHub-only editing environment; pending CI.
+- Local `gradle --no-daemon testDebugUnitTest assembleDebug`: NOT RUN in this GitHub-only editing environment; pending CI.
+- CI for this cache fix: PENDING.
+- Physical-device QA for this cache-only correction: NOT RUN; no runtime service behavior was intentionally changed.
+
+---
+
 ## 2026-11-21 — Notification width and centralized anomaly labels
 
 ### Changed
@@ -12,7 +29,7 @@
 - Added notification regression coverage confirming ID 1001 has no LargeIcon while its small-icon and live Status Bar Indicator paths remain intact.
 - CI #361 on baseline `4898f5a`: PASS (Anti-Slop UI Audit, unit tests, debug APK build, and artifact uploads).
 - Physical QA on itel P55 for baseline layout, permission refresh, and collapsed/expanded notification checks: PASS (user-confirmed).
-- Final cleanup branch CI: pending; mandatory before merge.
+- GitHub Actions #362 on `212ee35`: FAIL — 164 tests passed and one anomaly bitmap cache identity test failed; `assembleDebug` and Anti-Slop passed, APK upload was skipped, test reports uploaded.
 - No P0/P1 persistence, recovery ownership, current normalization, notification gate, service policy, or auto-start coordinator logic changed.
 - No SDK, dependency, application version, build number, Room schema, or package namespace changes.
 

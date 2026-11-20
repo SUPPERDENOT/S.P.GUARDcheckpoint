@@ -239,10 +239,33 @@ class NotificationVisualRendererTest {
             "Net drain",
             "NET_DRAIN_CHARGING"
         )
+        assertNotEquals("Different anomaly codes must not share a cache identity", spec.cacheKey, otherSpec.cacheKey)
         val otherBitmap = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, otherSpec)
         assertNotSame(first, otherBitmap)
         assertEquals(2, NotificationVisualRenderer.cacheMisses())
         assertEquals(2, NotificationVisualRenderer.cacheSize())
+    }
+
+    @Test
+    fun bitmapCache_keyIncludesEveryAnomalyVisualProperty() {
+        val base = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Thermal throttling",
+            "THERMAL_THROTTLING"
+        )
+        val original = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, base)
+        val variants = listOf(
+            base.copy(smallIconResId = R.drawable.ic_status_temp_hot),
+            base.copy(accentColor = NotificationVisualRenderer.COLOR_AMBER_THERMAL),
+            base.copy(subText = "SUPERD GUARD • WARNING"),
+            base.copy(severity = NotificationVisualRenderer.AnomalySeverity.WARNING)
+        )
+
+        variants.forEach { variant ->
+            val bitmap = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, variant)
+            assertNotSame("Changed visual properties must not reuse the base bitmap", original, bitmap)
+        }
+        assertEquals(5, NotificationVisualRenderer.cacheMisses())
+        assertEquals(5, NotificationVisualRenderer.cacheSize())
     }
 
     @Test
