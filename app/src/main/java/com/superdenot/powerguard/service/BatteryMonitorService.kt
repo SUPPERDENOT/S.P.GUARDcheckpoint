@@ -2048,7 +2048,11 @@ class BatteryMonitorService : Service() {
                             if (anomaly.isAnomaly && anomaly.code != null && anomaly.message != null) {
                                 activeAlertMsg = anomaly.message
                                 if (alertedAnomalyCodes.add(anomaly.code)) {
-                                    sendAnomalyAlertNotification(anomaly.message, anomaly.code)
+                                    sendAnomalyAlertNotification(
+                                        anomaly.message,
+                                        anomaly.code,
+                                        maxSessionTemp.takeIf { hasSessionTemperatureData }
+                                    )
                                 }
                             }
                         } else {
@@ -3697,8 +3701,9 @@ class BatteryMonitorService : Service() {
 
     internal fun buildAnomalyAlertNotificationForTesting(
         alertMessage: String,
-        anomalyCode: String? = null
-    ): Notification = buildAnomalyAlertNotification(alertMessage, anomalyCode)
+        anomalyCode: String? = null,
+        peakTemperatureCelsius: Float? = null
+    ): Notification = buildAnomalyAlertNotification(alertMessage, anomalyCode, peakTemperatureCelsius)
 
     @VisibleForTesting
     internal fun setStatusBarIndicatorSettingForTesting(setting: StatusBarIndicatorSetting) {
@@ -3722,7 +3727,6 @@ class BatteryMonitorService : Service() {
     private fun buildMonitorNotification(contentText: String, state: LiveBatteryState): Notification {
         val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(state, actorState == ActorLifecycleState.RECOVERY_HOLD)
-        val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(applicationContext, visualSpec)
         val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
         val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) else null
         val builder = NotificationCompat.Builder(this, CHANNEL_MONITOR)
@@ -3733,7 +3737,6 @@ class BatteryMonitorService : Service() {
                     .bigText(NotificationVisualRenderer.formatMonitorExpandedText(state))
             )
             .setColor(visualSpec.accentColor)
-            .setLargeIcon(largeIcon)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
@@ -3840,15 +3843,23 @@ class BatteryMonitorService : Service() {
         notifyMonitorNotification(lastNotificationBody, force)
     }
 
-    private fun buildAnomalyAlertNotification(alertMessage: String, anomalyCode: String? = null): Notification {
+    private fun buildAnomalyAlertNotification(
+        alertMessage: String,
+        anomalyCode: String? = null,
+        peakTemperatureCelsius: Float? = null
+    ): Notification {
         val openAppIntent = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val visualSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(alertMessage, anomalyCode)
+        val formattedLabel = NotificationVisualRenderer.formatAnomalyReason(
+            anomalyCode ?: alertMessage,
+            peakTemperatureCelsius
+        )
+        val expandedText = "$formattedLabel\n$alertMessage"
         val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
         return NotificationCompat.Builder(this, CHANNEL_ANOMALY)
             .setContentTitle("SUPERD GUARD • Peringatan Daya")
-            .setContentText(alertMessage)
-            .setSubText(visualSpec.subText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(alertMessage))
+            .setContentText(formattedLabel)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
             .setSmallIcon(visualSpec.smallIconResId)
             .setColor(visualSpec.accentColor)
             .setLargeIcon(largeIcon)
@@ -3859,8 +3870,15 @@ class BatteryMonitorService : Service() {
             .build()
     }
 
-    private fun sendAnomalyAlertNotification(alertMessage: String, anomalyCode: String) {
-        notificationManager.notify(ANOMALY_NOTIFICATION_ID, buildAnomalyAlertNotification(alertMessage, anomalyCode))
+    private fun sendAnomalyAlertNotification(
+        alertMessage: String,
+        anomalyCode: String,
+        peakTemperatureCelsius: Float?
+    ) {
+        notificationManager.notify(
+            ANOMALY_NOTIFICATION_ID,
+            buildAnomalyAlertNotification(alertMessage, anomalyCode, peakTemperatureCelsius)
+        )
     }
 
     override fun onDestroy() {

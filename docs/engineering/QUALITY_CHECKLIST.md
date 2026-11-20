@@ -1,3 +1,21 @@
+## 2026-11-21 — Final notification cleanup and anomaly copy
+
+- [x] Monitoring notification ID 1001 no longer attaches a circular LargeIcon; its resource/dynamic small icon remains configured.
+- [x] Monitor-specific badge bitmap rendering was removed; the separate anomaly notification LargeIcon remains in use.
+- [x] Live Status Bar Indicator still renders its selected parameter through `LiveStatusBarRenderer` and `setSmallIcon`.
+- [x] Centralized anomaly formatter covers every code emitted by the branch's `AnomalyDetector`, requested voltage/drain/low-current/stagnation aliases, and unknown-code fallback.
+- [x] History session details and anomaly notifications use the centralized Indonesian formatter; anomaly notification no longer sets subtext.
+- [x] Unit tests cover mappings, thermal peak/no-peak, multi-code display, fallback humanization, ID 1001 LargeIcon omission, and retained small-icon behavior.
+- [x] `applicationId = "com.superdenot.superdguard"` confirmed; `namespace = "com.superdenot.powerguard"` retained.
+- [x] `app/debug.keystore` remains intact and configured in the debug signing config.
+- [x] CI #361 on baseline `4898f5a`: PASS across Anti-Slop, unit tests, assembleDebug, and artifact uploads.
+- [x] Physical QA on itel P55 for baseline layout, permission refresh, and notification states: PASS (user-confirmed).
+- [ ] Final cleanup branch CI (`bash scripts/ui-audit.sh` and `gradle --no-daemon testDebugUnitTest assembleDebug`): pending.
+- [x] P0/P1 core logic untouched: Room transaction/finalization, recovery checkpoint ownership/durability, current normalizer, 250ms notification gate/sequence/dedup/unplug suppression, service operation policy, and auto-start coordinator.
+- [x] No SDK, dependency, app version, build number, namespace, application ID, or Room schema change; confirmed application ID is documented above.
+
+---
+
 ## 2026-11-20 — Notification parameter label and font-safe History range
 
 - [x] HUD_ONLY notification ID 1001 body is formatted from the selected StatusBarParameter using Indonesian labels and the matching measured reading.
@@ -5,14 +23,14 @@
 - [x] Charging status text distinguishes Mengisi (AC), Tidak Mengisi, and exposed USB/Wireless sources.
 - [x] History session range formatter uses ASCII ->; regression test covers 38% -> 38% and a changing range.
 - [x] Scope review: no intended edits to Battery Monitoring / Status Bar Indicator lifecycle, normalizer, notification gate, sequence guard, deduplication, cooldown, persistence, or sensor cadence.
-- [ ] ./scripts/ui-audit.sh — pending branch CI.
-- [ ] gradle --no-daemon testDebugUnitTest assembleDebug — pending branch CI.
-- [ ] Physical-device QA on itel P55 — NOT RUN.
+- [x] `./scripts/ui-audit.sh` — PASS in GitHub Actions CI #361.
+- [x] `gradle --no-daemon testDebugUnitTest assembleDebug` — PASS in GitHub Actions CI #361.
+- [x] Physical-device QA on itel P55 for layout, permission refresh, and collapsed/expanded notifications — PASS (user-confirmed).
 - [x] No SDK, dependency, package, application version, build number, or Room schema change; main untouched.
 
 ---
 
-## 2026-11-20 — Physical QA follow-up: layout, permission refresh, and notification content (implementation review; CI pending)
+## 2026-11-20 — Physical QA follow-up: layout, permission refresh, and notification content (CI and device QA verified)
 
 - [x] Charging header, Hero padding, divider spacing, 2×2 metric grid (8dp row gap; 10dp metric-card vertical padding), and session summary compacted.
 - [x] Charging protocol value has a weighted, single-line value column.
@@ -24,9 +42,9 @@
 - [x] Monitor notification ID 1001 no longer sets visual subtext; compact body and expanded BigTextStyle cover level, current, power, voltage, temperature, net charge, charging status, source, and protocol.
 - [x] App activity title resolves from PackageManager with package-name fallback; package subtitle is one-line ellipsized.
 - [x] P0/P1 service lifecycle, normalizer, notification post gate, sequence guard, deduplication, and cooldown logic unchanged.
-- [ ] `./scripts/ui-audit.sh` — pending GitHub Actions.
-- [ ] `gradle --no-daemon testDebugUnitTest assembleDebug` — pending GitHub Actions.
-- [ ] Physical-device QA on itel P55 for 360×800dp layout, permission return refresh, and collapsed/expanded notification — pending.
+- [x] `./scripts/ui-audit.sh` — PASS in GitHub Actions CI #361.
+- [x] `gradle --no-daemon testDebugUnitTest assembleDebug` — PASS in GitHub Actions CI #361.
+- [x] Physical-device QA on itel P55 for 360×800dp layout, permission return refresh, and collapsed/expanded notification — PASS (user-confirmed).
 - [x] No SDK, dependency, version, namespace, application ID, or Room schema change; `main` untouched.
 
 ---

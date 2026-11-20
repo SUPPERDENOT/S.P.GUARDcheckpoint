@@ -1,3 +1,23 @@
+## 2026-11-21 — Notification width and centralized anomaly labels
+
+### Changed
+- Removed the redundant circular LargeIcon badge from monitoring notification ID 1001; retained its resource/dynamic small icon path and live Status Bar Indicator rendering.
+- Removed the now-unused monitor-specific circular badge bitmap renderer. The separate anomaly notification retains its own large icon.
+- Centralized Indonesian anomaly-code formatting for History session details and anomaly notifications, including the persisted session peak temperature when available.
+- Removed anomaly notification subtext so its header and content are not reduced by a redundant secondary line.
+- Kept `namespace = "com.superdenot.powerguard"` and confirmed `applicationId = "com.superdenot.superdguard"`; the debug keystore remains wired to the debug signing config.
+
+### Verification
+- Added unit coverage for all anomaly codes emitted by the branch's `AnomalyDetector`, requested voltage/drain/low-current/stagnation aliases, unknown-code fallback, multiple codes, and thermal peak/unavailable cases.
+- Added notification regression coverage confirming ID 1001 has no LargeIcon while its small-icon and live Status Bar Indicator paths remain intact.
+- CI #361 on baseline `4898f5a`: PASS (Anti-Slop UI Audit, unit tests, debug APK build, and artifact uploads).
+- Physical QA on itel P55 for baseline layout, permission refresh, and collapsed/expanded notification checks: PASS (user-confirmed).
+- Final cleanup branch CI: pending; mandatory before merge.
+- No P0/P1 persistence, recovery ownership, current normalization, notification gate, service policy, or auto-start coordinator logic changed.
+- No SDK, dependency, application version, build number, Room schema, or package namespace changes.
+
+---
+
 ## 2026-11-20 — Notification parameter labels and font-safe History range
 
 ### Changed
@@ -8,8 +28,8 @@
 ### Verification
 - Added unit coverage for all six selected parameter labels, unavailable fallbacks, and charging/not-charging status text.
 - Updated the session range formatter test for 38% -> 38% and a changing level range.
-- Anti-Slop UI audit and gradle --no-daemon testDebugUnitTest assembleDebug: pending branch CI after this commit.
-- Physical-device QA on itel P55: NOT RUN.
+- GitHub Actions CI #361 on commit `4898f5a`: PASS — Anti-Slop UI audit, unit tests, debug APK build, and artifact uploads.
+- Physical-device QA on itel P55 for the five-tab layout, permission refresh, and collapsed/expanded notification checks: PASS (user-confirmed).
 - No Battery Monitoring / Status Bar Indicator lifecycle, normalizer, notification post gate, sequence guard, deduplication, cooldown, sensor cadence, persistence, SDK, dependency, package, or version changes intended.
 - main untouched; merge remains HOLD.
 
@@ -35,8 +55,8 @@
 - P0/P1 service lifecycle, current normalizer, notification post gate, sequence guard, deduplication, and cooldown algorithms were not changed.
 
 ### Verification
-- Source implementation and regression tests added; GitHub Actions verification pending.
-- Physical-device re-test on itel P55 is pending. The 360×800dp fit and collapsed/expanded notification rendering still require device confirmation.
+- GitHub Actions CI #361 on commit `4898f5a`: PASS — Anti-Slop UI audit, `testDebugUnitTest`, `assembleDebug`, and artifact uploads.
+- Physical-device re-test on itel P55 for 360×800dp fit, permission return refresh, and collapsed/expanded notification rendering: PASS (user-confirmed).
 - No SDK, dependency, version, namespace, application ID, Room schema, or main-branch change.
 
 ## 2026-11-20 — Physical QA UI polish (implementation; CI verified)

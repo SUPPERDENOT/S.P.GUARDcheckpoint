@@ -220,57 +220,38 @@ class NotificationVisualRendererTest {
     }
 
     @Test
-    fun bitmapCache_reusesExactBitmapInstanceAcrossRepeatedUpdatesWithoutReallocation() {
-        val stateTick1 = LiveBatteryState(
-            level = 54,
-            currentMa = 2450,
-            voltageMv = 4150,
-            powerWatt = 10.17f,
-            tempCelsius = 33.4f,
-            isCharging = true,
-            chargeSource = "AC Adapter"
+    fun bitmapCache_reusesExactBitmapInstanceForAnomalyNotification() {
+        val spec = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Thermal throttling",
+            "THERMAL_THROTTLING"
         )
-        val stateTick2 = stateTick1.copy(
-            level = 55,
-            currentMa = 2390,
-            voltageMv = 4170,
-            powerWatt = 9.96f,
-            tempCelsius = 33.8f
-        )
-
-        val spec1 = NotificationVisualRenderer.resolveMonitorVisualSpec(stateTick1)
-        val spec2 = NotificationVisualRenderer.resolveMonitorVisualSpec(stateTick2)
-        assertEquals(spec1.cacheKey, spec2.cacheKey)
-
-        val bmp1 = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec1)
+        val first = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, spec)
         assertEquals(1, NotificationVisualRenderer.cacheMisses())
-        assertEquals(0, NotificationVisualRenderer.cacheHits())
-        assertEquals(1, NotificationVisualRenderer.cacheSize())
-        assertFalse(bmp1.isRecycled)
-        assertEquals(Bitmap.Config.ARGB_8888, bmp1.config)
-        assertTrue(bmp1.width >= 64 && bmp1.height >= 64)
-
         repeat(20) {
-            val cached = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec2)
-            assertSame("Expected cached Bitmap instance without repeated allocation", bmp1, cached)
+            val cached = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, spec)
+            assertSame("Expected cached Bitmap instance without repeated allocation", first, cached)
         }
         assertEquals(1, NotificationVisualRenderer.cacheMisses())
         assertEquals(20, NotificationVisualRenderer.cacheHits())
         assertEquals(1, NotificationVisualRenderer.cacheSize())
 
-        val hotSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(stateTick2.copy(tempCelsius = 42.5f))
-        val hotBmp = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, hotSpec)
-        assertNotSame(bmp1, hotBmp)
+        val otherSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Net drain",
+            "NET_DRAIN_CHARGING"
+        )
+        val otherBitmap = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, otherSpec)
+        assertNotSame(first, otherBitmap)
         assertEquals(2, NotificationVisualRenderer.cacheMisses())
         assertEquals(2, NotificationVisualRenderer.cacheSize())
     }
 
     @Test
-    fun renderLargeIcon_producesValidArgbBitmapForNotificationBadge() {
-        val spec = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 32.0f)
+    fun renderLargeIcon_producesValidArgbBitmapForAnomalyNotification() {
+        val spec = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Thermal throttling",
+            "THERMAL_THROTTLING"
         )
-        val bitmap = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec)
+        val bitmap = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, spec)
         assertFalse(bitmap.isRecycled)
         assertEquals(Bitmap.Config.ARGB_8888, bitmap.config)
         assertTrue(bitmap.width in 64..128)
@@ -304,7 +285,7 @@ class NotificationVisualRendererTest {
 
     @Test
     @Config(sdk = [26])
-    fun serviceNotifications_onApi26_attachMonochromeSmallIconDynamicAccentColorAndColoredLargeIcon() {
+    fun serviceNotifications_onApi26_keepSmallIconAndOmitMonitorLargeIcon() {
         val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
         val service = controller.get()
         try {
@@ -334,6 +315,7 @@ class NotificationVisualRendererTest {
             )
             assertEquals(null, monitorNotification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
             assertNotNull(monitorNotification.smallIcon)
+            assertEquals(null, monitorNotification.extras.get(Notification.EXTRA_LARGE_ICON))
             assertNotEquals(0, monitorNotification.color)
 
             val idleNotification = service.buildMonitorNotificationForTesting(
@@ -346,15 +328,71 @@ class NotificationVisualRendererTest {
             )
 
             val anomalyNotification: Notification =
-                service.buildAnomalyAlertNotificationForTesting("Suhu baterai tinggi (42.5°C).")
+                service.buildAnomalyAlertNotificationForTesting(
+                    "Suhu baterai tinggi (45.7°C). Sistem mungkin membatasi arus pengisian.",
+                    "THERMAL_THROTTLING",
+                    45.7f
+                )
             assertNotNull(anomalyNotification)
             assertEquals("SUPERD GUARD • Peringatan Daya", anomalyNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertEquals(R.drawable.ic_status_anomaly, anomalyNotification.icon)
             assertEquals(NotificationVisualRenderer.COLOR_CRIMSON_ANOMALY, anomalyNotification.color)
+            assertEquals(
+                "Anomali: Thermal Throttling (Puncak 45.7°C)",
+                anomalyNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
+            )
+            assertEquals(null, anomalyNotification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
+            assertTrue(
+                anomalyNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+                    .toString().startsWith("Anomali: Thermal Throttling (Puncak 45.7°C)")
+            )
         } finally {
             controller.destroy()
         }
     }
+    @Test
+    fun anomalyFormatter_mapsAllDetectorCodesAndRequestedDiagnosticCategories() {
+        val cases = mapOf(
+            "THERMAL_THROTTLING" to "Anomali: Thermal Throttling",
+            "NET_DRAIN_CHARGING" to "Anomali: Daya Terkuras Saat Mengisi",
+            "CHARGING_NO_INPUT" to "Anomali: Pengisian Terlalu Lambat",
+            "CHARGING_PROGRESS_STALLED" to "Anomali: Pengisian Stagnan",
+            "CHARGING_PROGRESS_NOT_OBSERVED" to "Anomali: Pengisian Stagnan",
+            "SLOW_CHARGING" to "Anomali: Pengisian Terlalu Lambat",
+            "HIGH_DRAIN" to "Anomali: Daya Terkuras Saat Mengisi",
+            "LOW_CURRENT" to "Anomali: Pengisian Terlalu Lambat",
+            "VOLTAGE_DROP" to "Anomali: Tegangan Tidak Stabil",
+            "VOLTAGE_SPIKE" to "Anomali: Tegangan Tidak Stabil",
+            "VOLTAGE_UNSTABLE" to "Anomali: Tegangan Tidak Stabil",
+            "CHARGING_STAGNANT" to "Anomali: Pengisian Stagnan"
+        )
+        cases.forEach { (code, expected) ->
+            assertEquals(code, expected, NotificationVisualRenderer.formatAnomalyReason(code))
+        }
+        assertEquals(
+            "Anomali: Thermal Throttling (Puncak 45.7°C)",
+            NotificationVisualRenderer.formatAnomalyReason("THERMAL_THROTTLING", 45.7f)
+        )
+        assertEquals(
+            "Anomali: Thermal Throttling",
+            NotificationVisualRenderer.formatAnomalyReason("THERMAL_THROTTLING", null)
+        )
+    }
+
+    @Test
+    fun anomalyFormatter_humanizesUnknownCodesAndMultipleCodesWithoutRawUnderscores() {
+        assertEquals(
+            "Anomali: Some Enum Name",
+            NotificationVisualRenderer.formatAnomalyReason("SOME_ENUM_NAME")
+        )
+        assertEquals(
+            "Anomali: Thermal Throttling • Pengisian Stagnan",
+            NotificationVisualRenderer.formatAnomalyReason(
+                "THERMAL_THROTTLING, CHARGING_PROGRESS_STALLED"
+            )
+        )
+    }
+
     @Test
     fun anomalySeverity_usesCurrentDetectorCodes() {
         val cases = listOf(
@@ -379,25 +417,28 @@ class NotificationVisualRendererTest {
 
     @Test
     fun bitmapCache_isBoundedAndEvictionDoesNotRecycleIssuedBitmaps() {
-        val base = NotificationVisualRenderer.resolveMonitorVisualSpec(
-            LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 32.0f)
+        val base = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Thermal throttling",
+            "THERMAL_THROTTLING"
         )
-        val first = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
+        val first = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(
             context, base.copy(cacheKey = "eviction-0")
         )
         repeat(NotificationVisualRenderer.MAX_CACHE_ENTRIES + 4) { index ->
-            NotificationVisualRenderer.getOrRenderMonitorLargeIcon(
+            NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(
                 context, base.copy(cacheKey = "eviction-$index")
             )
         }
         assertTrue(NotificationVisualRenderer.cacheSize() <= NotificationVisualRenderer.MAX_CACHE_ENTRIES)
-        assertFalse("An evicted bitmap may still be referenced by NotificationManager", first.isRecycled)
+        assertFalse("An evicted Bitmap may still be referenced by NotificationManager", first.isRecycled)
     }
 
     @Test
     fun bitmapCache_concurrentSameKeyRequestsReturnSingleSharedBitmap() {
-        val state = LiveBatteryState(isCharging = true, chargeSource = "AC Adapter", tempCelsius = 33.0f)
-        val spec = NotificationVisualRenderer.resolveMonitorVisualSpec(state)
+        val spec = NotificationVisualRenderer.resolveAnomalyVisualSpec(
+            "Thermal throttling",
+            "THERMAL_THROTTLING"
+        )
         val workers = 16
         val ready = java.util.concurrent.CountDownLatch(workers)
         val start = java.util.concurrent.CountDownLatch(1)
@@ -407,7 +448,7 @@ class NotificationVisualRendererTest {
                 executor.submit<Bitmap> {
                     ready.countDown()
                     check(start.await(5, java.util.concurrent.TimeUnit.SECONDS))
-                    NotificationVisualRenderer.getOrRenderMonitorLargeIcon(context, spec)
+                    NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(context, spec)
                 }
             }
             assertTrue("Workers did not become ready", ready.await(5, java.util.concurrent.TimeUnit.SECONDS))
@@ -424,7 +465,6 @@ class NotificationVisualRendererTest {
             executor.shutdownNow()
         }
     }
-
 
     @Test
     fun statusBarIndicatorUsesSinglePersistentNotificationId1001AndDeletesLegacyChannel() {

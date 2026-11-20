@@ -65,6 +65,7 @@ import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
+import com.superdenot.powerguard.service.NotificationVisualRenderer
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -303,7 +304,10 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         }
                         if (session.isAnomaly) {
                             Text(
-                                text = "ANOMALI: ${session.anomalyReason ?: "Perlu pemeriksaan"}",
+                                text = NotificationVisualRenderer.formatAnomalyReason(
+                                    session.anomalyReason,
+                                    session.maxTempCelsius.takeIf { it > 0f }
+                                ),
                                 color = CrimsonAnomaly,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 8.dp)
@@ -501,7 +505,10 @@ private fun SessionHistoryCard(
             session.anomalyReason?.let { reason ->
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Diagnosa: $reason",
+                    text = NotificationVisualRenderer.formatAnomalyReason(
+                        reason,
+                        session.maxTempCelsius.takeIf { it > 0f }
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = CrimsonAnomaly
                 )

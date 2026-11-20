@@ -39,8 +39,6 @@ internal object NotificationVisualRenderer {
     @ColorInt const val COLOR_CRIMSON_ANOMALY: Int = 0xFFFF5252.toInt()
     @ColorInt const val COLOR_STANDBY_SLATE: Int = 0xFF78909C.toInt()
 
-    @ColorInt private const val BADGE_SURFACE_CENTER: Int = 0xFF222B3C.toInt()
-    @ColorInt private const val BADGE_SURFACE_EDGE: Int = 0xFF10141D.toInt()
     @ColorInt private const val ANOMALY_SURFACE_CENTER: Int = 0xFF311822.toInt()
     @ColorInt private const val ANOMALY_SURFACE_EDGE: Int = 0xFF140B10.toInt()
 
@@ -221,6 +219,59 @@ internal object NotificationVisualRenderer {
         )
     }
 
+
+    /**
+     * Converts persisted anomaly codes into concise Indonesian diagnostic labels.
+     * Unknown enum-like values are humanized so raw UPPER_SNAKE_CASE never reaches UI.
+     */
+    fun formatAnomalyReason(
+        anomalyReason: String?,
+        peakTemperatureCelsius: Float? = null
+    ): String {
+        val rawReason = anomalyReason?.trim().orEmpty()
+        if (rawReason.isBlank()) return "Anomali: Perlu pemeriksaan"
+
+        val labels = rawReason.split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .map { rawCode ->
+                val code = rawCode.uppercase(Locale.US)
+                val isCode = Regex("^[A-Z0-9]+(?:_[A-Z0-9]+)+$").matches(code)
+                if (!isCode) {
+                    if (rawCode.startsWith("Anomali:", ignoreCase = true)) rawCode
+                    else "Anomali: $rawCode"
+                } else {
+                    val label = when (code) {
+                        "THERMAL_THROTTLING", "HIGH_TEMPERATURE", "HIGH_TEMP", "TEMPERATURE_HIGH" ->
+                            "Thermal Throttling" + peakTemperatureCelsius
+                                ?.takeIf { it.isFinite() && it > 0f }
+                                ?.let { " (Puncak ${String.format(Locale.US, "%.1f", it)}°C)" }.orEmpty()
+                        "NET_DRAIN_CHARGING", "NET_DRAIN_WHILE_CHARGING",
+                        "POWER_DRAIN_WHILE_CHARGING", "HIGH_DRAIN" ->
+                            "Daya Terkuras Saat Mengisi"
+                        "SLOW_CHARGING", "LOW_CURRENT", "LOW_CHARGING_CURRENT", "CHARGING_NO_INPUT" ->
+                            "Pengisian Terlalu Lambat"
+                        "VOLTAGE_DROP", "VOLTAGE_SPIKE", "VOLTAGE_UNSTABLE", "UNSTABLE_VOLTAGE" ->
+                            "Tegangan Tidak Stabil"
+                        "CHARGING_PROGRESS_STALLED", "CHARGING_PROGRESS_NOT_OBSERVED",
+                        "CHARGING_STAGNANT", "CHARGING_STALLED", "STAGNANT_CHARGING" ->
+                            "Pengisian Stagnan"
+                        else -> code.lowercase(Locale.US)
+                            .split('_')
+                            .joinToString(" ") { word ->
+                                word.replaceFirstChar { first ->
+                                    if (first.isLowerCase()) first.titlecase(Locale.US) else first.toString()
+                                }
+                            }
+                    }
+                    "Anomali: $label"
+                }
+            }
+        if (labels.isEmpty()) return "Anomali: Perlu pemeriksaan"
+        return if (labels.size == 1) labels.first()
+        else "Anomali: " + labels.joinToString(" • ") { it.removePrefix("Anomali: ") }
+    }
+
     fun resolveAnomalyVisualSpec(
         alertMessage: String,
         anomalyCode: String? = null
@@ -266,23 +317,6 @@ internal object NotificationVisualRenderer {
             "AC Adapter" -> R.drawable.ic_status_ac
             "Wireless" -> R.drawable.ic_status_wireless
             else -> R.drawable.ic_status_temp_normal
-        }
-    }
-
-    fun getOrRenderMonitorLargeIcon(
-        context: Context,
-        spec: MonitorVisualSpec,
-    ): Bitmap {
-        return getOrCreateCachedBitmap(context, spec.cacheKey) { appContext, sizePx ->
-            renderBadgeBitmap(
-                context = appContext,
-                sizePx = sizePx,
-                iconResId = spec.smallIconResId,
-                accentColor = spec.accentColor,
-                secondaryArcColor = null,
-                centerSurfaceColor = BADGE_SURFACE_CENTER,
-                edgeSurfaceColor = BADGE_SURFACE_EDGE
-            )
         }
     }
 
