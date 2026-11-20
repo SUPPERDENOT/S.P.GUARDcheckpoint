@@ -10,18 +10,10 @@ import java.util.concurrent.TimeUnit
 
 class MonitorNotificationPostGateTest {
     @Test
-    fun sameChargingStateSuppressesDuplicatePayloadByDefault() {
+    fun sameChargingStateSuppressesDuplicatePayloadEvenWhenContentChanges() {
         val gate = MonitorNotificationPostGate()
         assertTrue(gate.shouldPost("service-start", "connected", 1_000L))
         assertFalse(gate.shouldPost("periodic-copy-change", "connected", 8_000L))
-    }
-
-    @Test
-    fun sameStableStateAllowsDistinctMetricPayloadRefresh() {
-        val gate = MonitorNotificationPostGate()
-        assertTrue(gate.shouldPost("initial", "connected", 1_000L))
-        assertTrue(gate.shouldPost("updated-metric", "connected", 1_100L, allowPayloadRefresh = true))
-        assertFalse(gate.shouldPost("updated-metric", "connected", 1_200L, allowPayloadRefresh = true))
     }
 
     @Test
@@ -40,7 +32,7 @@ class MonitorNotificationPostGateTest {
         assertTrue(gate.shouldPost("plugged", "connected", 1_000L))
         assertFalse(gate.shouldPost("unplugged-bounce", "disconnected", 1_100L))
         assertTrue(gate.isBounceCoalescing(1_100L))
-        assertFalse(gate.shouldPost("replug-bounce", "connected", 1_150L, allowPayloadRefresh = true))
+        assertFalse(gate.shouldPost("replug-bounce", "connected", 1_150L))
         assertTrue(gate.isBounceCoalescing(1_150L))
         assertTrue(gate.shouldPost("stable-unplugged", "disconnected", 1_300L))
         assertFalse(gate.isBounceCoalescing(1_300L))

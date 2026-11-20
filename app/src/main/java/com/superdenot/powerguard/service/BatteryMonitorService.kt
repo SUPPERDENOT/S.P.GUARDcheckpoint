@@ -3745,15 +3745,14 @@ class BatteryMonitorService : Service() {
                 actorState.name
             ).joinToString("|")
             val nowElapsedMs = SystemClock.elapsedRealtime()
-            val shouldPostTransitionOrPayload = monitorNotificationPostGate.shouldPost(
+            val shouldPostTransition = monitorNotificationPostGate.shouldPost(
                 payloadSignature = payloadSignature,
                 criticalStateSignature = state.isPowerConnected.toString(),
                 nowElapsedMs = nowElapsedMs,
                 snapshotSequence = snapshotSequence,
-                latestSequence = latestSequence,
-                allowPayloadRefresh = true
+                latestSequence = latestSequence
             )
-            if (!shouldPostTransitionOrPayload &&
+            if (!shouldPostTransition &&
                 monitorNotificationPostGate.isBounceCoalescing(nowElapsedMs)
             ) {
                 return@synchronized
@@ -3764,9 +3763,9 @@ class BatteryMonitorService : Service() {
                 "SUPERD GUARD",
                 contentText,
                 nowElapsedMs,
-                force || shouldPostTransitionOrPayload
+                force || shouldPostTransition
             )
-            if (shouldPostTransitionOrPayload || decision.shouldNotify) {
+            if (shouldPostTransition || decision.shouldNotify) {
                 val notificationToPost = if (decision.body == contentText) {
                     notification
                 } else {

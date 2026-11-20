@@ -1,11 +1,10 @@
 package com.superdenot.powerguard.service
 
 /**
- * Serial gate for foreground notification ID 1001.
- *
- * It suppresses duplicate payloads, coalesces rapid power-state bounce for 250 ms,
- * and rejects snapshots superseded while they are being built. Normal metric refreshes
- * remain possible after a stable state; they do not extend the transition cooldown.
+ * Serial transition gate for foreground notification ID 1001.
+ * It suppresses duplicate power-state edges and coalesces rapid opposite-state
+ * bounce for 250 ms. The existing render gate remains responsible for stable
+ * metric payload refreshes and its body throttle.
  */
 internal class MonitorNotificationPostGate(
     private val transitionCooldownMs: Long = DEFAULT_TRANSITION_COOLDOWN_MS
@@ -15,7 +14,6 @@ internal class MonitorNotificationPostGate(
     }
 
     private var lastCriticalStateSignature: String? = null
-    private var lastPayloadSignature: String? = null
     private var lastTransitionElapsedMs: Long? = null
     private var pendingBounceSignature: String? = null
 
@@ -25,8 +23,7 @@ internal class MonitorNotificationPostGate(
         criticalStateSignature: String,
         nowElapsedMs: Long,
         snapshotSequence: Long = 0L,
-        latestSequence: Long = snapshotSequence,
-        allowPayloadRefresh: Boolean = false
+        latestSequence: Long = snapshotSequence
     ): Boolean {
         require(payloadSignature.isNotBlank()) { "Payload signature must not be blank" }
         require(nowElapsedMs >= 0L) { "Elapsed realtime must not be negative" }
@@ -45,10 +42,6 @@ internal class MonitorNotificationPostGate(
                 return false
             }
             pendingBounceSignature = null
-            if (allowPayloadRefresh && payloadSignature != lastPayloadSignature) {
-                lastPayloadSignature = payloadSignature
-                return true
-            }
             return false
         }
 
@@ -60,7 +53,6 @@ internal class MonitorNotificationPostGate(
         }
 
         lastCriticalStateSignature = criticalStateSignature
-        lastPayloadSignature = payloadSignature
         lastTransitionElapsedMs = nowElapsedMs
         pendingBounceSignature = null
         return true
@@ -79,7 +71,6 @@ internal class MonitorNotificationPostGate(
 
     private fun resetInternal() {
         lastCriticalStateSignature = null
-        lastPayloadSignature = null
         lastTransitionElapsedMs = null
         pendingBounceSignature = null
     }
