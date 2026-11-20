@@ -1,13 +1,13 @@
 ## 2026-11-20 — Physical QA follow-up: layout, permission refresh, and notification content (implementation review; CI pending)
 
-- [x] Charging header, Hero padding, divider spacing, 2×2 metric grid, and session summary compacted.
+- [x] Charging header, Hero padding, divider spacing, 2×2 metric grid (8dp row gap; 10dp metric-card vertical padding), and session summary compacted.
 - [x] Charging protocol value has a weighted, single-line value column.
 - [x] Overview, Charging, Insights, History, and Settings scroll containers reserve at least 96dp plus navigation-bar inset at the bottom.
 - [x] Insights and History nested Analytics lists also receive the bottom content reserve.
 - [x] Removed duplicate manual permission refresh buttons and their Snackbar UI.
 - [x] Added ON_RESUME refresh to Initial Setup and active Overview; activity refresh remains for other tabs and charger-start lifecycle behavior is retained.
 - [x] History range formatter was already correct; repository code search found zero literal `'n` matches in `app/src/main`.
-- [x] Monitor notification ID 1001 no longer sets visual subtext; compact body and expanded BigTextStyle use the same battery-side telemetry snapshot.
+- [x] Monitor notification ID 1001 no longer sets visual subtext; compact body and expanded BigTextStyle cover level, current, power, voltage, temperature, net charge, charging status, source, and protocol.
 - [x] App activity title resolves from PackageManager with package-name fallback; package subtitle is one-line ellipsized.
 - [x] P0/P1 service lifecycle, normalizer, notification post gate, sequence guard, deduplication, and cooldown logic unchanged.
 - [ ] `./scripts/ui-audit.sh` — pending GitHub Actions.

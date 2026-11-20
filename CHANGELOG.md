@@ -1,7 +1,7 @@
 ## 2026-11-20 — Physical QA follow-up: five-tab layout, permission refresh, and notification content (implementation; CI pending)
 
 ### UI layout and navigation
-- Tightened the Charging header, Hero card, battery-reading grid, and session summary to reduce the short-screen overflow on 360×800dp devices while retaining a scrollable list for accessibility.
+- Tightened the Charging header, Hero card, battery-reading grid, and session summary to reduce the short-screen overflow on 360×800dp devices while retaining a scrollable list for accessibility; the 2×2 grid row gap is 8dp and each metric card keeps 10dp vertical padding.
 - Added a 96dp bottom content reserve plus system navigation-bar inset to the scrollable content in Overview, Charging, Insights, History, and Settings.
 - Applied the reserve to the nested Analytics lists used by Insights and History, so the final row remains reachable above bottom navigation.
 - Reduced the Charging page to the concise title "Analisis Pengisian"; the protocol value is constrained to one line with a wider value column.
@@ -13,7 +13,7 @@
 
 ### Monitoring notification and app activity labels
 - Removed the monitor notification's redundant subtext so the dynamic title has more available space.
-- Replaced the long "Terisi:" body wording with a compact single-line battery-side telemetry summary and added expanded BigTextStyle details.
+- Replaced the long "Terisi:" body wording with a compact single-line battery-side telemetry summary and added expanded BigTextStyle details for level, current, power, voltage, temperature, net charge, charging status, source, and protocol.
 - App activity titles now resolve through PackageManager with package-name fallback; package subtitles are single-line ellipsized.
 - P0/P1 service lifecycle, current normalizer, notification post gate, sequence guard, deduplication, and cooldown algorithms were not changed.
 

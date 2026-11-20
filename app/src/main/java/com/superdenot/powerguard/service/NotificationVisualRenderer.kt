@@ -94,21 +94,33 @@ internal object NotificationVisualRenderer {
     }
 
     fun formatMonitorExpandedText(state: LiveBatteryState): String {
+        val level = if (state.isLevelAvailable) "${state.level}%" else "Tidak tersedia"
         val current = if (state.isCurrentAvailable) {
             "${if (state.currentMa > 0) "+" else ""}${state.currentMa} mA"
         } else "Tidak tersedia"
         val power = if (state.isPowerAvailable) {
             String.format(Locale.US, "%.1f W", state.powerWatt)
         } else "Tidak tersedia"
+        val voltage = if (state.isVoltageAvailable) "${state.voltageMv} mV" else "Tidak tersedia"
         val temperature = if (state.isTemperatureAvailable) {
             String.format(Locale.US, "%.1f°C", state.tempCelsius)
         } else "Tidak tersedia"
         val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
+        val chargingStatus = when {
+            !state.isChargingStatusAvailable -> "Tidak tersedia"
+            state.isCharging -> "Mengisi"
+            else -> "Tidak mengisi"
+        }
         return listOf(
+            "Level baterai: $level",
             "Arus baterai: $current",
             "Daya baterai: $power",
+            "Tegangan baterai: $voltage",
             "Suhu baterai: $temperature",
-            "Muatan bersih: $netCharge"
+            "Muatan bersih: $netCharge",
+            "Status pengisian: $chargingStatus",
+            "Sumber daya: ${state.chargeSource}",
+            "Protokol: ${state.chargingProtocol}"
         ).joinToString("\n")
     }
 

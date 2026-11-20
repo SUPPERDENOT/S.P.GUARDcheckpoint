@@ -221,7 +221,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     "PEMBACAAN BATERAI • SISI BATERAI",
                     color = CyanFastCharge,

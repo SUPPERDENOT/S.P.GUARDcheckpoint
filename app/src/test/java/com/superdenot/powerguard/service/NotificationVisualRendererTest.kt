@@ -81,7 +81,7 @@ class NotificationVisualRendererTest {
             NotificationVisualRenderer.formatMonitorContentText(state)
         )
         assertEquals(
-            "Arus baterai: -243 mA\nDaya baterai: -0.9 W\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh",
+            "Level baterai: 0%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 0 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Tidak mengisi\nSumber daya: Discharging\nProtokol: Not Exposed by Device",
             NotificationVisualRenderer.formatMonitorExpandedText(state)
         )
     }
@@ -252,9 +252,11 @@ class NotificationVisualRendererTest {
                         level = 56,
                         currentMa = -243,
                         powerWatt = -0.9f,
+                        voltageMv = 4150,
                         tempCelsius = 31.5f,
                         sessionMahDelivered = 0.0,
-                        isCharging = true
+                        isCharging = true,
+                        chargeSource = "USB Port"
                     )
                 )
             assertNotNull(monitorNotification)
@@ -264,7 +266,7 @@ class NotificationVisualRendererTest {
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
             )
             assertEquals(
-                "Arus baterai: -243 mA\nDaya baterai: -0.9 W\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh",
+                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol: Not Exposed by Device",
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
             )
             assertEquals(null, monitorNotification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
