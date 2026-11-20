@@ -73,6 +73,12 @@ internal object NotificationVisualRenderer {
     private val cacheHitsCounter = AtomicInteger(0)
     private val cacheMissesCounter = AtomicInteger(0)
 
+    fun resolveMonitorContentTitle(state: LiveBatteryState): String {
+        if (!state.isCharging) return "Pemantauan Baterai Aktif"
+        val level = if (state.isLevelAvailable) "${state.level}%" else "—"
+        return "Mengisi Daya • $level"
+    }
+
     fun resolveMonitorVisualSpec(
         state: LiveBatteryState,
         isRecoveryHold: Boolean = false

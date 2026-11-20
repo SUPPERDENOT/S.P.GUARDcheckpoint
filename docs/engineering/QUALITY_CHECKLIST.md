@@ -1,3 +1,21 @@
+## 2026-11-20 — Physical QA UI polish (implementation review; CI pending)
+
+- [x] Initial Setup refresh action now shows a Snackbar after refreshing Android permission state.
+- [x] Overview Kesiapan Sistem refresh action now shows the same Snackbar summary.
+- [x] Snackbar reports notification permission, battery-optimization exemption, and usage-access state from refreshed values.
+- [x] Session level ranges consistently render as `start% → end%` through an explicit `\\u2192` formatter.
+- [x] Unit test verifies the exact session level range string.
+- [x] Foreground notification title is state-aware and no longer duplicates the app brand in the content title.
+- [x] Notification title formatting has charging, idle/discharging, and unavailable-level test coverage.
+- [x] P0/P1 service lifecycle, current normalizer, notification lock/sequence guard/deduplication/cooldown logic unchanged; only notification title presentation inputs changed.
+- [ ] `./scripts/ui-audit.sh` — NOT RUN locally; pending GitHub Actions.
+- [ ] `gradle --no-daemon testDebugUnitTest assembleDebug` — NOT RUN locally; pending GitHub Actions.
+- [ ] Physical-device QA for these three polish changes — NOT RUN; prior itel P55 P0/P1 verification is separate.
+- [x] No SDK, dependency, version, namespace, application ID, or Room schema change.
+- [x] `main` untouched; no merge performed.
+
+---
+
 ## 2026-11-20 — P0/P1 audit fixes ported onto latest UI baseline (implementation review; CI verified)
 
 - [x] Target branch created directly from `fix/auto-start-coordinator-timing` at `d7dbec01d412b95a8129659a0991a2d43bca6519`.

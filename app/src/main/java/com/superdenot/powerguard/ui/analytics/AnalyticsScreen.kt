@@ -68,6 +68,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
+    "$startLevel% \u2192 $endLevel%"
+
+
 @Composable
 fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
@@ -247,7 +251,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel) {
                             color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${session.startLevel}→${endLevel}%",
+                            text = formatSessionLevelRange(session.startLevel, endLevel),
                             modifier = Modifier.weight(0.18f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center
@@ -363,7 +367,8 @@ private fun SessionHistoryCard(
         deltaPct < 0 -> "$deltaPct%"
         else -> "0%"
     }
-    val endPctLabel = if (session.endLevel != null) "${session.endLevel}%" else "$effectiveEndLevel% (Aktif)"
+    val endPctLabel = formatSessionLevelRange(session.startLevel, effectiveEndLevel) +
+        if (session.endLevel == null) " (Aktif)" else ""
 
     Card(
         colors = CardDefaults.cardColors(
@@ -418,7 +423,7 @@ private fun SessionHistoryCard(
 
             // Gunakan Unicode → agar panah tampil rapi tanpa rusak karakter
             Text(
-                text = "Level: ${session.startLevel}% → $endPctLabel ($deltaPctStr)  |  Terisi: ${String.format(Locale.US, "%+.1f mAh", session.totalMahDelivered)}",
+                text = "Level: $endPctLabel ($deltaPctStr)  |  Terisi: ${String.format(Locale.US, "%+.1f mAh", session.totalMahDelivered)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (session.totalMahDelivered >= 0) EmeraldCharge else CrimsonAnomaly
@@ -455,7 +460,7 @@ private fun SessionHistoryCard(
                         )
                         SessionDetailMiniBox(
                             label = "Persentase Terisi",
-                            value = "$deltaPctStr (${session.startLevel}% → $effectiveEndLevel%)",
+                            value = "$deltaPctStr (${formatSessionLevelRange(session.startLevel, effectiveEndLevel)})",
                             subValue = String.format(Locale.US, "Kapasitas: %+.1f mAh", session.totalMahDelivered),
                             accent = if (deltaPct > 0 || session.totalMahDelivered > 0) EmeraldCharge else CrimsonAnomaly,
                             modifier = Modifier.weight(1f)

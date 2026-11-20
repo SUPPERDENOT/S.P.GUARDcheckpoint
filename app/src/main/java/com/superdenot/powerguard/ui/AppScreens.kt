@@ -45,10 +45,13 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
-    var readinessRefreshed by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
+    Box(Modifier.fillMaxSize().padding(padding)) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
+        Modifier.fillMaxSize().padding(horizontal = 18.dp).padding(bottom = 72.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
@@ -153,7 +156,12 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     OutlinedButton(
                         onClick = {
                             vm.refreshPermissionsAndUsage()
-                            readinessRefreshed = true
+                            val message = formatSystemReadinessSnackbarSummary(
+                                notificationGranted = isNotificationPermissionGranted(context),
+                                batteryOptimizationIgnored = vm.isBatteryOptimizationIgnored.value,
+                                usageAccessGranted = vm.hasUsagePermission.value
+                            )
+                            coroutineScope.launch { snackbarHostState.showSnackbar(message) }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -161,17 +169,15 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         Spacer(Modifier.width(8.dp))
                         Text("Periksa ulang status")
                     }
-                    if (readinessRefreshed) {
-                        Text(
-                            "Status diperbarui dari pengaturan Android.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
             }
         }
         item { Spacer(Modifier.height(12.dp)) }
+    }
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 16.dp, vertical = 8.dp)
+    )
     }
 }
 

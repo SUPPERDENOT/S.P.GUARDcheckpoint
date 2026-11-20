@@ -47,6 +47,28 @@ class NotificationVisualRendererTest {
     }
 
     @Test
+    fun monitorContentTitleReflectsChargingLevelAndIdleStateWithoutDuplicateBrandTitle() {
+        assertEquals(
+            "Mengisi Daya • 56%",
+            NotificationVisualRenderer.resolveMonitorContentTitle(
+                LiveBatteryState(level = 56, isCharging = true)
+            )
+        )
+        assertEquals(
+            "Mengisi Daya • —",
+            NotificationVisualRenderer.resolveMonitorContentTitle(
+                LiveBatteryState(level = 0, isLevelAvailable = false, isCharging = true)
+            )
+        )
+        assertEquals(
+            "Pemantauan Baterai Aktif",
+            NotificationVisualRenderer.resolveMonitorContentTitle(
+                LiveBatteryState(level = 56, isCharging = false)
+            )
+        )
+    }
+
+    @Test
     fun resolveMonitorVisualSpec_coversAllBatteryStatesAndDrawables() {
         val standby = NotificationVisualRenderer.resolveMonitorVisualSpec(
             LiveBatteryState(isCharging = false, chargeSource = "Discharging", tempCelsius = 31.0f)
@@ -206,11 +228,23 @@ class NotificationVisualRendererTest {
         val service = controller.get()
         try {
             val monitorNotification: Notification =
-                service.buildMonitorNotificationForTesting("+1850 mA (7.6W) • 33.0°C")
+                service.buildMonitorNotificationForTesting(
+                    "+1850 mA (7.6W) • 33.0°C",
+                    LiveBatteryState(level = 56, isCharging = true)
+                )
             assertNotNull(monitorNotification)
-            assertEquals("SUPERD GUARD", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
+            assertEquals("Mengisi Daya • 56%", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertNotNull(monitorNotification.smallIcon)
             assertNotEquals(0, monitorNotification.color)
+
+            val idleNotification = service.buildMonitorNotificationForTesting(
+                "Perangkat menggunakan daya baterai",
+                LiveBatteryState(isCharging = false)
+            )
+            assertEquals(
+                "Pemantauan Baterai Aktif",
+                idleNotification.extras.getCharSequence(Notification.EXTRA_TITLE)
+            )
 
             val anomalyNotification: Notification =
                 service.buildAnomalyAlertNotificationForTesting("Suhu baterai tinggi (42.5°C).")

@@ -1,3 +1,21 @@
+## 2026-11-20 — Physical QA UI polish (implementation; CI pending)
+
+### Readiness feedback
+- Added a Snackbar confirmation to the Initial Setup sheet and the active Overview screen's Kesiapan Sistem card. The message reports refreshed notification permission, battery-optimization exemption, and usage-access states.
+- Reused one readiness-summary formatter so both entry points present the same status vocabulary.
+
+### History and notification presentation
+- Centralized session battery-level range formatting as `start% → end%` using the explicit Kotlin Unicode escape `\\u2192`; added a unit test for the rendered range.
+- Replaced the duplicated foreground notification title with a state-aware title: `Mengisi Daya • level%` while charging, or `Pemantauan Baterai Aktif` while discharging/idle. Unavailable level is shown as `—`.
+- Kept notification publication, sequence validation, deduplication, cooldown, service lifecycle, sensor normalization, and P0/P1 policy logic unchanged. Only notification presentation title inputs were updated.
+
+### Verification
+- Implementation and focused regression tests added; GitHub Actions verification pending for this commit.
+- The three new polish changes have not yet received separate physical-device QA. Earlier itel P55 verification of the six P0/P1 fixes remains a distinct result.
+- No local Gradle build was run in this GitHub-only editing environment.
+
+---
+
 ## 2026-11-20 — P0/P1 audit fixes ported to latest Industrial Instrument baseline (CI verified)
 
 ### Scope and compatibility

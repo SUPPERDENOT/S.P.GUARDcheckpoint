@@ -39,6 +39,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.ui.*
+import kotlinx.coroutines.launch
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 
@@ -180,8 +181,12 @@ class MainActivity : ComponentActivity() {
                         },
                         onRefresh = {
                             vm.refreshPermissionsAndUsage()
-                            notificationGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                            notificationGranted = isNotificationPermissionGranted(context)
+                            formatSystemReadinessSnackbarSummary(
+                                notificationGranted = notificationGranted,
+                                batteryOptimizationIgnored = vm.isBatteryOptimizationIgnored.value,
+                                usageAccessGranted = vm.hasUsagePermission.value
+                            )
                         },
                         onContinue = {
                             setupPrefs.edit().putBoolean("completed", true).apply()
@@ -203,9 +208,12 @@ private fun InitialPermissionSetup(
     onRequestNotifications: () -> Unit,
     onOpenBatteryOptimization: () -> Unit,
     onOpenUsageAccess: () -> Unit,
-    onRefresh: () -> Unit,
+    onRefresh: () -> String,
     onContinue: () -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     Dialog(onDismissRequest = onContinue) {
         Surface(
             shape = RoundedCornerShape(24.dp),
@@ -213,16 +221,30 @@ private fun InitialPermissionSetup(
             tonalElevation = 8.dp,
             modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp)
         ) {
-            Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
+                Column(
+                    Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 72.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                 Text("PERSIAPAN AWAL", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Text("Siapkan Superd Power Guard", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text("Atur akses yang mendukung notifikasi pemantauan, auto-start saat charger tersambung, dan analisis penggunaan. Anda tetap bisa melanjutkan tanpa memberikan akses opsional.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SetupPermissionRow("Notifikasi pemantauan", "Disarankan agar kartu layanan terlihat di panel notifikasi.", notificationGranted, "IZINKAN", onRequestNotifications)
                 SetupPermissionRow("Optimasi baterai", "Pengecualian membantu Android mengizinkan auto-start saat charger tersambung.", batteryOptimizationIgnored, "ATUR", onOpenBatteryOptimization)
                 SetupPermissionRow("Akses pengguna", "Opsional — diperlukan untuk analisis penggunaan aplikasi.", usageAccessGranted, "ATUR", onOpenUsageAccess)
-                OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) { Text("Periksa ulang status") }
+                OutlinedButton(
+                    onClick = {
+                        coroutineScope.launch { snackbarHostState.showSnackbar(onRefresh()) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Periksa ulang status") }
                 Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text("Lanjut ke aplikasi") }
                 Text("Akses opsional tidak akan dipaksakan. Anda dapat mengubahnya kapan saja melalui Settings.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                }
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 8.dp, vertical = 8.dp)
+                )
             }
         }
     }

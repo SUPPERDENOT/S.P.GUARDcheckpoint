@@ -2185,7 +2185,7 @@ class BatteryMonitorService : Service() {
             )
             notificationRenderGate.evaluate(
                 iconKey,
-                "SUPERD GUARD",
+                NotificationVisualRenderer.resolveMonitorContentTitle(state),
                 contentText,
                 nowElapsedMs,
                 force = true
@@ -3696,6 +3696,9 @@ class BatteryMonitorService : Service() {
     internal fun buildMonitorNotificationForTesting(contentText: String): Notification =
         buildMonitorNotification(contentText)
 
+    internal fun buildMonitorNotificationForTesting(contentText: String, state: LiveBatteryState): Notification =
+        buildMonitorNotification(contentText, state)
+
     internal fun buildAnomalyAlertNotificationForTesting(
         alertMessage: String,
         anomalyCode: String? = null
@@ -3727,7 +3730,7 @@ class BatteryMonitorService : Service() {
         val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
         val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) else null
         val builder = NotificationCompat.Builder(this, CHANNEL_MONITOR)
-            .setContentTitle("SUPERD GUARD")
+            .setContentTitle(NotificationVisualRenderer.resolveMonitorContentTitle(state))
             .setContentText(contentText)
             .setSubText(visualSpec.subText)
             .setColor(visualSpec.accentColor)
@@ -3806,7 +3809,7 @@ class BatteryMonitorService : Service() {
 
             val decision = notificationRenderGate.evaluate(
                 iconKey,
-                "SUPERD GUARD",
+                NotificationVisualRenderer.resolveMonitorContentTitle(state),
                 contentText,
                 nowElapsedMs,
                 force || shouldPostTransition
