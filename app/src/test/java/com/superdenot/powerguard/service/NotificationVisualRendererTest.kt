@@ -223,17 +223,17 @@ class NotificationVisualRendererTest {
         }
     }
     @Test
-    fun anomalySeverity_usesDetectorCodesForAllFiveAnomalyTypes() {
+    fun anomalySeverity_usesCurrentDetectorCodes() {
         val cases = listOf(
-            "FAKE_FAST_CHARGE_OSCILLATION" to NotificationVisualRenderer.AnomalySeverity.CRITICAL,
             "THERMAL_THROTTLING" to NotificationVisualRenderer.AnomalySeverity.CRITICAL,
             "NET_DRAIN_CHARGING" to NotificationVisualRenderer.AnomalySeverity.CRITICAL,
-            "FAKE_FAST_CHARGING" to NotificationVisualRenderer.AnomalySeverity.WARNING,
-            "SLOW_CHARGING" to NotificationVisualRenderer.AnomalySeverity.WARNING
+            "CHARGING_NO_INPUT" to NotificationVisualRenderer.AnomalySeverity.WARNING,
+            "CHARGING_PROGRESS_STALLED" to NotificationVisualRenderer.AnomalySeverity.WARNING,
+            "CHARGING_PROGRESS_NOT_OBSERVED" to NotificationVisualRenderer.AnomalySeverity.WARNING
         )
         cases.forEach { (code, expected) ->
             val spec = NotificationVisualRenderer.resolveAnomalyVisualSpec(
-                alertMessage = "Anomali Pengisian: arus masuk hanya -120 mA",
+                alertMessage = "Peringatan pengisian berdasarkan pembacaan baterai.",
                 anomalyCode = code
             )
             assertEquals("Severity for $code", expected, spec.severity)
