@@ -77,7 +77,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Text(
-                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Protokol: ${state.chargingProtocol ?: "Tidak diketahui"}" else "Perangkat sedang menggunakan daya baterai",
+                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Protokol: ${state.chargingProtocol}" else "Perangkat sedang menggunakan daya baterai",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -211,7 +211,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     DiagnosticLine("Sumber daya", if (state.isCharging) state.chargeSource else "Tidak terhubung")
-                    DiagnosticLine("Protokol", state.chargingProtocol ?: "Tidak diketahui — tidak diekspos perangkat")
+                    DiagnosticLine("Protokol", state.chargingProtocol)
                 }
             }
         }

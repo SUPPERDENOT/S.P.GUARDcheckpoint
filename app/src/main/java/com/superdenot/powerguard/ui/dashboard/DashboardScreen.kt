@@ -197,7 +197,7 @@ fun DashboardScreen(
                                 shape = RoundedCornerShape(50)
                             ) {
                                 Text(
-                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • PROTOCOL ${activeState.chargingProtocol?.uppercase() ?: "UNKNOWN"}"
+                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • PROTOCOL ${activeState.chargingProtocol}"
                                     else "DISCHARGING",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
@@ -615,7 +615,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
             ) {
                 InfoSectionItem(
                     title = "1. Tentang Aplikasi",
-                    content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.powerguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
+                    content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.superdguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
                 )
                 InfoSectionItem(
                     title = "2. Fitur Utama",

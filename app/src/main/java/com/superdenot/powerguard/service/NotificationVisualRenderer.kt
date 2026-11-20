@@ -152,16 +152,13 @@ internal object NotificationVisualRenderer {
         val normalized = alertMessage.lowercase(Locale.US)
         val severity = when (anomalyCode) {
             "THERMAL_THROTTLING",
-            "NET_DRAIN_CHARGING",
-            "FAKE_FAST_CHARGE_OSCILLATION" -> AnomalySeverity.CRITICAL
-            "FAKE_FAST_CHARGING",
+            "NET_DRAIN_CHARGING" -> AnomalySeverity.CRITICAL
             "SLOW_CHARGING" -> AnomalySeverity.WARNING
             else -> {
                 val criticalByMessage =
                     normalized.contains("suhu baterai tinggi") ||
                     normalized.contains("memangkas arus") ||
                     normalized.contains("thermal") ||
-                    normalized.contains("fake fast charging terdeteksi") ||
                     normalized.contains("berkedip tidak stabil") ||
                     normalized.contains("berubah positif/negatif") ||
                     normalized.contains("oscillation") ||
@@ -311,7 +308,7 @@ internal object NotificationVisualRenderer {
         }
         canvas.drawCircle(cx, cy, borderRadius, borderPaint)
 
-        // 4. Optional dual-neon energy arc (Violet for Fast Charge / Cyan for Guard Alert)
+        // 4. Optional secondary status arc
         if (secondaryArcColor != null) {
             val arcInset = sizePx * 0.095f
             val arcBounds = RectF(arcInset, arcInset, sizePx - arcInset, sizePx - arcInset)

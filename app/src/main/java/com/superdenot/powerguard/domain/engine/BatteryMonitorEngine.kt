@@ -47,11 +47,12 @@ class BatteryMonitorEngine(private val context: Context) {
                 status == BatteryManager.BATTERY_STATUS_FULL
 
         val plugged = intentStatus?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        val isPowerConnected = plugged != 0
         val chargeSource = when (plugged) {
             BatteryManager.BATTERY_PLUGGED_AC -> "AC Adapter"
             BatteryManager.BATTERY_PLUGGED_USB -> "USB Port"
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Wireless"
-            else -> if (isCharging) "Unknown Source" else "Discharging"
+            else -> if (isPowerConnected || isCharging) "Unknown Source" else "Discharging"
         }
 
         val isVoltageAvailable = intentStatus?.hasExtra(BatteryManager.EXTRA_VOLTAGE) == true &&
@@ -67,12 +68,8 @@ class BatteryMonitorEngine(private val context: Context) {
         val tempCelsius = tempTenths / 10f
 
         val rawCurrent = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
-        val isCurrentAvailable = rawCurrent != Int.MIN_VALUE && isChargingStatusAvailable
-        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(
-            rawCurrent,
-            isCharging,
-            isChargingStatusAvailable
-        )
+        val isCurrentAvailable = rawCurrent != Int.MIN_VALUE
+        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(rawCurrent, isPowerConnected)
 
         val isPowerAvailable = isVoltageAvailable && isCurrentAvailable
         val powerWatt = if (isPowerAvailable) {
@@ -86,8 +83,9 @@ class BatteryMonitorEngine(private val context: Context) {
             powerWatt = powerWatt,
             tempCelsius = tempCelsius,
             isCharging = isCharging,
+            isPowerConnected = isPowerConnected,
             chargeSource = chargeSource,
-            chargingProtocol = null,
+            chargingProtocol = LiveBatteryState.PROTOCOL_NOT_EXPOSED,
             sessionMahDelivered = sessionMah,
             sessionDurationSec = sessionDurationSec,
             deepSleepRatio = calculateDeepSleepRatio(),

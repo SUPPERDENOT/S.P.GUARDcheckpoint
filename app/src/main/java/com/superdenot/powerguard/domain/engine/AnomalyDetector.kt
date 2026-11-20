@@ -8,6 +8,9 @@ import android.os.SystemClock
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 
+internal fun isNetDrainWhilePowerConnected(state: LiveBatteryState): Boolean =
+    state.isPowerConnected && state.isCurrentAvailable && state.currentMa < 0
+
 class AnomalyDetector(private val context: Context) {
 
     private val chargingProgressTracker = ChargingProgressTracker()
@@ -23,6 +26,15 @@ class AnomalyDetector(private val context: Context) {
     }
 
     fun evaluate(state: LiveBatteryState, isScreenOn: Boolean): AnomalyResult {
+        if (isNetDrainWhilePowerConnected(state)) {
+            chargingProgressTracker.reset()
+            return AnomalyResult(
+                isAnomaly = true,
+                code = "NET_DRAIN_CHARGING",
+                message = "Daya eksternal terhubung, tetapi arus baterai terukur menunjukkan net discharge (${state.currentMa} mA). Ini adalah pembacaan pada sisi baterai, bukan identifikasi protokol atau bukti kerusakan hardware."
+            )
+        }
+
         if (!state.isCharging || state.level >= 95) {
             reset()
             return AnomalyResult(false, null, null)
@@ -55,7 +67,7 @@ class AnomalyDetector(private val context: Context) {
             ChargingProgressTracker.Issue.NO_CHARGING_INPUT -> AnomalyResult(
                 isAnomaly = true,
                 code = "CHARGING_NO_INPUT",
-                message = "Status Android menunjukkan sedang mengisi, tetapi arus baterai terukur hampir nol selama sedikitnya 3 menit. Label Fast Charging dari ponsel tidak membuktikan daya benar-benar masuk. Periksa adaptor, kabel, dan konektor."
+                message = "Status Android menunjukkan sedang mengisi, tetapi arus baterai terukur hampir nol selama sedikitnya 3 menit. Label pengisian dari ponsel tidak membuktikan daya benar-benar masuk. Periksa adaptor, kabel, dan konektor."
             )
             ChargingProgressTracker.Issue.CHARGING_PROGRESS_STALLED -> {
                 val wakelockHint = if (topApp != null) {

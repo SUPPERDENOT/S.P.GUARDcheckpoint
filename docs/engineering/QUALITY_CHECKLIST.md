@@ -1,3 +1,26 @@
+## 2026-11-20 — P0/P1 audit fixes ported onto latest UI baseline (implementation review; CI pending)
+
+- [x] Target branch created directly from `fix/auto-start-coordinator-timing` at `d7dbec01d412b95a8129659a0991a2d43bca6519`.
+- [x] Latest Industrial Instrument UI, five-tab telemetry components, AutoStartCoordinator changes, `DESIGN.md`, `AGENTS.md`, `DEVELOPMENT_WORKFLOW.md`, and `scripts/ui-audit.sh` preserved.
+- [x] Application ID is `com.superdenot.superdguard` in Gradle, README, and About; Kotlin namespace remains `com.superdenot.powerguard`.
+- [x] Current polarity is preserved while external power is connected; unplugged current remains normalized as discharge.
+- [x] Regression tests cover positive charge, negative net drain while plugged, unavailable current, and ordinary unplugged discharge.
+- [x] Net-drain classification is guarded by both external-power-connected state and current availability; no protocol is inferred.
+- [x] Protocol metadata defaults to `Not Exposed by Device`; no voltage/current/wattage threshold is used as a protocol identity.
+- [x] Battery Monitoring and Status Bar Indicator remain independent; both fresh-install defaults are OFF.
+- [x] Existing OR-gate lifecycle and RECOVERY_HOLD precedence are retained; existing tests cover all toggle combinations and finalization transition.
+- [x] Existing service logic finalizes an active Room session when Battery Monitoring transitions ON→OFF.
+- [x] Notification ID 1001 uses a shared post/publication lock, sequence guard, duplicate gate, and 250 ms power-transition cooldown; stable metric payload updates remain supported.
+- [x] Obsolete root `INSTALL-INSTRUCTIONS.txt` removed; historical changelog/checklist entries preserved.
+- [ ] Anti-Slop UI audit script — NOT RUN; pending CI.
+- [ ] `testDebugUnitTest` — NOT RUN; pending CI.
+- [ ] `assembleDebug` — NOT RUN; pending CI.
+- [ ] Physical-device QA — NOT RUN; required before treating Android OEM lifecycle/notification behavior as validated.
+- [x] No SDK, dependency, application version, namespace, application ID, or Room schema change made.
+- [x] `main` untouched; no merge performed.
+
+---
+
 ## 2026-11-19 — Unified service lifecycle and persistent notification (implementation review)
 
 - Source/diff review: PASS — lifecycle call paths, Room-write gates, notification ID/channel references, and changed-file scope reviewed.

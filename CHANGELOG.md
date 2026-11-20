@@ -1,3 +1,26 @@
+## 2026-11-20 — P0/P1 audit fixes ported to latest Industrial Instrument baseline (implementation; CI pending)
+
+### Scope and compatibility
+- New integration branch is based directly on `fix/auto-start-coordinator-timing` at `d7dbec01d412b95a8129659a0991a2d43bca6519`; only the six approved P0/P1 audit areas are included.
+- Preserved the latest Industrial Instrument UI, five-tab telemetry structure, AutoStartCoordinator implementation, `DESIGN.md`, `AGENTS.md`, `DEVELOPMENT_WORKFLOW.md`, Anti-Slop scripts, and existing CI jobs.
+- Confirmed `applicationId = "com.superdenot.superdguard"` and Kotlin namespace `com.superdenot.powerguard`; README already contains the correct Application ID and the About screen metadata was corrected.
+
+### Diagnostics and lifecycle
+- Battery current normalization now preserves the signed battery-side current while external power is connected; a negative reading is classified as `NET_DRAIN_CHARGING` only when current data is available.
+- Charging protocol remains `Not Exposed by Device`; no V/A/W threshold is used to infer a fast-charging protocol.
+- Retained the independent Battery Monitoring and Status Bar Indicator toggles, fresh-install OFF defaults, OR-gate service keep-alive policy (including RECOVERY_HOLD), and active Room-session finalization when Battery Monitoring turns OFF.
+
+### Notification durability
+- Added `MonitorNotificationPostGate` for notification ID 1001 with synchronized state publication/posting, snapshot sequence validation, duplicate suppression, and a 250 ms power-transition bounce cooldown.
+- Metric payload refreshes remain possible in a stable state and do not extend the power-transition cooldown.
+
+### Repository hygiene and verification
+- Removed the obsolete root `INSTALL-INSTRUCTIONS.txt`.
+- Anti-Slop UI audit, unit tests, and debug APK build: pending CI on this integration branch.
+- Physical-device QA: not run; CI does not establish OEM notification or sensor behavior.
+
+---
+
 ## 2026-11-19 — Unified service lifecycle and persistent notification (implementation; verification pending)
 
 ### Scope

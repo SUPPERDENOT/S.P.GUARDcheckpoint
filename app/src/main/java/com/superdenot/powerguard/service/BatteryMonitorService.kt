@@ -271,6 +271,9 @@ class BatteryMonitorService : Service() {
     @Volatile
     private var batteryMonitoringEnabledForIndicator: Boolean = false
     private val notificationRenderGate = PersistentNotificationRenderGate()
+    private val monitorNotificationPostGate = MonitorNotificationPostGate()
+    private val monitorNotificationPostLock = Any()
+    private val notificationStateSequence = AtomicLong(0L)
     @Volatile private var lastNotificationBody: String = "Memulai layanan pemantauan..."
     @Volatile private var lastAppliedMonitoringEnabled: Boolean? = null
 
@@ -486,7 +489,7 @@ class BatteryMonitorService : Service() {
             }
             lifecycleChannel.trySend(LifecycleCommand.PrepareStart(gen))
             val fgResult = runCatching {
-                startForegroundCompat(buildMonitorNotification("Memulihkan pemantauan sensor daya..."))
+                startForegroundCompat("Memulihkan pemantauan sensor daya...")
             }
             if (fgResult.isFailure) {
                 removePendingStart(gen)
@@ -558,7 +561,7 @@ class BatteryMonitorService : Service() {
         }
 
         val fgResult = runCatching {
-            startForegroundCompat(buildMonitorNotification("Memulai pemantauan sensor daya..."))
+            startForegroundCompat("Memulai pemantauan sensor daya...")
         }
         if (fgResult.isFailure) {
             val promotionError = fgResult.exceptionOrNull()
@@ -726,7 +729,7 @@ class BatteryMonitorService : Service() {
                 }
                 activeRunGeneration = generation
                 transitionActorState(ActorLifecycleState.HUD_ONLY)
-                _liveState.value = sensor
+                publishLiveState(sensor)
                 ensureMonitoringLoopRunning()
                 refreshStatusBarIndicatorNotification(sensor, force = true)
                 return@withLock
@@ -745,7 +748,7 @@ class BatteryMonitorService : Service() {
                     else -> ActorLifecycleState.MONITORING_STANDBY
                 }
                 transitionActorState(idleState)
-                _liveState.value = sensor
+                publishLiveState(sensor)
                 if (manual || indicator) ensureMonitoringLoopRunning() else stopMonitoringLoopLocked()
                 return@withLock
             }
@@ -811,13 +814,13 @@ class BatteryMonitorService : Service() {
                 if (indicator) {
                     activeRunGeneration = generation
                     transitionActorState(ActorLifecycleState.HUD_ONLY)
-                    _liveState.value = sensor
+                    publishLiveState(sensor)
                     ensureMonitoringLoopRunning()
                 } else {
                     stopMonitoringLoopLocked()
                     activeRunGeneration = 0L
                     transitionActorState(ActorLifecycleState.STOPPED)
-                    _liveState.value = LiveBatteryState()
+                    publishLiveState(LiveBatteryState())
                     stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), generation)
                 }
             } else {
@@ -833,11 +836,11 @@ class BatteryMonitorService : Service() {
                     }
                     if (indicator) {
                         transitionActorState(ActorLifecycleState.HUD_ONLY)
-                        _liveState.value = sensor
+                        publishLiveState(sensor)
                         ensureMonitoringLoopRunning()
                     } else {
                         transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
-                        _liveState.value = sensor
+                        publishLiveState(sensor)
                         stopMonitoringLoopLocked()
                     }
                 }
@@ -859,7 +862,7 @@ class BatteryMonitorService : Service() {
                 stopMonitoringLoopLocked()
                 activeRunGeneration = 0L
                 transitionActorState(ActorLifecycleState.STOPPED)
-                _liveState.value = LiveBatteryState()
+                publishLiveState(LiveBatteryState())
                 stopForegroundAndSelfIfIdle(instanceLatestObservedCommandId.get(), latestStartGeneration.get())
             }
             ServiceOperationMode.HUD_ONLY -> {
@@ -935,7 +938,7 @@ class BatteryMonitorService : Service() {
                 }
                 activeRunGeneration = generation
                 transitionActorState(ActorLifecycleState.HUD_ONLY)
-                _liveState.value = sensor
+                publishLiveState(sensor)
                 ensureMonitoringLoopRunning()
                 return@withLock
             }
@@ -953,7 +956,7 @@ class BatteryMonitorService : Service() {
                     transitionActorState(ActorLifecycleState.MONITORING_STANDBY)
                     stopMonitoringLoopLocked()
                 }
-                _liveState.value = sensor
+                publishLiveState(sensor)
                 return@withLock
             }
             activeRunGeneration = generation
@@ -1075,7 +1078,7 @@ class BatteryMonitorService : Service() {
                 stopMonitoringLoopLocked()
                 activeRunGeneration = 0L
                 transitionActorState(ActorLifecycleState.STOPPED)
-                _liveState.value = LiveBatteryState()
+                publishLiveState(LiveBatteryState())
                 stopForegroundAndSelfIfIdle(startId, generation)
             }
             ServiceOperationMode.HUD_ONLY -> {
@@ -1218,7 +1221,7 @@ class BatteryMonitorService : Service() {
                 if (!keepInMemoryForRamOnlyFailure) {
                     synchronized(lifecycleLock) {
                         if (activeInstance == null || activeInstance === this@BatteryMonitorService) {
-                            _liveState.value = LiveBatteryState()
+                            publishLiveState(LiveBatteryState())
                         }
                     }
                 }
@@ -1962,10 +1965,10 @@ class BatteryMonitorService : Service() {
                             sessionMah = accumulatedMah,
                             sessionDurationSec = sessionSeconds
                         )
-                        _liveState.value = currentSensor.copy(
+                        publishLiveState(currentSensor.copy(
                             sessionMahDelivered = accumulatedMah,
                             sessionDurationSec = sessionSeconds
-                        )
+                        ))
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
                         if (currentSensor.isCharging) {
@@ -1991,7 +1994,7 @@ class BatteryMonitorService : Service() {
                     )
                     if (actorState == ActorLifecycleState.HUD_ONLY || !batteryMonitoringEnabledForIndicator) {
                         val hudState = effectiveSensor.copy(sessionMahDelivered = 0.0, sessionDurationSec = 0L, anomalyAlert = null)
-                        _liveState.value = hudState
+                        publishLiveState(hudState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
                         notificationSummaryToPost = "Sensor live • " + LiveStatusBarRenderer.format(hudState, statusBarIndicatorSetting.parameter)
@@ -2057,7 +2060,7 @@ class BatteryMonitorService : Service() {
                             sessionDurationSec = sessionSeconds,
                             anomalyAlert = activeAlertMsg
                         )
-                        _liveState.value = updatedState
+                        publishLiveState(updatedState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
 
@@ -2133,15 +2136,30 @@ class BatteryMonitorService : Service() {
         }
     }
 
-    private fun startForegroundCompat(notification: Notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                MONITOR_NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            )
-        } else {
-            startForeground(MONITOR_NOTIFICATION_ID, notification)
+    private fun startForegroundCompat(contentText: String) {
+        synchronized(monitorNotificationPostLock) {
+            var snapshotSequence = notificationStateSequence.get()
+            var state = resolveNotificationBatteryState()
+            var notification = buildMonitorNotification(contentText, state)
+            var latestSequence = notificationStateSequence.get()
+
+            while (snapshotSequence != latestSequence) {
+                snapshotSequence = latestSequence
+                state = resolveNotificationBatteryState()
+                notification = buildMonitorNotification(contentText, state)
+                latestSequence = notificationStateSequence.get()
+            }
+
+            if (snapshotSequence != latestSequence) return@synchronized
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    MONITOR_NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } else {
+                startForeground(MONITOR_NOTIFICATION_ID, notification)
+            }
         }
     }
 
@@ -3653,9 +3671,11 @@ class BatteryMonitorService : Service() {
     internal fun refreshStatusBarIndicatorNotificationForTesting(state: LiveBatteryState, force: Boolean = false) =
         refreshStatusBarIndicatorNotification(state, force)
 
-    private fun buildMonitorNotification(contentText: String): Notification {
+    private fun buildMonitorNotification(contentText: String): Notification =
+        buildMonitorNotification(contentText, resolveNotificationBatteryState())
+
+    private fun buildMonitorNotification(contentText: String, state: LiveBatteryState): Notification {
         val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-        val state = resolveNotificationBatteryState()
         val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(state, actorState == ActorLifecycleState.RECOVERY_HOLD)
         val largeIcon = NotificationVisualRenderer.getOrRenderMonitorLargeIcon(applicationContext, visualSpec)
         val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
@@ -3676,27 +3696,98 @@ class BatteryMonitorService : Service() {
         return builder.build()
     }
 
+    /**
+     * Builds and posts ID 1001 from one coherent state snapshot. State publication uses the
+     * same lock and increments the sequence, so an older render cannot overtake newer telemetry.
+     */
+    private fun publishLiveState(state: LiveBatteryState) {
+        synchronized(monitorNotificationPostLock) {
+            _liveState.value = state
+            notificationStateSequence.incrementAndGet()
+        }
+    }
+
     private fun notifyMonitorNotification(contentText: String, force: Boolean = false) {
         if (!::notificationManager.isInitialized || destroyRequested.get()) return
-        val state = resolveNotificationBatteryState()
-        val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
-        val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
-            LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
-        val iconKey = if (hasDynamicIcon) {
-            "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
-        } else {
-            NotificationVisualRenderer.resolveMonitorVisualSpec(state, actorState == ActorLifecycleState.RECOVERY_HOLD).cacheKey
-        }
-        val decision = notificationRenderGate.evaluate(iconKey, "SUPERD GUARD", contentText, SystemClock.elapsedRealtime(), force)
-        if (decision.shouldNotify) {
-            notificationManager.notify(MONITOR_NOTIFICATION_ID, buildMonitorNotification(decision.body))
+        synchronized(monitorNotificationPostLock) {
+            var snapshotSequence = notificationStateSequence.get()
+            var state = resolveNotificationBatteryState()
+            var notification = buildMonitorNotification(contentText, state)
+            var latestSequence = notificationStateSequence.get()
+
+            while (snapshotSequence != latestSequence) {
+                snapshotSequence = latestSequence
+                state = resolveNotificationBatteryState()
+                notification = buildMonitorNotification(contentText, state)
+                latestSequence = notificationStateSequence.get()
+            }
+            if (snapshotSequence != latestSequence) return@synchronized
+
+            val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
+                state,
+                actorState == ActorLifecycleState.RECOVERY_HOLD
+            )
+            val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
+                LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
+            val iconKey = if (hasDynamicIcon) {
+                "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
+            } else {
+                visualSpec.cacheKey
+            }
+            val payloadSignature = listOf(
+                iconKey,
+                contentText,
+                displayText,
+                state.isCharging.toString(),
+                state.isPowerConnected.toString(),
+                state.chargeSource,
+                actorState.name
+            ).joinToString("|")
+            val nowElapsedMs = SystemClock.elapsedRealtime()
+            val shouldPostTransitionOrPayload = monitorNotificationPostGate.shouldPost(
+                payloadSignature = payloadSignature,
+                criticalStateSignature = state.isPowerConnected.toString(),
+                nowElapsedMs = nowElapsedMs,
+                snapshotSequence = snapshotSequence,
+                latestSequence = latestSequence,
+                allowPayloadRefresh = true
+            )
+            if (!shouldPostTransitionOrPayload &&
+                monitorNotificationPostGate.isBounceCoalescing(nowElapsedMs)
+            ) {
+                return@synchronized
+            }
+
+            val decision = notificationRenderGate.evaluate(
+                iconKey,
+                "SUPERD GUARD",
+                contentText,
+                nowElapsedMs,
+                force || shouldPostTransitionOrPayload
+            )
+            if (shouldPostTransitionOrPayload || decision.shouldNotify) {
+                val notificationToPost = if (decision.body == contentText) {
+                    notification
+                } else {
+                    buildMonitorNotification(decision.body, state)
+                }
+                try {
+                    notificationManager.notify(MONITOR_NOTIFICATION_ID, notificationToPost)
+                } catch (error: RuntimeException) {
+                    monitorNotificationPostGate.reset()
+                    throw error
+                }
+            }
         }
     }
 
     private fun refreshStatusBarIndicatorNotification(state: LiveBatteryState, force: Boolean = false) {
         if (!::notificationManager.isInitialized || destroyRequested.get()) return
         if (actorState == ActorLifecycleState.STOPPED) {
-            notificationManager.cancel(MONITOR_NOTIFICATION_ID)
+            synchronized(monitorNotificationPostLock) {
+                notificationManager.cancel(MONITOR_NOTIFICATION_ID)
+            }
             return
         }
         notifyMonitorNotification(lastNotificationBody, force)

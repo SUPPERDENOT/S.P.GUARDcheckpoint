@@ -7,9 +7,10 @@ data class LiveBatteryState(
     val powerWatt: Float = 0f,
     val tempCelsius: Float = 0f,
     val isCharging: Boolean = false,
+    val isPowerConnected: Boolean = false,
     val chargeSource: String = "Discharging",
-    // Null means Android/device firmware does not expose a verifiable charging protocol.
-    val chargingProtocol: String? = null,
+    // Android does not expose a universal protocol API; never infer it from V/A/W.
+    val chargingProtocol: String = PROTOCOL_NOT_EXPOSED,
     val sessionMahDelivered: Double = 0.0,
     val sessionDurationSec: Long = 0L,
     val deepSleepRatio: Float = 0f,
@@ -22,7 +23,11 @@ data class LiveBatteryState(
     val isTemperatureAvailable: Boolean = true,
     val isPowerAvailable: Boolean = true,
     val isChargingStatusAvailable: Boolean = true
-)
+) {
+    companion object {
+        const val PROTOCOL_NOT_EXPOSED = "Not Exposed by Device"
+    }
+}
 
 data class AppUsageSummary(
     val packageName: String,
