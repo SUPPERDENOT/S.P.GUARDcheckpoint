@@ -1,3 +1,22 @@
+## 2026-11-22 — Initial UI polish and session-based SOH analytics
+
+### Changed
+- Confirmed both Android 8.0+ adaptive launcher XML resources use the latest 3D cyan-purple neon energy-core foreground PNG. Removed the obsolete green lightning vector drawable; density-specific launcher PNG assets remain the 3D brand icon.
+- Added a protocol explanation catalog and an accessible 48dp information action beside the protocol/capability label in Charging. Explanations distinguish explicit device labels from BatteryManager source-capability metadata and do not claim that metadata is measured charger output or a negotiated protocol.
+- Added the default-enabled History filter "Sembunyikan sesi < 1 menit". It hides rows shorter than 60 seconds or rows with zero SoC delta and no more than 0.5 mAh delivered. Filtering is presentation-only; Room records are unchanged.
+- Added a separate session-based SOH estimator under domain/analytics. It uses completed session segments with at least 15% SoC gain, at least 60 seconds duration, valid positive delivered charge, and plausible effective-capacity bounds. A median across eligible sessions reduces sensitivity to one noisy session.
+- Added the Estimated SOH / effective mAh summary to Insights. It reuses the existing Settings design-capacity preference and falls back to 5000 mAh when no capacity is available. The pre-existing engine estimator and persisted Dashboard health snapshot path remain unchanged.
+- Added unit tests for protocol explanation labels/fallback, micro-session filter boundaries, and SOH eligibility including the 14% rejection / 15% acceptance boundary.
+- Added this feature branch to the existing Android CI push trigger; no parallel workflow or new dependency was introduced.
+
+### Verification
+- Source inspection and focused diff review: pending final audit.
+- Unit tests, Anti-Slop UI Audit Gate, assembleDebug, and APK upload: pending GitHub Actions on this branch.
+- Local Gradle/UI audit: NOT RUN in the GitHub-only editing environment.
+- Physical-device QA at 360dp / 720p: NOT RUN; required before merge.
+- No Room schema, service lifecycle, Battery Monitoring, Status Bar Indicator, RECOVERY_HOLD, P0/P1 safeguards, or existing engine SOH persistence logic changes intended.
+- No CSV/JSON export feature added. No merge to main.
+
 ## 2026-11-21 — P0 Unisoc sysfs coverage, capability thresholds, and narrow-screen protocol layout
 
 - Expanded the fixed read-only sysfs allowlist with Unisoc/Spreadtrum sprd-charger and sc27xx-fgu nodes, battery charge_type, and USB usb_type / real_type / type metadata paths. Specific protocol nodes are read before generic battery charge_type so a generic Fast indication cannot mask a more specific exposed protocol. Existing SecurityException and IOException handling remains in place.
