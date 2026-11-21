@@ -2,7 +2,7 @@
 
 - Added a dedicated detector with strict evidence tiers: explicit allowlisted sysfs/HAL protocol values first; BatteryManager source-capability labels second; bounded unknown-source fallback last.
 - Added read-only access to a fixed allowlist of power_supply metadata nodes. SecurityException is distinguished from ordinary IOException/missing nodes; the SELinux suffix is emitted only when an access denial is observed.
-- BatteryManager maximum charging current and voltage metadata are converted from µA/µV to mA/mV. They are presented as source capabilities, never as proof of USB SDP/CDP, DCP, Qi, or a negotiated fast-charge protocol.
+- Optional AOSP ACTION_BATTERY_CHANGED keys `max_charging_current` and `max_charging_voltage` are hidden from the public SDK; the engine reads them by literal key only when present. Values are converted from µA/µV to mA/mV and presented as source capabilities, never as proof of USB SDP/CDP, DCP, Qi, or a negotiated fast-charge protocol. Missing extras remain unavailable.
 - Updated Dashboard, Charging diagnostics, and expanded monitoring notification protocol/source detail.
 - Added deterministic detector tests for explicit protocol aliases, metadata conversion, USB/AC/wireless categories, unplugged state, and SELinux/unknown fallback.
 - P0 branch CI trigger added. Physical-device protocol exposure on itel P55: NOT RUN — requires APK installation and runtime observation.

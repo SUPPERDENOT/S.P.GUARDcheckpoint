@@ -65,13 +65,13 @@ class BatteryMonitorEngine(private val context: Context) {
             else -> if (isPowerConnected || isCharging) "Unknown Source" else "Discharging"
         }
         val maxChargingCurrentMicroAmps = intentStatus
-            ?.takeIf { it.hasExtra(BatteryManager.EXTRA_MAX_CHARGING_CURRENT) }
-            ?.getIntExtra(BatteryManager.EXTRA_MAX_CHARGING_CURRENT, -1)
+            ?.takeIf { it.hasExtra(EXTRA_MAX_CHARGING_CURRENT) }
+            ?.getIntExtra(EXTRA_MAX_CHARGING_CURRENT, -1)
             ?.takeIf { it >= 0 }
             ?.toLong()
         val maxChargingVoltageMicroVolts = intentStatus
-            ?.takeIf { it.hasExtra(BatteryManager.EXTRA_MAX_CHARGING_VOLTAGE) }
-            ?.getIntExtra(BatteryManager.EXTRA_MAX_CHARGING_VOLTAGE, -1)
+            ?.takeIf { it.hasExtra(EXTRA_MAX_CHARGING_VOLTAGE) }
+            ?.getIntExtra(EXTRA_MAX_CHARGING_VOLTAGE, -1)
             ?.takeIf { it >= 0 }
             ?.toLong()
         val sysfsProtocol = if (isCharging && protocolSource != ChargingProtocolDetector.Source.NONE) {
@@ -133,6 +133,16 @@ class BatteryMonitorEngine(private val context: Context) {
             isPowerAvailable = isPowerAvailable,
             isChargingStatusAvailable = isChargingStatusAvailable
         )
+    }
+
+    /**
+     * AOSP includes these ACTION_BATTERY_CHANGED extras as @hide, so they are absent
+     * from the public Android SDK stubs. Read them only when an OEM/framework actually
+     * includes them; otherwise the capability remains unavailable.
+     */
+    private companion object {
+        const val EXTRA_MAX_CHARGING_CURRENT = "max_charging_current"
+        const val EXTRA_MAX_CHARGING_VOLTAGE = "max_charging_voltage"
     }
 
     @SuppressLint("PrivateApi")
