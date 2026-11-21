@@ -55,6 +55,11 @@ object ProtocolExplanationCatalog {
             powerRange = "Tidak tersedia dari label HAL umum.",
             summary = "HAL perangkat melaporkan status generik Fast/Adaptive/FastCharge. Nama protokol proprietary tidak diekspos, sehingga aplikasi tidak menebak PD, QC, AFC, VOOC, atau standar lain."
         ),
+        "Deteksi protokol nonaktif" to ProtocolExplanation(
+            title = "Deteksi protokol sedang nonaktif",
+            powerRange = "Tidak diperiksa.",
+            summary = "Pembacaan protokol dinonaktifkan pada jalur HUD_ONLY atau ketika Battery Monitoring tidak aktif. Label ini bukan hasil identifikasi sumber pengisian."
+        ),
         "Tidak Terhubung" to ProtocolExplanation(
             title = "Tidak ada sumber pengisian terhubung",
             powerRange = "Tidak berlaku.",
