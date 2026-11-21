@@ -344,7 +344,8 @@ class NotificationVisualRendererTest {
                 sessionMahDelivered = 0.0,
                 isCharging = true,
                 isChargingEtaTracking = true,
-                chargeSource = "USB Port"
+                chargeSource = "USB Port",
+                chargingProtocol = LiveBatteryState.PROTOCOL_NOT_EXPOSED
             )
             val monitorNotification: Notification =
                 service.buildMonitorNotificationForTesting(
