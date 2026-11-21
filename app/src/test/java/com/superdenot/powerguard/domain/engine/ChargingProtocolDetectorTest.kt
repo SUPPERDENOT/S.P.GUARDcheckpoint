@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.domain.engine
 
+import com.superdenot.powerguard.domain.model.LiveBatteryState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -22,6 +23,11 @@ class ChargingProtocolDetectorTest {
             sysfsAccess = access
         )
     )
+
+    @Test
+    fun defaultLiveStateUsesNotConnectedRatherThanProtocolUnavailable() {
+        assertEquals(ChargingProtocolDetector.NOT_CONNECTED, LiveBatteryState().chargingProtocol)
+    }
 
     @Test
     fun pluggedSourceResolutionDistinguishesAnExplicitUnpluggedValueFromMissingMetadata() {

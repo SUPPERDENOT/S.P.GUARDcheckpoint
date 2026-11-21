@@ -167,7 +167,7 @@ class NotificationVisualRendererTest {
             )
         )
         assertEquals(
-            "Level baterai: 0%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 0 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Tidak mengisi\nSumber daya: Discharging\nProtokol / kemampuan sumber: Tidak Diekspos Perangkat",
+            "Level baterai: 0%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 0 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Tidak mengisi\nSumber daya: Discharging\nProtokol / kemampuan sumber: Tidak Terhubung",
             NotificationVisualRenderer.formatMonitorExpandedText(state)
         )
     }
