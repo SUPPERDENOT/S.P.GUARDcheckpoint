@@ -37,6 +37,19 @@ object ProtocolExplanationCatalog {
             powerRange = "Arus maksimum metadata < 900 mA.",
             summary = "Perangkat melaporkan kemampuan arus USB di bawah ambang klasifikasi internal. Label ini bukan identifikasi pasti USB SDP."
         ),
+        "USB PD PPS" to explicitProtocol("USB PD PPS"),
+        "USB PD" to explicitProtocol("USB PD"),
+        "USB DCP" to explicitProtocol("USB DCP"),
+        "USB CDP" to explicitProtocol("USB CDP"),
+        "USB SDP" to explicitProtocol("USB SDP"),
+        "AFC" to explicitProtocol("AFC"),
+        "QC" to explicitProtocol("QC"),
+        "QC 2.0" to explicitProtocol("QC 2.0"),
+        "QC 3.0" to explicitProtocol("QC 3.0"),
+        "VOOC" to explicitProtocol("VOOC"),
+        "SuperVOOC" to explicitProtocol("SuperVOOC"),
+        "Pump Express" to explicitProtocol("Pump Express"),
+        "HVDCP" to explicitProtocol("HVDCP"),
         "Fast Charge (HAL)" to ProtocolExplanation(
             title = "Fast Charge — indikator HAL umum",
             powerRange = "Tidak tersedia dari label HAL umum.",
@@ -72,6 +85,12 @@ object ProtocolExplanationCatalog {
             powerRange = "Tidak tersedia.",
             summary = "Sumber USB terdeteksi, tetapi perangkat tidak menyediakan metadata arus maksimum yang dapat digunakan."
         )
+    )
+
+    private fun explicitProtocol(label: String) = ProtocolExplanation(
+        title = "Protokol eksplisit: $label",
+        powerRange = "Rentang daya aktual tidak tersedia dari label protokol.",
+        summary = "Nama ini dibaca langsung dari metadata sysfs/HAL yang diizinkan perangkat. Aplikasi tidak menurunkan identitas protokol dari arus, tegangan, atau watt."
     )
 
     fun get(label: String): ProtocolExplanation = explanations[label] ?: ProtocolExplanation(
