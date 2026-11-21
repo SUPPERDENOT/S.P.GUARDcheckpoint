@@ -16,7 +16,11 @@ class ProtocolExplanationCatalogTest {
             "USB Arus Standar (SDP?)",
             "Fast Charge (HAL)",
             "Tidak Terhubung",
-            "Tidak Diekspos Perangkat (SELinux)"
+            "Tidak Diekspos Perangkat (SELinux)",
+            "Tidak Diekspos Perangkat",
+            "Nirkabel (Standar Tak Terverifikasi)",
+            "AC — Kemampuan Daya Tidak Tersedia",
+            "USB — Arus Maksimum Tidak Tersedia"
         )
         labels.forEach { label ->
             val explanation = ProtocolExplanationCatalog.get(label)
