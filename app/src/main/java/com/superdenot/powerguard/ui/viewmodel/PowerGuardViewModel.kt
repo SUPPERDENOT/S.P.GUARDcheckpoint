@@ -297,7 +297,7 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                     val age = SystemClock.elapsedRealtime() - lastUpdate
                     isServiceRunning.value && lastUpdate > 0L && age in 0L..5_000L
                 },
-                readSnapshot = repository::readDirectSensorSnapshot,
+                readSnapshot = { repository.readDirectSensorSnapshot(includeProtocolDetection = true) },
                 onSnapshot = { snapshot ->
                     val detectedAt = SystemClock.elapsedRealtime()
                     _fallbackLiveState.value = snapshot

@@ -10,6 +10,7 @@ on:
       - integrate/p0-on-latest-ui
       - main
       - feat/p2-eta-and-cccv-watchdog
+      - feat/p0-protocol-detection-audit
   pull_request:
     branches:
       - main

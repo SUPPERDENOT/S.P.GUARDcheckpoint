@@ -735,7 +735,7 @@ class BatteryMonitorService : Service() {
         if (actorState == ActorLifecycleState.STOPPED) transitionActorState(ActorLifecycleState.STARTING)
         sharedSessionMutex.withLock {
             if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
-            val sensor = resolveEngine().readCurrentState()
+            val sensor = resolveEngine().readCurrentState(includeProtocolDetection = monitoring)
             if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
                 retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
@@ -815,7 +815,7 @@ class BatteryMonitorService : Service() {
         val generation = maxOf(activeRunGeneration, latestStartGeneration.get(), 1L)
         sharedSessionMutex.withLock {
             if (destroyRequested.get()) return@withLock
-            val sensor = resolveEngine().readCurrentState()
+            val sensor = resolveEngine().readCurrentState(includeProtocolDetection = monitoring)
             if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
                 retryRecoveryHoldLocked(sensor.isCharging)
                 if (actorState == ActorLifecycleState.RECOVERY_HOLD) return@withLock
@@ -897,7 +897,7 @@ class BatteryMonitorService : Service() {
             ServiceOperationMode.MONITORING_ACTIVE -> {
                 activeRunGeneration = maxOf(activeRunGeneration, latestStartGeneration.get(), 1L)
                 if (isCharging) {
-                    val current = resolveEngine().readCurrentState()
+                    val current = resolveEngine().readCurrentState(includeProtocolDetection = true)
                     if (activeSessionId == null) recoverOrStartChargingSession(current)
                     transitionActorState(ActorLifecycleState.RUNNING_CHARGING)
                 } else if (indicator) {
@@ -944,7 +944,7 @@ class BatteryMonitorService : Service() {
         if (actorState == ActorLifecycleState.STOPPED) transitionActorState(ActorLifecycleState.STARTING)
         sharedSessionMutex.withLock {
             if (destroyRequested.get() || generation < latestStartGeneration.get()) return@withLock
-            val sensor = resolveEngine().readCurrentState()
+            val sensor = resolveEngine().readCurrentState(includeProtocolDetection = monitoring)
             if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
                 retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
@@ -996,9 +996,9 @@ class BatteryMonitorService : Service() {
                 stopStartId < instanceLatestStartCommandId.get() || hasPendingStarts()
             ) return@withLock
 
-            val sensor = resolveEngine().readCurrentState()
             val monitoring = isBatteryMonitoringEnabled()
             val indicator = isStatusBarIndicatorEnabled()
+            val sensor = resolveEngine().readCurrentState(includeProtocolDetection = monitoring)
             if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
                 retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
@@ -1063,9 +1063,9 @@ class BatteryMonitorService : Service() {
             if (destroyRequested.get() || generation < latestStartGeneration.get() ||
                 generation < activeRunGeneration || hasPendingStarts()
             ) return@withLock
-            val sensor = resolveEngine().readCurrentState()
             val monitoring = isBatteryMonitoringEnabled()
             val indicator = isStatusBarIndicatorEnabled()
+            val sensor = resolveEngine().readCurrentState(includeProtocolDetection = monitoring)
             if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
                 retryRecoveryHoldLocked(sensor.isCharging)
                 return@withLock
@@ -1146,12 +1146,14 @@ class BatteryMonitorService : Service() {
                 return@withLock
             }
 
-            val currentSensor = resolveEngine().readCurrentState()
+            val monitoring = isBatteryMonitoringEnabled()
+            val indicator = isStatusBarIndicatorEnabled()
+            val currentSensor = resolveEngine().readCurrentState(includeProtocolDetection = monitoring)
             if (actorState == ActorLifecycleState.RECOVERY_HOLD) {
                 retryRecoveryHoldLocked(currentSensor.isCharging)
                 return@withLock
             }
-            if (!isBatteryMonitoringEnabled()) {
+            if (!monitoring) {
                 if (activeSessionId != null || sampleBuffer.isNotEmpty()) {
                     val result = ensureSessionFinalizedSafely()
                     if (hasUnpersistedRamOnlyData(result)) {
@@ -1159,7 +1161,7 @@ class BatteryMonitorService : Service() {
                         return@withLock
                     }
                 }
-                if (isStatusBarIndicatorEnabled()) {
+                if (indicator) {
                     activeRunGeneration = generation
                     transitionActorState(ActorLifecycleState.HUD_ONLY)
                     ensureMonitoringLoopRunning()
@@ -1984,7 +1986,8 @@ class BatteryMonitorService : Service() {
                         holdTicks++
                         val currentSensor = resolveEngine().readCurrentState(
                             sessionMah = accumulatedMah,
-                            sessionDurationSec = sessionSeconds
+                            sessionDurationSec = sessionSeconds,
+                            includeProtocolDetection = false
                         )
                         publishLiveState(currentSensor.copy(
                             sessionMahDelivered = accumulatedMah,
@@ -2011,7 +2014,9 @@ class BatteryMonitorService : Service() {
 
                     var effectiveSensor = resolveEngine().readCurrentState(
                         sessionMah = accumulatedMah,
-                        sessionDurationSec = sessionSeconds
+                        sessionDurationSec = sessionSeconds,
+                        includeProtocolDetection = actorState == ActorLifecycleState.RUNNING_CHARGING ||
+                            actorState == ActorLifecycleState.RUNNING_MANUAL
                     )
                     if (actorState == ActorLifecycleState.HUD_ONLY || !batteryMonitoringEnabledForIndicator) {
                         chargingEtaEstimator.reset()
@@ -2037,7 +2042,8 @@ class BatteryMonitorService : Service() {
                         if (actorState == ActorLifecycleState.RUNNING_CHARGING || activeSessionId != null) {
                             val confirmState = resolveEngine().readCurrentState(
                                 sessionMah = accumulatedMah,
-                                sessionDurationSec = sessionSeconds
+                                sessionDurationSec = sessionSeconds,
+                                includeProtocolDetection = true
                             )
                             if (!confirmState.isCharging) {
                                 autoStopGenerationToSend = currentGen
@@ -3507,7 +3513,12 @@ class BatteryMonitorService : Service() {
 
             // Pulihkan pemantauan secara aman bila service masih aktif / dalam RECOVERY_HOLD saat charger tersambung
             if (!destroyRequested.get() && actorState != ActorLifecycleState.STOPPED) {
-                val sensor = runCatching { resolveEngine().readCurrentState() }.getOrNull()
+                val sensor = runCatching {
+                    resolveEngine().readCurrentState(
+                        includeProtocolDetection = actorState == ActorLifecycleState.RUNNING_CHARGING ||
+                            actorState == ActorLifecycleState.RUNNING_MANUAL
+                    )
+                }.getOrNull()
                 if (actorState == ActorLifecycleState.RECOVERY_HOLD && sensor?.isCharging == true) {
                     when {
                         isBatteryMonitoringEnabled() -> transitionActorState(ActorLifecycleState.RUNNING_CHARGING)

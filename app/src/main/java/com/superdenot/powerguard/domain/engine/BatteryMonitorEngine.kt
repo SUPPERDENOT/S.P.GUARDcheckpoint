@@ -32,7 +32,8 @@ class BatteryMonitorEngine(private val context: Context) {
     fun readCurrentState(
         sessionMah: Double = 0.0,
         sessionDurationSec: Long = 0L,
-        activeAnomaly: String? = null
+        activeAnomaly: String? = null,
+        includeProtocolDetection: Boolean = false
     ): LiveBatteryState {
         val intentStatus = context.registerReceiver(null, batteryIntentFilter)
 
@@ -48,11 +49,49 @@ class BatteryMonitorEngine(private val context: Context) {
 
         val plugged = intentStatus?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
         val isPowerConnected = plugged != 0
+        val hasPluggedMetadata = intentStatus?.hasExtra(BatteryManager.EXTRA_PLUGGED) == true
+        val protocolSource = ChargingProtocolDetector.resolveSource(
+            plugged = plugged,
+            hasPluggedMetadata = hasPluggedMetadata,
+            isCharging = isCharging,
+            acPluggedValue = BatteryManager.BATTERY_PLUGGED_AC,
+            usbPluggedValue = BatteryManager.BATTERY_PLUGGED_USB,
+            wirelessPluggedValue = BatteryManager.BATTERY_PLUGGED_WIRELESS
+        )
+        // Keep the existing user-facing coarse source classification unchanged.
         val chargeSource = when (plugged) {
             BatteryManager.BATTERY_PLUGGED_AC -> "AC Adapter"
             BatteryManager.BATTERY_PLUGGED_USB -> "USB Port"
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Wireless"
             else -> if (isPowerConnected || isCharging) "Unknown Source" else "Discharging"
+        }
+        val chargingProtocol = when {
+            !isCharging || protocolSource == ChargingProtocolDetector.Source.NONE ->
+                ChargingProtocolDetector.NOT_CONNECTED
+            !includeProtocolDetection -> ChargingProtocolDetector.DETECTION_DISABLED
+            else -> {
+                val maxChargingCurrentMicroAmps = intentStatus
+                    ?.takeIf { it.hasExtra(EXTRA_MAX_CHARGING_CURRENT) }
+                    ?.getIntExtra(EXTRA_MAX_CHARGING_CURRENT, -1)
+                    ?.takeIf { it >= 0 }
+                    ?.toLong()
+                val maxChargingVoltageMicroVolts = intentStatus
+                    ?.takeIf { it.hasExtra(EXTRA_MAX_CHARGING_VOLTAGE) }
+                    ?.getIntExtra(EXTRA_MAX_CHARGING_VOLTAGE, -1)
+                    ?.takeIf { it >= 0 }
+                    ?.toLong()
+                val sysfsProtocol = SysfsChargingProtocolReader.read()
+                ChargingProtocolDetector.detect(
+                    ChargingProtocolDetector.Input(
+                        source = protocolSource,
+                        isCharging = isCharging,
+                        maxChargingCurrentMicroAmps = maxChargingCurrentMicroAmps,
+                        maxChargingVoltageMicroVolts = maxChargingVoltageMicroVolts,
+                        explicitSysfsProtocol = sysfsProtocol.protocol,
+                        sysfsAccess = sysfsProtocol.access
+                    )
+                )
+            }
         }
 
         val isVoltageAvailable = intentStatus?.hasExtra(BatteryManager.EXTRA_VOLTAGE) == true &&
@@ -85,7 +124,7 @@ class BatteryMonitorEngine(private val context: Context) {
             isCharging = isCharging,
             isPowerConnected = isPowerConnected,
             chargeSource = chargeSource,
-            chargingProtocol = LiveBatteryState.PROTOCOL_NOT_EXPOSED,
+            chargingProtocol = chargingProtocol,
             sessionMahDelivered = sessionMah,
             sessionDurationSec = sessionDurationSec,
             deepSleepRatio = calculateDeepSleepRatio(),
@@ -98,6 +137,16 @@ class BatteryMonitorEngine(private val context: Context) {
             isPowerAvailable = isPowerAvailable,
             isChargingStatusAvailable = isChargingStatusAvailable
         )
+    }
+
+    /**
+     * AOSP includes these ACTION_BATTERY_CHANGED extras as @hide, so they are absent
+     * from the public Android SDK stubs. Read them only when an OEM/framework actually
+     * includes them; otherwise the capability remains unavailable.
+     */
+    private companion object {
+        const val EXTRA_MAX_CHARGING_CURRENT = "max_charging_current"
+        const val EXTRA_MAX_CHARGING_VOLTAGE = "max_charging_voltage"
     }
 
     @SuppressLint("PrivateApi")

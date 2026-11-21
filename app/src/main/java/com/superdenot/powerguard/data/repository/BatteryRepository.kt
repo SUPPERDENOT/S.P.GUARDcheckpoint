@@ -53,8 +53,8 @@ class BatteryRepository(private val context: Context) {
         DesignCapacitySettings.useAutomatic(context)
     }
 
-    fun readDirectSensorSnapshot(): LiveBatteryState {
-        return engine.readCurrentState()
+    fun readDirectSensorSnapshot(includeProtocolDetection: Boolean = false): LiveBatteryState {
+        return engine.readCurrentState(includeProtocolDetection = includeProtocolDetection)
     }
 
     fun getSamplesForSession(sessionId: Long): Flow<List<BatterySampleEntity>> {

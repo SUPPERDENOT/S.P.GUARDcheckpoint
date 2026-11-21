@@ -1,3 +1,22 @@
+## 2026-11-21 — P0 Unisoc detection and protocol label clipping follow-up
+
+- [x] Read-only allowlist includes battery/charge_type, sprd-charger/type, sc27xx-fgu/type, and USB usb_type/real_type/type: PASS — source review.
+- [x] Generic HAL values Fast / Adaptive / FASTCHARGE map only to "Fast Charge (HAL)"; no PD/QC/VOOC identity is inferred: PASS — source review and unit tests added.
+- [x] AC source capability uses >=8,500mV for the 9V+ capability label and >=10W from max-current × max-voltage metadata for high power: PASS — source review and unit tests added.
+- [x] Battery-side measured current/power is not used as charger capability metadata: PASS — source review.
+- [x] Charging tab value wraps to two lines; Dashboard protocol capsule has bounded width and two-line wrapping: PASS — source review; Anti-Slop and CI pending.
+- [x] Unisoc allowlist, generic HAL labels, and 2A × 5V threshold regression tests added: PASS — test source review.
+- [x] CI #415 Anti-Slop UI Audit Gate and assembleDebug: PASS; unit tests: FAIL only because one Wireless expected-string assertion still used the prior label (198/199 passed); XML report inspected and exact mismatch confirmed.
+- [x] Corrected the Wireless assertion to "Nirkabel (Standar Tak Terverifikasi)".
+- [x] CI #417 on commit 95ff2d4: PASS — 199/199 tests, assembleDebug, Anti-Slop UI Audit Gate, APK artifact 14711582078, report artifact 14711875931.
+- [x] Specific protocol sysfs paths precede generic battery/charge_type to avoid masking; regression assertion added.
+- [x] Final branch CI #419 on commit 9ceea4c: PASS — Anti-Slop UI Audit Gate, 199/199 unit tests (0 failures/errors/skipped), assembleDebug, APK artifact 14712121172, and unit-test report artifact 14711607719.
+- [ ] Physical-device retest on itel P55 (720p/360dp clipping and Unisoc FASTCHARGE exposure): NOT RUN.
+- [x] No Battery Monitoring lifecycle, HUD_ONLY, RECOVERY_HOLD, P1 protection, ChargingEtaEstimator, or CcCvStagnantWatchdog algorithm changes intended: PASS — change scope.
+- [x] main untouched; no merge performed.
+
+---
+
 ## 2026-11-21 — Sprint P2 physical QA and collapsed ETA layout
 
 - [x] User-reported itel P55 QA: Real-Time Charging ETA appears after at least three valid samples.
@@ -244,6 +263,21 @@
 
 
 ---
+
+## 2026-11-21 — P0 charging protocol detection
+
+- Approved scope and conservative evidence tiers: PASS — exact protocol labels require an allowlisted explicit sysfs/HAL value; BatteryManager labels remain source-capability classifications.
+- Fixed read-only sysfs allowlist and exception handling: PASS — source review; SecurityException is distinguished from IOException/missing-node outcomes.
+- Unit conversion: PASS — µA/µV converted to mA/mV in the detector; deterministic tests added.
+- Dashboard, Charging screen, and expanded monitoring notification detail: PASS — source review.
+- HUD_ONLY isolation: PASS — protocol/sysfs detection is opt-in and service sampling enables it only in Battery Monitoring active states; indicator-only snapshots use the explicit “Deteksi protokol nonaktif” state.
+- RECOVERY_HOLD, P1 protections, ChargingEtaEstimator, and CcCvStagnantWatchdog: PASS — no algorithm changes intended; confirm by final diff.
+- Focused unit tests: PASS — CI #413, 197/197 tests, 0 failures/errors/skipped; report artifact ID 14710610822.
+- Android build and Anti-Slop UI Audit Gate: PASS — CI #413 `assembleDebug` and Anti-Slop UI Audit Gate both SUCCESS.
+- APK artifact upload: PASS — `android-debug-apk` artifact ID 14710545989; expires 2026-12-05T14:05:19Z.
+- Unit-test report artifact: PASS — `android-unit-test-reports` artifact ID 14710610822.
+- Physical-device QA on itel P55: NOT RUN — requires installation and observation; do not infer protocol availability from CI.
+- Package, SDK, dependencies, app version, and build number: PASS — unchanged.
 
 # SPG Quality Checklist
 

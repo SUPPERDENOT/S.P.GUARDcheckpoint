@@ -9,8 +9,8 @@ data class LiveBatteryState(
     val isCharging: Boolean = false,
     val isPowerConnected: Boolean = false,
     val chargeSource: String = "Discharging",
-    // Android does not expose a universal protocol API; never infer it from V/A/W.
-    val chargingProtocol: String = PROTOCOL_NOT_EXPOSED,
+    // Explicit sysfs/HAL protocol when available; otherwise a conservative source-capability label.
+    val chargingProtocol: String = PROTOCOL_NOT_CONNECTED,
     val sessionMahDelivered: Double = 0.0,
     val sessionDurationSec: Long = 0L,
     val deepSleepRatio: Float = 0f,
@@ -29,7 +29,8 @@ data class LiveBatteryState(
     val isChargingEtaTracking: Boolean = false
 ) {
     companion object {
-        const val PROTOCOL_NOT_EXPOSED = "Not Exposed by Device"
+        const val PROTOCOL_NOT_CONNECTED = "Tidak Terhubung"
+        const val PROTOCOL_NOT_EXPOSED = "Tidak Diekspos Perangkat"
     }
 }
 
