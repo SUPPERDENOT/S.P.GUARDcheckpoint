@@ -52,6 +52,11 @@ object ProtocolExplanationCatalog {
             powerRange = "Tidak tersedia.",
             summary = "Pembacaan metadata ditolak oleh sistem dengan indikasi permission denial. Pembatasan akses tidak berarti protokol pengisian tertentu sedang digunakan."
         ),
+        "Nirkabel (Standar Tak Terverifikasi)" to ProtocolExplanation(
+            title = "Sumber pengisian nirkabel",
+            powerRange = "Rentang daya tidak diverifikasi.",
+            summary = "Perangkat melaporkan sumber nirkabel, tetapi metadata yang tersedia tidak cukup untuk memastikan standar Qi atau profil daya tertentu."
+        ),
         "Tidak Diekspos Perangkat" to ProtocolExplanation(
             title = "Informasi tidak diekspos perangkat",
             powerRange = "Tidak tersedia.",
