@@ -314,7 +314,7 @@ class NotificationVisualRendererTest {
         try {
             val monitorNotification: Notification =
                 service.buildMonitorNotificationForTesting(
-                    "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+                    "-243 mA (-0.9W) • 31.5°C • +0.0 mAh • Estimasi penuh: Menghitung ETA...",
                     LiveBatteryState(
                         level = 56,
                         currentMa = -243,
