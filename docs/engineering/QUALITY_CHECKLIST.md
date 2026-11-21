@@ -3,21 +3,23 @@
 - [x] Branch created from exact main baseline c955aa2888e5b6fcd6e650ba2f2791b7e3692adc: PASS.
 - [x] Both mipmap-anydpi-v26 adaptive launcher XML files reference the shared 3D foreground PNG: PASS — source inspection.
 - [x] Obsolete green lightning vector removed; density-specific 3D launcher PNGs retained: PASS — resource tree review.
-- [x] Protocol explanation catalog covers fixed ChargingProtocolDetector labels, including unavailable and wireless states, with an honest fallback: PASS — source/test review.
+- [x] Protocol explanation catalog covers all fixed detector labels (including detection-disabled, unavailable, wireless, and explicit sysfs/HAL protocol outputs) with an honest fallback: PASS — source/test review.
 - [x] Charging info action uses a 48dp touch target and keeps the protocol value in a separate wrapping row: PASS — source review; 360dp device review pending.
-- [x] History micro-session filter defaults ON and applies the requested OR predicate (<60 seconds OR zero SoC delta with charged mAh <=0.5): PASS — source/test review.
+- [x] History micro-session filter defaults ON, uses saveable UI state, and applies the requested OR predicate (<60 seconds OR zero SoC delta with charged mAh <=0.5): PASS — source/test review.
 - [x] Filter is applied to the displayed session list only; no Room delete/update/query/schema change: PASS — source review.
-- [x] Session SOH estimator uses completed segments, delta SoC >=15%, duration >=60 seconds, valid positive charge, plausible capacity bounds, and median aggregation: PASS — source/test review.
+- [x] Session SOH estimator uses completed segments, delta SoC >=15%, duration >=60 seconds, valid positive charge, plausible capacity bounds, and median aggregation; separate disconnect segments are never combined to satisfy the threshold: PASS — source/test review.
 - [x] Insights uses existing configurable design-capacity setting and 5000 mAh fallback; no duplicate Settings preference added: PASS — source review.
 - [x] Existing domain/engine/BatteryHealthEstimator, BatteryDao health log path, and Dashboard snapshot behavior left unchanged: PASS — scope review.
 - [x] No CSV/JSON export, dependency, SDK, app version, Room schema, or package change: PASS — scope review.
-- [x] testDebugUnitTest: SUCCESS — GitHub Actions Run #437 on final code SHA acec9cec02bd20d4b60b63cb5dbdcf1eda5a9c8e.
-- [x] assembleDebug: SUCCESS — GitHub Actions Run #437.
-- [x] Anti-Slop UI Audit Gate: SUCCESS — GitHub Actions Run #437.
-- [x] Debug APK and unit-test report artifact uploads: SUCCESS — GitHub Actions Run #437.
-- [ ] PR event workflow Run #438: still IN_PROGRESS at last check; push workflow on the identical code SHA has all jobs SUCCESS.
+- [x] testDebugUnitTest: SUCCESS — 214 tests, 0 failures/errors/skipped; GitHub Actions Run #449.
+- [x] assembleDebug: SUCCESS — GitHub Actions Run #449.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — GitHub Actions Runs #449 and #450.
+- [x] Debug APK upload: SUCCESS — artifact 14720034341, Run #449.
+- [x] Unit-test report upload: SUCCESS — artifact 14720158754, Run #449.
+- [x] PR workflow: SUCCESS — Run #450 on the same code SHA 6eb97cf6ac9311055494c0c36ebe96bfb68eb3ed.
 - [ ] Physical-device QA at 360dp / 720p (Charging dialog and History toggle/list): NOT RUN — required before merge.
-- [x] main unchanged; no merge performed.
+- [x] PR #4 remains OPEN and unmerged; main remains at c955aa2888e5b6fcd6e650ba2f2791b7e3692adc.
+- [x] No merge performed; physical QA is still a hard prerequisite.
 
 ---
 
