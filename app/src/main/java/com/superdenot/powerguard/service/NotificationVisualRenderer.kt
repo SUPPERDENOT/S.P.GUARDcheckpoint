@@ -102,6 +102,13 @@ internal object NotificationVisualRenderer {
         }
         return "$label • $reading"
     }
+    fun formatChargingEta(minutes: Long?): String {
+        if (minutes == null || minutes <= 0L) return "Menghitung ETA..."
+        val hours = minutes / 60L
+        val remainingMinutes = minutes % 60L
+        return if (hours > 0L) "$hours jam $remainingMinutes menit" else "$remainingMinutes menit"
+    }
+
     fun formatMonitorContentText(state: LiveBatteryState): String {
         val current = if (state.isCurrentAvailable) {
             "${if (state.currentMa > 0) "+" else ""}${state.currentMa} mA"
@@ -113,7 +120,8 @@ internal object NotificationVisualRenderer {
             String.format(Locale.US, "%.1f°C", state.tempCelsius)
         } else "Tidak tersedia"
         val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
-        return "$current ($power) • $temperature • $netCharge"
+        val eta = if (state.isCharging) " • Estimasi penuh: ${formatChargingEta(state.chargingEtaMinutes)}" else ""
+        return "$current ($power) • $temperature • $netCharge$eta"
     }
 
     fun formatMonitorExpandedText(state: LiveBatteryState): String {
@@ -144,7 +152,9 @@ internal object NotificationVisualRenderer {
             "Status pengisian: $chargingStatus",
             "Sumber daya: ${state.chargeSource}",
             "Protokol: ${state.chargingProtocol}"
-        ).joinToString("\n")
+        ).let { lines ->
+            if (state.isCharging) lines + "Estimasi penuh: ${formatChargingEta(state.chargingEtaMinutes)}" else lines
+        }.joinToString("\n")
     }
 
     fun resolveMonitorVisualSpec(
