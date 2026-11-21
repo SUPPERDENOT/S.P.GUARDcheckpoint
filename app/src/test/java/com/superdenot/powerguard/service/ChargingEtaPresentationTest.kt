@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.service
 
+import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -8,7 +9,7 @@ import org.junit.Test
 class ChargingEtaPresentationTest {
     @Test
     fun etaFormatterUsesHumanReadableIndonesianAndLoadingFallback() {
-        assertEquals("Menghitung ETA...", NotificationVisualRenderer.formatChargingEta(null))
+        assertEquals("Menghitung ETA...", ChargingEtaEstimator.formatEta(null))
         assertEquals("45 menit", NotificationVisualRenderer.formatChargingEta(45L))
         assertEquals("1 jam 5 menit", NotificationVisualRenderer.formatChargingEta(65L))
     }
