@@ -11,6 +11,7 @@ on:
       - main
       - feat/p2-eta-and-cccv-watchdog
       - feat/p0-protocol-detection-audit
+      - feat/ui-polish-and-session-soh
   pull_request:
     branches:
       - main
