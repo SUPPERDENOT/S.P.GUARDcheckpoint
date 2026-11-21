@@ -50,6 +50,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -163,7 +164,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     val liveState by viewModel.liveState.collectAsState()
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
     var showCurve by remember { mutableStateOf(false) }
-    var hideMicroSessions by remember { mutableStateOf(true) }
+    var hideMicroSessions by rememberSaveable { mutableStateOf(true) }
     val visibleSessions = remember(sessions, liveState.level, hideMicroSessions) {
         if (!hideMicroSessions) sessions else sessions.filter { session ->
             val endTime = session.endTime ?: System.currentTimeMillis()
