@@ -1,3 +1,26 @@
+## 2026-11-21 — Sprint P2: charging ETA and CC/CV stagnant watchdog
+
+- [x] Main baseline verified at 8655255710111c7e0070460d795f3abc80a834c2; feature branch created from exact SHA.
+- [x] CI push triggers include main and the active P2 feature branch; existing triggers retained.
+- [x] ETA uses positive available battery-side current only while charging and externally connected.
+- [x] ETA uses a bounded 120-second timestamp-weighted EMA with a 30-second half-life.
+- [x] ETA requires at least three valid samples; stale samples and EMA at or below 50 mA produce no numeric estimate.
+- [x] Capacity validates stored estimated capacity; otherwise uses configured/system design capacity and 5000 mAh fallback.
+- [x] The 1.25x taper applies only to the remaining 80–100% CV segment.
+- [x] Notification ID 1001 and Charging tab show “Estimasi penuh” and “Menghitung ETA...” when samples are insufficient.
+- [x] CC watchdog: SoC below 80%, current below 150 mA, no SoC gain for 10 minutes.
+- [x] CV watchdog: SoC 80–99%, current below 120 mA, no SoC gain for 20 minutes; 100% excluded.
+- [x] Watchdog resets on unplug/non-charging, invalid sensors, SoC gain, session reset/new session, and sustained recovery >=300 mA for 30 seconds.
+- [x] STAGNANT_CHARGING uses existing anomaly ID 1002 and persisted session dedupe.
+- [x] Unit tests added for ETA and watchdog boundaries/reset behavior.
+- [ ] Diff review against base SHA — pending final review.
+- [ ] ./scripts/ui-audit.sh — pending CI.
+- [ ] gradle --no-daemon testDebugUnitTest assembleDebug — pending CI.
+- [ ] Debug APK and test report artifacts — pending CI.
+- [ ] Physical-device QA for P2 ETA/watchdog — NOT RUN.
+- [ ] Merge to main — NOT AUTHORIZED / NOT DONE.
+
+---
 ## 2026-11-21 — Anomaly bitmap cache identity fix
 
 - [x] Root cause verified: anomaly cache key used only icon resource and severity accent color, so distinct critical anomaly types collided.
