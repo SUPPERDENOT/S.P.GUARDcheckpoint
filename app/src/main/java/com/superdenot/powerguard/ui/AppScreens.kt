@@ -23,9 +23,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
+import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
+import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
@@ -175,6 +177,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val serviceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
     val fallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
+    var showProtocolInfo by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
@@ -211,13 +214,38 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     DiagnosticLine("Sumber daya", if (state.isCharging) state.chargeSource else "Tidak terhubung")
-                    DiagnosticLine(
-                        "Protokol / kemampuan sumber",
-                        state.chargingProtocol,
-                        valueWeight = 1.45f,
-                        valueMaxLines = 2,
-                        valueSoftWrap = true
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Protokol / kemampuan sumber",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            IconButton(
+                                onClick = { showProtocolInfo = true },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Info,
+                                    contentDescription = "Penjelasan protokol pengisian",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(19.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            state.chargingProtocol,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                            maxLines = 2
+                        )
+                    }
                     DiagnosticLine(
                         "Estimasi penuh",
                         if (state.isCharging && state.isChargingEtaTracking) ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)
@@ -263,16 +291,70 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
     }
+    if (showProtocolInfo) {
+        ProtocolInfoDialog(
+            protocolLabel = state.chargingProtocol,
+            onDismiss = { showProtocolInfo = false }
+        )
+    }
 }
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
+    val sessions by vm.sessions.collectAsState()
+    val capacity by vm.designCapacitySetting.collectAsState()
+    val designCapacityMah = capacity.capacityMah ?: BatteryHealthEstimator.DEFAULT_DESIGN_CAPACITY_MAH
+    val estimate = remember(sessions, designCapacityMah) {
+        BatteryHealthEstimator.estimate(sessions, designCapacityMah)
+    }
+
     Column(Modifier.fillMaxSize().padding(padding)) {
         Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 3.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("INSIGHTS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
             Text("Pola penggunaan daya", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
-        AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 1, visibleSubTabs = listOf(1, 2))
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("ESTIMASI KESEHATAN BATERAI", style = MaterialTheme.typography.labelMedium, color = CyanFastCharge, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Estimated SOH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            estimate?.let { String.format(Locale.US, "%.1f%%", it.healthPercentage) } ?: "Belum tersedia",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("mAh Efektif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            estimate?.let { "${it.effectiveCapacityMah} mAh" } ?: "—",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Text(
+                    if (estimate != null) "Berdasarkan ${estimate.validSessionCount} sesi selesai • Kapasitas desain $designCapacityMah mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
+                    else "Belum cukup sesi valid. Estimasi memerlukan sesi selesai dengan kenaikan SoC minimal 15%. Kapasitas desain $designCapacityMah mAh.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "Nilai ini merupakan estimasi berbasis data sesi, bukan pengukuran kapasitas laboratorium.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Box(Modifier.weight(1f)) {
+            AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 1, visibleSubTabs = listOf(1, 2))
+        }
     }
 }
 
