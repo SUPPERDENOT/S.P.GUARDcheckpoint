@@ -103,6 +103,7 @@ class ChargingProtocolDetectorTest {
         assertEquals(true, "/sys/class/power_supply/usb/usb_type" in paths)
         assertEquals(true, "/sys/class/power_supply/usb/real_type" in paths)
         assertEquals(true, "/sys/class/power_supply/usb/type" in paths)
+        assertEquals("/sys/class/power_supply/battery/charge_type", paths.last())
     }
 
     @Test

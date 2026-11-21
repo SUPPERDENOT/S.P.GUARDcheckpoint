@@ -79,14 +79,15 @@ internal object ChargingProtocolDetector {
 /** Reads only fixed, read-only power_supply metadata paths. */
 internal object SysfsChargingProtocolReader {
     internal val allowedPaths = listOf(
-        "/sys/class/power_supply/battery/charge_type",
         "/sys/class/power_supply/sprd-charger/type",
         "/sys/class/power_supply/sc27xx-fgu/type",
         "/sys/class/power_supply/usb/usb_type",
         "/sys/class/power_supply/usb/real_type",
         "/sys/class/power_supply/usb/type",
         "/sys/class/power_supply/charger/real_type",
-        "/sys/class/power_supply/charger/type"
+        "/sys/class/power_supply/charger/type",
+        // Generic charge_type is last so it cannot mask a more specific protocol exposed elsewhere.
+        "/sys/class/power_supply/battery/charge_type"
     )
 
     data class Result(

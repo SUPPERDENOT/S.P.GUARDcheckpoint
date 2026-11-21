@@ -1,11 +1,11 @@
 ## 2026-11-21 — P0 Unisoc sysfs coverage, capability thresholds, and narrow-screen protocol layout
 
-- Expanded the fixed read-only sysfs allowlist with Unisoc/Spreadtrum sprd-charger and sc27xx-fgu nodes, battery charge_type, and USB usb_type / real_type / type metadata paths. Existing SecurityException and IOException handling remains in place.
+- Expanded the fixed read-only sysfs allowlist with Unisoc/Spreadtrum sprd-charger and sc27xx-fgu nodes, battery charge_type, and USB usb_type / real_type / type metadata paths. Specific protocol nodes are read before generic battery charge_type so a generic Fast indication cannot mask a more specific exposed protocol. Existing SecurityException and IOException handling remains in place.
 - Explicit generic HAL values Fast, Adaptive, and FASTCHARGE map only to "Fast Charge (HAL)"; no proprietary protocol name is inferred.
 - Updated BatteryManager source-capability wording and thresholds: AC 8,500mV+ -> "AC — Kemampuan 9V+"; maximum capability power >=10W -> "AC — Kemampuan Daya Tinggi"; lower known capability -> "AC — Daya Standar". USB and wireless labels remain explicitly unverified. AC wattage requires both max-current and max-voltage metadata; battery-side measured current/power is not used.
 - Charging diagnostic value now wraps to two lines with a wider value column. Dashboard protocol capsule is constrained to 190dp and wraps to two lines without repeating the source label.
 - Added tests for Unisoc allowlist paths, charge_type Fast/Adaptive, FASTCHARGE, and 2,000,000µA × 5,000,000µV = 10W capability.
-- CI #415 exposed one stale Wireless expected-string assertion (198/199 passed); the test fixture was aligned to the approved concise label. The detector result itself matched the requested label. A fresh push-triggered CI run is pending after correction commit 3ed664fdf9e47a9a3222e6a8e8cde6350d868b6a. Physical-device retest on itel P55: pending.
+- CI #415 exposed one stale Wireless expected-string assertion (198/199 passed); the test fixture was aligned to the approved concise label. The detector result itself matched the requested label. CI #417 on commit 95ff2d42ae325bd44466d7d70005aaeb8a70b929: SUCCESS — 199/199 unit tests (0 failures/errors/skipped), assembleDebug, Anti-Slop UI Audit Gate, APK artifact 14711582078, and unit-test report 14711875931. A final sysfs precedence refinement follows; its CI is pending. Physical-device retest on itel P55: pending.
 - Battery Monitoring lifecycle, HUD_ONLY gating, RECOVERY_HOLD, P1 safeguards, ChargingEtaEstimator, and CcCvStagnantWatchdog: no intended changes.
 
 ## 2026-11-21 — P0 charging protocol detection audit and conservative classification
