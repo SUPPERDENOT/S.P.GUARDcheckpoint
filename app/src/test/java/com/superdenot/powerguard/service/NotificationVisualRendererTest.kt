@@ -167,7 +167,7 @@ class NotificationVisualRendererTest {
             )
         )
         assertEquals(
-            "Level baterai: 0%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 0 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Tidak mengisi\nSumber daya: Discharging\nProtokol: Not Exposed by Device",
+            "Level baterai: 0%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 0 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Tidak mengisi\nSumber daya: Discharging\nProtokol / kemampuan sumber: Tidak Diekspos Perangkat",
             NotificationVisualRenderer.formatMonitorExpandedText(state)
         )
     }
@@ -361,7 +361,7 @@ class NotificationVisualRendererTest {
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
             )
             assertEquals(
-                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol: Not Exposed by Device\nEstimasi penuh: Menghitung ETA...",
+                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol / kemampuan sumber: Tidak Diekspos Perangkat\nEstimasi penuh: Menghitung ETA...",
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
             )
 

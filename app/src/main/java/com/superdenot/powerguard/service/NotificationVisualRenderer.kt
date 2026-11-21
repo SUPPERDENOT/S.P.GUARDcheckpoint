@@ -160,7 +160,7 @@ internal object NotificationVisualRenderer {
             "Muatan bersih: $netCharge",
             "Status pengisian: $chargingStatus",
             "Sumber daya: ${state.chargeSource}",
-            "Protokol: ${state.chargingProtocol}"
+            "Protokol / kemampuan sumber: ${state.chargingProtocol}"
         ).let { lines ->
             if (state.isCharging && state.isChargingEtaTracking) lines + "Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else lines
         }.joinToString("\n")

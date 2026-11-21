@@ -245,6 +245,19 @@
 
 ---
 
+## 2026-11-21 — P0 charging protocol detection
+
+- Approved scope and conservative evidence tiers: PASS — exact protocol labels require an allowlisted explicit sysfs/HAL value; BatteryManager labels remain source-capability classifications.
+- Fixed read-only sysfs allowlist and exception handling: PASS — source review; SecurityException is distinguished from IOException/missing-node outcomes.
+- Unit conversion: PASS — µA/µV converted to mA/mV in the detector; deterministic tests added.
+- Dashboard, Charging screen, and expanded monitoring notification detail: PASS — source review.
+- Battery Monitoring lifecycle, HUD_ONLY, RECOVERY_HOLD, P1 protections, ChargingEtaEstimator, and CcCvStagnantWatchdog: PASS — no algorithm or lifecycle edits intended; confirm by final diff.
+- Focused unit tests: NOT RUN — pending branch CI.
+- Android build and Anti-Slop UI Audit Gate: NOT RUN — pending branch CI.
+- APK artifact upload: NOT RUN — pending branch CI.
+- Physical-device QA on itel P55: NOT RUN — requires installation and observation; do not infer protocol availability from CI.
+- Package, SDK, dependencies, app version, and build number: PASS — unchanged.
+
 # SPG Quality Checklist
 
 Complete this checklist for every meaningful code change. For documentation-only changes, mark code/runtime checks N/A and state why.

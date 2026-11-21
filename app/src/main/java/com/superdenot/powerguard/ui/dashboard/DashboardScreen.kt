@@ -197,7 +197,7 @@ fun DashboardScreen(
                                 shape = RoundedCornerShape(50)
                             ) {
                                 Text(
-                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • PROTOCOL ${activeState.chargingProtocol}"
+                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • ${activeState.chargingProtocol}"
                                     else "DISCHARGING",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
