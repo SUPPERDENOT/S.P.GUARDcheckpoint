@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.service.AutoStartDiagnosticLog
+import com.superdenot.powerguard.service.NotificationVisualRenderer
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
@@ -216,6 +217,11 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         valueWeight = 1.6f,
                         valueMaxLines = 1,
                         valueSoftWrap = false
+                    )
+                    DiagnosticLine(
+                        "Estimasi penuh",
+                        if (state.isCharging) NotificationVisualRenderer.formatChargingEta(state.chargingEtaMinutes)
+                        else "Tidak mengisi"
                     )
                 }
             }
