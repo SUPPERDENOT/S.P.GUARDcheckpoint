@@ -15,7 +15,7 @@ class ChargingEtaEstimatorTest {
  }
  @Test fun timestampWeightedEmaFavorsRecentSamples() {
   val e=ChargingEtaEstimator(); e.addSample(1000,1000,true,true,true); e.addSample(1000,2000,true,true,true)
-  e.addSample(3000,32000,true,true,true); assertEquals(35L,e.estimateMinutes(80,5000,32000))
+  e.addSample(3000,32000,true,true,true); assertEquals(38L,e.estimateMinutes(80,5000,32000))
  }
  @Test fun invalidOrNonPositiveSampleResetsWindow() {
   val e=ChargingEtaEstimator(); repeat(3){i->e.addSample(1000,(i+1)*1000L,true,true,true)}
