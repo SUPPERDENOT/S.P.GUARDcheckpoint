@@ -14,6 +14,7 @@ internal fun isNetDrainWhilePowerConnected(state: LiveBatteryState): Boolean =
 class AnomalyDetector(private val context: Context) {
 
     private val chargingProgressTracker = ChargingProgressTracker()
+    private val stagnantWatchdog = CcCvStagnantWatchdog()
 
     data class AnomalyResult(
         val isAnomaly: Boolean,
@@ -23,10 +24,11 @@ class AnomalyDetector(private val context: Context) {
 
     fun reset() {
         chargingProgressTracker.reset()
+        stagnantWatchdog.reset()
     }
 
     fun evaluate(state: LiveBatteryState, isScreenOn: Boolean): AnomalyResult {
-        if ((!state.isCharging && !state.isPowerConnected) || state.level >= 95) {
+        if ((!state.isCharging && !state.isPowerConnected) || state.level >= 100) {
             reset()
             return AnomalyResult(false, null, null)
         }
@@ -36,6 +38,7 @@ class AnomalyDetector(private val context: Context) {
         ) {
             // Pause/reset progress timers while thermal control may intentionally limit charging.
             chargingProgressTracker.reset()
+            stagnantWatchdog.reset()
             return AnomalyResult(
                 isAnomaly = true,
                 code = "THERMAL_THROTTLING",
@@ -43,7 +46,17 @@ class AnomalyDetector(private val context: Context) {
             )
         }
 
-        val issue = chargingProgressTracker.evaluate(state, SystemClock.elapsedRealtime())
+        val nowElapsedMs = SystemClock.elapsedRealtime()
+        val stagnantMinutes = stagnantWatchdog.evaluate(state, nowElapsedMs)
+        if (stagnantMinutes != null) {
+            val phase = if (state.level < 80) "CC" else "CV"
+            return AnomalyResult(
+                isAnomaly = true,
+                code = "STAGNANT_CHARGING",
+                message = "Arus baterai sisi pengisian berada di bawah ambang fase $phase tanpa kenaikan level selama $stagnantMinutes menit. Ini indikasi pengisian stagnan, bukan identifikasi protokol atau bukti kerusakan hardware."
+            )
+        }
+        val issue = chargingProgressTracker.evaluate(state, nowElapsedMs)
             ?: return AnomalyResult(false, null, null)
 
         val topApp = if (!isScreenOn && state.deepSleepRatio < 0.25f) {
