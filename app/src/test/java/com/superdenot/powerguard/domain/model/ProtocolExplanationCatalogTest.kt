@@ -40,7 +40,7 @@ class ProtocolExplanationCatalogTest {
     @Test
     fun unknownLabelGetsHonestFallback() {
         assertEquals(
-            "Nilai ini berasal dari nilai eksplisit perangkat atau belum memiliki penjelasan khusus. Aplikasi tidak mengubahnya menjadi klaim protokol lain.",
+            "Label ini berasal dari nilai eksplisit perangkat atau belum memiliki penjelasan khusus. Aplikasi tidak mengubahnya menjadi klaim protokol lain.",
             ProtocolExplanationCatalog.get("Mystery HAL Value").summary
         )
     }
