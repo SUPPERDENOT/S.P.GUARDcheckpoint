@@ -1,3 +1,20 @@
+## 2026-11-21 — Sprint P2 physical QA and collapsed ETA layout
+
+- [x] User-reported itel P55 QA: Real-Time Charging ETA appears after at least three valid samples.
+- [x] User-reported itel P55 QA: ETA clears automatically after unplug; collapsed state reports “Tidak mengisi”.
+- [x] User-reported itel P55 QA: Battery Monitoring OFF / HUD_ONLY shows “Menunggu pemantauan” without a fabricated ETA.
+- [x] User-reported itel P55 QA: 11-minute USB session (59% → 60%, average +194 mA, peak +305 mA) produced no false-positive CC/CV stagnant warning.
+- [x] Collapsed notification ID 1001 moves ETA to the content title; contentText remains the three-metric row.
+- [x] Expanded BigTextStyle keeps the full “Estimasi penuh: ...” line.
+- [x] Unit regression coverage added for warm-up title, compact numeric ETA title, clean collapsed metrics, and expanded ETA.
+- [x] ETA estimator, watchdog logic, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator path remain unchanged.
+- [ ] Anti-Slop UI Audit Gate — pending CI for the new notification layout.
+- [ ] testDebugUnitTest / assembleDebug — pending CI.
+- [ ] Debug APK and unit-test report artifacts — pending CI.
+- [ ] Squash merge to main — authorized by user; pending CI and final diff review.
+
+---
+
 ## 2026-11-21 — Persistent notification icon test fixture determinism
 
 - [x] CI #397 XML report inspected; exact failure is expected icon type 1 versus observed type 2 at test line 564.
@@ -24,7 +41,7 @@
 - [x] ETA requires at least three valid samples; stale samples and EMA at or below 50 mA produce no numeric estimate.
 - [x] Capacity validates stored estimated capacity; otherwise uses configured/system design capacity and 5000 mAh fallback.
 - [x] The 1.25x taper applies only to the remaining 80–100% CV segment.
-- [x] Notification ID 1001 and Charging tab show “Estimasi penuh” and “Menghitung ETA...” when samples are insufficient.
+- [x] Expanded notification ID 1001 and Charging tab show “Estimasi penuh”; collapsed title carries compact ETA / “Menghitung ETA...” and the three-metric content body stays clean.
 - [x] CC watchdog: SoC below 80%, current below 150 mA, no SoC gain for 10 minutes.
 - [x] CV watchdog: SoC 80–99%, current below 120 mA, no SoC gain for 20 minutes; 100% excluded.
 - [x] Watchdog resets on unplug/non-charging, invalid sensors, SoC gain, session reset/new session, and sustained recovery >=300 mA for 30 seconds.
@@ -35,8 +52,8 @@
 - [ ] ./scripts/ui-audit.sh — pending CI.
 - [ ] gradle --no-daemon testDebugUnitTest assembleDebug — pending CI.
 - [ ] Debug APK and test report artifacts — pending CI.
-- [ ] Physical-device QA for P2 ETA/watchdog — NOT RUN.
-- [ ] Merge to main — NOT AUTHORIZED / NOT DONE.
+- [x] Physical-device QA for P2 ETA/watchdog — PASS (user-reported itel P55; detailed cases in the 2026-11-21 follow-up above).
+- [ ] Merge to main — authorized; pending final CI and squash merge.
 
 ---
 ## 2026-11-21 — Anomaly bitmap cache identity fix

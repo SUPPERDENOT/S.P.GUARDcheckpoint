@@ -76,7 +76,23 @@ internal object NotificationVisualRenderer {
     fun resolveMonitorContentTitle(state: LiveBatteryState): String {
         if (!state.isCharging) return "Pemantauan Baterai Aktif"
         val level = if (state.isLevelAvailable) "${state.level}%" else "—"
-        return "Mengisi Daya • $level"
+        val title = "Mengisi Daya • $level"
+        return if (state.isChargingEtaTracking) {
+            "$title • ${formatCompactEtaForTitle(state.chargingEtaMinutes)}"
+        } else {
+            title
+        }
+    }
+
+    private fun formatCompactEtaForTitle(minutes: Long?): String {
+        if (minutes == null || minutes <= 0L) return "Menghitung ETA..."
+        val hours = minutes / 60L
+        val remainingMinutes = minutes % 60L
+        return when {
+            hours == 0L -> "±$minutes mnt"
+            remainingMinutes == 0L -> "±${hours}j"
+            else -> "±${hours}j ${remainingMinutes}m"
+        }
     }
 
     fun formatStatusBarParameterText(state: LiveBatteryState, parameter: StatusBarParameter): String {
@@ -114,8 +130,7 @@ internal object NotificationVisualRenderer {
             String.format(Locale.US, "%.1f°C", state.tempCelsius)
         } else "Tidak tersedia"
         val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
-        val eta = if (state.isCharging && state.isChargingEtaTracking) " • Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else ""
-        return "$current ($power) • $temperature • $netCharge$eta"
+        return "$current ($power) • $temperature • $netCharge"
     }
 
     fun formatMonitorExpandedText(state: LiveBatteryState): String {

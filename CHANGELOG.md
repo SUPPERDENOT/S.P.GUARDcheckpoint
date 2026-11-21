@@ -1,3 +1,19 @@
+## 2026-11-21 — Collapsed notification ETA summary and P2 physical QA
+
+### Changed
+- Moved the charging ETA summary for monitoring notification ID 1001 into the collapsed content title, after charging state and battery percentage.
+- The title uses a compact approximate form (for example, ±58 mnt); while the estimator is warming up it shows "Menghitung ETA...".
+- Kept the collapsed content body limited to current, power, temperature, and net-charge metrics. The expanded BigTextStyle retains the complete "Estimasi penuh: ..." line.
+- Added regression coverage for warm-up and numeric ETA title suffixes, clean collapsed metrics, and the unchanged expanded ETA line.
+- Recorded user-reported itel P55 physical verification for Sprint P2: ETA warm-up/clear-on-unplug/HUD_ONLY isolation PASS; CC/CV watchdog 11-minute USB observation PASS without false positive.
+
+### Verification
+- Implementation and regression tests committed on feat/p2-eta-and-cccv-watchdog; GitHub Actions CI for this change: PENDING.
+- Physical-device QA for Sprint P2 on itel P55: PASS (user-reported; details recorded in the P2 quality checklist).
+- Estimator math, CC/CV watchdog thresholds/reset rules, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator behavior are unchanged.
+
+---
+
 ## 2026-11-21 — Persistent notification icon test fixture determinism
 
 ### Root cause and correction
@@ -38,7 +54,7 @@
 - Added timestamp-weighted EMA over a bounded 120-second positive battery-side current sample window; ETA requires at least three valid charging samples and EMA current above 50 mA.
 - Capacity selection validates the latest stored estimated-capacity snapshot; otherwise it uses configured/system design capacity, with a 5000 mAh fallback when unavailable or invalid.
 - The 1.25x taper applies only to remaining capacity in the 80–100% CV segment; the below-80% CC segment is not multiplied.
-- Nullable ETA is displayed as “Estimasi penuh” in notification ID 1001 and the Charging tab; insufficient samples show “Menghitung ETA...”.
+- The expanded notification ID 1001 and Charging tab retain the full “Estimasi penuh” line; collapsed notification title carries a compact ETA or “Menghitung ETA...” warm-up suffix.
 - Added a CC/CV stagnant watchdog: below 80%, current below 150 mA for 10 minutes; 80–99%, current below 120 mA for 20 minutes, without SoC gain.
 - Watchdog resets on unplug/non-charging, invalid current/level, SoC gain, new/reset sessions, and sustained current recovery of at least 300 mA for 30 seconds. It emits STAGNANT_CHARGING through existing anomaly ID 1002 and session deduplication.
 - Added main and the active P2 feature branch to Android CI push triggers.
