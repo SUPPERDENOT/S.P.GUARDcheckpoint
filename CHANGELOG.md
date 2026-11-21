@@ -6,6 +6,7 @@
 - Optional AOSP ACTION_BATTERY_CHANGED keys `max_charging_current` and `max_charging_voltage` are hidden from the public SDK; the engine reads them by literal key only when present. Values are converted from µA/µV to mA/mV and presented as source capabilities, never as proof of USB SDP/CDP, DCP, Qi, or a negotiated fast-charge protocol. Missing extras remain unavailable.
 - Updated Dashboard, Charging diagnostics, and expanded monitoring notification protocol/source detail.
 - Added deterministic detector tests for explicit protocol aliases, metadata conversion, USB/AC/wireless categories, unplugged state, and SELinux/unknown fallback.
+- GitHub Actions run #413 on commit `8decd883c2c89d25c6e54d7e27f1c93df0bf3af6`: SUCCESS — Anti-Slop UI Audit Gate, 197/197 unit tests (0 failures/errors/skipped), `assembleDebug`, APK artifact `14710545989`, and unit-test report artifact `14710610822`.
 - P0 branch CI trigger added. Physical-device protocol exposure on itel P55: NOT RUN — requires APK installation and runtime observation.
 - Battery Monitoring lifecycle, HUD_ONLY behavior, RECOVERY_HOLD, P0/P1 protections outside protocol display, ChargingEtaEstimator, and CcCvStagnantWatchdog: unchanged by scope.
 

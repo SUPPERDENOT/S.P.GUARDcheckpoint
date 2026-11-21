@@ -253,9 +253,10 @@
 - Dashboard, Charging screen, and expanded monitoring notification detail: PASS — source review.
 - HUD_ONLY isolation: PASS — protocol/sysfs detection is opt-in and service sampling enables it only in Battery Monitoring active states; indicator-only snapshots use the explicit “Deteksi protokol nonaktif” state.
 - RECOVERY_HOLD, P1 protections, ChargingEtaEstimator, and CcCvStagnantWatchdog: PASS — no algorithm changes intended; confirm by final diff.
-- Focused unit tests: NOT RUN — pending branch CI.
-- Android build and Anti-Slop UI Audit Gate: NOT RUN — pending branch CI.
-- APK artifact upload: NOT RUN — pending branch CI.
+- Focused unit tests: PASS — CI #413, 197/197 tests, 0 failures/errors/skipped; report artifact ID 14710610822.
+- Android build and Anti-Slop UI Audit Gate: PASS — CI #413 `assembleDebug` and Anti-Slop UI Audit Gate both SUCCESS.
+- APK artifact upload: PASS — `android-debug-apk` artifact ID 14710545989; expires 2026-12-05T14:05:19Z.
+- Unit-test report artifact: PASS — `android-unit-test-reports` artifact ID 14710610822.
 - Physical-device QA on itel P55: NOT RUN — requires installation and observation; do not infer protocol availability from CI.
 - Package, SDK, dependencies, app version, and build number: PASS — unchanged.
 
