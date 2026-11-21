@@ -14,6 +14,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import com.superdenot.powerguard.R
+import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import java.util.Locale
@@ -102,13 +103,6 @@ internal object NotificationVisualRenderer {
         }
         return "$label • $reading"
     }
-    fun formatChargingEta(minutes: Long?): String {
-        if (minutes == null || minutes <= 0L) return "Menghitung ETA..."
-        val hours = minutes / 60L
-        val remainingMinutes = minutes % 60L
-        return if (hours > 0L) "$hours jam $remainingMinutes menit" else "$remainingMinutes menit"
-    }
-
     fun formatMonitorContentText(state: LiveBatteryState): String {
         val current = if (state.isCurrentAvailable) {
             "${if (state.currentMa > 0) "+" else ""}${state.currentMa} mA"
@@ -120,7 +114,7 @@ internal object NotificationVisualRenderer {
             String.format(Locale.US, "%.1f°C", state.tempCelsius)
         } else "Tidak tersedia"
         val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
-        val eta = if (state.isCharging) " • Estimasi penuh: ${formatChargingEta(state.chargingEtaMinutes)}" else ""
+        val eta = if (state.isCharging) " • Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else ""
         return "$current ($power) • $temperature • $netCharge$eta"
     }
 
@@ -153,7 +147,7 @@ internal object NotificationVisualRenderer {
             "Sumber daya: ${state.chargeSource}",
             "Protokol: ${state.chargingProtocol}"
         ).let { lines ->
-            if (state.isCharging) lines + "Estimasi penuh: ${formatChargingEta(state.chargingEtaMinutes)}" else lines
+            if (state.isCharging) lines + "Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else lines
         }.joinToString("\n")
     }
 
