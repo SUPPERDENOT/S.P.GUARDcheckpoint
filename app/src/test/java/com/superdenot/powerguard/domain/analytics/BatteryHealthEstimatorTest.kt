@@ -58,11 +58,12 @@ class BatteryHealthEstimatorTest {
     @Test
     fun usesMedianAcrossValidSessionsToReduceOutlierInfluence() {
         val result = BatteryHealthEstimator.estimate(
-            listOf(
+            sessions = listOf(
                 session(mah = 1_000.0),
                 session(mah = 1_100.0),
                 session(mah = 2_000.0)
-            )
+            ),
+            designCapacityMah = 5_500
         )
         assertNotNull(result)
         assertEquals(5_500, result!!.effectiveCapacityMah)
