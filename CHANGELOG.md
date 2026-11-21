@@ -1,3 +1,20 @@
+## 2026-11-21 — Persistent notification icon test fixture determinism
+
+### Root cause and correction
+- CI #397 exposed that `persistentNotificationUsesDynamicMetricIconOnlyWhenIndicatorToggleIsEnabled` created a deterministic `LiveBatteryState` fixture but called the one-argument test helper for both notifications. That overload reads the service's current sensor snapshot, so the fixture was unused and the expected dynamic bitmap depended on ambient service state.
+- Both OFF and ON notification builds now pass the prepared state through the existing two-argument helper. The behavioral assertions are unchanged: indicator OFF expects a resource icon; indicator ON expects a bitmap icon.
+- No production renderer or service behavior was changed. ID 1001 continues to use the static `NotificationVisualRenderer` drawable when Status Bar Indicator is OFF and `LiveStatusBarRenderer` bitmap only when it is ON.
+- Battery Monitoring remains independent: the P2 ETA path resets and clears ETA in `HUD_ONLY` / Battery Monitoring OFF; ETA tracking is enabled only for an active charging session.
+
+### Verification
+- Root cause confirmed from Run #397 XML report: expected icon type 1, observed type 2 at test line 564.
+- Test fixture correction: implemented; full unit test and build verification pending the new GitHub Actions run.
+- `ChargingEtaEstimator` (four-ULP correction, timestamp-weighted EMA, CV-only 1.25x taper) and `CcCvStagnantWatchdog` (SoC below 100%) unchanged.
+- P0/P1 service lifecycle, persistence, RECOVERY_HOLD, normalization, notification render gate, and auto-start logic unchanged.
+- Physical-device QA on itel P55: NOT RUN. No merge to `main`.
+
+---
+
 ## 2026-11-21 — ETA floating-point rounding correction
 
 ### Changed

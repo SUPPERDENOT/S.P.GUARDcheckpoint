@@ -1,3 +1,20 @@
+## 2026-11-21 — Persistent notification icon test fixture determinism
+
+- [x] CI #397 XML report inspected; exact failure is expected icon type 1 versus observed type 2 at test line 564.
+- [x] Root cause verified: the test's local `LiveBatteryState` fixture was not passed to either notification build; the one-argument helper read the service snapshot.
+- [x] Both test builds now pass the same explicit fixture through the existing two-argument helper; assertions remain unchanged.
+- [x] Source contract reviewed: ID 1001 uses the static drawable when Status Bar Indicator is OFF and the dynamic metric bitmap when ON and renderable.
+- [x] Battery Monitoring / ETA separation reviewed: `HUD_ONLY` and Battery Monitoring OFF reset ETA tracking and clear the estimate; no change made.
+- [x] P2 estimator/watchdog algorithms and P0/P1 protected paths unchanged.
+- [ ] `testDebugUnitTest` — pending new CI.
+- [ ] `assembleDebug` — pending new CI.
+- [ ] Anti-Slop UI Audit Gate — pending new CI; no UI/layout changed.
+- [ ] `android-debug-apk` and `android-unit-test-reports` — pending new CI.
+- [ ] Physical-device QA on itel P55 — NOT RUN.
+- [ ] Merge to `main` — HOLD / NOT DONE.
+
+---
+
 ## 2026-11-21 — Sprint P2: charging ETA and CC/CV stagnant watchdog
 
 - [x] Main baseline verified at 8655255710111c7e0070460d795f3abc80a834c2; feature branch created from exact SHA.

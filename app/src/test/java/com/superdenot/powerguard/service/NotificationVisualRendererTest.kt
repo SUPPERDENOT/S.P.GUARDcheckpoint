@@ -549,14 +549,14 @@ class NotificationVisualRendererTest {
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = false)
             )
-            val staticNotification = service.buildMonitorNotificationForTesting("Monitoring")
+            val staticNotification = service.buildMonitorNotificationForTesting("Monitoring", state)
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
                     enabled = true,
                     parameter = com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
                 )
             )
-            val dynamicNotification = service.buildMonitorNotificationForTesting("Monitoring")
+            val dynamicNotification = service.buildMonitorNotificationForTesting("Monitoring", state)
 
             assertNotNull(staticNotification.smallIcon)
             assertNotNull(dynamicNotification.smallIcon)
