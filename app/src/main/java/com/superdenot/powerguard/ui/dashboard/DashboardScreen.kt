@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -192,17 +193,20 @@ fun DashboardScreen(
                             }
 
                             Surface(
+                                modifier = Modifier.widthIn(max = 190.dp),
                                 color = if (activeState.isCharging) EmeraldCharge.copy(alpha = 0.16f)
                                 else Color.White.copy(alpha = 0.08f),
-                                shape = RoundedCornerShape(50)
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = if (activeState.isCharging) "${activeState.chargeSource.uppercase()} • ${activeState.chargingProtocol}"
-                                    else "DISCHARGING",
+                                    text = if (activeState.isCharging) activeState.chargingProtocol else "DISCHARGING",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                                    maxLines = 2,
+                                    softWrap = true,
                                     color = if (activeState.isCharging) EmeraldCharge else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
                         }

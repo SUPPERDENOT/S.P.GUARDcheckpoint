@@ -74,6 +74,9 @@ class ChargingProtocolDetectorTest {
     fun genericFastChargeAndSourceTypesAreNotAcceptedAsSpecificProtocols() {
         assertEquals("USB PD PPS", SysfsChargingProtocolReader.normalizeExplicitProtocol("USB_PD_PPS_9V"))
         assertEquals("Fast Charge (HAL)", SysfsChargingProtocolReader.normalizeExplicitProtocol("FAST_CHARGE"))
+        assertEquals("Fast Charge (HAL)", SysfsChargingProtocolReader.normalizeExplicitProtocol("Fast"))
+        assertEquals("Fast Charge (HAL)", SysfsChargingProtocolReader.normalizeExplicitProtocol("Adaptive"))
+        assertEquals("Fast Charge (HAL)", SysfsChargingProtocolReader.normalizeExplicitProtocol("FASTCHARGE"))
         assertEquals("SuperVOOC", SysfsChargingProtocolReader.normalizeExplicitProtocol("SUPERVOOC"))
         assertEquals("QC 3.0", SysfsChargingProtocolReader.normalizeExplicitProtocol("QC3"))
         assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("UNKNOWN_PD"))
@@ -83,12 +86,29 @@ class ChargingProtocolDetectorTest {
 
     @Test
     fun usbMetadataProducesOnlyUnverifiedCurrentCapabilityLabels() {
-        assertEquals("USB arus tinggi — SDP/CDP tidak terverifikasi",
+        assertEquals("USB Arus Tinggi (SDP/CDP?)",
             detect(ChargingProtocolDetector.Source.USB, currentUa = 900_000L))
-        assertEquals("USB arus standar — SDP/CDP tidak terverifikasi",
+        assertEquals("USB Arus Standar (SDP?)",
             detect(ChargingProtocolDetector.Source.USB, currentUa = 899_000L))
-        assertEquals("USB — kemampuan arus tidak tersedia; SDP/CDP tidak terverifikasi",
+        assertEquals("USB — Arus Maksimum Tidak Tersedia",
             detect(ChargingProtocolDetector.Source.USB))
+    }
+
+    @Test
+    fun unisocAndAndroidPowerSupplyReadOnlyPathsAreAllowlisted() {
+        val paths = SysfsChargingProtocolReader.allowedPaths
+        assertEquals(true, "/sys/class/power_supply/battery/charge_type" in paths)
+        assertEquals(true, "/sys/class/power_supply/sprd-charger/type" in paths)
+        assertEquals(true, "/sys/class/power_supply/sc27xx-fgu/type" in paths)
+        assertEquals(true, "/sys/class/power_supply/usb/usb_type" in paths)
+        assertEquals(true, "/sys/class/power_supply/usb/real_type" in paths)
+        assertEquals(true, "/sys/class/power_supply/usb/type" in paths)
+    }
+
+    @Test
+    fun unisocChargeTypeFastAndAdaptiveRemainGenericHalEvidence() {
+        assertEquals("Fast Charge (HAL)", detect(ChargingProtocolDetector.Source.AC, protocol = "Fast"))
+        assertEquals("Fast Charge (HAL)", detect(ChargingProtocolDetector.Source.AC, protocol = "Adaptive"))
     }
 
     @Test
@@ -99,25 +119,25 @@ class ChargingProtocolDetectorTest {
 
     @Test
     fun acNineVoltCapabilityIsConvertedAndHasPriority() {
-        assertEquals("AC — kemampuan sumber 9V+",
-            detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 9_000_000L))
+        assertEquals("AC — Kemampuan 9V+",
+            detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 8_500_000L))
     }
 
     @Test
-    fun acHighPowerUsesMaximumPowerOrCurrentThreshold() {
-        assertEquals("AC — kemampuan sumber berdaya tinggi",
+    fun acHighPowerUsesMaximumCapabilityOfAtLeastTenWatts() {
+        assertEquals("AC — Kemampuan Daya Tinggi",
+            detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 5_000_000L))
+        assertEquals("AC — Kemampuan Daya Tinggi",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 3_000_000L, voltageUv = 5_000_000L))
-        assertEquals("AC — kemampuan sumber berdaya tinggi",
-            detect(ChargingProtocolDetector.Source.AC, currentUa = 3_000_000L))
-        assertEquals("AC — kemampuan sumber berdaya tinggi",
+        assertEquals("AC — Kemampuan Daya Tinggi",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 2_500_000L, voltageUv = 6_000_000L))
     }
 
     @Test
     fun acStandardCapabilityDoesNotClaimDcp() {
-        assertEquals("AC — sumber daya standar; DCP tidak terverifikasi",
-            detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 5_000_000L))
-        assertEquals("AC — kemampuan sumber tidak tersedia; DCP tidak terverifikasi",
+        assertEquals("AC — Daya Standar",
+            detect(ChargingProtocolDetector.Source.AC, currentUa = 1_000_000L, voltageUv = 5_000_000L))
+        assertEquals("AC — Kemampuan Daya Tidak Tersedia",
             detect(ChargingProtocolDetector.Source.AC))
     }
 

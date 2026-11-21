@@ -214,9 +214,9 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     DiagnosticLine(
                         "Protokol / kemampuan sumber",
                         state.chargingProtocol,
-                        valueWeight = 1.6f,
-                        valueMaxLines = 1,
-                        valueSoftWrap = false
+                        valueWeight = 1.45f,
+                        valueMaxLines = 2,
+                        valueSoftWrap = true
                     )
                     DiagnosticLine(
                         "Estimasi penuh",

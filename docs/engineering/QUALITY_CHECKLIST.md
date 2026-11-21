@@ -1,3 +1,18 @@
+## 2026-11-21 — P0 Unisoc detection and protocol label clipping follow-up
+
+- [x] Read-only allowlist includes battery/charge_type, sprd-charger/type, sc27xx-fgu/type, and USB usb_type/real_type/type: PASS — source review.
+- [x] Generic HAL values Fast / Adaptive / FASTCHARGE map only to "Fast Charge (HAL)"; no PD/QC/VOOC identity is inferred: PASS — source review and unit tests added.
+- [x] AC source capability uses >=8,500mV for the 9V+ capability label and >=10W from max-current × max-voltage metadata for high power: PASS — source review and unit tests added.
+- [x] Battery-side measured current/power is not used as charger capability metadata: PASS — source review.
+- [x] Charging tab value wraps to two lines; Dashboard protocol capsule has bounded width and two-line wrapping: PASS — source review; Anti-Slop and CI pending.
+- [x] Unisoc allowlist, generic HAL labels, and 2A × 5V threshold regression tests added: PASS — test source review.
+- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK and test-report uploads: NOT RUN — awaiting branch CI.
+- [ ] Physical-device retest on itel P55 (720p/360dp clipping and Unisoc FASTCHARGE exposure): NOT RUN.
+- [x] No Battery Monitoring lifecycle, HUD_ONLY, RECOVERY_HOLD, P1 protection, ChargingEtaEstimator, or CcCvStagnantWatchdog algorithm changes intended: PASS — change scope.
+- [x] main untouched; no merge performed.
+
+---
+
 ## 2026-11-21 — Sprint P2 physical QA and collapsed ETA layout
 
 - [x] User-reported itel P55 QA: Real-Time Charging ETA appears after at least three valid samples.

@@ -50,21 +50,20 @@ internal object ChargingProtocolDetector {
         val voltageMv = microVoltsToMilliVolts(input.maxChargingVoltageMicroVolts)
         return when (input.source) {
             Source.USB -> when {
-                currentMa == null -> "USB — kemampuan arus tidak tersedia; SDP/CDP tidak terverifikasi"
-                currentMa >= USB_HIGH_CURRENT_THRESHOLD_MA -> "USB arus tinggi — SDP/CDP tidak terverifikasi"
-                else -> "USB arus standar — SDP/CDP tidak terverifikasi"
+                currentMa == null -> "USB — Arus Maksimum Tidak Tersedia"
+                currentMa >= USB_HIGH_CURRENT_THRESHOLD_MA -> "USB Arus Tinggi (SDP/CDP?)"
+                else -> "USB Arus Standar (SDP?)"
             }
-            Source.WIRELESS -> "Pengisian Nirkabel — standar tidak terverifikasi"
+            Source.WIRELESS -> "Nirkabel (Standar Tak Terverifikasi)"
             Source.AC -> {
                 val maxPowerW = if (currentMa != null && voltageMv != null) {
                     currentMa.toDouble() * voltageMv.toDouble() / 1_000_000.0
                 } else null
                 when {
-                    voltageMv != null && voltageMv >= AC_HIGH_VOLTAGE_THRESHOLD_MV -> "AC — kemampuan sumber 9V+"
-                    currentMa != null && currentMa >= AC_HIGH_CURRENT_THRESHOLD_MA -> "AC — kemampuan sumber berdaya tinggi"
-                    maxPowerW != null && maxPowerW >= AC_HIGH_POWER_THRESHOLD_W -> "AC — kemampuan sumber berdaya tinggi"
-                    currentMa != null || voltageMv != null -> "AC — sumber daya standar; DCP tidak terverifikasi"
-                    else -> "AC — kemampuan sumber tidak tersedia; DCP tidak terverifikasi"
+                    voltageMv != null && voltageMv >= AC_HIGH_VOLTAGE_THRESHOLD_MV -> "AC — Kemampuan 9V+"
+                    maxPowerW != null && maxPowerW >= AC_HIGH_POWER_THRESHOLD_W -> "AC — Kemampuan Daya Tinggi"
+                    currentMa != null || voltageMv != null -> "AC — Daya Standar"
+                    else -> "AC — Kemampuan Daya Tidak Tersedia"
                 }
             }
             Source.UNKNOWN -> if (input.sysfsAccess == SysfsAccess.DENIED) SELINUX_NOT_EXPOSED else NOT_EXPOSED
@@ -73,19 +72,21 @@ internal object ChargingProtocolDetector {
     }
 
     private const val USB_HIGH_CURRENT_THRESHOLD_MA = 900L
-    private const val AC_HIGH_VOLTAGE_THRESHOLD_MV = 9_000L
-    private const val AC_HIGH_CURRENT_THRESHOLD_MA = 3_000L
-    private const val AC_HIGH_POWER_THRESHOLD_W = 15.0
+    private const val AC_HIGH_VOLTAGE_THRESHOLD_MV = 8_500L
+    private const val AC_HIGH_POWER_THRESHOLD_W = 10.0
 }
 
 /** Reads only fixed, read-only power_supply metadata paths. */
 internal object SysfsChargingProtocolReader {
-    private val allowedPaths = listOf(
+    internal val allowedPaths = listOf(
+        "/sys/class/power_supply/battery/charge_type",
+        "/sys/class/power_supply/sprd-charger/type",
+        "/sys/class/power_supply/sc27xx-fgu/type",
+        "/sys/class/power_supply/usb/usb_type",
         "/sys/class/power_supply/usb/real_type",
         "/sys/class/power_supply/usb/type",
         "/sys/class/power_supply/charger/real_type",
-        "/sys/class/power_supply/charger/type",
-        "/sys/class/power_supply/battery/charge_type"
+        "/sys/class/power_supply/charger/type"
     )
 
     data class Result(
@@ -135,7 +136,9 @@ internal object SysfsChargingProtocolReader {
             "QC_2_0" to "QC 2.0", "QC_3_0" to "QC 3.0",
             "VOOC" to "VOOC", "SUPERVOOC" to "SuperVOOC",
             "PUMP_EXPRESS" to "Pump Express", "PUMP_EXPRESS_PLUS" to "Pump Express",
-            "HVDCP" to "HVDCP", "USB_HVDCP" to "HVDCP", "FAST_CHARGE" to "Fast Charge (HAL)"
+            "HVDCP" to "HVDCP", "USB_HVDCP" to "HVDCP",
+            "FAST" to "Fast Charge (HAL)", "ADAPTIVE" to "Fast Charge (HAL)",
+            "FASTCHARGE" to "Fast Charge (HAL)", "FAST_CHARGE" to "Fast Charge (HAL)"
         )
         val normalized = rawValue.trim().uppercase()
             .replace(Regex("[^A-Z0-9_]+"), "_").trim('_')
