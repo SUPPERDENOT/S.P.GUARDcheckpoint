@@ -11,9 +11,10 @@ class BatteryHealthEstimatorTest {
         start: Int = 20,
         end: Int = 40,
         mah: Double = 1_000.0,
+        startTime: Long = 0L,
         endTime: Long? = 600_000L
     ) = ChargingSessionEntity(
-        startTime = 0L,
+        startTime = startTime,
         endTime = endTime,
         startLevel = start,
         endLevel = end,
@@ -68,6 +69,18 @@ class BatteryHealthEstimatorTest {
         assertEquals(5_500, result!!.effectiveCapacityMah)
         assertEquals(110f, result.healthPercentage, 0.001f)
         assertEquals(3, result.validSessionCount)
+    }
+
+    @Test
+    fun doesNotCombineSeparateSegmentsAcrossDisconnectToReachSocThreshold() {
+        assertNull(
+            BatteryHealthEstimator.estimate(
+                listOf(
+                    session(start = 20, end = 30, mah = 500.0, startTime = 0L, endTime = 600_000L),
+                    session(start = 30, end = 40, mah = 500.0, startTime = 600_000L, endTime = 1_200_000L)
+                )
+            )
+        )
     }
 
     @Test
