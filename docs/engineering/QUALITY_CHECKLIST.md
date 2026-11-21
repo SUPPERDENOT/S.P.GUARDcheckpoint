@@ -9,7 +9,8 @@
 - [x] CI #415 Anti-Slop UI Audit Gate and assembleDebug: PASS; unit tests: FAIL only because one Wireless expected-string assertion still used the prior label (198/199 passed); XML report inspected and exact mismatch confirmed.
 - [x] Corrected the Wireless assertion to "Nirkabel (Standar Tak Terverifikasi)".
 - [x] CI #417 on commit 95ff2d4: PASS — 199/199 tests, assembleDebug, Anti-Slop UI Audit Gate, APK artifact 14711582078, report artifact 14711875931.
-- [x] Specific protocol sysfs paths now precede generic battery/charge_type to avoid masking; regression assertion added. Final CI for this precedence refinement: pending.
+- [x] Specific protocol sysfs paths precede generic battery/charge_type to avoid masking; regression assertion added.
+- [x] Final branch CI #419 on commit 9ceea4c: PASS — Anti-Slop UI Audit Gate, 199/199 unit tests (0 failures/errors/skipped), assembleDebug, APK artifact 14712121172, and unit-test report artifact 14711607719.
 - [ ] Physical-device retest on itel P55 (720p/360dp clipping and Unisoc FASTCHARGE exposure): NOT RUN.
 - [x] No Battery Monitoring lifecycle, HUD_ONLY, RECOVERY_HOLD, P1 protection, ChargingEtaEstimator, or CcCvStagnantWatchdog algorithm changes intended: PASS — change scope.
 - [x] main untouched; no merge performed.
