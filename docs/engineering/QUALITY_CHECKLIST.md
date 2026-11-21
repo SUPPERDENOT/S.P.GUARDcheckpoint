@@ -1,3 +1,25 @@
+## 2026-11-22 — Initial UI polish and session SOH analytics
+
+- [x] Branch created from exact main baseline c955aa2888e5b6fcd6e650ba2f2791b7e3692adc: PASS.
+- [x] Both mipmap-anydpi-v26 adaptive launcher XML files reference the shared 3D foreground PNG: PASS — source inspection.
+- [x] Obsolete green lightning vector removed; density-specific 3D launcher PNGs retained: PASS — resource tree review.
+- [x] Protocol explanation catalog covers fixed ChargingProtocolDetector labels, including unavailable and wireless states, with an honest fallback: PASS — source/test review.
+- [x] Charging info action uses a 48dp touch target and keeps the protocol value in a separate wrapping row: PASS — source review; 360dp device review pending.
+- [x] History micro-session filter defaults ON and applies the requested OR predicate (<60 seconds OR zero SoC delta with charged mAh <=0.5): PASS — source/test review.
+- [x] Filter is applied to the displayed session list only; no Room delete/update/query/schema change: PASS — source review.
+- [x] Session SOH estimator uses completed segments, delta SoC >=15%, duration >=60 seconds, valid positive charge, plausible capacity bounds, and median aggregation: PASS — source/test review.
+- [x] Insights uses existing configurable design-capacity setting and 5000 mAh fallback; no duplicate Settings preference added: PASS — source review.
+- [x] Existing domain/engine/BatteryHealthEstimator, BatteryDao health log path, and Dashboard snapshot behavior left unchanged: PASS — scope review.
+- [x] No CSV/JSON export, dependency, SDK, app version, Room schema, or package change: PASS — scope review.
+- [ ] testDebugUnitTest: NOT RUN — pending branch CI.
+- [ ] assembleDebug: NOT RUN — pending branch CI.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — pending branch CI.
+- [ ] APK artifact upload: NOT RUN — pending branch CI.
+- [ ] Physical-device QA at 360dp / 720p (Charging dialog and History toggle/list): NOT RUN — required before merge.
+- [x] main unchanged; no merge performed.
+
+---
+
 ## 2026-11-21 — P0 Unisoc detection and protocol label clipping follow-up
 
 - [x] Read-only allowlist includes battery/charge_type, sprd-charger/type, sc27xx-fgu/type, and USB usb_type/real_type/type: PASS — source review.
