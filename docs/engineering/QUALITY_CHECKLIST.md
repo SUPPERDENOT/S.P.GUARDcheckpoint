@@ -11,10 +11,11 @@
 - [x] Insights uses existing configurable design-capacity setting and 5000 mAh fallback; no duplicate Settings preference added: PASS — source review.
 - [x] Existing domain/engine/BatteryHealthEstimator, BatteryDao health log path, and Dashboard snapshot behavior left unchanged: PASS — scope review.
 - [x] No CSV/JSON export, dependency, SDK, app version, Room schema, or package change: PASS — scope review.
-- [ ] testDebugUnitTest: NOT RUN — pending branch CI.
-- [ ] assembleDebug: NOT RUN — pending branch CI.
-- [ ] Anti-Slop UI Audit Gate: NOT RUN — pending branch CI.
-- [ ] APK artifact upload: NOT RUN — pending branch CI.
+- [x] testDebugUnitTest: SUCCESS — GitHub Actions Run #437 on final code SHA acec9cec02bd20d4b60b63cb5dbdcf1eda5a9c8e.
+- [x] assembleDebug: SUCCESS — GitHub Actions Run #437.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — GitHub Actions Run #437.
+- [x] Debug APK and unit-test report artifact uploads: SUCCESS — GitHub Actions Run #437.
+- [ ] PR event workflow Run #438: still IN_PROGRESS at last check; push workflow on the identical code SHA has all jobs SUCCESS.
 - [ ] Physical-device QA at 360dp / 720p (Charging dialog and History toggle/list): NOT RUN — required before merge.
 - [x] main unchanged; no merge performed.
 
