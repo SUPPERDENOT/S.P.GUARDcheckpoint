@@ -14,7 +14,7 @@ object ProtocolExplanationCatalog {
     private val explanations = mapOf(
         "AC — Daya Standar" to ProtocolExplanation(
             title = "Kemampuan AC standar",
-            powerRange = "Metadata kemampuan berada di bawah ambang 10 W dan 8,5 V.",
+            powerRange = "Metadata yang tersedia tidak mencapai ambang 9V+ atau 10W; sebagian nilai dapat tidak tersedia.",
             summary = "Android mengekspos informasi kemampuan sumber AC, tetapi tidak mengidentifikasi protokol pengisian tertentu. Ini bukan pengukuran daya keluaran adaptor."
         ),
         "AC — Kemampuan Daya Tinggi" to ProtocolExplanation(
