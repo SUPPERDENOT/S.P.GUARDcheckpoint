@@ -1,3 +1,64 @@
+## 2026-11-21 — Sprint P2 physical QA and collapsed ETA layout
+
+- [x] User-reported itel P55 QA: Real-Time Charging ETA appears after at least three valid samples.
+- [x] User-reported itel P55 QA: ETA clears automatically after unplug; collapsed state reports “Tidak mengisi”.
+- [x] User-reported itel P55 QA: Battery Monitoring OFF / HUD_ONLY shows “Menunggu pemantauan” without a fabricated ETA.
+- [x] User-reported itel P55 QA: 11-minute USB session (59% → 60%, average +194 mA, peak +305 mA) produced no false-positive CC/CV stagnant warning.
+- [x] Collapsed notification ID 1001 moves ETA to the content title; contentText remains the three-metric row.
+- [x] Expanded BigTextStyle keeps the full “Estimasi penuh: ...” line.
+- [x] Unit regression coverage added for warm-up title, compact numeric ETA title, clean collapsed metrics, and expanded ETA.
+- [x] Updated ChargingEtaPresentationTest to assert the new collapsed-title contract instead of the superseded ETA-in-contentText contract.
+- [x] ETA estimator, watchdog logic, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator path remain unchanged.
+- [x] Run #400 failure traced to the obsolete presentation assertion; corrected on the branch.
+- [x] Run #402 push CI — PASS: Anti-Slop UI Audit Gate, 183/183 unit tests (0 failed/errors/skipped), assembleDebug, APK upload, and unit-test report upload.
+- [x] Run #403 pull_request CI — PASS on attempt 2; attempt 1 had a transient KSP plugin-resolution failure before compilation.
+- [x] Run #402 artifact IDs: APK 14703432370; unit-test reports 14703611094.
+- [x] Diff review against main baseline 8655255 — PASS; 14 changed files, all within the approved P2 scope.
+- [ ] Squash merge to main — authorized by user; pending final merge operation and post-merge main CI.
+
+---
+
+## 2026-11-21 — Persistent notification icon test fixture determinism
+
+- [x] CI #397 XML report inspected; exact failure is expected icon type 1 versus observed type 2 at test line 564.
+- [x] Root cause verified: the test's local `LiveBatteryState` fixture was not passed to either notification build; the one-argument helper read the service snapshot.
+- [x] Both test builds now pass the same explicit fixture through the existing two-argument helper; assertions remain unchanged.
+- [x] Source contract reviewed: ID 1001 uses the static drawable when Status Bar Indicator is OFF and the dynamic metric bitmap when ON and renderable.
+- [x] Battery Monitoring / ETA separation reviewed: `HUD_ONLY` and Battery Monitoring OFF reset ETA tracking and clear the estimate; no change made.
+- [x] P2 estimator/watchdog algorithms and P0/P1 protected paths unchanged.
+- [x] `testDebugUnitTest` — PASS, 183/183 tests, 0 failed/errors/skipped (GitHub Actions #398).
+- [x] `assembleDebug` — PASS (GitHub Actions #398).
+- [x] Anti-Slop UI Audit Gate — PASS (GitHub Actions #398; no UI/layout changed).
+- [x] `android-debug-apk` and `android-unit-test-reports` — both uploaded successfully (GitHub Actions #398).
+- [ ] Physical-device QA on itel P55 — NOT RUN.
+- [ ] Merge to `main` — HOLD / NOT DONE.
+
+---
+
+## 2026-11-21 — Sprint P2: charging ETA and CC/CV stagnant watchdog
+
+- [x] Main baseline verified at 8655255710111c7e0070460d795f3abc80a834c2; feature branch created from exact SHA.
+- [x] CI push triggers include main and the active P2 feature branch; existing triggers retained.
+- [x] ETA uses positive available battery-side current only while charging and externally connected.
+- [x] ETA uses a bounded 120-second timestamp-weighted EMA with a 30-second half-life.
+- [x] ETA requires at least three valid samples; stale samples and EMA at or below 50 mA produce no numeric estimate.
+- [x] Capacity validates stored estimated capacity; otherwise uses configured/system design capacity and 5000 mAh fallback.
+- [x] The 1.25x taper applies only to the remaining 80–100% CV segment.
+- [x] Expanded notification ID 1001 and Charging tab show “Estimasi penuh”; collapsed title carries compact ETA / “Menghitung ETA...” and the three-metric content body stays clean.
+- [x] CC watchdog: SoC below 80%, current below 150 mA, no SoC gain for 10 minutes.
+- [x] CV watchdog: SoC 80–99%, current below 120 mA, no SoC gain for 20 minutes; 100% excluded.
+- [x] Watchdog resets on unplug/non-charging, invalid sensors, SoC gain, session reset/new session, and sustained recovery >=300 mA for 30 seconds.
+- [x] STAGNANT_CHARGING uses existing anomaly ID 1002 and persisted session dedupe.
+- [x] Unit tests added for ETA and watchdog boundaries/reset behavior.
+- [x] ETA integer-boundary rounding compensates only four ULPs of floating-point drift; a fractional-minute regression test still rounds upward.
+- [x] Diff review against base SHA 8655255710111c7e0070460d795f3abc80a834c2 — PASS; 14 changed files, all in the approved P2 scope.
+- [x] ./scripts/ui-audit.sh — PASS in GitHub Actions Run #402.
+- [x] gradle --no-daemon testDebugUnitTest assembleDebug — PASS in GitHub Actions Run #402; 183/183 unit tests.
+- [x] Debug APK and test report artifacts — PASS in Run #402 (artifact IDs 14703432370 and 14703611094).
+- [x] Physical-device QA for P2 ETA/watchdog — PASS (user-reported itel P55; detailed cases in the 2026-11-21 follow-up above).
+- [ ] Merge to main — authorized; pending final CI and squash merge.
+
+---
 ## 2026-11-21 — Anomaly bitmap cache identity fix
 
 - [x] Root cause verified: anomaly cache key used only icon resource and severity accent color, so distinct critical anomaly types collided.

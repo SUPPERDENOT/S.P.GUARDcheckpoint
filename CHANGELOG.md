@@ -1,3 +1,78 @@
+## 2026-11-21 — Collapsed notification ETA summary and P2 physical QA
+
+### Changed
+- Moved the charging ETA summary for monitoring notification ID 1001 into the collapsed content title, after charging state and battery percentage.
+- The title uses a compact approximate form (for example, ±58 mnt); while the estimator is warming up it shows "Menghitung ETA...".
+- Kept the collapsed content body limited to current, power, temperature, and net-charge metrics. The expanded BigTextStyle retains the complete "Estimasi penuh: ..." line.
+- Added regression coverage for warm-up and numeric ETA title suffixes, clean collapsed metrics, and the unchanged expanded ETA line.
+- Recorded user-reported itel P55 physical verification for Sprint P2: ETA warm-up/clear-on-unplug/HUD_ONLY isolation PASS; CC/CV watchdog 11-minute USB observation PASS without false positive.
+
+### Verification
+- Run #400 exposed one obsolete assertion in ChargingEtaPresentationTest (182/183 tests passed); the assertion was corrected to the collapsed-title contract.
+- GitHub Actions Run #402 (push, current branch head 85c8a8f): SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest (183/183; 0 failures/errors/skipped), assembleDebug, and both artifact uploads.
+- GitHub Actions Run #403 (pull_request, current branch head 85c8a8f): first attempt failed during external KSP plugin resolution before compilation; attempt 2 rerun: SUCCESS across both jobs, including build/tests and artifact uploads.
+- Run #402 debug APK SHA-256: 6f08785e820def6eca37d57fe4404d11097cb27df74af222af4d0bbfb6a79e94.
+- Local Gradle/UI-audit commands: NOT RUN in this GitHub-only editing environment; the configured commands ran in GitHub Actions.
+- Physical-device QA for Sprint P2 on itel P55: PASS (user-reported; details recorded in the P2 quality checklist).
+- Estimator math, CC/CV watchdog thresholds/reset rules, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator behavior are unchanged.
+
+---
+
+## 2026-11-21 — Persistent notification icon test fixture determinism
+
+### Root cause and correction
+- CI #397 exposed that `persistentNotificationUsesDynamicMetricIconOnlyWhenIndicatorToggleIsEnabled` created a deterministic `LiveBatteryState` fixture but called the one-argument test helper for both notifications. That overload reads the service's current sensor snapshot, so the fixture was unused and the expected dynamic bitmap depended on ambient service state.
+- Both OFF and ON notification builds now pass the prepared state through the existing two-argument helper. The behavioral assertions are unchanged: indicator OFF expects a resource icon; indicator ON expects a bitmap icon.
+- No production renderer or service behavior was changed. ID 1001 continues to use the static `NotificationVisualRenderer` drawable when Status Bar Indicator is OFF and `LiveStatusBarRenderer` bitmap only when it is ON.
+- Battery Monitoring remains independent: the P2 ETA path resets and clears ETA in `HUD_ONLY` / Battery Monitoring OFF; ETA tracking is enabled only for an active charging session.
+
+### Verification
+- Root cause confirmed from Run #397 XML report: expected icon type 1, observed type 2 at test line 564.
+- GitHub Actions #398 (`d01c5d5`): PASS — `testDebugUnitTest` 183/183, 0 failed/errors/skipped; `assembleDebug` PASS; Anti-Slop UI Audit Gate PASS.
+- Artifacts: PASS — `android-debug-apk` and `android-unit-test-reports` uploaded successfully (Run #398).
+- Local Gradle/UI-audit commands: NOT RUN — no local project checkout/Gradle worktree in this execution environment; CI ran the configured workflow command.
+- `ChargingEtaEstimator` (four-ULP correction, timestamp-weighted EMA, CV-only 1.25x taper) and `CcCvStagnantWatchdog` (SoC below 100%) unchanged.
+- P0/P1 service lifecycle, persistence, RECOVERY_HOLD, normalization, notification render gate, and auto-start logic unchanged.
+- Physical-device QA on itel P55: NOT RUN. No merge to `main`.
+
+---
+
+## 2026-11-21 — ETA floating-point rounding correction
+
+### Changed
+- Corrected integer-boundary ETA rounding by subtracting a four-ULP tolerance derived from the calculated minute value before applying `ceil()`. This targets IEEE-754 representation drift without suppressing meaningful fractional minutes.
+- Added a regression test confirming a genuinely fractional ETA (75.075 minutes) still rounds up to 76 minutes. Existing 75- and 165-minute exact-boundary tests remain in place.
+- Preserved timestamp-weighted EMA, the 1.25x CV-only taper, minimum-sample/current/SoC guards, and the CC/CV stagnant watchdog's 0–99% SoC range.
+
+### Verification
+- Source and test changes committed to the P2 feature branch; automated verification is pending the new GitHub Actions run.
+- Local `./scripts/ui-audit.sh` and `gradle --no-daemon testDebugUnitTest assembleDebug`: NOT RUN because this execution environment has GitHub repository access but no local project checkout/Gradle worktree.
+- Physical-device QA on itel P55 for P2 ETA/watchdog: NOT RUN.
+- No change to P0/P1 lifecycle, persistence, RECOVERY_HOLD, sensor cadence, normalization, notification gate, or auto-start behavior. No merge to `main`.
+
+---
+
+## 2026-11-21 — Sprint P2: charging ETA and CC/CV stagnant watchdog
+
+### Changed
+- Added timestamp-weighted EMA over a bounded 120-second positive battery-side current sample window; ETA requires at least three valid charging samples and EMA current above 50 mA.
+- Capacity selection validates the latest stored estimated-capacity snapshot; otherwise it uses configured/system design capacity, with a 5000 mAh fallback when unavailable or invalid.
+- The 1.25x taper applies only to remaining capacity in the 80–100% CV segment; the below-80% CC segment is not multiplied.
+- The expanded notification ID 1001 and Charging tab retain the full “Estimasi penuh” line; collapsed notification title carries a compact ETA or “Menghitung ETA...” warm-up suffix.
+- Added a CC/CV stagnant watchdog: below 80%, current below 150 mA for 10 minutes; 80–99%, current below 120 mA for 20 minutes, without SoC gain.
+- Watchdog resets on unplug/non-charging, invalid current/level, SoC gain, new/reset sessions, and sustained current recovery of at least 300 mA for 30 seconds. It emits STAGNANT_CHARGING through existing anomaly ID 1002 and session deduplication.
+- Added main and the active P2 feature branch to Android CI push triggers.
+
+### Verification
+- Added unit tests for timestamp-weighted ETA, minimum samples, current/capacity/staleness guards, CC/CV thresholds, SoC progress, invalid sensors, unplug, and sustained recovery.
+- GitHub Actions Run #402 (push): PASS — Anti-Slop UI Audit Gate, 183/183 unit tests, assembleDebug, and APK/test-report artifact uploads.
+- GitHub Actions Run #403 (pull_request): PASS on attempt 2 after attempt 1 encountered a transient KSP plugin-resolution failure before compilation.
+- Local ./scripts/ui-audit.sh and gradle --no-daemon testDebugUnitTest assembleDebug: NOT RUN in the GitHub-only editing environment; equivalent workflow commands passed in CI.
+- Physical-device QA for P2 ETA/watchdog on itel P55: PASS (user-reported).
+- P0/P1 lifecycle, RECOVERY_HOLD ownership, current normalization, notification post gate, sensor cadence, persistence schema, and service start policy remain protected.
+
+---
+
 ## 2026-11-21 — Anomaly bitmap cache identity fix
 
 ### Changed

@@ -62,6 +62,23 @@ class NotificationVisualRendererTest {
             )
         )
         assertEquals(
+            "Mengisi Daya • 56% • Menghitung ETA...",
+            NotificationVisualRenderer.resolveMonitorContentTitle(
+                LiveBatteryState(level = 56, isCharging = true, isChargingEtaTracking = true)
+            )
+        )
+        assertEquals(
+            "Mengisi Daya • 56% • ±58 mnt",
+            NotificationVisualRenderer.resolveMonitorContentTitle(
+                LiveBatteryState(
+                    level = 56,
+                    isCharging = true,
+                    isChargingEtaTracking = true,
+                    chargingEtaMinutes = 58L
+                )
+            )
+        )
+        assertEquals(
             "Pemantauan Baterai Aktif",
             NotificationVisualRenderer.resolveMonitorContentTitle(
                 LiveBatteryState(level = 56, isCharging = false)
@@ -142,6 +159,12 @@ class NotificationVisualRendererTest {
         assertEquals(
             "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
             NotificationVisualRenderer.formatMonitorContentText(state)
+        )
+        assertEquals(
+            "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+            NotificationVisualRenderer.formatMonitorContentText(
+                state.copy(isCharging = true, isChargingEtaTracking = true, chargingEtaMinutes = 58L)
+            )
         )
         assertEquals(
             "Level baterai: 0%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 0 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Tidak mengisi\nSumber daya: Discharging\nProtokol: Not Exposed by Device",
@@ -312,29 +335,52 @@ class NotificationVisualRendererTest {
         val controller = Robolectric.buildService(BatteryMonitorService::class.java).create()
         val service = controller.get()
         try {
+            val warmupState = LiveBatteryState(
+                level = 56,
+                currentMa = -243,
+                powerWatt = -0.9f,
+                voltageMv = 4150,
+                tempCelsius = 31.5f,
+                sessionMahDelivered = 0.0,
+                isCharging = true,
+                isChargingEtaTracking = true,
+                chargeSource = "USB Port"
+            )
             val monitorNotification: Notification =
                 service.buildMonitorNotificationForTesting(
-                    "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
-                    LiveBatteryState(
-                        level = 56,
-                        currentMa = -243,
-                        powerWatt = -0.9f,
-                        voltageMv = 4150,
-                        tempCelsius = 31.5f,
-                        sessionMahDelivered = 0.0,
-                        isCharging = true,
-                        chargeSource = "USB Port"
-                    )
+                    NotificationVisualRenderer.formatMonitorContentText(warmupState),
+                    warmupState
                 )
             assertNotNull(monitorNotification)
-            assertEquals("Mengisi Daya • 56%", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
+            assertEquals(
+                "Mengisi Daya • 56% • Menghitung ETA...",
+                monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE)
+            )
             assertEquals(
                 "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
             )
             assertEquals(
-                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol: Not Exposed by Device",
+                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol: Not Exposed by Device\nEstimasi penuh: Menghitung ETA...",
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+            )
+
+            val estimatedState = warmupState.copy(chargingEtaMinutes = 58L)
+            val estimatedNotification = service.buildMonitorNotificationForTesting(
+                NotificationVisualRenderer.formatMonitorContentText(estimatedState),
+                estimatedState
+            )
+            assertEquals(
+                "Mengisi Daya • 56% • ±58 mnt",
+                estimatedNotification.extras.getCharSequence(Notification.EXTRA_TITLE)
+            )
+            assertEquals(
+                "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+                estimatedNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
+            )
+            assertTrue(
+                estimatedNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+                    .toString().endsWith("Estimasi penuh: 58 menit")
             )
             assertEquals(null, monitorNotification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
             assertNotNull(monitorNotification.smallIcon)
@@ -548,14 +594,14 @@ class NotificationVisualRendererTest {
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(enabled = false)
             )
-            val staticNotification = service.buildMonitorNotificationForTesting("Monitoring")
+            val staticNotification = service.buildMonitorNotificationForTesting("Monitoring", state)
             service.setStatusBarIndicatorSettingForTesting(
                 com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting(
                     enabled = true,
                     parameter = com.superdenot.powerguard.domain.model.StatusBarParameter.CURRENT
                 )
             )
-            val dynamicNotification = service.buildMonitorNotificationForTesting("Monitoring")
+            val dynamicNotification = service.buildMonitorNotificationForTesting("Monitoring", state)
 
             assertNotNull(staticNotification.smallIcon)
             assertNotNull(dynamicNotification.smallIcon)

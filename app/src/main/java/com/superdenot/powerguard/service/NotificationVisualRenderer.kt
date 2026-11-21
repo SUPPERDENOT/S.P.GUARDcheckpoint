@@ -14,6 +14,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import com.superdenot.powerguard.R
+import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import java.util.Locale
@@ -75,7 +76,23 @@ internal object NotificationVisualRenderer {
     fun resolveMonitorContentTitle(state: LiveBatteryState): String {
         if (!state.isCharging) return "Pemantauan Baterai Aktif"
         val level = if (state.isLevelAvailable) "${state.level}%" else "—"
-        return "Mengisi Daya • $level"
+        val title = "Mengisi Daya • $level"
+        return if (state.isChargingEtaTracking) {
+            "$title • ${formatCompactEtaForTitle(state.chargingEtaMinutes)}"
+        } else {
+            title
+        }
+    }
+
+    private fun formatCompactEtaForTitle(minutes: Long?): String {
+        if (minutes == null || minutes <= 0L) return "Menghitung ETA..."
+        val hours = minutes / 60L
+        val remainingMinutes = minutes % 60L
+        return when {
+            hours == 0L -> "±$minutes mnt"
+            remainingMinutes == 0L -> "±${hours}j"
+            else -> "±${hours}j ${remainingMinutes}m"
+        }
     }
 
     fun formatStatusBarParameterText(state: LiveBatteryState, parameter: StatusBarParameter): String {
@@ -144,7 +161,9 @@ internal object NotificationVisualRenderer {
             "Status pengisian: $chargingStatus",
             "Sumber daya: ${state.chargeSource}",
             "Protokol: ${state.chargingProtocol}"
-        ).joinToString("\n")
+        ).let { lines ->
+            if (state.isCharging && state.isChargingEtaTracking) lines + "Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else lines
+        }.joinToString("\n")
     }
 
     fun resolveMonitorVisualSpec(

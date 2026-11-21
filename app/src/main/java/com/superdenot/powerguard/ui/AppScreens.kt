@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
@@ -216,6 +217,12 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         valueWeight = 1.6f,
                         valueMaxLines = 1,
                         valueSoftWrap = false
+                    )
+                    DiagnosticLine(
+                        "Estimasi penuh",
+                        if (state.isCharging && state.isChargingEtaTracking) ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)
+                        else if (state.isCharging) "Menunggu pemantauan"
+                        else "Tidak mengisi"
                     )
                 }
             }

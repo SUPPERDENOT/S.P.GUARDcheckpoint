@@ -34,6 +34,7 @@ import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
+import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.engine.ChargingMahIntegrator
 import com.superdenot.powerguard.domain.engine.ChargingSessionDurationTracker
 import com.superdenot.powerguard.domain.model.LiveBatteryState
@@ -293,11 +294,29 @@ class BatteryMonitorService : Service() {
             Log.w("PowerGuard", "Kapasitas desain tidak dapat dibaca; health log sesi ini dilewati", error)
         }.getOrDefault(0)
 
+    private suspend fun resolveChargingEtaCapacityMah(): Int {
+        val latestHealth = runCatching { resolveDao().getLatestHealthFlow().first() }.getOrNull()
+        val validEstimate = latestHealth?.takeIf {
+            BatteryHealthEstimator.isValidStoredSnapshot(
+                estimatedCapacityMah = it.estimatedCapacityMah,
+                designCapacityMah = it.designCapacityMah,
+                healthPercentage = it.healthPercentage
+            )
+        }?.estimatedCapacityMah
+        if (validEstimate != null) return validEstimate
+        val designCapacity = effectiveDesignCapacityMah()
+        return designCapacity.takeIf {
+            it in ChargingEtaEstimator.MIN_CAPACITY_MAH..ChargingEtaEstimator.MAX_CAPACITY_MAH
+        } ?: DEFAULT_ETA_DESIGN_CAPACITY_MAH
+    }
+
     // State sesi dan operasi database dilindungi oleh sharedSessionMutex
     @Volatile
     private var activeSessionId: Long? = null
     private var accumulatedMah: Double = 0.0
     private val chargingMahIntegrator = ChargingMahIntegrator()
+    private val chargingEtaEstimator = ChargingEtaEstimator()
+    private var chargingEtaCapacityMah: Int = DEFAULT_ETA_DESIGN_CAPACITY_MAH
     private val sessionDurationTracker = ChargingSessionDurationTracker()
     private var sessionSeconds: Long = 0L
     private var maxSessionTemp: Float = 0f
@@ -1855,6 +1874,8 @@ class BatteryMonitorService : Service() {
 
     private fun resetInMemorySessionTracking(clearRecoverySnapshot: Boolean = true) {
         activeSessionId = null
+        chargingEtaEstimator.reset()
+        chargingEtaCapacityMah = DEFAULT_ETA_DESIGN_CAPACITY_MAH
         sampleBuffer.clear()
         pendingFlushBatchTimestampMs = 0L
         consecutiveFlushFailures = 0
@@ -1993,7 +2014,8 @@ class BatteryMonitorService : Service() {
                         sessionDurationSec = sessionSeconds
                     )
                     if (actorState == ActorLifecycleState.HUD_ONLY || !batteryMonitoringEnabledForIndicator) {
-                        val hudState = effectiveSensor.copy(sessionMahDelivered = 0.0, sessionDurationSec = 0L, anomalyAlert = null)
+                        chargingEtaEstimator.reset()
+                        val hudState = effectiveSensor.copy(sessionMahDelivered = 0.0, sessionDurationSec = 0L, anomalyAlert = null, chargingEtaMinutes = null)
                         publishLiveState(hudState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
@@ -2011,6 +2033,7 @@ class BatteryMonitorService : Service() {
                         }
                     } else {
                         lastChargerTransitionGen = -1L
+                        chargingEtaEstimator.reset()
                         if (actorState == ActorLifecycleState.RUNNING_CHARGING || activeSessionId != null) {
                             val confirmState = resolveEngine().readCurrentState(
                                 sessionMah = accumulatedMah,
@@ -2026,6 +2049,7 @@ class BatteryMonitorService : Service() {
 
                     if (autoStopGenerationToSend == null) {
                         var activeAlertMsg: String? = null
+                        var etaMinutes: Long? = null
                         if (activeSessionId != null) {
                             sessionSeconds = sessionDurationTracker.elapsedSeconds(SystemClock.elapsedRealtime())
                             accumulatedMah += chargingMahIntegrator.addSample(
@@ -2044,6 +2068,21 @@ class BatteryMonitorService : Service() {
                                 currentReadingsCount++
                             }
 
+                            val etaSampleTime = SystemClock.elapsedRealtime()
+                            chargingEtaEstimator.addSample(
+                                currentMa = effectiveSensor.currentMa,
+                                elapsedRealtimeMs = etaSampleTime,
+                                isCharging = effectiveSensor.isCharging,
+                                isPowerConnected = effectiveSensor.isPowerConnected,
+                                isCurrentAvailable = effectiveSensor.isCurrentAvailable,
+                                isLevelAvailable = effectiveSensor.isLevelAvailable
+                            )
+                            etaMinutes = chargingEtaEstimator.estimateMinutes(
+                                level = effectiveSensor.level,
+                                capacityMah = chargingEtaCapacityMah,
+                                nowElapsedRealtimeMs = etaSampleTime
+                            )
+
                             val anomaly = anomalyDetector.evaluate(effectiveSensor, isScreenOn)
                             if (anomaly.isAnomaly && anomaly.code != null && anomaly.message != null) {
                                 activeAlertMsg = anomaly.message
@@ -2056,13 +2095,16 @@ class BatteryMonitorService : Service() {
                                 }
                             }
                         } else {
+                            chargingEtaEstimator.reset()
                             manualTicks++
                         }
 
                         val updatedState = effectiveSensor.copy(
                             sessionMahDelivered = accumulatedMah,
                             sessionDurationSec = sessionSeconds,
-                            anomalyAlert = activeAlertMsg
+                            anomalyAlert = activeAlertMsg,
+                            chargingEtaMinutes = etaMinutes,
+                            isChargingEtaTracking = activeSessionId != null && effectiveSensor.isCharging && effectiveSensor.isPowerConnected
                         )
                         publishLiveState(updatedState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
@@ -2459,6 +2501,8 @@ class BatteryMonitorService : Service() {
             val preservingPreviousInMemory = activeSessionId == reconciledLatest.id
             activeSessionId = reconciledLatest.id
             if (!preservingPreviousInMemory) {
+                chargingEtaEstimator.reset()
+                chargingEtaCapacityMah = resolveChargingEtaCapacityMah()
                 chargingMahIntegrator.reset()
                 val elapsedFromDbSec = ((System.currentTimeMillis() - reconciledLatest.startTime) / 1000L)
                     .coerceAtLeast(0L)
@@ -2658,6 +2702,8 @@ class BatteryMonitorService : Service() {
         currentSumForAvg = 0L
         currentReadingsCount = 0L
         activeSessionId = insertedId
+        chargingEtaEstimator.reset()
+        chargingEtaCapacityMah = resolveChargingEtaCapacityMah()
     }
 
     private fun appendSampleToBoundedBuffer(state: LiveBatteryState) {
@@ -3912,6 +3958,7 @@ class BatteryMonitorService : Service() {
         private const val CHANNEL_ANOMALY = "powerguard_anomaly_alerts"
         private const val LEGACY_CHANNEL_STATUS_BAR_INDICATOR = "powerguard_status_bar_indicator"
         private const val MONITOR_NOTIFICATION_ID = 1001
+        private const val DEFAULT_ETA_DESIGN_CAPACITY_MAH = 5000
         private const val ANOMALY_NOTIFICATION_ID = 1002
         private const val LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID = 1003
 
