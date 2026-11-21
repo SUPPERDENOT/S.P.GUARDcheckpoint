@@ -1,7 +1,8 @@
 ## 2026-11-21 — P0 charging protocol detection audit and conservative classification
 
 - Added a dedicated detector with strict evidence tiers: explicit allowlisted sysfs/HAL protocol values first; BatteryManager source-capability labels second; bounded unknown-source fallback last.
-- Added read-only access to a fixed allowlist of power_supply metadata nodes. SecurityException is distinguished from ordinary IOException/missing nodes; the SELinux suffix is emitted only when an access denial is observed.
+- Added read-only access to a fixed allowlist of power_supply metadata nodes. SecurityException and explicit EACCES/permission-denied IOException are distinguished from ordinary missing-node/I/O failures; the SELinux suffix is emitted only when an access denial is observed.
+- HUD_ONLY is isolated from protocol detection: sysfs and hidden charging-capability extras are read only on Battery Monitoring-enabled paths. The status-bar indicator can continue updating without protocol reads; its UI state says detection is inactive.
 - Optional AOSP ACTION_BATTERY_CHANGED keys `max_charging_current` and `max_charging_voltage` are hidden from the public SDK; the engine reads them by literal key only when present. Values are converted from µA/µV to mA/mV and presented as source capabilities, never as proof of USB SDP/CDP, DCP, Qi, or a negotiated fast-charge protocol. Missing extras remain unavailable.
 - Updated Dashboard, Charging diagnostics, and expanded monitoring notification protocol/source detail.
 - Added deterministic detector tests for explicit protocol aliases, metadata conversion, USB/AC/wireless categories, unplugged state, and SELinux/unknown fallback.

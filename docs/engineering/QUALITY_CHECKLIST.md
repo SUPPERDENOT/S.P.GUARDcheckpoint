@@ -251,7 +251,8 @@
 - Fixed read-only sysfs allowlist and exception handling: PASS — source review; SecurityException is distinguished from IOException/missing-node outcomes.
 - Unit conversion: PASS — µA/µV converted to mA/mV in the detector; deterministic tests added.
 - Dashboard, Charging screen, and expanded monitoring notification detail: PASS — source review.
-- Battery Monitoring lifecycle, HUD_ONLY, RECOVERY_HOLD, P1 protections, ChargingEtaEstimator, and CcCvStagnantWatchdog: PASS — no algorithm or lifecycle edits intended; confirm by final diff.
+- HUD_ONLY isolation: PASS — protocol/sysfs detection is opt-in and service sampling enables it only in Battery Monitoring active states; indicator-only snapshots use the explicit “Deteksi protokol nonaktif” state.
+- RECOVERY_HOLD, P1 protections, ChargingEtaEstimator, and CcCvStagnantWatchdog: PASS — no algorithm changes intended; confirm by final diff.
 - Focused unit tests: NOT RUN — pending branch CI.
 - Android build and Anti-Slop UI Audit Gate: NOT RUN — pending branch CI.
 - APK artifact upload: NOT RUN — pending branch CI.
