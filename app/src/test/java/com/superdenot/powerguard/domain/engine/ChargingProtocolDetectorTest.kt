@@ -73,7 +73,10 @@ class ChargingProtocolDetectorTest {
     @Test
     fun genericFastChargeAndSourceTypesAreNotAcceptedAsSpecificProtocols() {
         assertEquals("USB PD PPS", SysfsChargingProtocolReader.normalizeExplicitProtocol("USB_PD_PPS_9V"))
-        assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("FAST_CHARGE"))
+        assertEquals("Fast Charge (HAL)", SysfsChargingProtocolReader.normalizeExplicitProtocol("FAST_CHARGE"))
+        assertEquals("SuperVOOC", SysfsChargingProtocolReader.normalizeExplicitProtocol("SUPERVOOC"))
+        assertEquals("QC 3.0", SysfsChargingProtocolReader.normalizeExplicitProtocol("QC3"))
+        assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("UNKNOWN_PD"))
         assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("USB"))
         assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("Mains"))
     }
@@ -116,6 +119,22 @@ class ChargingProtocolDetectorTest {
             detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 5_000_000L))
         assertEquals("AC — kemampuan sumber tidak tersedia; DCP tidak terverifikasi",
             detect(ChargingProtocolDetector.Source.AC))
+    }
+
+    @Test
+    fun permissionDeniedIoErrorsAreDistinguishedFromMissingSysfsNodes() {
+        assertEquals(true, SysfsChargingProtocolReader.isPermissionDeniedIOExceptionMessage(
+            "open failed: EACCES (Permission denied)"
+        ))
+        assertEquals(false, SysfsChargingProtocolReader.isPermissionDeniedIOExceptionMessage(
+            "No such file or directory"
+        ))
+        assertEquals(false, SysfsChargingProtocolReader.isPermissionDeniedIOExceptionMessage(null))
+    }
+
+    @Test
+    fun detectionDisabledHasAnExplicitHudOnlyLabel() {
+        assertEquals("Deteksi protokol nonaktif", ChargingProtocolDetector.DETECTION_DISABLED)
     }
 
     @Test

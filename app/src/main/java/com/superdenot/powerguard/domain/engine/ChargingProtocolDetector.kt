@@ -8,6 +8,7 @@ internal object ChargingProtocolDetector {
     const val NOT_CONNECTED = "Tidak Terhubung"
     const val NOT_EXPOSED = "Tidak Diekspos Perangkat"
     const val SELINUX_NOT_EXPOSED = "Tidak Diekspos Perangkat (SELinux)"
+    const val DETECTION_DISABLED = "Deteksi protokol nonaktif"
 
     enum class Source { NONE, USB, AC, WIRELESS, UNKNOWN }
     enum class SysfsAccess { READABLE, DENIED, IO_ERROR, UNAVAILABLE }
@@ -105,8 +106,8 @@ internal object SysfsChargingProtocolReader {
                 }
             } catch (_: SecurityException) {
                 denied = true
-            } catch (_: IOException) {
-                ioError = true
+            } catch (error: IOException) {
+                if (isPermissionDeniedIOExceptionMessage(error.message)) denied = true else ioError = true
             }
         }
         val access = when {
@@ -118,6 +119,11 @@ internal object SysfsChargingProtocolReader {
         return Result(access = access)
     }
 
+    fun isPermissionDeniedIOExceptionMessage(message: String?): Boolean {
+        val normalized = message?.uppercase() ?: return false
+        return "EACCES" in normalized || "PERMISSION DENIED" in normalized
+    }
+
     fun normalizeExplicitProtocol(rawValue: String): String? {
         val aliases = mapOf(
             "USB_PD_PPS" to "USB PD PPS", "PD_PPS" to "USB PD PPS",
@@ -125,16 +131,17 @@ internal object SysfsChargingProtocolReader {
             "USB_DCP" to "USB DCP", "DCP" to "USB DCP",
             "USB_CDP" to "USB CDP", "CDP" to "USB CDP",
             "USB_SDP" to "USB SDP", "SDP" to "USB SDP",
-            "AFC" to "AFC", "QC" to "QC", "QC2" to "QC", "QC3" to "QC",
-            "VOOC" to "VOOC", "SUPERVOOC" to "VOOC",
+            "AFC" to "AFC", "QC" to "QC", "QC2" to "QC 2.0", "QC3" to "QC 3.0",
+            "QC_2_0" to "QC 2.0", "QC_3_0" to "QC 3.0",
+            "VOOC" to "VOOC", "SUPERVOOC" to "SuperVOOC",
             "PUMP_EXPRESS" to "Pump Express", "PUMP_EXPRESS_PLUS" to "Pump Express",
-            "HVDCP" to "HVDCP"
+            "HVDCP" to "HVDCP", "USB_HVDCP" to "HVDCP", "FAST_CHARGE" to "Fast Charge (HAL)"
         )
         val normalized = rawValue.trim().uppercase()
             .replace(Regex("[^A-Z0-9_]+"), "_").trim('_')
         return aliases[normalized]
             ?: aliases.entries.sortedByDescending { it.key.length }
                 .firstOrNull { normalized.startsWith("${it.key}_") }?.value
-            ?: normalized.split('_').firstNotNullOfOrNull { aliases[it] }
+
     }
 }
