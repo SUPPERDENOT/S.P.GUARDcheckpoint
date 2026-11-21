@@ -45,7 +45,10 @@ internal class ChargingEtaEstimator(
         val cvMah = capacityMah * (100 - maxOf(level, CV_START_PERCENT)) / 100.0
         val remainingMah = ccMah + cvMah * CV_TAPER_FACTOR
         if (remainingMah <= 0.0) return null
-        return ceil(remainingMah * 60.0 / emaCurrentMa).toLong().coerceAtLeast(1L)
+        val rawMinutes = remainingMah * 60.0 / emaCurrentMa
+        // Correct only representational drift near an integer; real fractional minutes still round up.
+        val roundingTolerance = Math.ulp(rawMinutes) * ETA_ROUNDING_ULPS
+        return ceil((rawMinutes - roundingTolerance).coerceAtLeast(0.0)).toLong().coerceAtLeast(1L)
     }
 
     fun reset() { samples.clear() }
@@ -71,6 +74,7 @@ internal class ChargingEtaEstimator(
         const val MAX_CAPACITY_MAH = 20_000
         const val CV_START_PERCENT = 80
         const val CV_TAPER_FACTOR = 1.25
+        private const val ETA_ROUNDING_ULPS = 4.0
         const val MAX_SAMPLE_AGE_MS = 5_000L
     }
 }

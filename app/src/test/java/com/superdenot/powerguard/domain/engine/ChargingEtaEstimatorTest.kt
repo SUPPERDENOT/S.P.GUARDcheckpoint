@@ -13,6 +13,10 @@ class ChargingEtaEstimatorTest {
   assertEquals(75L,e.estimateMinutes(80,5000,3000)); assertEquals(165L,e.estimateMinutes(50,5000,3000))
   assertEquals(4L,e.estimateMinutes(99,5000,3000))
  }
+ @Test fun fractionalEtaStillRoundsUp() {
+  val e=ChargingEtaEstimator(); repeat(3){i->e.addSample(1000,(i+1)*1000L,true,true,true)}
+  assertEquals(76L,e.estimateMinutes(80,5005,3000))
+ }
  @Test fun timestampWeightedEmaFavorsRecentSamples() {
   val e=ChargingEtaEstimator(); e.addSample(1000,1000,true,true,true); e.addSample(1000,2000,true,true,true)
   e.addSample(3000,32000,true,true,true); assertEquals(38L,e.estimateMinutes(80,5000,32000))

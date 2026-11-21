@@ -1,3 +1,18 @@
+## 2026-11-21 — ETA floating-point rounding correction
+
+### Changed
+- Corrected integer-boundary ETA rounding by subtracting a four-ULP tolerance derived from the calculated minute value before applying `ceil()`. This targets IEEE-754 representation drift without suppressing meaningful fractional minutes.
+- Added a regression test confirming a genuinely fractional ETA (75.075 minutes) still rounds up to 76 minutes. Existing 75- and 165-minute exact-boundary tests remain in place.
+- Preserved timestamp-weighted EMA, the 1.25x CV-only taper, minimum-sample/current/SoC guards, and the CC/CV stagnant watchdog's 0–99% SoC range.
+
+### Verification
+- Source and test changes committed to the P2 feature branch; automated verification is pending the new GitHub Actions run.
+- Local `./scripts/ui-audit.sh` and `gradle --no-daemon testDebugUnitTest assembleDebug`: NOT RUN because this execution environment has GitHub repository access but no local project checkout/Gradle worktree.
+- Physical-device QA on itel P55 for P2 ETA/watchdog: NOT RUN.
+- No change to P0/P1 lifecycle, persistence, RECOVERY_HOLD, sensor cadence, normalization, notification gate, or auto-start behavior. No merge to `main`.
+
+---
+
 ## 2026-11-21 — Sprint P2: charging ETA and CC/CV stagnant watchdog
 
 ### Changed

@@ -13,6 +13,7 @@
 - [x] Watchdog resets on unplug/non-charging, invalid sensors, SoC gain, session reset/new session, and sustained recovery >=300 mA for 30 seconds.
 - [x] STAGNANT_CHARGING uses existing anomaly ID 1002 and persisted session dedupe.
 - [x] Unit tests added for ETA and watchdog boundaries/reset behavior.
+- [x] ETA integer-boundary rounding compensates only four ULPs of floating-point drift; a fractional-minute regression test still rounds upward.
 - [ ] Diff review against base SHA — pending final review.
 - [ ] ./scripts/ui-audit.sh — pending CI.
 - [ ] gradle --no-daemon testDebugUnitTest assembleDebug — pending CI.
