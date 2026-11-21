@@ -1,8 +1,6 @@
 package com.superdenot.powerguard.domain.analytics
 
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
-import kotlin.math.abs
-
 data class SessionBatteryHealthEstimate(
     val effectiveCapacityMah: Int,
     val healthPercentage: Float,
@@ -11,7 +9,8 @@ data class SessionBatteryHealthEstimate(
 )
 
 /**
- * Estimates full effective capacity from completed, continuous Room charging-session segments.
+ * Estimates full effective capacity from completed Room session segments.
+ * A charger disconnect closes the current session; reconnecting creates a new segment.
  * It is an analytical estimate, not a laboratory battery-capacity measurement.
  */
 object BatteryHealthEstimator {
