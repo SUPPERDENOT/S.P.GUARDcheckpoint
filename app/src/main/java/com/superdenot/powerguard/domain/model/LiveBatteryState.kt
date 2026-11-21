@@ -24,7 +24,9 @@ data class LiveBatteryState(
     val isPowerAvailable: Boolean = true,
     val isChargingStatusAvailable: Boolean = true,
     /** Estimated minutes to full; null means insufficient or unavailable live samples. */
-    val chargingEtaMinutes: Long? = null
+    val chargingEtaMinutes: Long? = null,
+    /** True only while the Battery Monitoring session is collecting ETA samples. */
+    val isChargingEtaTracking: Boolean = false
 ) {
     companion object {
         const val PROTOCOL_NOT_EXPOSED = "Not Exposed by Device"
