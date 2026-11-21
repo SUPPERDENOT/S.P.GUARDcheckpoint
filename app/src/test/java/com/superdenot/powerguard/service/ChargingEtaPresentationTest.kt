@@ -20,7 +20,8 @@ class ChargingEtaPresentationTest {
             level = 72,
             currentMa = 1_250,
             isCharging = true,
-            chargingEtaMinutes = 65L
+            chargingEtaMinutes = 65L,
+            isChargingEtaTracking = true
         )
         assertTrue(NotificationVisualRenderer.formatMonitorContentText(state).contains("Estimasi penuh: 1 jam 5 menit"))
         assertTrue(NotificationVisualRenderer.formatMonitorExpandedText(state).contains("Estimasi penuh: 1 jam 5 menit"))
