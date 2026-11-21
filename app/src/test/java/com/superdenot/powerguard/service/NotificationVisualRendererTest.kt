@@ -323,6 +323,7 @@ class NotificationVisualRendererTest {
                         tempCelsius = 31.5f,
                         sessionMahDelivered = 0.0,
                         isCharging = true,
+                        isChargingEtaTracking = true,
                         chargeSource = "USB Port"
                     )
                 )
