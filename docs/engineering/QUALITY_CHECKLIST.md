@@ -7,11 +7,12 @@
 - [x] Collapsed notification ID 1001 moves ETA to the content title; contentText remains the three-metric row.
 - [x] Expanded BigTextStyle keeps the full “Estimasi penuh: ...” line.
 - [x] Unit regression coverage added for warm-up title, compact numeric ETA title, clean collapsed metrics, and expanded ETA.
+- [x] Updated ChargingEtaPresentationTest to assert the new collapsed-title contract instead of the superseded ETA-in-contentText contract.
 - [x] ETA estimator, watchdog logic, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator path remain unchanged.
-- [ ] Anti-Slop UI Audit Gate — pending CI for the new notification layout.
-- [ ] testDebugUnitTest / assembleDebug — pending CI.
-- [ ] Debug APK and unit-test report artifacts — pending CI.
-- [ ] Squash merge to main — authorized by user; pending CI and final diff review.
+- [x] Run #400: Anti-Slop PASS; assembleDebug task PASS; testDebugUnitTest FAIL (182/183) due to the stale presentation assertion now corrected.
+- [ ] Corrected-commit CI (push and pull_request runs) — pending.
+- [ ] Debug APK and unit-test report artifacts for corrected commit — pending.
+- [ ] Squash merge to main — authorized by user; pending green CI and final diff review.
 
 ---
 

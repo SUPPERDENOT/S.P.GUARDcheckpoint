@@ -8,7 +8,9 @@
 - Recorded user-reported itel P55 physical verification for Sprint P2: ETA warm-up/clear-on-unplug/HUD_ONLY isolation PASS; CC/CV watchdog 11-minute USB observation PASS without false positive.
 
 ### Verification
-- Implementation and regression tests committed on feat/p2-eta-and-cccv-watchdog; GitHub Actions CI for this change: PENDING.
+- GitHub Actions Run #400: Anti-Slop UI Audit Gate PASS; assembleDebug task PASS; unit tests FAIL (182/183 passed) because the older ChargingEtaPresentationTest still expected ETA in collapsed contentText.
+- Corrected that stale presentation assertion: collapsed title must contain the compact ETA, contentText must remain the three-metric row, and expanded BigTextStyle must retain the full ETA line.
+- GitHub Actions Run #401 (pull_request event): PENDING at the time of this correction; reruns for the corrected commit are pending.
 - Physical-device QA for Sprint P2 on itel P55: PASS (user-reported; details recorded in the P2 quality checklist).
 - Estimator math, CC/CV watchdog thresholds/reset rules, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator behavior are unchanged.
 

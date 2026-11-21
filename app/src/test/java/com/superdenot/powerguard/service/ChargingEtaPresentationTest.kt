@@ -15,7 +15,7 @@ class ChargingEtaPresentationTest {
     }
 
     @Test
-    fun monitorNotificationShortAndExpandedContentIncludeEtaAsEstimate() {
+    fun monitorNotificationCollapsedTitleAndExpandedContentIncludeEtaAsEstimate() {
         val state = LiveBatteryState(
             level = 72,
             currentMa = 1_250,
@@ -23,7 +23,14 @@ class ChargingEtaPresentationTest {
             chargingEtaMinutes = 65L,
             isChargingEtaTracking = true
         )
-        assertTrue(NotificationVisualRenderer.formatMonitorContentText(state).contains("Estimasi penuh: 1 jam 5 menit"))
+        assertEquals(
+            "Mengisi Daya • 72% • ±1j 5m",
+            NotificationVisualRenderer.resolveMonitorContentTitle(state)
+        )
+        assertEquals(
+            "+1250 mA (0.0W) • 0.0°C • +0.0 mAh",
+            NotificationVisualRenderer.formatMonitorContentText(state)
+        )
         assertTrue(NotificationVisualRenderer.formatMonitorExpandedText(state).contains("Estimasi penuh: 1 jam 5 menit"))
     }
 
