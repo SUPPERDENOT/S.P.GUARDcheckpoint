@@ -48,19 +48,21 @@ class BatteryMonitorEngine(private val context: Context) {
 
         val plugged = intentStatus?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
         val isPowerConnected = plugged != 0
-        val protocolSource = when (plugged) {
-            BatteryManager.BATTERY_PLUGGED_AC -> ChargingProtocolDetector.Source.AC
-            BatteryManager.BATTERY_PLUGGED_USB -> ChargingProtocolDetector.Source.USB
-            BatteryManager.BATTERY_PLUGGED_WIRELESS -> ChargingProtocolDetector.Source.WIRELESS
-            else -> if (isPowerConnected || isCharging) ChargingProtocolDetector.Source.UNKNOWN
-                else ChargingProtocolDetector.Source.NONE
-        }
-        val chargeSource = when (protocolSource) {
-            ChargingProtocolDetector.Source.AC -> "AC Adapter"
-            ChargingProtocolDetector.Source.USB -> "USB Port"
-            ChargingProtocolDetector.Source.WIRELESS -> "Wireless"
-            ChargingProtocolDetector.Source.UNKNOWN -> "Unknown Source"
-            ChargingProtocolDetector.Source.NONE -> "Discharging"
+        val hasPluggedMetadata = intentStatus?.hasExtra(BatteryManager.EXTRA_PLUGGED) == true
+        val protocolSource = ChargingProtocolDetector.resolveSource(
+            plugged = plugged,
+            hasPluggedMetadata = hasPluggedMetadata,
+            isCharging = isCharging,
+            acPluggedValue = BatteryManager.BATTERY_PLUGGED_AC,
+            usbPluggedValue = BatteryManager.BATTERY_PLUGGED_USB,
+            wirelessPluggedValue = BatteryManager.BATTERY_PLUGGED_WIRELESS
+        )
+        // Keep the existing user-facing coarse source classification unchanged.
+        val chargeSource = when (plugged) {
+            BatteryManager.BATTERY_PLUGGED_AC -> "AC Adapter"
+            BatteryManager.BATTERY_PLUGGED_USB -> "USB Port"
+            BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Wireless"
+            else -> if (isPowerConnected || isCharging) "Unknown Source" else "Discharging"
         }
         val maxChargingCurrentMicroAmps = intentStatus
             ?.takeIf { it.hasExtra(BatteryManager.EXTRA_MAX_CHARGING_CURRENT) }
@@ -72,7 +74,7 @@ class BatteryMonitorEngine(private val context: Context) {
             ?.getIntExtra(BatteryManager.EXTRA_MAX_CHARGING_VOLTAGE, -1)
             ?.takeIf { it >= 0 }
             ?.toLong()
-        val sysfsProtocol = if (isCharging && isPowerConnected) {
+        val sysfsProtocol = if (isCharging && protocolSource != ChargingProtocolDetector.Source.NONE) {
             SysfsChargingProtocolReader.read()
         } else {
             SysfsChargingProtocolReader.Result(access = ChargingProtocolDetector.SysfsAccess.UNAVAILABLE)

@@ -24,6 +24,16 @@ class ChargingProtocolDetectorTest {
     )
 
     @Test
+    fun pluggedSourceResolutionDistinguishesAnExplicitUnpluggedValueFromMissingMetadata() {
+        assertEquals(ChargingProtocolDetector.Source.NONE,
+            ChargingProtocolDetector.resolveSource(0, true, true, 1, 2, 4))
+        assertEquals(ChargingProtocolDetector.Source.UNKNOWN,
+            ChargingProtocolDetector.resolveSource(0, false, true, 1, 2, 4))
+        assertEquals(ChargingProtocolDetector.Source.UNKNOWN,
+            ChargingProtocolDetector.resolveSource(8, true, true, 1, 2, 4))
+    }
+
+    @Test
     fun convertsMicroUnitsToMilliUnitsWithoutFloatingPointRounding() {
         assertEquals(2_450L, ChargingProtocolDetector.microAmpsToMilliAmps(2_450_000L))
         assertEquals(9_000L, ChargingProtocolDetector.microVoltsToMilliVolts(9_000_000L))
@@ -56,6 +66,7 @@ class ChargingProtocolDetectorTest {
 
     @Test
     fun genericFastChargeAndSourceTypesAreNotAcceptedAsSpecificProtocols() {
+        assertEquals("USB PD PPS", SysfsChargingProtocolReader.normalizeExplicitProtocol("USB_PD_PPS_9V"))
         assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("FAST_CHARGE"))
         assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("USB"))
         assertNull(SysfsChargingProtocolReader.normalizeExplicitProtocol("Mains"))

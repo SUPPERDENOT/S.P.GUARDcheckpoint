@@ -21,6 +21,20 @@ internal object ChargingProtocolDetector {
         val sysfsAccess: SysfsAccess = SysfsAccess.UNAVAILABLE
     )
 
+    fun resolveSource(
+        plugged: Int,
+        hasPluggedMetadata: Boolean,
+        isCharging: Boolean,
+        acPluggedValue: Int,
+        usbPluggedValue: Int,
+        wirelessPluggedValue: Int
+    ): Source = when (plugged) {
+        acPluggedValue -> Source.AC
+        usbPluggedValue -> Source.USB
+        wirelessPluggedValue -> Source.WIRELESS
+        else -> if (plugged != 0 || (isCharging && !hasPluggedMetadata)) Source.UNKNOWN else Source.NONE
+    }
+
     fun microAmpsToMilliAmps(value: Long?): Long? =
         value?.takeIf { it >= 0L }?.div(1_000L)
 
@@ -118,6 +132,9 @@ internal object SysfsChargingProtocolReader {
         )
         val normalized = rawValue.trim().uppercase()
             .replace(Regex("[^A-Z0-9_]+"), "_").trim('_')
-        return aliases[normalized] ?: normalized.split('_').firstNotNullOfOrNull { aliases[it] }
+        return aliases[normalized]
+            ?: aliases.entries.sortedByDescending { it.key.length }
+                .firstOrNull { normalized.startsWith("${it.key}_") }?.value
+            ?: normalized.split('_').firstNotNullOfOrNull { aliases[it] }
     }
 }
