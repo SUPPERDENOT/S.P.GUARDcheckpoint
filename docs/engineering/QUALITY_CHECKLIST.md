@@ -6,10 +6,10 @@
 - [x] Source contract reviewed: ID 1001 uses the static drawable when Status Bar Indicator is OFF and the dynamic metric bitmap when ON and renderable.
 - [x] Battery Monitoring / ETA separation reviewed: `HUD_ONLY` and Battery Monitoring OFF reset ETA tracking and clear the estimate; no change made.
 - [x] P2 estimator/watchdog algorithms and P0/P1 protected paths unchanged.
-- [ ] `testDebugUnitTest` — pending new CI.
-- [ ] `assembleDebug` — pending new CI.
-- [ ] Anti-Slop UI Audit Gate — pending new CI; no UI/layout changed.
-- [ ] `android-debug-apk` and `android-unit-test-reports` — pending new CI.
+- [x] `testDebugUnitTest` — PASS, 183/183 tests, 0 failed/errors/skipped (GitHub Actions #398).
+- [x] `assembleDebug` — PASS (GitHub Actions #398).
+- [x] Anti-Slop UI Audit Gate — PASS (GitHub Actions #398; no UI/layout changed).
+- [x] `android-debug-apk` and `android-unit-test-reports` — both uploaded successfully (GitHub Actions #398).
 - [ ] Physical-device QA on itel P55 — NOT RUN.
 - [ ] Merge to `main` — HOLD / NOT DONE.
 

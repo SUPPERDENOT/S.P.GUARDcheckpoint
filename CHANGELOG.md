@@ -8,7 +8,9 @@
 
 ### Verification
 - Root cause confirmed from Run #397 XML report: expected icon type 1, observed type 2 at test line 564.
-- Test fixture correction: implemented; full unit test and build verification pending the new GitHub Actions run.
+- GitHub Actions #398 (`d01c5d5`): PASS — `testDebugUnitTest` 183/183, 0 failed/errors/skipped; `assembleDebug` PASS; Anti-Slop UI Audit Gate PASS.
+- Artifacts: PASS — `android-debug-apk` and `android-unit-test-reports` uploaded successfully (Run #398).
+- Local Gradle/UI-audit commands: NOT RUN — no local project checkout/Gradle worktree in this execution environment; CI ran the configured workflow command.
 - `ChargingEtaEstimator` (four-ULP correction, timestamp-weighted EMA, CV-only 1.25x taper) and `CcCvStagnantWatchdog` (SoC below 100%) unchanged.
 - P0/P1 service lifecycle, persistence, RECOVERY_HOLD, normalization, notification render gate, and auto-start logic unchanged.
 - Physical-device QA on itel P55: NOT RUN. No merge to `main`.
