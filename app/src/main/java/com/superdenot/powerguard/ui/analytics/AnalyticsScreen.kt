@@ -40,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
+import com.superdenot.powerguard.domain.analytics.SessionMicroFilter
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
@@ -161,10 +164,23 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     val liveState by viewModel.liveState.collectAsState()
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
     var showCurve by remember { mutableStateOf(false) }
+    var hideMicroSessions by rememberSaveable { mutableStateOf(true) }
+    val visibleSessions = remember(sessions, liveState.level, hideMicroSessions) {
+        if (!hideMicroSessions) sessions else sessions.filter { session ->
+            val endTime = session.endTime ?: System.currentTimeMillis()
+            val endLevel = session.endLevel ?: if (session.endTime == null) liveState.level else session.startLevel
+            val durationSeconds = ((endTime - session.startTime) / 1_000L).coerceAtLeast(0L)
+            !SessionMicroFilter.shouldHide(
+                durationSeconds = durationSeconds,
+                deltaSoc = endLevel - session.startLevel,
+                chargedMah = session.totalMahDelivered
+            )
+        }
+    }
 
-    LaunchedEffect(sessions) {
-        if (selectedSessionId == null && sessions.isNotEmpty()) {
-            val firstId = sessions.first().id
+    LaunchedEffect(visibleSessions, selectedSessionId) {
+        if (selectedSessionId !in visibleSessions.map { it.id }) {
+            val firstId = visibleSessions.firstOrNull()?.id
             viewModel.selectSessionForCurve(firstId)
             expandedSessionId = firstId
         }
@@ -181,7 +197,8 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
             Column(Modifier.weight(1f)) {
                 Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(
-                    "${sessions.size} sesi tersimpan • pilih sesi untuk detail",
+                    if (hideMicroSessions) "${visibleSessions.size} dari ${sessions.size} sesi ditampilkan • sesi mikro disembunyikan"
+                    else "${sessions.size} sesi tersimpan • pilih sesi untuk detail",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -189,6 +206,22 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
             androidx.compose.material3.TextButton(onClick = { showCurve = !showCurve }) {
                 Text(if (showCurve) "Tutup Kurva" else "Lihat Kurva")
             }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Sembunyikan sesi < 1 menit",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Switch(
+                checked = hideMicroSessions,
+                onCheckedChange = { hideMicroSessions = it }
+            )
         }
         AnimatedVisibility(
             visible = showCurve,
@@ -205,10 +238,11 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-        if (sessions.isEmpty()) {
+        if (sessions.isEmpty() || visibleSessions.isEmpty()) {
             item {
                 Text(
-                    text = "Belum ada sesi pengisian tercatat. Colokkan charger untuk mulai merekam otomatis.",
+                    text = if (sessions.isEmpty()) "Belum ada sesi pengisian tercatat. Colokkan charger untuk mulai merekam otomatis."
+                    else "Tidak ada sesi yang memenuhi filter saat ini. Matikan filter untuk menampilkan semua sesi.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -217,7 +251,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
             stickyHeader {
                 SessionTableHeader()
             }
-            items(sessions, key = { it.id }) { session ->
+            items(visibleSessions, key = { it.id }) { session ->
                 val isActive = session.endTime == null
                 val endLevel = session.endLevel ?: if (isActive) liveState.level else session.startLevel
                 val endTime = session.endTime ?: System.currentTimeMillis()
