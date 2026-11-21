@@ -14,8 +14,8 @@ internal class ChargingEtaEstimator(
     init { require(windowMs > 0L && halfLifeMs > 0.0 && minimumSamples >= 1) }
 
     fun addSample(currentMa: Int, elapsedRealtimeMs: Long, isCharging: Boolean,
-                  isPowerConnected: Boolean, isCurrentAvailable: Boolean) {
-        if (!isCharging || !isPowerConnected || !isCurrentAvailable || currentMa <= 0) {
+                  isPowerConnected: Boolean, isCurrentAvailable: Boolean, isLevelAvailable: Boolean = true) {
+        if (!isCharging || !isPowerConnected || !isCurrentAvailable || !isLevelAvailable || currentMa <= 0) {
             reset(); return
         }
         val previous = samples.lastOrNull()
