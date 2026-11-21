@@ -2074,7 +2074,8 @@ class BatteryMonitorService : Service() {
                                 elapsedRealtimeMs = etaSampleTime,
                                 isCharging = effectiveSensor.isCharging,
                                 isPowerConnected = effectiveSensor.isPowerConnected,
-                                isCurrentAvailable = effectiveSensor.isCurrentAvailable
+                                isCurrentAvailable = effectiveSensor.isCurrentAvailable,
+                                isLevelAvailable = effectiveSensor.isLevelAvailable
                             )
                             etaMinutes = chargingEtaEstimator.estimateMinutes(
                                 level = effectiveSensor.level,
