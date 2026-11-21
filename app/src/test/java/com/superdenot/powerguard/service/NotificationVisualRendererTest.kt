@@ -329,11 +329,11 @@ class NotificationVisualRendererTest {
             assertNotNull(monitorNotification)
             assertEquals("Mengisi Daya • 56%", monitorNotification.extras.getCharSequence(Notification.EXTRA_TITLE))
             assertEquals(
-                "-243 mA (-0.9W) • 31.5°C • +0.0 mAh",
+                "-243 mA (-0.9W) • 31.5°C • +0.0 mAh • Estimasi penuh: Menghitung ETA...",
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_TEXT)
             )
             assertEquals(
-                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol: Not Exposed by Device",
+                "Level baterai: 56%\nArus baterai: -243 mA\nDaya baterai: -0.9 W\nTegangan baterai: 4150 mV\nSuhu baterai: 31.5°C\nMuatan bersih: +0.0 mAh\nStatus pengisian: Mengisi\nSumber daya: USB Port\nProtokol: Not Exposed by Device\nEstimasi penuh: Menghitung ETA...",
                 monitorNotification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
             )
             assertEquals(null, monitorNotification.extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
