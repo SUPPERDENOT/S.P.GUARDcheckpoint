@@ -19,6 +19,7 @@ object BatteryHealthEstimator {
     const val MIN_DESIGN_CAPACITY_MAH = 1_000
     const val MAX_DESIGN_CAPACITY_MAH = 20_000
     const val MIN_SOC_DELTA_PERCENT = 15
+    const val MIN_SESSION_DURATION_SECONDS = 60L
     const val MIN_CHARGED_MAH = 0.5
     private const val MIN_EFFECTIVE_CAPACITY_MAH = 1_000.0
     private const val MAX_EFFECTIVE_CAPACITY_MAH = 20_000.0
@@ -33,6 +34,7 @@ object BatteryHealthEstimator {
             val endTime = session.endTime ?: return@mapNotNull null
             val endLevel = session.endLevel ?: return@mapNotNull null
             if (session.startTime < 0L || endTime <= session.startTime) return@mapNotNull null
+            if ((endTime - session.startTime) / 1_000L < MIN_SESSION_DURATION_SECONDS) return@mapNotNull null
             if (session.startLevel !in 0..100 || endLevel !in 0..100) return@mapNotNull null
 
             val deltaSoc = endLevel - session.startLevel
