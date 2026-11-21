@@ -25,6 +25,11 @@ class ChargingEtaEstimatorTest {
   val e=ChargingEtaEstimator(); repeat(3){i->e.addSample(1000,(i+1)*1000L,true,true,true)}
   e.addSample(1000,4000,true,false,true); assertNull(e.estimateMinutes(50,5000,4000)); assertEquals(0,e.sampleCount())
  }
+ @Test fun unavailableBatteryLevelResetsTheSampleWindow() {
+  val e=ChargingEtaEstimator(); repeat(3){i->e.addSample(1000,(i+1)*1000L,true,true,true)}
+  e.addSample(1000,4000,true,true,true,false)
+  assertNull(e.estimateMinutes(50,5000,4000)); assertEquals(0,e.sampleCount())
+ }
  @Test fun invalidCapacityStaleAndLowCurrentReturnNull() {
   val invalid=ChargingEtaEstimator(); repeat(3){i->invalid.addSample(1000,(i+1)*1000L,true,true,true)}
   assertNull(invalid.estimateMinutes(50,0,3000))
