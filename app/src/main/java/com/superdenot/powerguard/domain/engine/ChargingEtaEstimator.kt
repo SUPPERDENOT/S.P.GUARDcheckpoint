@@ -55,6 +55,13 @@ internal class ChargingEtaEstimator(
     }
 
     companion object {
+        fun formatEta(minutes: Long?): String {
+            if (minutes == null || minutes <= 0L) return "Menghitung ETA..."
+            val hours = minutes / 60L
+            val remainingMinutes = minutes % 60L
+            return if (hours > 0L) "$hours jam $remainingMinutes menit" else "$remainingMinutes menit"
+        }
+
         const val DEFAULT_WINDOW_MS = 120_000L
         const val DEFAULT_HALF_LIFE_MS = 30_000.0
         private const val LN_2 = 0.6931471805599453
