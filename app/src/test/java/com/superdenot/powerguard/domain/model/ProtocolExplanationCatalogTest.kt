@@ -15,6 +15,7 @@ class ProtocolExplanationCatalogTest {
             "USB Arus Tinggi (SDP/CDP?)",
             "USB Arus Standar (SDP?)",
             "Fast Charge (HAL)",
+            "Deteksi protokol nonaktif",
             "Tidak Terhubung",
             "Tidak Diekspos Perangkat (SELinux)",
             "Tidak Diekspos Perangkat",
