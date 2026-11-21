@@ -10,8 +10,8 @@ class ChargingEtaPresentationTest {
     @Test
     fun etaFormatterUsesHumanReadableIndonesianAndLoadingFallback() {
         assertEquals("Menghitung ETA...", ChargingEtaEstimator.formatEta(null))
-        assertEquals("45 menit", NotificationVisualRenderer.formatChargingEta(45L))
-        assertEquals("1 jam 5 menit", NotificationVisualRenderer.formatChargingEta(65L))
+        assertEquals("45 menit", ChargingEtaEstimator.formatEta(45L))
+        assertEquals("1 jam 5 menit", ChargingEtaEstimator.formatEta(65L))
     }
 
     @Test
