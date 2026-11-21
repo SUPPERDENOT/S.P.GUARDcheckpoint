@@ -1,3 +1,24 @@
+## 2026-11-21 — Sprint P2: charging ETA and CC/CV stagnant watchdog
+
+### Changed
+- Added timestamp-weighted EMA over a bounded 120-second positive battery-side current sample window; ETA requires at least three valid charging samples and EMA current above 50 mA.
+- Capacity selection validates the latest stored estimated-capacity snapshot; otherwise it uses configured/system design capacity, with a 5000 mAh fallback when unavailable or invalid.
+- The 1.25x taper applies only to remaining capacity in the 80–100% CV segment; the below-80% CC segment is not multiplied.
+- Nullable ETA is displayed as “Estimasi penuh” in notification ID 1001 and the Charging tab; insufficient samples show “Menghitung ETA...”.
+- Added a CC/CV stagnant watchdog: below 80%, current below 150 mA for 10 minutes; 80–99%, current below 120 mA for 20 minutes, without SoC gain.
+- Watchdog resets on unplug/non-charging, invalid current/level, SoC gain, new/reset sessions, and sustained current recovery of at least 300 mA for 30 seconds. It emits STAGNANT_CHARGING through existing anomaly ID 1002 and session deduplication.
+- Added main and the active P2 feature branch to Android CI push triggers.
+
+### Verification
+- Added unit tests for timestamp-weighted ETA, minimum samples, current/capacity/staleness guards, CC/CV thresholds, SoC progress, invalid sensors, unplug, and sustained recovery.
+- Local ./scripts/ui-audit.sh: NOT RUN in the GitHub-only editing environment; pending CI.
+- Local gradle --no-daemon testDebugUnitTest assembleDebug: NOT RUN in the GitHub-only editing environment; pending CI.
+- GitHub Actions: pending push-triggered run.
+- Physical-device QA for P2 ETA/watchdog: NOT RUN; separate from prior P0/P1 device verification.
+- P0/P1 lifecycle, RECOVERY_HOLD ownership, current normalization, notification post gate, sensor cadence, persistence schema, and service start policy remain protected.
+
+---
+
 ## 2026-11-21 — Anomaly bitmap cache identity fix
 
 ### Changed
