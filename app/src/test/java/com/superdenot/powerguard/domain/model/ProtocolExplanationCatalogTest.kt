@@ -20,7 +20,20 @@ class ProtocolExplanationCatalogTest {
             "Tidak Diekspos Perangkat",
             "Nirkabel (Standar Tak Terverifikasi)",
             "AC — Kemampuan Daya Tidak Tersedia",
-            "USB — Arus Maksimum Tidak Tersedia"
+            "USB — Arus Maksimum Tidak Tersedia",
+            "USB PD PPS",
+            "USB PD",
+            "USB DCP",
+            "USB CDP",
+            "USB SDP",
+            "AFC",
+            "QC",
+            "QC 2.0",
+            "QC 3.0",
+            "VOOC",
+            "SuperVOOC",
+            "Pump Express",
+            "HVDCP"
         )
         labels.forEach { label ->
             val explanation = ProtocolExplanationCatalog.get(label)
