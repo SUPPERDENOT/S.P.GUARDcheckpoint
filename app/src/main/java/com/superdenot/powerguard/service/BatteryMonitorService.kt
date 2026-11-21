@@ -2103,7 +2103,8 @@ class BatteryMonitorService : Service() {
                             sessionMahDelivered = accumulatedMah,
                             sessionDurationSec = sessionSeconds,
                             anomalyAlert = activeAlertMsg,
-                            chargingEtaMinutes = etaMinutes
+                            chargingEtaMinutes = etaMinutes,
+                            isChargingEtaTracking = activeSessionId != null && effectiveSensor.isCharging && effectiveSensor.isPowerConnected
                         )
                         publishLiveState(updatedState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
