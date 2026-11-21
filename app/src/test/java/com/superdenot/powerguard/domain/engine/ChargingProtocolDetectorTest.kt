@@ -113,7 +113,7 @@ class ChargingProtocolDetectorTest {
 
     @Test
     fun wirelessMetadataNeverClaimsQiStandard() {
-        assertEquals("Pengisian Nirkabel — standar tidak terverifikasi",
+        assertEquals("Nirkabel (Standar Tak Terverifikasi)",
             detect(ChargingProtocolDetector.Source.WIRELESS))
     }
 

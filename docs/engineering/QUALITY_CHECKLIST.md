@@ -6,7 +6,8 @@
 - [x] Battery-side measured current/power is not used as charger capability metadata: PASS — source review.
 - [x] Charging tab value wraps to two lines; Dashboard protocol capsule has bounded width and two-line wrapping: PASS — source review; Anti-Slop and CI pending.
 - [x] Unisoc allowlist, generic HAL labels, and 2A × 5V threshold regression tests added: PASS — test source review.
-- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK and test-report uploads: NOT RUN — awaiting branch CI.
+- [x] CI #415 Anti-Slop UI Audit Gate and assembleDebug: PASS; unit tests: FAIL only because one Wireless expected-string assertion still used the prior label (198/199 passed); XML report inspected and exact mismatch confirmed.
+- [x] Corrected the Wireless assertion to "Nirkabel (Standar Tak Terverifikasi)"; follow-up CI and artifact upload: pending.
 - [ ] Physical-device retest on itel P55 (720p/360dp clipping and Unisoc FASTCHARGE exposure): NOT RUN.
 - [x] No Battery Monitoring lifecycle, HUD_ONLY, RECOVERY_HOLD, P1 protection, ChargingEtaEstimator, or CcCvStagnantWatchdog algorithm changes intended: PASS — change scope.
 - [x] main untouched; no merge performed.
