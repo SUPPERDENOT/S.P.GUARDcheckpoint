@@ -9,10 +9,12 @@
 - [x] Unit regression coverage added for warm-up title, compact numeric ETA title, clean collapsed metrics, and expanded ETA.
 - [x] Updated ChargingEtaPresentationTest to assert the new collapsed-title contract instead of the superseded ETA-in-contentText contract.
 - [x] ETA estimator, watchdog logic, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator path remain unchanged.
-- [x] Run #400: Anti-Slop PASS; assembleDebug task PASS; testDebugUnitTest FAIL (182/183) due to the stale presentation assertion now corrected.
-- [ ] Corrected-commit CI (push and pull_request runs) — pending.
-- [ ] Debug APK and unit-test report artifacts for corrected commit — pending.
-- [ ] Squash merge to main — authorized by user; pending green CI and final diff review.
+- [x] Run #400 failure traced to the obsolete presentation assertion; corrected on the branch.
+- [x] Run #402 push CI — PASS: Anti-Slop UI Audit Gate, 183/183 unit tests (0 failed/errors/skipped), assembleDebug, APK upload, and unit-test report upload.
+- [x] Run #403 pull_request CI — PASS on attempt 2; attempt 1 had a transient KSP plugin-resolution failure before compilation.
+- [x] Run #402 artifact IDs: APK 14703432370; unit-test reports 14703611094.
+- [x] Diff review against main baseline 8655255 — PASS; 14 changed files, all within the approved P2 scope.
+- [ ] Squash merge to main — authorized by user; pending final merge operation and post-merge main CI.
 
 ---
 
@@ -49,10 +51,10 @@
 - [x] STAGNANT_CHARGING uses existing anomaly ID 1002 and persisted session dedupe.
 - [x] Unit tests added for ETA and watchdog boundaries/reset behavior.
 - [x] ETA integer-boundary rounding compensates only four ULPs of floating-point drift; a fractional-minute regression test still rounds upward.
-- [ ] Diff review against base SHA — pending final review.
-- [ ] ./scripts/ui-audit.sh — pending CI.
-- [ ] gradle --no-daemon testDebugUnitTest assembleDebug — pending CI.
-- [ ] Debug APK and test report artifacts — pending CI.
+- [x] Diff review against base SHA 8655255710111c7e0070460d795f3abc80a834c2 — PASS; 14 changed files, all in the approved P2 scope.
+- [x] ./scripts/ui-audit.sh — PASS in GitHub Actions Run #402.
+- [x] gradle --no-daemon testDebugUnitTest assembleDebug — PASS in GitHub Actions Run #402; 183/183 unit tests.
+- [x] Debug APK and test report artifacts — PASS in Run #402 (artifact IDs 14703432370 and 14703611094).
 - [x] Physical-device QA for P2 ETA/watchdog — PASS (user-reported itel P55; detailed cases in the 2026-11-21 follow-up above).
 - [ ] Merge to main — authorized; pending final CI and squash merge.
 

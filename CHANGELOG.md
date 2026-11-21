@@ -8,9 +8,11 @@
 - Recorded user-reported itel P55 physical verification for Sprint P2: ETA warm-up/clear-on-unplug/HUD_ONLY isolation PASS; CC/CV watchdog 11-minute USB observation PASS without false positive.
 
 ### Verification
-- GitHub Actions Run #400: Anti-Slop UI Audit Gate PASS; assembleDebug task PASS; unit tests FAIL (182/183 passed) because the older ChargingEtaPresentationTest still expected ETA in collapsed contentText.
-- Corrected that stale presentation assertion: collapsed title must contain the compact ETA, contentText must remain the three-metric row, and expanded BigTextStyle must retain the full ETA line.
-- GitHub Actions Run #401 (pull_request event): PENDING at the time of this correction; reruns for the corrected commit are pending.
+- Run #400 exposed one obsolete assertion in ChargingEtaPresentationTest (182/183 tests passed); the assertion was corrected to the collapsed-title contract.
+- GitHub Actions Run #402 (push, current branch head 85c8a8f): SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest (183/183; 0 failures/errors/skipped), assembleDebug, and both artifact uploads.
+- GitHub Actions Run #403 (pull_request, current branch head 85c8a8f): first attempt failed during external KSP plugin resolution before compilation; attempt 2 rerun: SUCCESS across both jobs, including build/tests and artifact uploads.
+- Run #402 debug APK SHA-256: 6f08785e820def6eca37d57fe4404d11097cb27df74af222af4d0bbfb6a79e94.
+- Local Gradle/UI-audit commands: NOT RUN in this GitHub-only editing environment; the configured commands ran in GitHub Actions.
 - Physical-device QA for Sprint P2 on itel P55: PASS (user-reported; details recorded in the P2 quality checklist).
 - Estimator math, CC/CV watchdog thresholds/reset rules, Battery Monitoring lifecycle, HUD_ONLY isolation, and Status Bar Indicator behavior are unchanged.
 
@@ -63,10 +65,10 @@
 
 ### Verification
 - Added unit tests for timestamp-weighted ETA, minimum samples, current/capacity/staleness guards, CC/CV thresholds, SoC progress, invalid sensors, unplug, and sustained recovery.
-- Local ./scripts/ui-audit.sh: NOT RUN in the GitHub-only editing environment; pending CI.
-- Local gradle --no-daemon testDebugUnitTest assembleDebug: NOT RUN in the GitHub-only editing environment; pending CI.
-- GitHub Actions: pending push-triggered run.
-- Physical-device QA for P2 ETA/watchdog: NOT RUN; separate from prior P0/P1 device verification.
+- GitHub Actions Run #402 (push): PASS — Anti-Slop UI Audit Gate, 183/183 unit tests, assembleDebug, and APK/test-report artifact uploads.
+- GitHub Actions Run #403 (pull_request): PASS on attempt 2 after attempt 1 encountered a transient KSP plugin-resolution failure before compilation.
+- Local ./scripts/ui-audit.sh and gradle --no-daemon testDebugUnitTest assembleDebug: NOT RUN in the GitHub-only editing environment; equivalent workflow commands passed in CI.
+- Physical-device QA for P2 ETA/watchdog on itel P55: PASS (user-reported).
 - P0/P1 lifecycle, RECOVERY_HOLD ownership, current normalization, notification post gate, sensor cadence, persistence schema, and service start policy remain protected.
 
 ---
