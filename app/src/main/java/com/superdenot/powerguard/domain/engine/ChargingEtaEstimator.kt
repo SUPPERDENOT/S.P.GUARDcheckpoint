@@ -34,7 +34,7 @@ internal class ChargingEtaEstimator(
         var totalWeight = 0.0
         samples.forEach { sample ->
             val ageMs = (nowElapsedRealtimeMs - sample.elapsedRealtimeMs).coerceAtLeast(0L)
-            val weight = exp(-ageMs.toDouble() / halfLifeMs)
+            val weight = exp(-LN_2 * ageMs.toDouble() / halfLifeMs)
             weightedCurrent += sample.currentMa * weight
             totalWeight += weight
         }
@@ -57,6 +57,7 @@ internal class ChargingEtaEstimator(
     companion object {
         const val DEFAULT_WINDOW_MS = 120_000L
         const val DEFAULT_HALF_LIFE_MS = 30_000.0
+        private const val LN_2 = 0.6931471805599453
         const val MINIMUM_SAMPLES = 3
         const val MINIMUM_ETA_CURRENT_MA = 50.0
         const val MIN_CAPACITY_MAH = 1_000
