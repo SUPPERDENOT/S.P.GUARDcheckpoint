@@ -220,7 +220,8 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     )
                     DiagnosticLine(
                         "Estimasi penuh",
-                        if (state.isCharging) ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)
+                        if (state.isCharging && state.isChargingEtaTracking) ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)
+                        else if (state.isCharging) "Menunggu pemantauan"
                         else "Tidak mengisi"
                     )
                 }
