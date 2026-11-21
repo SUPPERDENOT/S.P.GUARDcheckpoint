@@ -65,8 +65,13 @@ class BatteryHealthEstimatorTest {
             )
         )
         assertNotNull(result)
-        assertEquals(5_250, result!!.effectiveCapacityMah)
+        assertEquals(5_500, result!!.effectiveCapacityMah)
         assertEquals(3, result.validSessionCount)
+    }
+
+    @Test
+    fun rejectsSessionsShorterThanOneMinute() {
+        assertNull(BatteryHealthEstimator.estimate(listOf(session(endTime = 59_000L))))
     }
 
     @Test
