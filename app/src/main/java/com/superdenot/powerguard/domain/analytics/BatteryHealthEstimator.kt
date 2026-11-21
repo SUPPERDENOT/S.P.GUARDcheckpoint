@@ -22,6 +22,7 @@ object BatteryHealthEstimator {
     const val MIN_CHARGED_MAH = 0.5
     private const val MIN_EFFECTIVE_CAPACITY_MAH = 1_000.0
     private const val MAX_EFFECTIVE_CAPACITY_MAH = 20_000.0
+    private const val HEALTH_BOUNDARY_EPSILON = 1e-9
 
     fun estimate(
         sessions: List<ChargingSessionEntity>,
@@ -57,7 +58,7 @@ object BatteryHealthEstimator {
             capacities[middle]
         }
         val health = medianCapacity / designCapacityMah * 100.0
-        if (!health.isFinite() || health !in 10.0..110.0) return null
+        if (!health.isFinite() || health < 10.0 || health > 110.0 + HEALTH_BOUNDARY_EPSILON) return null
 
         return SessionBatteryHealthEstimate(
             effectiveCapacityMah = medianCapacity.toInt(),
