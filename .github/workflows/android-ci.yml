@@ -8,6 +8,8 @@ on:
       - ui/industrial-instrument-antislop
       - fix/auto-start-coordinator-timing
       - integrate/p0-on-latest-ui
+      - main
+      - feat/p2-eta-and-cccv-watchdog
   pull_request:
     branches:
       - main
