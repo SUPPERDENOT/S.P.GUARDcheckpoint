@@ -114,7 +114,7 @@ internal object NotificationVisualRenderer {
             String.format(Locale.US, "%.1f°C", state.tempCelsius)
         } else "Tidak tersedia"
         val netCharge = String.format(Locale.US, "%+.1f mAh", state.sessionMahDelivered)
-        val eta = if (state.isCharging) " • Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else ""
+        val eta = if (state.isCharging && state.isChargingEtaTracking) " • Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else ""
         return "$current ($power) • $temperature • $netCharge$eta"
     }
 
@@ -147,7 +147,7 @@ internal object NotificationVisualRenderer {
             "Sumber daya: ${state.chargeSource}",
             "Protokol: ${state.chargingProtocol}"
         ).let { lines ->
-            if (state.isCharging) lines + "Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else lines
+            if (state.isCharging && state.isChargingEtaTracking) lines + "Estimasi penuh: ${ChargingEtaEstimator.formatEta(state.chargingEtaMinutes)}" else lines
         }.joinToString("\n")
     }
 
