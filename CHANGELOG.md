@@ -1,3 +1,27 @@
+## 2026-11-22 — Robolectric SDK pre-warm for CI reliability
+
+### Root cause
+- Downloaded the Run #476 unit-test report artifact (14755063530) and inspected the XML reports. The 80 failed test invocations across Robolectric test classes share the same infrastructure failure: Robolectric `MavenArtifactFetcher` received HTTP 429 Too Many Requests from `https://repo1.maven.org/maven2` while requesting `org.robolectric:android-all-instrumented:14-robolectric-10818077-i7`.
+- This is a runtime SDK-jar fetch failure, not evidence of 80 independent application assertion regressions. The original test assertions remain unchanged.
+- Source inspection of Robolectric 4.14.1 `DefaultSdkProvider` confirms the pre-instrumented SDK artifact coordinates. The test suite uses API 34 and includes a method-level API 26 override.
+
+### Changed
+- Added a dedicated, resolvable Gradle configuration for the exact Robolectric 4.14.1 pre-instrumented Android framework jars required by API 26 and API 34.
+- Added `prepareRobolectricSdk` Sync task to stage those resolved artifacts in `app/build/robolectric-sdk`; all Gradle `Test` tasks depend on this preparation.
+- Configured Robolectric's supported `robolectric.dependency.dir` system property to use the staged local artifacts. This prevents `MavenArtifactFetcher` from making runtime HTTP requests to Maven Central during tests.
+- Added an explicit CI pre-warm step before `testDebugUnitTest` / `assembleDebug`. The existing `gradle/actions/setup-gradle@v4` cache retains Gradle-resolved artifacts between workflow runs.
+- No application runtime dependency, SDK, Gradle/AGP/Kotlin version, package, versionCode/versionName, test assertion, or business logic was changed.
+
+### Verification
+- Source/configuration review: PASS — exact Robolectric 4.14.1 API 26/API 34 coordinates confirmed from the upstream version-pinned source; project test annotations inspected.
+- Run #476 report inspection: PASS — HTTP 429 and exact missing artifact URL confirmed from XML test reports.
+- `testDebugUnitTest` after this fix: NOT RUN — awaiting branch CI.
+- `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and test-report upload after this fix: NOT RUN — awaiting branch CI.
+- Physical-device QA on itel P55: NOT RUN — this CI dependency fix does not replace the required PR #4 physical QA.
+- PR #4 remains OPEN and unmerged; no operation on `main`.
+
+---
+
 ## 2026-11-22 — Launcher resource tree cleanup
 
 ### Changed
