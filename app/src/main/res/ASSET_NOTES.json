@@ -1,0 +1,28 @@
+{
+  "source": "AI-rendered 3D cyan-purple power core, symbol only, no lettering",
+  "adaptive_canvas": "432x432 px (108dp at xxxhdpi)",
+  "safe_zone": "66dp centered object area",
+  "density_sizes": {
+    "mipmap-mdpi": [
+      48,
+      48
+    ],
+    "mipmap-hdpi": [
+      72,
+      72
+    ],
+    "mipmap-xhdpi": [
+      96,
+      96
+    ],
+    "mipmap-xxhdpi": [
+      144,
+      144
+    ],
+    "mipmap-xxxhdpi": [
+      192,
+      192
+    ]
+  },
+  "round_assets": "Circular alpha mask; same central artwork"
+}
