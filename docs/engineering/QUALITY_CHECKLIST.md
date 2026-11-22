@@ -309,16 +309,23 @@
 ## 2026-11-22 — Robolectric runtime SDK resolution in CI
 
 - Run #476 XML report inspected: PASS — all 80 reported failures were caused by Robolectric `MavenArtifactFetcher` failing to fetch the API 34 instrumented SDK jar with HTTP 429 from `repo1.maven.org`; this was a shared test-environment failure, not 80 distinct assertion mismatches.
-- Robolectric 4.14.1 SDK mapping checked against its pinned `DefaultSdkProvider`: PASS — API 34 uses `14-robolectric-10818077-i7`; API 26 uses `8.0.0_r4-robolectric-r1-i7`.
-- Gradle-resolved pre-warm configuration covers both SDK levels used by test annotations: PASS — source/configuration review.
+- Robolectric 4.14.1 SDK mapping checked against its pinned `DefaultSdkProvider`: PASS — API 34 uses `14-robolectric-10818077-i7`; API 26 uses `8.0.0_r4-robolectric-r1-i7`; API 35 uses `15-robolectric-12650502-i7`.
+- Gradle-resolved pre-warm configuration now covers API 26, 34, and 35: PASS — source/configuration review; the first attempt omitted default SDK 35 and was corrected after Run #484.
 - `prepareRobolectricSdk` stages artifacts locally and supplies `robolectric.dependency.dir` to test workers: PASS — source/configuration review; CI execution pending.
 - Existing `testImplementation` dependencies and Robolectric version retained; no app runtime dependency added: PASS.
 - Test assertions, production Kotlin behavior, service lifecycle, persistence, and diagnostic/business logic unchanged: PASS — diff scope.
 - CI workflow pre-warms Robolectric artifacts before `testDebugUnitTest`; setup-gradle dependency cache retained: PASS — source review.
-- `testDebugUnitTest` target 214/214: NOT RUN — pending CI on the new commit.
-- `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and test-report upload: NOT RUN — pending CI on the new commit.
+- `testDebugUnitTest` target 214/214: NOT RUN — pending CI on the corrected API 26/34/35 configuration. Run #484 failed before test execution because the initial local SDK directory lacked API 35.
+- `assembleDebug` on Run #484: completed before the unit-test task; APK upload SKIPPED because the combined command failed. Anti-Slop UI Audit Gate SUCCESS; unit-test report upload SUCCESS (artifact 14755513728). Full verification of the corrected configuration: NOT RUN — pending next CI.
 - Physical-device QA on itel P55: NOT RUN — still required for the overall PR #4 before merge.
 - PR #4 remains OPEN and unmerged; `main` untouched.
+
+
+### Run #484 follow-up
+- XML report artifact 14755513728 inspected: FAIL confirmed as missing local API 35 jar, not an application assertion mismatch.
+- Root cause: `AutoStartDiagnosticLogTest` has no explicit SDK in its Robolectric `@Config`; Robolectric 4.14.1 selects API 35 by default.
+- Added API 35 pre-instrumented jar coordinate to the Gradle pre-warm configuration. Test assertions and application source remain unchanged.
+- Next CI run for API 26/34/35 coverage: NOT RUN — pending.
 
 
 ## 2026-11-22 — Launcher resource tree cleanup
