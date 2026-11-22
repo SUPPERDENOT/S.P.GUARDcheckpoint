@@ -9,6 +9,22 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Resolve Robolectric's instrumented Android SDK jars through Gradle so CI can
+// cache them before tests start. Robolectric's default MavenArtifactFetcher bypasses
+// Gradle's dependency cache and can be rate-limited by Maven Central.
+val robolectricSdkArtifacts = configurations.create("robolectricSdkArtifacts") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+val robolectricSdkDirectory = layout.buildDirectory.dir("robolectric-sdk")
+val prepareRobolectricSdk = tasks.register(
+    "prepareRobolectricSdk",
+    org.gradle.api.tasks.Sync::class.java
+) {
+    from(robolectricSdkArtifacts)
+    into(robolectricSdkDirectory)
+}
+
 android {
     namespace = "com.superdenot.powerguard"
     compileSdk = 35
@@ -54,6 +70,12 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                it.systemProperty(
+                    "robolectric.dependency.dir",
+                    robolectricSdkDirectory.get().asFile.absolutePath
+                )
+            }
         }
     }
 }
@@ -92,4 +114,13 @@ dependencies {
     testImplementation("androidx.test.ext:junit-ktx:1.2.1")
     testImplementation("androidx.room:room-testing:$roomVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+
+    // Robolectric 4.14.1 pre-instrumented framework jars for the SDKs used by tests:
+    // API 26 (one method-level override) and API 34 (the test-class defaults).
+    add(robolectricSdkArtifacts.name, "org.robolectric:android-all-instrumented:8.0.0_r4-robolectric-r1-i7")
+    add(robolectricSdkArtifacts.name, "org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
+}
+
+tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
+    dependsOn(prepareRobolectricSdk)
 }
