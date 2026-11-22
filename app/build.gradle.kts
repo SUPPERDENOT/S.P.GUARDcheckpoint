@@ -9,20 +9,41 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-// Resolve Robolectric's instrumented Android SDK jars through Gradle so CI can
-// cache them before tests start. Robolectric's default MavenArtifactFetcher bypasses
-// Gradle's dependency cache and can be rate-limited by Maven Central.
-val robolectricSdkArtifacts = configurations.create("robolectricSdkArtifacts") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
+// Resolve each Robolectric instrumented SDK jar in its own configuration.
+// Gradle resolves conflicting versions of the same module to one version when they
+// share a configuration; separate configurations are required to stage API 26/34/35.
+val robolectricSdkArtifacts = listOf(
+    "8.0.0_r4-robolectric-r1-i7",
+    "14-robolectric-10818077-i7",
+    "15-robolectric-12650502-i7"
+).mapIndexed { index, version ->
+    val sdkConfiguration = configurations.create("robolectricSdkApi${listOf(26, 34, 35)[index]}") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
+    dependencies.add(
+        sdkConfiguration.name,
+        "org.robolectric:android-all-instrumented:$version"
+    )
+    version to sdkConfiguration
 }
 val robolectricSdkDirectory = layout.buildDirectory.dir("robolectric-sdk")
 val prepareRobolectricSdk = tasks.register(
     "prepareRobolectricSdk",
     org.gradle.api.tasks.Sync::class.java
 ) {
-    from(robolectricSdkArtifacts)
+    robolectricSdkArtifacts.forEach { (_, sdkConfiguration) ->
+        from(sdkConfiguration)
+    }
     into(robolectricSdkDirectory)
+    doLast {
+        val missingArtifacts = robolectricSdkArtifacts
+            .map { (version, _) -> "android-all-instrumented-$version.jar" }
+            .filterNot { fileName -> robolectricSdkDirectory.get().file(fileName).asFile.isFile }
+        check(missingArtifacts.isEmpty()) {
+            "Robolectric SDK pre-warm did not stage required artifacts: ${missingArtifacts.joinToString()}"
+        }
+    }
 }
 
 android {
