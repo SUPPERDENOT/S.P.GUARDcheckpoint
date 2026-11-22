@@ -1,3 +1,15 @@
+## 2026-11-22 — Launcher resource tree cleanup
+
+### Changed
+- Kept the 11 launcher raster PNG assets only in their Android resource density folders under `app/src/main/res/mipmap-*`.
+- Removed the temporary `ASSET_NOTES.json` and `preview.jpg` files from the repository root and Android resource directory; neither file is an Android runtime resource.
+
+### Verification
+- GitHub source audit: all 11 expected launcher PNG paths exist under `app/src/main/res/`; root-level mipmap files were not present at audit time.
+- Documentation/resource cleanup only; no Kotlin, manifest, Gradle, dependency, SDK, package, version, or runtime lifecycle changes.
+- GitHub Actions for the cleanup commit: pending.
+- Physical-device launcher verification on itel P55: NOT RUN; required before PR #4 merge.
+
 ## 2026-11-22 — Initial UI polish and session-based SOH analytics
 
 ### Changed
