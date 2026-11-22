@@ -115,10 +115,12 @@ dependencies {
     testImplementation("androidx.room:room-testing:$roomVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 
-    // Robolectric 4.14.1 pre-instrumented framework jars for the SDKs used by tests:
-    // API 26 (one method-level override) and API 34 (the test-class defaults).
+    // Robolectric 4.14.1 pre-instrumented framework jars for every SDK selected by tests:
+    // API 26 (method-level override), API 34 (class-level configs), and API 35
+    // (Robolectric's default SDK for AutoStartDiagnosticLogTest).
     add(robolectricSdkArtifacts.name, "org.robolectric:android-all-instrumented:8.0.0_r4-robolectric-r1-i7")
     add(robolectricSdkArtifacts.name, "org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
+    add(robolectricSdkArtifacts.name, "org.robolectric:android-all-instrumented:15-robolectric-12650502-i7")
 }
 
 tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
