@@ -306,6 +306,21 @@
 
 # SPG Quality Checklist
 
+## 2026-11-22 — Robolectric runtime SDK resolution in CI
+
+- Run #476 XML report inspected: PASS — all 80 reported failures were caused by Robolectric `MavenArtifactFetcher` failing to fetch the API 34 instrumented SDK jar with HTTP 429 from `repo1.maven.org`; this was a shared test-environment failure, not 80 distinct assertion mismatches.
+- Robolectric 4.14.1 SDK mapping checked against its pinned `DefaultSdkProvider`: PASS — API 34 uses `14-robolectric-10818077-i7`; API 26 uses `8.0.0_r4-robolectric-r1-i7`.
+- Gradle-resolved pre-warm configuration covers both SDK levels used by test annotations: PASS — source/configuration review.
+- `prepareRobolectricSdk` stages artifacts locally and supplies `robolectric.dependency.dir` to test workers: PASS — source/configuration review; CI execution pending.
+- Existing `testImplementation` dependencies and Robolectric version retained; no app runtime dependency added: PASS.
+- Test assertions, production Kotlin behavior, service lifecycle, persistence, and diagnostic/business logic unchanged: PASS — diff scope.
+- CI workflow pre-warms Robolectric artifacts before `testDebugUnitTest`; setup-gradle dependency cache retained: PASS — source review.
+- `testDebugUnitTest` target 214/214: NOT RUN — pending CI on the new commit.
+- `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and test-report upload: NOT RUN — pending CI on the new commit.
+- Physical-device QA on itel P55: NOT RUN — still required for the overall PR #4 before merge.
+- PR #4 remains OPEN and unmerged; `main` untouched.
+
+
 ## 2026-11-22 — Launcher resource tree cleanup
 
 - All 10 density launcher PNGs plus the 432×432 xxxhdpi adaptive foreground are present under `app/src/main/res/mipmap-*`: PASS — GitHub path checks.
