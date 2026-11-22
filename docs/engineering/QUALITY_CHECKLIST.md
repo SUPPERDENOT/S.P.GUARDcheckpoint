@@ -306,6 +306,16 @@
 
 # SPG Quality Checklist
 
+## 2026-11-22 — Launcher resource tree cleanup
+
+- All 10 density launcher PNGs plus the 432×432 xxxhdpi adaptive foreground are present under `app/src/main/res/mipmap-*`: PASS — GitHub path checks.
+- Temporary `ASSET_NOTES.json` and `preview.jpg` removed from repository root and `app/src/main/res/`: PASS — cleanup commits.
+- No runtime Kotlin/manifest/Gradle behavior changed: PASS — documentation and resource-file cleanup only.
+- Unit tests / Android build / Anti-Slop UI Audit Gate: NOT RUN — new CI run pending.
+- Physical-device launcher rendering on itel P55: NOT RUN — required before merge.
+- `CHANGELOG.md` and this checklist updated; no version, SDK, dependency, package, or main-branch change.
+
+
 Complete this checklist for every meaningful code change. For documentation-only changes, mark code/runtime checks N/A and state why.
 
 Use only:
