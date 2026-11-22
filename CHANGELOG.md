@@ -3,10 +3,10 @@
 ### Root cause
 - Downloaded the Run #476 unit-test report artifact (14755063530) and inspected the XML reports. The 80 failed test invocations across Robolectric test classes share the same infrastructure failure: Robolectric `MavenArtifactFetcher` received HTTP 429 Too Many Requests from `https://repo1.maven.org/maven2` while requesting `org.robolectric:android-all-instrumented:14-robolectric-10818077-i7`.
 - This is a runtime SDK-jar fetch failure, not evidence of 80 independent application assertion regressions. The original test assertions remain unchanged.
-- Source inspection of Robolectric 4.14.1 `DefaultSdkProvider` confirms the pre-instrumented SDK artifact coordinates. The test suite uses API 34 and includes a method-level API 26 override.
+- Source inspection of Robolectric 4.14.1 `DefaultSdkProvider` confirms the pre-instrumented SDK artifact coordinates. The test suite uses API 34 class-level configurations, a method-level API 26 override, and API 35 as Robolectric's default for a class without an explicit SDK.
 
 ### Changed
-- Added a dedicated, resolvable Gradle configuration for the exact Robolectric 4.14.1 pre-instrumented Android framework jars required by API 26 and API 34.
+- Added a dedicated, resolvable Gradle configuration for the exact Robolectric 4.14.1 pre-instrumented Android framework jars required by API 26, API 34, and API 35.
 - Added `prepareRobolectricSdk` Sync task to stage those resolved artifacts in `app/build/robolectric-sdk`; all Gradle `Test` tasks depend on this preparation.
 - Configured Robolectric's supported `robolectric.dependency.dir` system property to use the staged local artifacts. This prevents `MavenArtifactFetcher` from making runtime HTTP requests to Maven Central during tests.
 - Added an explicit CI pre-warm step before `testDebugUnitTest` / `assembleDebug`. The existing `gradle/actions/setup-gradle@v4` cache retains Gradle-resolved artifacts between workflow runs.
@@ -20,9 +20,13 @@
 - Physical-device QA on itel P55: NOT RUN — this CI dependency fix does not replace the required PR #4 physical QA.
 - PR #4 remains OPEN and unmerged; no operation on `main`.
 
----
-
-## 2026-11-22 — Launcher resource tree cleanup
+### Follow-up after Run #484
+- The first pre-warm run successfully resolved/staged API 26 and API 34, but the XML report artifact (14755513728) showed Robolectric selecting API 35 for `AutoStartDiagnosticLogTest`, which has no explicit `sdk` value in its `@Config`.
+- Run #484 therefore failed with `LocalDependencyResolver`: the expected local API 35 jar was absent. This is a test-environment SDK-coverage gap; the application assertions remain unchanged.
+- Added the exact Robolectric 4.14.1 API 35 artifact `org.robolectric:android-all-instrumented:15-robolectric-12650502-i7` to the Gradle pre-warm configuration. The expected SDK set is now API 26, 34, and 35.
+- Run #484: `prepareRobolectricSdk` SUCCESS; `testDebugUnitTest` FAIL (214 tests, 82 failed due to missing API 35 local jar); APK upload SKIPPED; report upload SUCCESS. Anti-Slop UI Audit Gate SUCCESS.
+- Verification of the API 26/34/35 correction: NOT RUN — awaiting the next CI run.
+\n---\n\n## 2026-11-22 — Launcher resource tree cleanup
 
 ### Changed
 - Kept the 11 launcher raster PNG assets only in their Android resource density folders under `app/src/main/res/mipmap-*`.
