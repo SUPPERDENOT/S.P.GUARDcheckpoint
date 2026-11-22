@@ -1,3 +1,25 @@
+## 2026-11-22 — Run #490 Robolectric SDK configuration conflict fix
+
+### Root cause
+- Inspected Run #490 job logs and all XML test reports from artifact 14756126935. The suite completed 214 tests with 81 failures and 0 skipped; failures were infrastructure setup errors, not assertion mismatches.
+- Exact exception: `java.lang.IllegalArgumentException: Path is not a file: .../app/build/robolectric-sdk/android-all-instrumented-14-robolectric-10818077-i7.jar`, from `LocalDependencyResolver.validateFile(LocalDependencyResolver.java:50)`.
+- XML reports show 80 failures requesting API 34 (`14-robolectric-10818077-i7`) and 1 requesting API 26 (`8.0.0_r4-robolectric-r1-i7`). API 35 was not the missing artifact in this run.
+- Root cause in the pre-warm setup: all three versions of the same Gradle module, `org.robolectric:android-all-instrumented`, were declared in one resolvable configuration. Gradle conflict resolution selects one version for a module within a configuration, so the Sync task could succeed while omitting the API 26 and API 34 jars. The prior task did not validate that every required file had actually been staged.
+
+### Changed
+- Split API 26, API 34, and API 35 into three independent resolvable Gradle configurations, preventing cross-version conflict resolution.
+- The Sync task now stages all three configurations into `app/build/robolectric-sdk`.
+- Added a post-sync assertion that checks all three exact Robolectric jar filenames exist. A missing SDK artifact now fails the pre-warm task immediately, before unit tests start.
+- No test assertion, test enablement, production Kotlin behavior, app runtime dependency, SDK, package, app version, or business logic was changed.
+
+### Verification
+- Run #490 Anti-Slop UI Audit Gate: SUCCESS.
+- Run #490 `testDebugUnitTest`: FAIL — 214 tests completed, 81 infrastructure failures (80 API 34 missing local jar; 1 API 26 missing local jar); 133 passed, 0 skipped.
+- Run #490 APK upload: SKIPPED because the combined test/build command stopped at the failed unit-test task.
+- New three-configuration staging fix: committed; CI verification pending.
+- Physical-device QA on itel P55: NOT RUN; still required before PR #4 merge.
+- PR #4 remains OPEN and unmerged; `main` untouched.
+
 ## 2026-11-22 — Robolectric SDK pre-warm for CI reliability
 
 ### Root cause
