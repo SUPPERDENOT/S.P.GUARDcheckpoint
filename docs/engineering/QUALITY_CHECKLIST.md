@@ -1,3 +1,15 @@
+## 2026-11-22 — Run #490 Robolectric SDK version-conflict correction
+
+- Run #490 logs and XML artifact 14756126935 inspected: PASS — exact failure is `LocalDependencyResolver.validateFile` with `Path is not a file` for the API 34 jar; XML confirms 80 API 34 failures and 1 API 26 failure, 214 total tests / 81 failed / 0 skipped.
+- Root cause identified: API 26/34/35 versions of the same Maven module were placed in one Gradle configuration; Gradle version conflict resolution retained only one module version. The Sync task's success did not guarantee all required jars were present.
+- Pre-warm configuration corrected to three independent Gradle configurations, one per SDK version: PASS — source change committed.
+- Pre-warm task now validates the exact API 26, API 34, and API 35 jar filenames after Sync: PASS — source change committed.
+- Test assertions, test enablement, production behavior, app runtime dependencies, package, app version, and Android SDK: unchanged.
+- New CI verification for testDebugUnitTest 214/214, assembleDebug, Anti-Slop gate, and APK upload: NOT RUN — pending workflow triggered by correction.
+- Physical-device QA on itel P55: NOT RUN — required before PR #4 merge.
+- PR #4 remains OPEN and unmerged; main untouched.
+
+
 ## 2026-11-22 — Initial UI polish and session SOH analytics
 
 - [x] Branch created from exact main baseline c955aa2888e5b6fcd6e650ba2f2791b7e3692adc: PASS.
