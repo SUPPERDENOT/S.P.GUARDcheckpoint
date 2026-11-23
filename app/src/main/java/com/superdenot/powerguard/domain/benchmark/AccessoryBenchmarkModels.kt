@@ -7,7 +7,9 @@ data class AccessoryBenchmarkSample(
     val tempCelsius: Float,
     val isCurrentAvailable: Boolean,
     val isPowerAvailable: Boolean,
-    val isTemperatureAvailable: Boolean
+    val isTemperatureAvailable: Boolean,
+    val isChargingStatusAvailable: Boolean,
+    val isCharging: Boolean
 )
 
 data class AccessoryBenchmarkSession(
