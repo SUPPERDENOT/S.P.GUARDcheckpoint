@@ -1,3 +1,16 @@
+## 2026-11-23 — PR #4 merged to main
+
+- [x] PR #4 `feat/ui-polish-and-session-soh` -> `main`: PASS — squash merge completed; merge commit `94a814479fae8b803b7a27835686712b9408cbab`.
+- [x] Launcher adaptive resources synchronized to the new 3D icon assets: PASS — source and APK audit; legacy Transsion scanner display is deferred for separate investigation.
+- [x] Charging protocol explanation catalog/info action: PASS — implementation included in merged PR.
+- [x] History micro-session filter: PASS — default ON, display-only, no Room data deletion or mutation.
+- [x] Session-based SOH estimator: PASS — valid completed sessions and existing design-capacity setting; implementation covered by unit tests.
+- [x] CI Run #497 on PR head `6326dc5489e2b5f558ac352127662b902af17135`: PASS — 214/214 unit tests, `assembleDebug`, Anti-Slop UI Audit Gate, APK and test-report uploads.
+- [x] Physical-device QA on itel P55: PASS — user confirmed the physical test is complete. Detailed test observations were not supplied in this merge request.
+- [x] Transsion security-scanner legacy icon investigation: DEFERRED — separate follow-up; does not block this merge.
+- [ ] Post-merge CI on `main`: NOT RUN at the time this entry was written; verify the workflow triggered by the merge/documentation commits separately.
+- [x] No changes to Room schema, Battery Monitoring lifecycle, Status Bar Indicator lifecycle, RECOVERY_HOLD, package, SDK, dependencies, or app version in this scope.
+
 ## 2026-11-22 — Run #490 Robolectric SDK version-conflict correction
 
 - Run #490 logs and XML artifact 14756126935 inspected: PASS — exact failure is `LocalDependencyResolver.validateFile` with `Path is not a file` for the API 34 jar; XML confirms 80 API 34 failures and 1 API 26 failure, 214 total tests / 81 failed / 0 skipped.
