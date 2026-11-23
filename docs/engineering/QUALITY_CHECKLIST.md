@@ -14,7 +14,7 @@
 - [x] History detail includes optional label add/edit/remove, four quick choices, and a free-text field with a heading above it and no placeholder: PASS — source review.
 - [x] Comparison card is conditional on at least two completed, distinct labels and uses vertically stacked metric pairs to avoid horizontal scrolling: PASS — source review; 360dp / 720p device review pending.
 - [x] applicationId (com.superdenot.superdguard), package namespace, dependencies, SDK, app version, Battery Monitoring lifecycle, Status Bar Indicator lifecycle, and charging-protocol classification were not changed: PASS — scope review.
-- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK upload: NOT RUN — awaiting PR #6 CI.
+- [x] GitHub Actions Run #506 on PR head 5dcd3a4f1bcfde1d4d5b8af2fcf98a6096ac9cbd: SUCCESS — testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload all passed. Debug APK artifact: 14793940833; test report artifact: 14793138821.
 - [ ] Physical-device QA on itel P55, including 360dp / 720p layout and Room upgrade from an existing install: NOT RUN — required before PR #6 merge.
 - [ ] PR #6 merge: HOLD — do not merge before itel P55 physical QA.
 
