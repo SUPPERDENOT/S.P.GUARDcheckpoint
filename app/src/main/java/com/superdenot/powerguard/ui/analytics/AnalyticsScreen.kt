@@ -458,7 +458,7 @@ private fun AccessoryBenchmarkCard(result: AccessoryBenchmarkResult) {
         ) {
             Text("Perbandingan Aksesori", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(
-                "Rata-rata pengukuran sisi baterai dari sesi yang selesai.",
+                "Rata-rata pengukuran sisi baterai dari sesi yang selesai. Daya dihitung dari sampel tersimpan, bukan input charger.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
