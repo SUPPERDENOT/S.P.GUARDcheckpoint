@@ -88,7 +88,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Text(
-                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Deteksi: ${state.chargingProtocol}" else "Perangkat sedang menggunakan daya baterai",
+                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Protokol / kemampuan sumber: ${state.chargingProtocol}" else "Perangkat sedang menggunakan daya baterai",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
