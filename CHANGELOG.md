@@ -17,9 +17,9 @@
 - Work is isolated on feat/accessory-benchmark-history, created directly from main commit 77c8de31bf700e47b00717b85fb398070f2e7f5d. PR #5 branch was not touched and remains OPEN/unmerged.
 
 ### Verification status
-- Source and diff review: in progress.
-- Unit tests and Android build: pending PR #6 CI.
-- Anti-Slop UI Audit Gate and APK artifact upload: pending PR #6 CI.
+- Source and diff review: PASS — 15-file diff reviewed; no changes to recovery checkpoint or atomic session-finalization paths.
+- GitHub Actions Run #506 on PR head 5dcd3a4f1bcfde1d4d5b8af2fcf98a6096ac9cbd: SUCCESS — testDebugUnitTest and assembleDebug passed.
+- Anti-Slop UI Audit Gate: SUCCESS. APK upload: SUCCESS — artifact 14793940833 (SHA-256 1708e30cea5f71cf998b826c88efbf0656d6e2c6737dc8d810c09b9d0a96717c). Unit-test report upload: SUCCESS — artifact 14793138821.
 - Physical-device QA on itel P55 (including 360dp / 720p layout and upgrade migration): NOT RUN; required before merge.
 
 ## 2026-11-23 — PR #4 squash merge: UI polish and session-based SOH
