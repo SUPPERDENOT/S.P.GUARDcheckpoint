@@ -120,25 +120,25 @@ class ChargingProtocolDetectorTest {
 
     @Test
     fun acNineVoltCapabilityIsConvertedAndHasPriority() {
-        assertEquals("AC — Kemampuan 9V+",
+        assertEquals("AC — Kemampuan Tegangan 9V+",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 8_500_000L))
     }
 
     @Test
     fun acHighPowerUsesMaximumCapabilityOfAtLeastTenWatts() {
-        assertEquals("AC — Kemampuan Daya Tinggi",
+        assertEquals("AC — Kemampuan Sumber Tinggi (≥10 W)",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 2_000_000L, voltageUv = 5_000_000L))
-        assertEquals("AC — Kemampuan Daya Tinggi",
+        assertEquals("AC — Kemampuan Sumber Tinggi (≥10 W)",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 3_000_000L, voltageUv = 5_000_000L))
-        assertEquals("AC — Kemampuan Daya Tinggi",
+        assertEquals("AC — Kemampuan Sumber Tinggi (≥10 W)",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 2_500_000L, voltageUv = 6_000_000L))
     }
 
     @Test
     fun acStandardCapabilityDoesNotClaimDcp() {
-        assertEquals("AC — Daya Standar",
+        assertEquals("AC — Kemampuan Sumber Standar",
             detect(ChargingProtocolDetector.Source.AC, currentUa = 1_000_000L, voltageUv = 5_000_000L))
-        assertEquals("AC — Kemampuan Daya Tidak Tersedia",
+        assertEquals("AC — Kemampuan Sumber Tidak Tersedia",
             detect(ChargingProtocolDetector.Source.AC))
     }
 
