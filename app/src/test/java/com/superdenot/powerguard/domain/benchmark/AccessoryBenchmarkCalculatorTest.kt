@@ -21,7 +21,9 @@ class AccessoryBenchmarkCalculatorTest {
                     samples = listOf(
                         sample(1_000L, current = 1_000, power = 4f, temp = 32f),
                         sample(2_000L, current = 2_000, power = 6f, temp = 38f)
-                    )
+                    ),
+                    averageCurrentMa = 1_700,
+                    maxTemperatureCelsius = 39f
                 ),
                 session(
                     id = 2,
@@ -42,9 +44,9 @@ class AccessoryBenchmarkCalculatorTest {
         val charger = result.groups.single { it.label == "Charger Bawaan" }
         assertEquals(1, charger.sessionCount)
         assertEquals(5.0, charger.averageBatteryPowerW!!, 0.0001)
-        assertEquals(1_500.0, charger.averageCurrentMa!!, 0.0001)
+        assertEquals(1_700.0, charger.averageCurrentMa!!, 0.0001)
         assertEquals(60.0, charger.averageChargeRatePercentPerHour!!, 0.0001)
-        assertEquals(6.0, charger.averageTemperatureRiseCelsius!!, 0.0001)
+        assertEquals(7.0, charger.averageTemperatureRiseCelsius!!, 0.0001)
         assertEquals(20.0, charger.averageStartLevelPercent!!, 0.0001)
         assertEquals(32.0, charger.averageStartTemperatureCelsius!!, 0.0001)
 
@@ -227,7 +229,9 @@ class AccessoryBenchmarkCalculatorTest {
         endLevel: Int?,
         startTime: Long,
         endTime: Long?,
-        samples: List<AccessoryBenchmarkSample>
+        samples: List<AccessoryBenchmarkSample>,
+        averageCurrentMa: Int? = samples.filter { it.isCurrentAvailable }.map { it.currentMa }.takeIf { it.isNotEmpty() }?.average()?.toInt(),
+        maxTemperatureCelsius: Float? = samples.filter { it.isTemperatureAvailable }.maxOfOrNull { it.tempCelsius }
     ) = AccessoryBenchmarkSession(
         sessionId = id,
         accessoryLabel = label,
@@ -235,6 +239,8 @@ class AccessoryBenchmarkCalculatorTest {
         endTimeMillis = endTime,
         startLevelPercent = startLevel,
         endLevelPercent = endLevel,
+        averageCurrentMa = averageCurrentMa,
+        maxTemperatureCelsius = maxTemperatureCelsius,
         samples = samples
     )
 
