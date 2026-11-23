@@ -41,6 +41,8 @@ class BatteryRepository(private val context: Context) {
                     endTimeMillis = row.session.endTime,
                     startLevelPercent = row.session.startLevel,
                     endLevelPercent = row.session.endLevel,
+                    averageCurrentMa = row.session.avgCurrentMa.takeIf { row.session.hasCurrentData },
+                    maxTemperatureCelsius = row.session.maxTempCelsius.takeIf { row.session.hasTemperatureData },
                     samples = row.samples.map { sample ->
                         AccessoryBenchmarkSample(
                             timestampMillis = sample.timestamp,
