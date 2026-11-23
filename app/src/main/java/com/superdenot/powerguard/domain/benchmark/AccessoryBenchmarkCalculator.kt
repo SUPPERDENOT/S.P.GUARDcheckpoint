@@ -66,8 +66,9 @@ object AccessoryBenchmarkCalculator {
     }
 
     private fun measureSession(session: CompletedSession): SessionMetrics {
-        val powerSamples = session.samples.filter { it.isPowerAvailable && it.powerWatt.isFinite() }
-        val temperatureSamples = session.samples.filter { it.isTemperatureAvailable && it.tempCelsius.isFinite() }
+        val chargingSamples = session.samples.filter { !it.isChargingStatusAvailable || it.isCharging }
+        val powerSamples = chargingSamples.filter { it.isPowerAvailable && it.powerWatt.isFinite() }
+        val temperatureSamples = chargingSamples.filter { it.isTemperatureAvailable && it.tempCelsius.isFinite() }
 
         val durationMillis = session.endTimeMillis - session.startTimeMillis
         val chargeRate = if (durationMillis >= MIN_VALID_DURATION_MILLIS) {
