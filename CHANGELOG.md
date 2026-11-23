@@ -1,3 +1,10 @@
+## 2026-11-23 — PR #6 squash merge
+
+- Squash-merged `feat/accessory-benchmark-history` (PR #6) into `main`; merge commit: `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+- Run #510 on the exact synchronized PR head `a50dd540445379b95cd2d2a4b4a2ca833cdb77af`: SUCCESS — Anti-Slop UI Audit Gate, unit tests, debug APK build, APK upload, and unit-test report upload completed successfully.
+- Physical QA on itel P55 was confirmed complete by the user before merge. Detailed observations were not included in the merge request.
+- Baseline for subsequent PR #7: `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+
 ## 2026-11-23 — History curve compact-focus polish (PR #7)
 
 ### Changed
