@@ -416,12 +416,28 @@ private fun AccessoryLabelDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Pilihan cepat", style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(onClick = { label = "Charger Bawaan" }, label = { Text("Charger Bawaan") })
-                    AssistChip(onClick = { label = "Adaptor Cadangan" }, label = { Text("Adaptor Cadangan") })
+                    AssistChip(
+                        onClick = { label = "Charger Bawaan" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Charger Bawaan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
+                    AssistChip(
+                        onClick = { label = "Adaptor Cadangan" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Adaptor Cadangan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(onClick = { label = "Kabel Utama" }, label = { Text("Kabel Utama") })
-                    AssistChip(onClick = { label = "Kabel Cadangan" }, label = { Text("Kabel Cadangan") })
+                    AssistChip(
+                        onClick = { label = "Kabel Utama" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Kabel Utama", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
+                    AssistChip(
+                        onClick = { label = "Kabel Cadangan" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Kabel Cadangan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
                 }
                 Text("Nama aksesori", style = MaterialTheme.typography.labelMedium)
                 OutlinedTextField(
