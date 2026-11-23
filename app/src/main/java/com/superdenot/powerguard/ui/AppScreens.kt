@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -382,7 +381,6 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
     val context = LocalContext.current
@@ -392,7 +390,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     val currentScale by vm.batteryCurrentScale.collectAsState()
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
-    var rotationIntervalInput by remember(statusBarSetting.rotationIntervalSeconds) { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
     var currentScaleMenuExpanded by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }

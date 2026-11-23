@@ -1,3 +1,22 @@
+## 2026-11-24 — PR #8 follow-up: compact Status Bar settings dialog
+
+### Changed
+- Replaced the six vertically wrapping parameter chips with a fixed 2-column × 3-row grid using concise labels: Daya (W), Arus (A/mA), Tegangan (V), Suhu (°C), Level (%), and Sumber (AC/USB).
+- Added a clear selected state for both single-metric and custom-rotation modes: contrasting outline, selected container tone, and a check icon. The grid uses 48dp minimum touch targets and selection semantics.
+- Replaced the mode chips with a full-width Material 3 single-choice segmented control.
+- Kept all four rotation presets in one equal-width row and placed the custom 1–60 second numeric field beside its label without a placeholder.
+- Replaced the floating Selesai action with a divider-separated footer containing Batal and Simpan. Dialog edits remain local until Simpan; Batal and outside dismissal discard the draft. Invalid custom intervals block saving while custom rotation is selected.
+
+### Protected behavior
+- UI-only change in Settings. Status-bar renderer, sensor acquisition, global current calibration (default 1x), rotation timing, BatteryMonitorService lifecycle / RECOVERY_HOLD, Room DB v3, and `applicationId` are unchanged.
+- No dependency, SDK, package, or app-version change.
+
+### Verification
+- Source diff review: PASS — only `AppScreens.kt` UI composition and this documentation are in scope.
+- Android CI (Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload): pending for commit `bac5c77d8f4d9b6c698b0a8ab6d0968df087e04c`.
+- Physical-device layout verification at 360dp / 720p on itel P55: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-24 — PR #8 follow-up: resource-source glyph, custom rotation, and accessory-label cleanup
 
 ### Changed

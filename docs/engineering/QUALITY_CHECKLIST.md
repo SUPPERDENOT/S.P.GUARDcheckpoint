@@ -1,3 +1,15 @@
+## 2026-11-24 — PR #8 follow-up: compact Status Bar settings dialog
+
+- [x] Baseline: PASS — PR #8 was OPEN / not merged; branch head matched requested base `6640b05cee520fb79c8231ade79f611548c3c716` before edits.
+- [x] Parameter selection: PASS by source review — six parameters are arranged in a fixed 2 × 3 grid with concise labels, 8dp gaps, 48dp minimum target height, selected border/tone, check icon, and radio/checkbox semantics.
+- [x] Mode hierarchy: PASS by source review — full-width Material 3 `SingleChoiceSegmentedButtonRow` at the top of the dialog.
+- [x] Rotation interval: PASS by source review — four equal-weight preset chips share one row; custom numeric input is horizontal, labelled above the field, has no placeholder, and validates 1–60 seconds.
+- [x] Footer and draft behavior: PASS by source review — divider-separated Batal / Simpan actions; local draft state is applied only on Simpan, while Batal and outside dismissal discard it. Invalid custom interval disables Simpan in custom mode.
+- [x] Scope: PASS — no renderer, sensor, calibration, rotation cadence, service lifecycle, Room v3, package, dependency, SDK, or app-version changes.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for commit `bac5c77d8f4d9b6c698b0a8ab6d0968df087e04c`.
+- [ ] Physical-device QA at 360dp / 720p on itel P55: NOT RUN — required before merge.
+- [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
+
 ## 2026-11-24 — PR #8 follow-up: resource-source glyph, custom rotation, accessory label cleanup
 
 - [x] Base/branch verification: PASS — `feat/crisp-statusbar-indicator` was identical to requested base `6d2c04727701c48a87cf9279fbbd1f0ce731e4f2` before edits.
