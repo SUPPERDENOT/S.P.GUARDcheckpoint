@@ -135,7 +135,8 @@ class BatteryMonitorEngine(private val context: Context, private val currentScal
             isVoltageAvailable = isVoltageAvailable,
             isTemperatureAvailable = isTemperatureAvailable,
             isPowerAvailable = isPowerAvailable,
-            isChargingStatusAvailable = isChargingStatusAvailable
+            isChargingStatusAvailable = isChargingStatusAvailable,
+            isChargeSourceAvailable = hasPluggedMetadata
         )
     }
 
