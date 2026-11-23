@@ -117,6 +117,30 @@ class StatusBarIndicatorSettingsTest {
     }
 
     @Test
+    fun combinedConfigurationPersistsMetricModeRotationAndIntervalInOneEdit() = runBlocking {
+        StatusBarIndicatorSettings.setConfiguration(
+            context = context,
+            parameter = StatusBarParameter.VOLTAGE,
+            displayMode = StatusBarDisplayMode.CUSTOM_ROTATION,
+            rotationParameters = listOf(
+                StatusBarParameter.RESOURCE_SOURCE,
+                StatusBarParameter.POWER,
+                StatusBarParameter.VOLTAGE
+            ),
+            rotationIntervalSeconds = 7
+        )
+
+        val persisted = StatusBarIndicatorSettings.observe(context).first()
+        assertEquals(StatusBarParameter.VOLTAGE, persisted.parameter)
+        assertEquals(StatusBarDisplayMode.CUSTOM_ROTATION, persisted.displayMode)
+        assertEquals(
+            listOf(StatusBarParameter.POWER, StatusBarParameter.VOLTAGE, StatusBarParameter.RESOURCE_SOURCE),
+            persisted.rotationParameters
+        )
+        assertEquals(7, persisted.rotationIntervalSeconds)
+    }
+
+    @Test
     fun rotationSelectionRequiresTwoParametersAndIntervalIsClampedToOneThroughSixty() {
         val setting = StatusBarIndicatorSettings.resolveSetting(
             enabled = true,
