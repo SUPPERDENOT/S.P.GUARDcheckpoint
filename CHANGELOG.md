@@ -1,3 +1,17 @@
+## 2026-11-23 — PR #8 follow-up: larger, tighter Status Bar glyphs
+
+### Changed
+- Rebuilt the dedicated small-icon bitmap at the Android 24dp target size so System UI does not scale down a 48dp drawing and make both text rows appear undersized.
+- Replaced FontMetrics-based baseline centering with Paint.getTextBounds tight-glyph bounds. The numeric row is top-anchored at a 0.5dp inset; the unit row is bottom-anchored at a 0.5dp inset, with a 1dp target gap.
+- Switched to bold sans-serif-condensed glyphs and fitted each row against a 97% full-bleed width limit and its approximate 2:1 vertical allocation.
+- Limited numeric text accepted by the renderer to four characters. Negative decimal rounding is covered (for example, -2.48 → -2.5); values rounding across 10 become integers.
+
+### Verification
+- Source and test changes: implemented on `feat/crisp-statusbar-indicator`; sensor acquisition, current calibration, Room v3, `applicationId`, notification/service lifecycle, and monitoring behavior are untouched.
+- Unit tests, Android build, Anti-Slop UI Audit Gate, and debug APK upload: NOT RUN — pending GitHub Actions for this follow-up commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — must be repeated with the latest APK before merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-23 — Stacked Status Bar Indicator and global current-scale calibration (PR #8)
 
 ### Changed
