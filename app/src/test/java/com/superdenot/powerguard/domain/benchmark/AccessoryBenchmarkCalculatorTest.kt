@@ -251,7 +251,9 @@ class AccessoryBenchmarkCalculatorTest {
         temp: Float,
         currentAvailable: Boolean = true,
         powerAvailable: Boolean = true,
-        temperatureAvailable: Boolean = true
+        temperatureAvailable: Boolean = true,
+        chargingStatusAvailable: Boolean = true,
+        isCharging: Boolean = true
     ) = AccessoryBenchmarkSample(
         timestampMillis = timestamp,
         currentMa = current,
@@ -259,7 +261,9 @@ class AccessoryBenchmarkCalculatorTest {
         tempCelsius = temp,
         isCurrentAvailable = currentAvailable,
         isPowerAvailable = powerAvailable,
-        isTemperatureAvailable = temperatureAvailable
+        isTemperatureAvailable = temperatureAvailable,
+        isChargingStatusAvailable = chargingStatusAvailable,
+        isCharging = isCharging
     )
 
     private companion object {
