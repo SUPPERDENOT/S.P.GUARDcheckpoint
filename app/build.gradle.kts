@@ -9,6 +9,43 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Resolve each Robolectric instrumented SDK jar in its own configuration.
+// Gradle resolves conflicting versions of the same module to one version when they
+// share a configuration; separate configurations are required to stage API 26/34/35.
+val robolectricSdkArtifacts = listOf(
+    "8.0.0_r4-robolectric-r1-i7",
+    "14-robolectric-10818077-i7",
+    "15-robolectric-12650502-i7"
+).mapIndexed { index, version ->
+    val sdkConfiguration = configurations.create("robolectricSdkApi${listOf(26, 34, 35)[index]}") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
+    dependencies.add(
+        sdkConfiguration.name,
+        "org.robolectric:android-all-instrumented:$version"
+    )
+    version to sdkConfiguration
+}
+val robolectricSdkDirectory = layout.buildDirectory.dir("robolectric-sdk")
+val prepareRobolectricSdk = tasks.register(
+    "prepareRobolectricSdk",
+    org.gradle.api.tasks.Sync::class.java
+) {
+    robolectricSdkArtifacts.forEach { (_, sdkConfiguration) ->
+        from(sdkConfiguration)
+    }
+    into(robolectricSdkDirectory)
+    doLast {
+        val missingArtifacts = robolectricSdkArtifacts
+            .map { (version, _) -> "android-all-instrumented-$version.jar" }
+            .filterNot { fileName -> robolectricSdkDirectory.get().file(fileName).asFile.isFile }
+        check(missingArtifacts.isEmpty()) {
+            "Robolectric SDK pre-warm did not stage required artifacts: ${missingArtifacts.joinToString()}"
+        }
+    }
+}
+
 android {
     namespace = "com.superdenot.powerguard"
     compileSdk = 35
@@ -54,6 +91,12 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                it.systemProperty(
+                    "robolectric.dependency.dir",
+                    robolectricSdkDirectory.get().asFile.absolutePath
+                )
+            }
         }
     }
 }
@@ -92,4 +135,11 @@ dependencies {
     testImplementation("androidx.test.ext:junit-ktx:1.2.1")
     testImplementation("androidx.room:room-testing:$roomVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+
+    // Robolectric SDK artifacts are declared in independent configurations above
+    // to prevent Gradle from collapsing their distinct versions.
+}
+
+tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
+    dependsOn(prepareRobolectricSdk)
 }

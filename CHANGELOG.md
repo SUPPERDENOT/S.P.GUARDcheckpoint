@@ -1,3 +1,86 @@
+## 2026-11-22 — Run #490 Robolectric SDK configuration conflict fix
+
+### Root cause
+- Inspected Run #490 job logs and all XML test reports from artifact 14756126935. The suite completed 214 tests with 81 failures and 0 skipped; failures were infrastructure setup errors, not assertion mismatches.
+- Exact exception: `java.lang.IllegalArgumentException: Path is not a file: .../app/build/robolectric-sdk/android-all-instrumented-14-robolectric-10818077-i7.jar`, from `LocalDependencyResolver.validateFile(LocalDependencyResolver.java:50)`.
+- XML reports show 80 failures requesting API 34 (`14-robolectric-10818077-i7`) and 1 requesting API 26 (`8.0.0_r4-robolectric-r1-i7`). API 35 was not the missing artifact in this run.
+- Root cause in the pre-warm setup: all three versions of the same Gradle module, `org.robolectric:android-all-instrumented`, were declared in one resolvable configuration. Gradle conflict resolution selects one version for a module within a configuration, so the Sync task could succeed while omitting the API 26 and API 34 jars. The prior task did not validate that every required file had actually been staged.
+
+### Changed
+- Split API 26, API 34, and API 35 into three independent resolvable Gradle configurations, preventing cross-version conflict resolution.
+- The Sync task now stages all three configurations into `app/build/robolectric-sdk`.
+- Added a post-sync assertion that checks all three exact Robolectric jar filenames exist. A missing SDK artifact now fails the pre-warm task immediately, before unit tests start.
+- No test assertion, test enablement, production Kotlin behavior, app runtime dependency, SDK, package, app version, or business logic was changed.
+
+### Verification
+- Run #490 Anti-Slop UI Audit Gate: SUCCESS.
+- Run #490 `testDebugUnitTest`: FAIL — 214 tests completed, 81 infrastructure failures (80 API 34 missing local jar; 1 API 26 missing local jar); 133 passed, 0 skipped.
+- Run #490 APK upload: SKIPPED because the combined test/build command stopped at the failed unit-test task.
+- New three-configuration staging fix: committed; CI verification pending.
+- Physical-device QA on itel P55: NOT RUN; still required before PR #4 merge.
+- PR #4 remains OPEN and unmerged; `main` untouched.
+
+## 2026-11-22 — Robolectric SDK pre-warm for CI reliability
+
+### Root cause
+- Downloaded the Run #476 unit-test report artifact (14755063530) and inspected the XML reports. The 80 failed test invocations across Robolectric test classes share the same infrastructure failure: Robolectric `MavenArtifactFetcher` received HTTP 429 Too Many Requests from `https://repo1.maven.org/maven2` while requesting `org.robolectric:android-all-instrumented:14-robolectric-10818077-i7`.
+- This is a runtime SDK-jar fetch failure, not evidence of 80 independent application assertion regressions. The original test assertions remain unchanged.
+- Source inspection of Robolectric 4.14.1 `DefaultSdkProvider` confirms the pre-instrumented SDK artifact coordinates. The test suite uses API 34 class-level configurations, a method-level API 26 override, and API 35 as Robolectric's default for a class without an explicit SDK.
+
+### Changed
+- Added a dedicated, resolvable Gradle configuration for the exact Robolectric 4.14.1 pre-instrumented Android framework jars required by API 26, API 34, and API 35.
+- Added `prepareRobolectricSdk` Sync task to stage those resolved artifacts in `app/build/robolectric-sdk`; all Gradle `Test` tasks depend on this preparation.
+- Configured Robolectric's supported `robolectric.dependency.dir` system property to use the staged local artifacts. This prevents `MavenArtifactFetcher` from making runtime HTTP requests to Maven Central during tests.
+- Added an explicit CI pre-warm step before `testDebugUnitTest` / `assembleDebug`. The existing `gradle/actions/setup-gradle@v4` cache retains Gradle-resolved artifacts between workflow runs.
+- No application runtime dependency, SDK, Gradle/AGP/Kotlin version, package, versionCode/versionName, test assertion, or business logic was changed.
+
+### Verification
+- Source/configuration review: PASS — exact Robolectric 4.14.1 API 26/API 34 coordinates confirmed from the upstream version-pinned source; project test annotations inspected.
+- Run #476 report inspection: PASS — HTTP 429 and exact missing artifact URL confirmed from XML test reports.
+- `testDebugUnitTest` after this fix: NOT RUN — awaiting branch CI.
+- `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and test-report upload after this fix: NOT RUN — awaiting branch CI.
+- Physical-device QA on itel P55: NOT RUN — this CI dependency fix does not replace the required PR #4 physical QA.
+- PR #4 remains OPEN and unmerged; no operation on `main`.
+
+### Follow-up after Run #484
+- The first pre-warm run successfully resolved/staged API 26 and API 34, but the XML report artifact (14755513728) showed Robolectric selecting API 35 for `AutoStartDiagnosticLogTest`, which has no explicit `sdk` value in its `@Config`.
+- Run #484 therefore failed with `LocalDependencyResolver`: the expected local API 35 jar was absent. This is a test-environment SDK-coverage gap; the application assertions remain unchanged.
+- Added the exact Robolectric 4.14.1 API 35 artifact `org.robolectric:android-all-instrumented:15-robolectric-12650502-i7` to the Gradle pre-warm configuration. The expected SDK set is now API 26, 34, and 35.
+- Run #484: `prepareRobolectricSdk` SUCCESS; `testDebugUnitTest` FAIL (214 tests, 82 failed due to missing API 35 local jar); APK upload SKIPPED; report upload SUCCESS. Anti-Slop UI Audit Gate SUCCESS.
+- Verification of the API 26/34/35 correction: NOT RUN — awaiting the next CI run.
+\n---\n\n## 2026-11-22 — Launcher resource tree cleanup
+
+### Changed
+- Kept the 11 launcher raster PNG assets only in their Android resource density folders under `app/src/main/res/mipmap-*`.
+- Removed the temporary `ASSET_NOTES.json` and `preview.jpg` files from the repository root and Android resource directory; neither file is an Android runtime resource.
+
+### Verification
+- GitHub source audit: all 11 expected launcher PNG paths exist under `app/src/main/res/`; root-level mipmap files were not present at audit time.
+- Documentation/resource cleanup only; no Kotlin, manifest, Gradle, dependency, SDK, package, version, or runtime lifecycle changes.
+- GitHub Actions for the cleanup commit: pending.
+- Physical-device launcher verification on itel P55: NOT RUN; required before PR #4 merge.
+
+## 2026-11-22 — Initial UI polish and session-based SOH analytics
+
+### Changed
+- Confirmed both Android 8.0+ adaptive launcher XML resources use the latest 3D cyan-purple neon energy-core foreground PNG. Removed the obsolete green lightning vector drawable; density-specific launcher PNG assets remain the 3D brand icon.
+- Added a protocol explanation catalog and an accessible 48dp information action beside the protocol/capability label in Charging. Explanations distinguish explicit device labels from BatteryManager source-capability metadata and do not claim that metadata is measured charger output or a negotiated protocol.
+- Added the default-enabled History filter "Sembunyikan sesi < 1 menit". It hides rows shorter than 60 seconds or rows with zero SoC delta and no more than 0.5 mAh delivered. Filtering is presentation-only; Room records are unchanged.
+- Added a separate session-based SOH estimator under domain/analytics. It uses completed session segments with at least 15% SoC gain, at least 60 seconds duration, valid positive delivered charge, and plausible effective-capacity bounds. A median across eligible sessions reduces sensitivity to one noisy session.
+- Added the Estimated SOH / effective mAh summary to Insights. It reuses the existing Settings design-capacity preference and falls back to 5000 mAh when no capacity is available. The pre-existing engine estimator and persisted Dashboard health snapshot path remain unchanged.
+- Added unit tests for protocol explanation labels/fallback, micro-session filter boundaries, and SOH eligibility including the 14% rejection / 15% acceptance boundary.
+- Added this feature branch to the existing Android CI push trigger; no parallel workflow or new dependency was introduced.
+
+### Verification
+- GitHub Actions Run #449 (push) and Run #450 (pull_request) on code SHA 6eb97cf6ac9311055494c0c36ebe96bfb68eb3ed: SUCCESS. Both passed Anti-Slop UI Audit Gate, Build and Unit Tests, testDebugUnitTest (214 tests, 0 failures, 0 errors, 0 skipped), assembleDebug, debug APK upload (artifact 14720034341), and unit-test report upload (artifact 14720158754).
+- Earlier Run #425 initially exposed two test expectation issues (SOH boundary floating-point rounding and catalog fallback wording). The estimator now applies a small numerical tolerance at the 110% plausibility boundary; the fallback assertion matches the catalog. The later final-code runs #449/#450 completed successfully.
+- Source inspection and focused diff review: PASS; 13 files changed, no Room/service lifecycle scope expansion.
+- Local Gradle/UI audit: NOT RUN in the GitHub-only editing environment.
+- Local Gradle/UI audit: NOT RUN in the GitHub-only editing environment.
+- Physical-device QA at 360dp / 720p: NOT RUN; required before merge.
+- No Room schema, service lifecycle, Battery Monitoring, Status Bar Indicator, RECOVERY_HOLD, P0/P1 safeguards, or existing engine SOH persistence logic changes intended.
+- No CSV/JSON export feature added. No merge to main.
+
 ## 2026-11-21 — P0 Unisoc sysfs coverage, capability thresholds, and narrow-screen protocol layout
 
 - Expanded the fixed read-only sysfs allowlist with Unisoc/Spreadtrum sprd-charger and sc27xx-fgu nodes, battery charge_type, and USB usb_type / real_type / type metadata paths. Specific protocol nodes are read before generic battery charge_type so a generic Fast indication cannot mask a more specific exposed protocol. Existing SecurityException and IOException handling remains in place.

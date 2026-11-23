@@ -1,3 +1,40 @@
+## 2026-11-22 — Run #490 Robolectric SDK version-conflict correction
+
+- Run #490 logs and XML artifact 14756126935 inspected: PASS — exact failure is `LocalDependencyResolver.validateFile` with `Path is not a file` for the API 34 jar; XML confirms 80 API 34 failures and 1 API 26 failure, 214 total tests / 81 failed / 0 skipped.
+- Root cause identified: API 26/34/35 versions of the same Maven module were placed in one Gradle configuration; Gradle version conflict resolution retained only one module version. The Sync task's success did not guarantee all required jars were present.
+- Pre-warm configuration corrected to three independent Gradle configurations, one per SDK version: PASS — source change committed.
+- Pre-warm task now validates the exact API 26, API 34, and API 35 jar filenames after Sync: PASS — source change committed.
+- Test assertions, test enablement, production behavior, app runtime dependencies, package, app version, and Android SDK: unchanged.
+- New CI verification for testDebugUnitTest 214/214, assembleDebug, Anti-Slop gate, and APK upload: NOT RUN — pending workflow triggered by correction.
+- Physical-device QA on itel P55: NOT RUN — required before PR #4 merge.
+- PR #4 remains OPEN and unmerged; main untouched.
+
+
+## 2026-11-22 — Initial UI polish and session SOH analytics
+
+- [x] Branch created from exact main baseline c955aa2888e5b6fcd6e650ba2f2791b7e3692adc: PASS.
+- [x] Both mipmap-anydpi-v26 adaptive launcher XML files reference the shared 3D foreground PNG: PASS — source inspection.
+- [x] Obsolete green lightning vector removed; density-specific 3D launcher PNGs retained: PASS — resource tree review.
+- [x] Protocol explanation catalog covers all fixed detector labels (including detection-disabled, unavailable, wireless, and explicit sysfs/HAL protocol outputs) with an honest fallback: PASS — source/test review.
+- [x] Charging info action uses a 48dp touch target and keeps the protocol value in a separate wrapping row: PASS — source review; 360dp device review pending.
+- [x] History micro-session filter defaults ON, uses saveable UI state, and applies the requested OR predicate (<60 seconds OR zero SoC delta with charged mAh <=0.5): PASS — source/test review.
+- [x] Filter is applied to the displayed session list only; no Room delete/update/query/schema change: PASS — source review.
+- [x] Session SOH estimator uses completed segments, delta SoC >=15%, duration >=60 seconds, valid positive charge, plausible capacity bounds, and median aggregation; separate disconnect segments are never combined to satisfy the threshold: PASS — source/test review.
+- [x] Insights uses existing configurable design-capacity setting and 5000 mAh fallback; no duplicate Settings preference added: PASS — source review.
+- [x] Existing domain/engine/BatteryHealthEstimator, BatteryDao health log path, and Dashboard snapshot behavior left unchanged: PASS — scope review.
+- [x] No CSV/JSON export, dependency, SDK, app version, Room schema, or package change: PASS — scope review.
+- [x] testDebugUnitTest: SUCCESS — 214 tests, 0 failures/errors/skipped; GitHub Actions Run #449.
+- [x] assembleDebug: SUCCESS — GitHub Actions Run #449.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — GitHub Actions Runs #449 and #450.
+- [x] Debug APK upload: SUCCESS — artifact 14720034341, Run #449.
+- [x] Unit-test report upload: SUCCESS — artifact 14720158754, Run #449.
+- [x] PR workflow: SUCCESS — Run #450 on the same code SHA 6eb97cf6ac9311055494c0c36ebe96bfb68eb3ed.
+- [ ] Physical-device QA at 360dp / 720p (Charging dialog and History toggle/list): NOT RUN — required before merge.
+- [x] PR #4 remains OPEN and unmerged; main remains at c955aa2888e5b6fcd6e650ba2f2791b7e3692adc.
+- [x] No merge performed; physical QA is still a hard prerequisite.
+
+---
+
 ## 2026-11-21 — P0 Unisoc detection and protocol label clipping follow-up
 
 - [x] Read-only allowlist includes battery/charge_type, sprd-charger/type, sc27xx-fgu/type, and USB usb_type/real_type/type: PASS — source review.
@@ -280,6 +317,38 @@
 - Package, SDK, dependencies, app version, and build number: PASS — unchanged.
 
 # SPG Quality Checklist
+
+## 2026-11-22 — Robolectric runtime SDK resolution in CI
+
+- Run #476 XML report inspected: PASS — all 80 reported failures were caused by Robolectric `MavenArtifactFetcher` failing to fetch the API 34 instrumented SDK jar with HTTP 429 from `repo1.maven.org`; this was a shared test-environment failure, not 80 distinct assertion mismatches.
+- Robolectric 4.14.1 SDK mapping checked against its pinned `DefaultSdkProvider`: PASS — API 34 uses `14-robolectric-10818077-i7`; API 26 uses `8.0.0_r4-robolectric-r1-i7`; API 35 uses `15-robolectric-12650502-i7`.
+- Gradle-resolved pre-warm configuration now covers API 26, 34, and 35: PASS — source/configuration review; the first attempt omitted default SDK 35 and was corrected after Run #484.
+- `prepareRobolectricSdk` stages artifacts locally and supplies `robolectric.dependency.dir` to test workers: PASS — source/configuration review; CI execution pending.
+- Existing `testImplementation` dependencies and Robolectric version retained; no app runtime dependency added: PASS.
+- Test assertions, production Kotlin behavior, service lifecycle, persistence, and diagnostic/business logic unchanged: PASS — diff scope.
+- CI workflow pre-warms Robolectric artifacts before `testDebugUnitTest`; setup-gradle dependency cache retained: PASS — source review.
+- `testDebugUnitTest` target 214/214: NOT RUN — pending CI on the corrected API 26/34/35 configuration. Run #484 failed before test execution because the initial local SDK directory lacked API 35.
+- `assembleDebug` on Run #484: completed before the unit-test task; APK upload SKIPPED because the combined command failed. Anti-Slop UI Audit Gate SUCCESS; unit-test report upload SUCCESS (artifact 14755513728). Full verification of the corrected configuration: NOT RUN — pending next CI.
+- Physical-device QA on itel P55: NOT RUN — still required for the overall PR #4 before merge.
+- PR #4 remains OPEN and unmerged; `main` untouched.
+
+
+### Run #484 follow-up
+- XML report artifact 14755513728 inspected: FAIL confirmed as missing local API 35 jar, not an application assertion mismatch.
+- Root cause: `AutoStartDiagnosticLogTest` has no explicit SDK in its Robolectric `@Config`; Robolectric 4.14.1 selects API 35 by default.
+- Added API 35 pre-instrumented jar coordinate to the Gradle pre-warm configuration. Test assertions and application source remain unchanged.
+- Next CI run for API 26/34/35 coverage: NOT RUN — pending.
+
+
+## 2026-11-22 — Launcher resource tree cleanup
+
+- All 10 density launcher PNGs plus the 432×432 xxxhdpi adaptive foreground are present under `app/src/main/res/mipmap-*`: PASS — GitHub path checks.
+- Temporary `ASSET_NOTES.json` and `preview.jpg` removed from repository root and `app/src/main/res/`: PASS — cleanup commits.
+- No runtime Kotlin/manifest/Gradle behavior changed: PASS — documentation and resource-file cleanup only.
+- Unit tests / Android build / Anti-Slop UI Audit Gate: NOT RUN — new CI run pending.
+- Physical-device launcher rendering on itel P55: NOT RUN — required before merge.
+- `CHANGELOG.md` and this checklist updated; no version, SDK, dependency, package, or main-branch change.
+
 
 Complete this checklist for every meaningful code change. For documentation-only changes, mark code/runtime checks N/A and state why.
 
