@@ -25,7 +25,7 @@ internal object LiveStatusBarRenderer {
             }
             StatusBarParameter.VOLTAGE -> reading(state.isVoltageAvailable, state.voltageMv.toDouble() / 1000.0, "V")
             StatusBarParameter.TEMPERATURE -> reading(state.isTemperatureAvailable, state.tempCelsius.toDouble(), "°C")
-            StatusBarParameter.BATTERY_PERCENTAGE -> StatusBarReading(if (state.isLevelAvailable) state.level.toString() else "—", "%")
+            StatusBarParameter.BATTERY_PERCENTAGE -> StatusBarReading(if (state.isLevelAvailable) formatAdaptive(state.level.toDouble()) else "—", "%")
             StatusBarParameter.CHARGING_STATUS -> StatusBarReading("—", "")
         }
     private fun reading(available: Boolean, value: Double, unit: String): StatusBarReading =

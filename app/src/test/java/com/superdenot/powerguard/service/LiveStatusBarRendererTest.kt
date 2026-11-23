@@ -64,6 +64,7 @@ class LiveStatusBarRendererTest {
         assertEquals(StatusBarReading("4.1","V"),LiveStatusBarRenderer.format(s,StatusBarParameter.VOLTAGE))
         assertEquals(StatusBarReading("2.8","°C"),LiveStatusBarRenderer.format(s,StatusBarParameter.TEMPERATURE))
         assertEquals(StatusBarReading("85","%"),LiveStatusBarRenderer.format(s,StatusBarParameter.BATTERY_PERCENTAGE))
+        assertEquals(StatusBarReading("5.0","%"),LiveStatusBarRenderer.format(s.copy(level=5),StatusBarParameter.BATTERY_PERCENTAGE))
         assertEquals("12",LiveStatusBarRenderer.formatAdaptive(12.4));assertEquals("-15",LiveStatusBarRenderer.formatAdaptive(-15.2));assertEquals("-1.8",LiveStatusBarRenderer.formatAdaptive(-1.8))
     }
     @Test fun currentSwitchesBetweenMilliampAndAmp() {
