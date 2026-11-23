@@ -1,3 +1,21 @@
+## 2026-11-23 — Charging source-capability labels and battery-side power clarity
+
+### Changed
+- Renamed AC Tier 2 classifications so each label explicitly describes source capability: `AC — Kemampuan Sumber Standar`, `AC — Kemampuan Sumber Tinggi (≥10 W)`, `AC — Kemampuan Tegangan 9V+`, and `AC — Kemampuan Sumber Tidak Tersedia`.
+- Kept the classification inputs unchanged: BatteryManager maximum charging-current / maximum charging-voltage metadata and the existing thresholds. Battery-side measured power is not used to classify source capability.
+- Expanded the Charging protocol information dialog to distinguish source capability metadata from battery-side power (battery voltage × battery current), explain transient adjustment after connection, and recommend comparing stable readings under similar battery level, temperature, and device-load conditions.
+- Renamed the Charging metric to `Daya baterai` and added a concise note that it is calculated from battery voltage × current.
+- Added regression assertions for the standardized AC labels and the explanatory guidance.
+
+### Protected behavior
+- No protocol is inferred from actual wattage, voltage, or current. Explicit protocol names still require explicit sysfs/HAL evidence.
+- No sensor acquisition, battery-side power calculation, charging thresholds, Battery Monitoring lifecycle, Status Bar Indicator lifecycle, persistence, Room schema, dependency, SDK, package, or app-version changes.
+
+### Verification
+- Main CI Run #500 on base `77c8de31bf700e47b00717b85fb398070f2e7f5d`: SUCCESS — Anti-Slop UI Audit Gate and Build and Unit Tests.
+- Feature branch implementation and regression tests: pending CI.
+- Physical-device verification on itel P55: pending; do not treat CI as device validation.
+
 ## 2026-11-23 — PR #4 squash merge: UI polish and session-based SOH
 
 - Squash-merged `feat/ui-polish-and-session-soh` into `main` (PR #4); merge commit: `94a814479fae8b803b7a27835686712b9408cbab`.
