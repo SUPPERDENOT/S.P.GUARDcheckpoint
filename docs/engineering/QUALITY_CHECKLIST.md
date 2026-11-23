@@ -1,3 +1,17 @@
+## 2026-11-24 — PR #8 follow-up: calibration draft and Auto-Start diagnostic UI removal
+
+- [x] Baseline and merge gate: PASS — branch `feat/crisp-statusbar-indicator`; PR #8 verified OPEN / not merged before changes.
+- [x] Calibration storage: PASS by source review — `BatteryCurrentScaleSettings` remains SharedPreferences; `BatteryMonitorEngine` synchronous read path and 1x fallback are unchanged.
+- [x] Draft lifecycle: PASS by source review — metric, display mode, rotation selection/interval, and calibration are local dialog state; only Simpan invokes the combined ViewModel save action. Batal and outside dismissal do not persist draft values.
+- [x] Persistence boundaries: PASS by source review — metric/mode/rotation/interval are written in one DataStore edit; current scale is written through the existing SharedPreferences setting. These are one UI save action, not an atomic cross-store transaction.
+- [x] Settings summary: PASS by source review — active scale (including default 1x) is displayed in the Status Bar Indicator card subtitle.
+- [x] Auto-Start diagnostic UI: PASS by source review — Settings export card and share action removed; `AutoStartDiagnosticLog` implementation and internal receiver/coordinator/service references are retained.
+- [x] Protected constraints: PASS by diff scope — Room v3, `BatteryMonitorService`, `RECOVERY_HOLD`, background recovery mechanism, `applicationId`, package, dependencies, SDK, and app version unchanged.
+- [x] Regression coverage: PASS by source review — combined DataStore configuration persistence test added; existing SharedPreferences default/persistence/fallback tests retained.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on latest branch commit.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
 ## 2026-11-24 — PR #8 follow-up: compact Status Bar settings dialog
 
 - [x] Baseline: PASS — PR #8 was OPEN / not merged; branch head matched requested base `6640b05cee520fb79c8231ade79f611548c3c716` before edits.
