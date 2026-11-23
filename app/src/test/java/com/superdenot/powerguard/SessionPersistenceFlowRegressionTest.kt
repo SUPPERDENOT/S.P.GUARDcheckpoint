@@ -375,4 +375,24 @@ class SessionPersistenceFlowRegressionTest {
         assertEquals(0f, zeroSession.maxTempCelsius, 0.001f)
     }
 
+
+    @Test
+    fun accessoryLabelUpdatesOnlyTheTargetSessionAndLabeledQueryTracksChanges() = runBlocking {
+        val dao = database.batteryDao()
+        val firstId = dao.insertSession(
+            ChargingSessionEntity(startTime = 1_000L, startLevel = 40, chargerType = "AC Adapter")
+        )
+        val secondId = dao.insertSession(
+            ChargingSessionEntity(startTime = 2_000L, startLevel = 50, chargerType = "USB")
+        )
+
+        assertEquals(1, dao.updateAccessoryLabel(firstId, "Charger Bawaan"))
+        assertEquals(1, dao.getLabeledSessionsFlow().first().size)
+        assertEquals("Charger Bawaan", dao.getSessionById(firstId)!!.accessoryLabel)
+        assertEquals(null, dao.getSessionById(secondId)!!.accessoryLabel)
+
+        assertEquals(1, dao.updateAccessoryLabel(firstId, null))
+        assertTrue(dao.getLabeledSessionsFlow().first().isEmpty())
+    }
+
 }
