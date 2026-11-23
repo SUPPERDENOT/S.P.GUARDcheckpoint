@@ -59,13 +59,14 @@ object AccessoryBenchmarkCalculator {
             endTimeMillis = endTime,
             startLevelPercent = session.startLevelPercent,
             endLevelPercent = endLevel,
+            averageCurrentMa = session.averageCurrentMa,
+            maxTemperatureCelsius = session.maxTemperatureCelsius,
             samples = samples
         )
     }
 
     private fun measureSession(session: CompletedSession): SessionMetrics {
         val powerSamples = session.samples.filter { it.isPowerAvailable && it.powerWatt.isFinite() }
-        val currentSamples = session.samples.filter { it.isCurrentAvailable }
         val temperatureSamples = session.samples.filter { it.isTemperatureAvailable && it.tempCelsius.isFinite() }
 
         val durationMillis = session.endTimeMillis - session.startTimeMillis
@@ -77,15 +78,16 @@ object AccessoryBenchmarkCalculator {
         }
 
         val firstTemperature = temperatureSamples.firstOrNull()?.tempCelsius?.toDouble()
-        val temperatureRise = if (firstTemperature != null && temperatureSamples.isNotEmpty()) {
-            temperatureSamples.maxOf { it.tempCelsius }.toDouble() - firstTemperature
+        val peakTemperature = session.maxTemperatureCelsius?.takeIf { it.isFinite() }?.toDouble()
+        val temperatureRise = if (firstTemperature != null && peakTemperature != null) {
+            peakTemperature - firstTemperature
         } else {
             null
         }
 
         return SessionMetrics(
             averagePowerW = powerSamples.map { it.powerWatt.toDouble() }.averageOrNull(),
-            averageCurrentMa = currentSamples.map { it.currentMa.toDouble() }.averageOrNull(),
+            averageCurrentMa = session.averageCurrentMa?.toDouble(),
             chargeRatePercentPerHour = chargeRate,
             temperatureRiseCelsius = temperatureRise,
             startTemperatureCelsius = firstTemperature
@@ -146,6 +148,8 @@ object AccessoryBenchmarkCalculator {
         val endTimeMillis: Long,
         val startLevelPercent: Int,
         val endLevelPercent: Int,
+        val averageCurrentMa: Int?,
+        val maxTemperatureCelsius: Float?,
         val samples: List<AccessoryBenchmarkSample>
     )
 
