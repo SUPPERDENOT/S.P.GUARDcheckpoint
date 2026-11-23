@@ -1,3 +1,25 @@
+## 2026-11-24 — PR #8 follow-up: combine current calibration with Status Bar settings
+
+### Changed
+- Moved the three current-scale choices (1x, 1000x, 0.001x) into the Status Bar Indicator dialog. The selected scale is now included in the Settings card subtitle.
+- Added a single ViewModel save action for the dialog draft. Metric, display mode, rotation parameters, and interval are persisted together in one DataStore edit; current scale is then persisted through the existing `BatteryCurrentScaleSettings` SharedPreferences path.
+- Kept SharedPreferences as the synchronous source read by `BatteryMonitorEngine`; default and fallback remain 1x. The explanatory note states that calibration applies globally to `CURRENT_NOW` and derived battery-side power (`V × I`).
+- Batal and dialog dismissal discard all local draft values because no persistence setter is invoked until Simpan.
+- Removed the Settings-only “Diagnostik Auto Start” card and its log-export/share action. `AutoStartDiagnosticLog` and its internal receiver/coordinator/service call sites remain untouched.
+
+### Protected behavior
+- Room schema remains version 3; no database migration or historical data rewrite.
+- `BatteryMonitorService`, `RECOVERY_HOLD`, receiver/coordinator recovery behavior, and monitoring lifecycle were not changed.
+- `applicationId` remains `com.superdenot.superdguard`; package namespace, dependencies, SDK, app version, and build number are unchanged.
+
+### Verification
+- Source review: PASS — changes are limited to Settings UI, combined settings persistence entry points, and focused persistence regression coverage.
+- `BatteryCurrentScaleSettingsTest`: existing SharedPreferences tests retained; execution pending CI.
+- `StatusBarIndicatorSettingsTest`: added coverage for combined metric/mode/rotation/interval persistence; execution pending CI.
+- Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on the latest branch commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-24 — PR #8 follow-up: compact Status Bar settings dialog
 
 ### Changed
