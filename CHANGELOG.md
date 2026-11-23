@@ -5,6 +5,8 @@
 - Kept the classification inputs unchanged: BatteryManager maximum charging-current / maximum charging-voltage metadata and the existing thresholds. Battery-side measured power is not used to classify source capability.
 - Expanded the Charging protocol information dialog to distinguish source capability metadata from battery-side power (battery voltage × battery current), explain transient adjustment after connection, and recommend comparing stable readings under similar battery level, temperature, and device-load conditions.
 - Renamed the Charging metric to `Daya baterai` and added a concise note that it is calculated from battery voltage × current.
+- Updated the Overview charging summary to label the shared `chargingProtocol` value as `Protokol / kemampuan sumber`, matching the Charging tab instead of the ambiguous `Deteksi` wording. The existing dashboard capsule and monitoring notification already render the same shared value with no conflicting label.
+- Removed the unused `app/src/main/res/drawable/ic_status_turbo_ring.xml` resource after repository-wide reference searches returned no code, XML, or test references; the PR diff does not introduce any reference to it.
 - Added regression assertions for the standardized AC labels and the explanatory guidance.
 
 ### Protected behavior
