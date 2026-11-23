@@ -13,7 +13,7 @@ private val KEY_STATUS_BAR_PARAMETER = stringPreferencesKey("status_bar_paramete
 
 data class StatusBarIndicatorSetting(
     val enabled: Boolean = false,
-    val parameter: StatusBarParameter = StatusBarParameter.BATTERY_PERCENTAGE
+    val parameter: StatusBarParameter = StatusBarParameter.POWER
 )
 
 object StatusBarIndicatorSettings {

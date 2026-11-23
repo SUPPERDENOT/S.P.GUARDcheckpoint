@@ -1,3 +1,19 @@
+## 2026-11-23 — Stacked Status Bar Indicator and global current-scale calibration (PR #8)
+
+- [x] Base commit verified: Run #514 SUCCESS on `1427664eccc69bb3c0f701b9e0b238ffef20d63e`; feature branch points to this exact SHA.
+- [x] Status-bar renderer source updated to two-line value/unit layout with 62% / 35% vertical regions, bold typography, and no border.
+- [x] Adaptive precision and current unit switching (mA below 1 A, A at/above 1 A) covered by tests.
+- [x] Bitmap cache key includes metric type, value text, unit text, and density; hit, invalidation, bounded eviction, and concurrent requests covered by tests.
+- [x] Settings exposes exactly five requested metrics; fresh install defaults to W while legacy `CHARGING_STATUS` and unknown stored values fall back safely to W.
+- [x] Sensor calibration defaults to 1x and persists 1x / 1000x / 0.001x. The multiplier applies only to `CURRENT_NOW`; battery-side power uses calibrated current with Double intermediate. Voltage, temperature, level, and source-capability metadata remain unchanged.
+- [x] Calibration is injected into BatteryMonitorEngine instances used for service snapshots and repository/fallback reads; new Room session/sample writes consume the same calibrated LiveBatteryState. Historical Room v3 rows and schema are not changed.
+- [x] No service lifecycle, polling cadence, RECOVERY_HOLD, protocol Tier 2 classification, dependency, SDK, app version, package namespace, or `applicationId` change intended.
+- [ ] `testDebugUnitTest` and `assembleDebug`: NOT RUN — pending PR CI.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — pending PR CI.
+- [ ] APK artifact upload and Artifact ID: NOT RUN — pending PR CI.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
+- [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
+
 ## 2026-11-23 — PR #7 Charging Curve header follow-up
 
 - Root-cause source review: PASS — the chart previously placed title and all legend items in a single non-wrapping Row; this could force the rightmost legend outside a 360dp viewport.

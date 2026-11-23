@@ -11,6 +11,7 @@ import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkSession
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.model.AppUsageSummary
+import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.service.BatteryMonitorService
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit
 class BatteryRepository(private val context: Context) {
 
     private val dao = AppDatabase.getInstance(context).batteryDao()
-    private val engine = BatteryMonitorEngine(context)
+    private val engine = BatteryMonitorEngine(context) { BatteryCurrentScaleSettings.read(context).multiplier }
     private val anomalyDetector = AnomalyDetector(context)
 
     val liveServiceState: StateFlow<LiveBatteryState> = BatteryMonitorService.liveState
@@ -67,6 +68,7 @@ class BatteryRepository(private val context: Context) {
     val batteryMonitoringEnabledFlow: Flow<Boolean> = BatteryMonitoringSettings.observe(context)
     val statusBarIndicatorSettingFlow: Flow<StatusBarIndicatorSetting> =
         StatusBarIndicatorSettings.observe(context)
+    val batteryCurrentScaleFlow: Flow<BatteryCurrentScale> = BatteryCurrentScaleSettings.observe(context)
 
     suspend fun isBatteryMonitoringEnabled(): Boolean = BatteryMonitoringSettings.isEnabled(context)
     suspend fun isStatusBarIndicatorEnabled(): Boolean = StatusBarIndicatorSettings.observe(context).first().enabled
@@ -75,6 +77,7 @@ class BatteryRepository(private val context: Context) {
         StatusBarIndicatorSettings.setEnabled(context, enabled)
     suspend fun setStatusBarParameter(parameter: com.superdenot.powerguard.domain.model.StatusBarParameter) =
         StatusBarIndicatorSettings.setParameter(context, parameter)
+    fun setBatteryCurrentScale(scale: BatteryCurrentScale) = BatteryCurrentScaleSettings.set(context, scale)
 
     suspend fun saveCustomDesignCapacity(capacityMah: Int) {
         DesignCapacitySettings.saveManual(context, capacityMah)

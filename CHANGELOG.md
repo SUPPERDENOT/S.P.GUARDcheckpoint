@@ -1,3 +1,19 @@
+## 2026-11-23 — Stacked Status Bar Indicator and global current-scale calibration (PR #8)
+
+### Changed
+- Replaced the status-bar small-icon single-line glyph with a borderless two-line bitmap: bold numeric reading above its unit, using 62% / 35% vertical regions. Font size remains fixed; horizontal scaling handles wide readings.
+- Added adaptive precision (one decimal below absolute 10, rounded integer at 10 and above) and current-unit switching between mA and A.
+- Expanded the bounded bitmap cache key to include metric, value text, unit text, and display density; cache synchronization and bounded eviction remain.
+- Restricted Settings metric choices to battery-side power (W, default), current (A/mA), voltage (V), temperature (°C), and battery level (%). Legacy stored `CHARGING_STATUS` and unknown values resolve safely to W.
+- Added persistent 1x / 1000x / 0.001x current-scale calibration. The multiplier applies globally to raw `BatteryManager.CURRENT_NOW` before µA-to-mA normalization; battery-side power uses calibrated current with a Double intermediate. Voltage, temperature, level, source-capability metadata, and protocol Tier 2 evidence are not scaled.
+- Calibration defaults to 1x. Existing Room v3 records remain unchanged; new live samples and sessions receive calibrated current/power through the existing engine pipeline.
+
+### Verification
+- Branch base: `1427664eccc69bb3c0f701b9e0b238ffef20d63e`; branch: `feat/crisp-statusbar-indicator`.
+- Unit tests, assembleDebug, Anti-Slop UI Audit Gate, and APK artifact upload: pending PR CI.
+- Physical-device verification on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- PR #8 must remain OPEN / HOLD MERGE until physical-device QA is confirmed.
+
 ## 2026-11-23 — PR #7 follow-up: responsive Charging Curve header
 
 ### Changed

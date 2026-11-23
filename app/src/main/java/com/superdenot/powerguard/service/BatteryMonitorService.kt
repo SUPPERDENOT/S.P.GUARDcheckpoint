@@ -27,6 +27,7 @@ import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
 import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
+import com.superdenot.powerguard.data.repository.BatteryCurrentScaleSettings
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
@@ -339,7 +340,7 @@ class BatteryMonitorService : Service() {
         synchronized(lifecycleLock) {
             activeInstance = this
         }
-        engine = BatteryMonitorEngine(this)
+        engine = BatteryMonitorEngine(this) { BatteryCurrentScaleSettings.read(this).multiplier }
         anomalyDetector = AnomalyDetector(this)
         database = AppDatabase.getInstance(this)
         powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -2200,15 +2201,15 @@ class BatteryMonitorService : Service() {
 
             if (snapshotSequence != latestSequence) return@synchronized
 
-            val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val reading = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
             val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
                 state,
                 actorState == ActorLifecycleState.RECOVERY_HOLD
             )
             val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
-                LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
+                LiveStatusBarRenderer.render(statusBarIndicatorSetting.parameter, reading, resources.displayMetrics.density) != null
             val iconKey = if (hasDynamicIcon) {
-                "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
+                "hud:" + statusBarIndicatorSetting.parameter + ":" + reading.valueText + ":" + reading.unitText
             } else {
                 visualSpec.cacheKey
             }
@@ -2216,7 +2217,7 @@ class BatteryMonitorService : Service() {
             val payloadSignature = listOf(
                 iconKey,
                 contentText,
-                displayText,
+                reading.displayText,
                 state.isCharging.toString(),
                 state.isPowerConnected.toString(),
                 state.chargeSource,
@@ -3784,8 +3785,8 @@ class BatteryMonitorService : Service() {
     private fun buildMonitorNotification(contentText: String, state: LiveBatteryState): Notification {
         val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(state, actorState == ActorLifecycleState.RECOVERY_HOLD)
-        val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
-        val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) else null
+        val reading = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+        val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(statusBarIndicatorSetting.parameter, reading, resources.displayMetrics.density) else null
         val builder = NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle(NotificationVisualRenderer.resolveMonitorContentTitle(state))
             .setContentText(contentText)
@@ -3831,22 +3832,22 @@ class BatteryMonitorService : Service() {
             }
             if (snapshotSequence != latestSequence) return@synchronized
 
-            val displayText = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val reading = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
             val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
                 state,
                 actorState == ActorLifecycleState.RECOVERY_HOLD
             )
             val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
-                LiveStatusBarRenderer.render(displayText, resources.displayMetrics.density) != null
+                LiveStatusBarRenderer.render(statusBarIndicatorSetting.parameter, reading, resources.displayMetrics.density) != null
             val iconKey = if (hasDynamicIcon) {
-                "hud:" + statusBarIndicatorSetting.parameter + ":" + displayText
+                "hud:" + statusBarIndicatorSetting.parameter + ":" + reading.valueText + ":" + reading.unitText
             } else {
                 visualSpec.cacheKey
             }
             val payloadSignature = listOf(
                 iconKey,
                 contentText,
-                displayText,
+                reading.displayText,
                 state.isCharging.toString(),
                 state.isPowerConnected.toString(),
                 state.chargeSource,
@@ -4133,7 +4134,7 @@ class BatteryMonitorService : Service() {
             sharedSessionMutex.withLock {
                 if (isStartingOrRunning || hasActiveServiceSessionFor()) return@withLock
 
-                val resolvedEngine = engineOverride ?: BatteryMonitorEngine(appContext)
+                val resolvedEngine = engineOverride ?: BatteryMonitorEngine(appContext) { BatteryCurrentScaleSettings.read(appContext).multiplier }
                 val snapshot = runCatching { resolvedEngine.readCurrentState() }.getOrNull() ?: return@withLock
                 if (snapshot.isCharging) return@withLock
 

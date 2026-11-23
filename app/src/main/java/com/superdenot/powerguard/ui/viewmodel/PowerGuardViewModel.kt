@@ -19,6 +19,7 @@ import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
+import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.service.AutoStartCoordinator
@@ -112,6 +113,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                 StatusBarIndicatorSetting()
             )
 
+    val batteryCurrentScale: StateFlow<BatteryCurrentScale> = repository.batteryCurrentScaleFlow
+        .catch { error ->
+            Log.e("PowerGuard", "Gagal mengamati kalibrasi skala arus baterai; menggunakan 1x", error)
+            emit(BatteryCurrentScale.STANDARD)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BatteryCurrentScale.STANDARD)
     private val _autoMonitoringError = MutableStateFlow<String?>(null)
     val autoMonitoringError: StateFlow<String?> = _autoMonitoringError.asStateFlow()
 
@@ -232,6 +239,9 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun setBatteryCurrentScale(scale: BatteryCurrentScale) {
+        viewModelScope.launch(Dispatchers.IO) { repository.setBatteryCurrentScale(scale) }
+    }
     fun setBatteryMonitoringEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             try {

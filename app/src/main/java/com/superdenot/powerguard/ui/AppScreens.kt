@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
+import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
@@ -381,7 +382,9 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val error by vm.autoMonitoringError.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
+    val currentScale by vm.batteryCurrentScale.collectAsState()
     var statusBarParameterMenuExpanded by remember { mutableStateOf(false) }
+    var currentScaleMenuExpanded by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
@@ -433,7 +436,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             onCheckedChange = vm::setStatusBarIndicatorEnabled
                         )
                     }
-                    Text("Parameter yang ditampilkan", style = MaterialTheme.typography.labelMedium)
+                    Text("Metrik yang ditampilkan", style = MaterialTheme.typography.labelMedium)
                     Box {
                         OutlinedButton(
                             enabled = statusBarSetting.enabled,
@@ -446,7 +449,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             expanded = statusBarParameterMenuExpanded,
                             onDismissRequest = { statusBarParameterMenuExpanded = false }
                         ) {
-                            StatusBarParameter.values().forEach { parameter ->
+                            StatusBarParameter.selectableValues.forEach { parameter ->
                                 DropdownMenuItem(
                                     text = { Text(parameter.label) },
                                     onClick = {
@@ -462,6 +465,25 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Kalibrasi skala pembacaan sensor", fontWeight = FontWeight.Bold)
+                    Text("Mengoreksi arus BatteryManager CURRENT_NOW dan daya sisi baterai hasil V × I. Default 1x mempertahankan pembacaan standar. Ubah hanya jika hasil sensor terbukti berbeda faktor 1.000.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box {
+                        OutlinedButton(onClick = { currentScaleMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) { Text(currentScale.label) }
+                        DropdownMenu(expanded = currentScaleMenuExpanded, onDismissRequest = { currentScaleMenuExpanded = false }) {
+                            BatteryCurrentScale.values().forEach { scale ->
+                                DropdownMenuItem(text = { Text(scale.label) }, onClick = {
+                                    vm.setBatteryCurrentScale(scale); currentScaleMenuExpanded = false
+                                })
+                            }
+                        }
+                    }
                 }
             }
         }
