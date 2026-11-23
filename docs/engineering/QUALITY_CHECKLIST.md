@@ -1,3 +1,23 @@
+## 2026-11-23 — Accessory Benchmark in History (parallel feature branch)
+
+- [x] Feature branch feat/accessory-benchmark-history created from exact main baseline 77c8de31bf700e47b00717b85fb398070f2e7f5d: PASS — branch creation used that commit SHA directly.
+- [x] PR #5 isolation: PASS — fix/charging-source-capability-labels and its head 39563ea7b85731c03292dae698d430490bc4e428 were not modified; PR #5 remains OPEN and unmerged.
+- [x] Room schema version 2 → 3 uses explicit additive MIGRATION_2_3 with ALTER TABLE charging_sessions ADD COLUMN accessory_label TEXT DEFAULT NULL: PASS — source review.
+- [x] Migration chain 1 → 2 → 3 is registered; the migration regression test now opens a v1 database and verifies preserved session/sample rows plus a null accessory label after migration: PASS — test source added; execution pending CI.
+- [x] DAO supports label updates, labeled-session query, and completed labeled-session/sample relation query: PASS — source review.
+- [x] No fallbackToDestructiveMigration() added: PASS — repository source search.
+- [x] Recovery checkpoint, sample flush transaction, and atomic session-finalization implementations were not edited: PASS — changed-file scope review.
+- [x] Pure Kotlin domain/benchmark calculator groups trimmed/case-insensitive labels and computes per-session averages from measured battery-side data; missing metrics remain null: PASS — source review.
+- [x] Current average uses the persisted session aggregate only when hasCurrentData is true; temperature rise uses first available in-session temperature and recorded session peak; power uses available persisted battery-side samples and excludes samples explicitly marked not charging: PASS — source review.
+- [x] Charge-rate calculation requires a completed session lasting at least 5 minutes; comparability notes use group mean start SOC (>15 percentage points) and mean start temperature (>4°C): PASS — source review.
+- [x] Unit tests added for aggregation, duration boundary, unavailable vs measured-zero values, incomplete sessions, label normalization, comparability warnings, charging-state filtering, DAO label persistence/relation, and Room migration: PASS — test source added; execution pending CI.
+- [x] History detail includes optional label add/edit/remove, four quick choices, and a free-text field with a heading above it and no placeholder: PASS — source review.
+- [x] Comparison card is conditional on at least two completed, distinct labels and uses vertically stacked metric pairs to avoid horizontal scrolling: PASS — source review; 360dp / 720p device review pending.
+- [x] applicationId (com.superdenot.superdguard), package namespace, dependencies, SDK, app version, Battery Monitoring lifecycle, Status Bar Indicator lifecycle, and charging-protocol classification were not changed: PASS — scope review.
+- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK upload: NOT RUN — awaiting PR #6 CI.
+- [ ] Physical-device QA on itel P55, including 360dp / 720p layout and Room upgrade from an existing install: NOT RUN — required before PR #6 merge.
+- [ ] PR #6 merge: HOLD — do not merge before itel P55 physical QA.
+
 ## 2026-11-23 — PR #4 merged to main
 
 - [x] PR #4 `feat/ui-polish-and-session-soh` -> `main`: PASS — squash merge completed; merge commit `94a814479fae8b803b7a27835686712b9408cbab`.
