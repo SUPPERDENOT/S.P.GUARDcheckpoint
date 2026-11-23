@@ -8,9 +8,9 @@
 - [x] Sensor calibration defaults to 1x and persists 1x / 1000x / 0.001x. The multiplier applies only to `CURRENT_NOW`; battery-side power uses calibrated current with Double intermediate. Voltage, temperature, level, and source-capability metadata remain unchanged.
 - [x] Calibration is injected into BatteryMonitorEngine instances used for service snapshots and repository/fallback reads; new Room session/sample writes consume the same calibrated LiveBatteryState. Historical Room v3 rows and schema are not changed.
 - [x] No service lifecycle, polling cadence, RECOVERY_HOLD, protocol Tier 2 classification, dependency, SDK, app version, package namespace, or `applicationId` change intended.
-- [ ] `testDebugUnitTest` and `assembleDebug`: NOT RUN — pending PR CI.
-- [ ] Anti-Slop UI Audit Gate: NOT RUN — pending PR CI.
-- [ ] APK artifact upload and Artifact ID: NOT RUN — pending PR CI.
+- [x] GitHub Actions Run #515 (run ID `45160871480`) on implementation commit `baad432e0f990a56f281f51ffaacca0caafd8543`: SUCCESS — `testDebugUnitTest` and `assembleDebug` passed.
+- [x] Anti-Slop UI Audit Gate: SUCCESS in Run #515.
+- [x] Debug APK upload: SUCCESS in Run #515; artifact `android-debug-apk`, ID `14810242816`.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
 - [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
 
