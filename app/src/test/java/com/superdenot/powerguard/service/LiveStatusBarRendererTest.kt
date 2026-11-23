@@ -78,13 +78,15 @@ class LiveStatusBarRendererTest {
 
     @Test
     fun resourceSourceUsesFullBleedSingleLineWithoutUnit() {
-        val bitmap = LiveStatusBarRenderer.render(
-            StatusBarParameter.RESOURCE_SOURCE,
-            StatusBarReading("USB", "")
-        )
-        assertNotNull(bitmap)
-        assertEquals(24, bitmap!!.width)
-        assertEquals(24, bitmap.height)
+        listOf("AC", "USB", "WL", "BAT").forEach { sourceCode ->
+            val bitmap = LiveStatusBarRenderer.render(
+                StatusBarParameter.RESOURCE_SOURCE,
+                StatusBarReading(sourceCode, "")
+            )
+            assertNotNull("Expected a one-line bitmap for $sourceCode", bitmap)
+            assertEquals(24, bitmap!!.width)
+            assertEquals(24, bitmap.height)
+        }
         assertNull(LiveStatusBarRenderer.render(StatusBarParameter.RESOURCE_SOURCE, StatusBarReading("USB", "W")))
     }
 

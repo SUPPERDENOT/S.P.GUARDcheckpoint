@@ -8,7 +8,9 @@
 - [x] Accessory labels: PASS by source review — DAO updates only `accessory_label`; group and reset-all actions leave session/sample rows untouched and are protected by confirmation dialogs.
 - [x] Protected constraints: PASS by diff scope — Room v3, default 1x current calibration, P0 lifecycle / RECOVERY_HOLD, `applicationId`, package, dependencies, SDK, and app version unchanged.
 - [x] Focused tests added for glyph ratios, one-line AC/USB/WL/BAT rendering, deterministic rotation, DataStore persistence, and DAO label clearing with session/sample retention.
-- [ ] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: NOT RUN — pending branch CI.
+- [x] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: PASS — Run #527 (`45246964970`), commit `2fa4ca65333c4bf7cb8b33e118e17625d069a41b`.
+- [x] Debug APK artifact `14853533390`; unit-test report artifact `14853163872`.
+- [ ] Follow-up test/documentation commit CI: pending.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
 - [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
 

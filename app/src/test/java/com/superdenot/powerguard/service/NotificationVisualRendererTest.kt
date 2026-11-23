@@ -96,7 +96,8 @@ class NotificationVisualRendererTest {
             tempCelsius = 36.1f,
             isCharging = true,
             isPowerConnected = true,
-            chargeSource = "AC Adapter"
+            chargeSource = "AC Adapter",
+            isChargeSourceAvailable = true
         )
         val expected = mapOf(
             StatusBarParameter.TEMPERATURE to "Suhu • 36.1°C",
@@ -104,7 +105,7 @@ class NotificationVisualRendererTest {
             StatusBarParameter.CURRENT to "Arus • -243 mA",
             StatusBarParameter.POWER to "Daya • -3.0 W",
             StatusBarParameter.BATTERY_PERCENTAGE to "Level Baterai • 33%",
-            StatusBarParameter.CHARGING_STATUS to "Status • Mengisi (AC)"
+            StatusBarParameter.RESOURCE_SOURCE to "Sumber daya • AC"
         )
         expected.forEach { (parameter, text) ->
             assertEquals(
@@ -113,6 +114,17 @@ class NotificationVisualRendererTest {
                 NotificationVisualRenderer.formatStatusBarParameterText(state, parameter)
             )
         }
+        assertEquals(
+            "Sumber daya • USB",
+            NotificationVisualRenderer.formatStatusBarParameterText(
+                state.copy(chargeSource = "USB Port"),
+                StatusBarParameter.RESOURCE_SOURCE
+            )
+        )
+        assertEquals(
+            "Status • Mengisi (AC)",
+            NotificationVisualRenderer.formatStatusBarParameterText(state, StatusBarParameter.CHARGING_STATUS)
+        )
         assertEquals(
             "Status • Tidak Mengisi",
             NotificationVisualRenderer.formatStatusBarParameterText(
@@ -138,7 +150,7 @@ class NotificationVisualRendererTest {
             StatusBarParameter.CURRENT to "Arus • —",
             StatusBarParameter.POWER to "Daya • —",
             StatusBarParameter.BATTERY_PERCENTAGE to "Level Baterai • —",
-            StatusBarParameter.CHARGING_STATUS to "Status • —"
+            StatusBarParameter.RESOURCE_SOURCE to "Sumber daya • —"
         )
         expected.forEach { (parameter, text) ->
             assertEquals(
@@ -147,6 +159,10 @@ class NotificationVisualRendererTest {
                 NotificationVisualRenderer.formatStatusBarParameterText(unavailable, parameter)
             )
         }
+        assertEquals(
+            "Status • —",
+            NotificationVisualRenderer.formatStatusBarParameterText(unavailable, StatusBarParameter.CHARGING_STATUS)
+        )
     }
     @Test
     fun monitorNotificationBodyIsCompactAndKeepsSignedBatterySideReadings() {

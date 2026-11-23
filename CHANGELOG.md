@@ -15,7 +15,10 @@
 
 ### Verification
 - Source changes and focused regression tests: implemented on `feat/crisp-statusbar-indicator`; CI pending.
-- GitHub Actions Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN for this commit yet.
+- GitHub Actions Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: pending for the latest test/documentation follow-up commit.
+- GitHub Actions Run #527 (run ID `45246964970`) on commit `2fa4ca65333c4bf7cb8b33e118e17625d069a41b`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all passed.
+- Debug APK artifact: `android-debug-apk`, ID `14853533390` (expires 2026-12-07); unit-test report artifact ID `14853163872`.
+- Follow-up test assertions now cover full-line bitmap creation for all four source codes and notification-text mapping for the selectable resource-source metric. CI for this test/documentation follow-up commit: pending.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - PR #8 remains OPEN / HOLD MERGE.
 
