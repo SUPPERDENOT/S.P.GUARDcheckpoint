@@ -3,7 +3,7 @@
 ### Changed
 - Rebuilt the dedicated small-icon bitmap at the Android 24dp target size so System UI does not scale down a 48dp drawing and make both text rows appear undersized.
 - Replaced FontMetrics-based baseline centering with Paint.getTextBounds tight-glyph bounds. The numeric row is top-anchored at a 0.5dp inset; the unit row is bottom-anchored at a 0.5dp inset, with a 1dp target gap.
-- Switched to bold sans-serif-condensed glyphs and fitted each row against a 97% full-bleed width limit and its approximate 2:1 vertical allocation.
+- Switched to bold sans-serif-condensed glyphs and fitted each row against a 95.8% full-bleed width (0.5dp side insets) and its approximate 2:1 vertical allocation.
 - Limited numeric text accepted by the renderer to four characters. Negative decimal rounding is covered (for example, -2.48 → -2.5); values rounding across 10 become integers.
 
 ### Verification
