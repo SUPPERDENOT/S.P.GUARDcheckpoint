@@ -10,6 +10,7 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
+import com.superdenot.powerguard.data.local.relation.ChargingSessionWithSamples
 import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
 import kotlinx.coroutines.flow.Flow
 
@@ -38,6 +39,16 @@ interface BatteryDao {
 
     @Query("SELECT * FROM charging_sessions WHERE id = :sessionId LIMIT 1")
     suspend fun getSessionById(sessionId: Long): ChargingSessionEntity?
+
+    @Query("UPDATE charging_sessions SET accessory_label = :accessoryLabel WHERE id = :sessionId")
+    suspend fun updateAccessoryLabel(sessionId: Long, accessoryLabel: String?): Int
+
+    @Query("SELECT * FROM charging_sessions WHERE accessory_label IS NOT NULL AND TRIM(accessory_label) != '' ORDER BY startTime DESC")
+    fun getLabeledSessionsFlow(): Flow<List<ChargingSessionEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM charging_sessions WHERE endTime IS NOT NULL AND accessory_label IS NOT NULL AND TRIM(accessory_label) != '' ORDER BY startTime DESC")
+    fun getLabeledSessionsWithSamplesFlow(): Flow<List<ChargingSessionWithSamples>>
 
     @Query("SELECT * FROM charging_sessions WHERE endTime IS NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun getActiveSession(): ChargingSessionEntity?

@@ -6,6 +6,8 @@ import com.superdenot.powerguard.data.local.entity.BatteryHealthEntity
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
+import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkSample
+import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkSession
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.model.AppUsageSummary
@@ -14,6 +16,7 @@ import com.superdenot.powerguard.service.BatteryMonitorService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
 
 class BatteryRepository(private val context: Context) {
@@ -28,6 +31,34 @@ class BatteryRepository(private val context: Context) {
     val lastMonitorError: StateFlow<String?> = BatteryMonitorService.lastMonitorError
 
     val allSessionsFlow: Flow<List<ChargingSessionEntity>> = dao.getAllSessionsFlow()
+    val accessoryBenchmarkSessionsFlow: Flow<List<AccessoryBenchmarkSession>> =
+        dao.getLabeledSessionsWithSamplesFlow().map { rows ->
+            rows.map { row ->
+                AccessoryBenchmarkSession(
+                    sessionId = row.session.id,
+                    accessoryLabel = row.session.accessoryLabel.orEmpty(),
+                    startTimeMillis = row.session.startTime,
+                    endTimeMillis = row.session.endTime,
+                    startLevelPercent = row.session.startLevel,
+                    endLevelPercent = row.session.endLevel,
+                    averageCurrentMa = row.session.avgCurrentMa.takeIf { row.session.hasCurrentData },
+                    maxTemperatureCelsius = row.session.maxTempCelsius.takeIf { row.session.hasTemperatureData },
+                    samples = row.samples.map { sample ->
+                        AccessoryBenchmarkSample(
+                            timestampMillis = sample.timestamp,
+                            currentMa = sample.currentMa,
+                            powerWatt = sample.powerWatt,
+                            tempCelsius = sample.tempCelsius,
+                            isCurrentAvailable = sample.isCurrentAvailable,
+                            isPowerAvailable = sample.isPowerAvailable,
+                            isTemperatureAvailable = sample.isTemperatureAvailable,
+                            isChargingStatusAvailable = sample.isChargingStatusAvailable,
+                            isCharging = sample.isCharging
+                        )
+                    }
+                )
+            }
+        }
     val latestHealthFlow: Flow<BatteryHealthEntity?> = dao.getLatestHealthFlow()
     val recentRollupsFlow: Flow<List<DailyRollupEntity>> = dao.getRecentRollupsFlow()
 
@@ -59,6 +90,11 @@ class BatteryRepository(private val context: Context) {
 
     fun getSamplesForSession(sessionId: Long): Flow<List<BatterySampleEntity>> {
         return dao.getSamplesForSessionFlow(sessionId)
+    }
+
+    suspend fun setAccessoryLabel(sessionId: Long, label: String?): Boolean {
+        val normalizedLabel = label?.trim()?.takeIf { it.isNotEmpty() }
+        return dao.updateAccessoryLabel(sessionId, normalizedLabel) == 1
     }
 
     fun hasUsageStatsPermission(): Boolean {

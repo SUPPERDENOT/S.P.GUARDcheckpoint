@@ -32,6 +32,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,8 +41,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.domain.analytics.SessionMicroFilter
+import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
@@ -162,6 +167,8 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     val selectedSessionId by viewModel.selectedSessionId.collectAsState()
     val samples by viewModel.selectedSessionSamples.collectAsState()
     val liveState by viewModel.liveState.collectAsState()
+    val accessoryBenchmark by viewModel.accessoryBenchmark.collectAsState()
+    var editingAccessorySession by remember { mutableStateOf<ChargingSessionEntity?>(null) }
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
     var showCurve by remember { mutableStateOf(false) }
     var hideMicroSessions by rememberSaveable { mutableStateOf(true) }
@@ -238,6 +245,9 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 .fillMaxWidth()
                 .weight(1f)
         ) {
+        if (accessoryBenchmark.groups.size >= 2) {
+            item { AccessoryBenchmarkCard(result = accessoryBenchmark) }
+        }
         if (sessions.isEmpty() || visibleSessions.isEmpty()) {
             item {
                 Text(
@@ -336,6 +346,24 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                                 modifier = Modifier.weight(1f)
                             )
                         }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Label aksesori", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    session.accessoryLabel?.takeIf { it.isNotBlank() } ?: "Belum ditandai",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            TextButton(onClick = { editingAccessorySession = session }) {
+                                Text(if (session.accessoryLabel.isNullOrBlank()) "Tambah" else "Ubah")
+                            }
+                        }
                         if (session.isAnomaly) {
                             Text(
                                 text = NotificationVisualRenderer.formatAnomalyReason(
@@ -360,6 +388,162 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
 
         item { Spacer(modifier = Modifier.height(16.dp)) }
         }
+    }
+
+    editingAccessorySession?.let { session ->
+        AccessoryLabelDialog(
+            session = session,
+            onDismiss = { editingAccessorySession = null },
+            onSave = { label ->
+                viewModel.updateSessionAccessoryLabel(session.id, label)
+                editingAccessorySession = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun AccessoryLabelDialog(
+    session: ChargingSessionEntity,
+    onDismiss: () -> Unit,
+    onSave: (String?) -> Unit
+) {
+    var label by rememberSaveable(session.id) { mutableStateOf(session.accessoryLabel.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (session.accessoryLabel.isNullOrBlank()) "Tambah label aksesori" else "Ubah label aksesori") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Pilihan cepat", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AssistChip(
+                        onClick = { label = "Charger Bawaan" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Charger Bawaan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
+                    AssistChip(
+                        onClick = { label = "Adaptor Cadangan" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Adaptor Cadangan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AssistChip(
+                        onClick = { label = "Kabel Utama" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Kabel Utama", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
+                    AssistChip(
+                        onClick = { label = "Kabel Cadangan" },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Kabel Cadangan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    )
+                }
+                Text("Nama aksesori", style = MaterialTheme.typography.labelMedium)
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { label = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!session.accessoryLabel.isNullOrBlank()) {
+                    TextButton(onClick = { onSave(null) }) { Text("Hapus") }
+                }
+                TextButton(onClick = onDismiss) { Text("Batal") }
+                Button(onClick = { onSave(label.trim().takeIf { it.isNotEmpty() }) }, enabled = label.isNotBlank()) {
+                    Text("Simpan")
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun AccessoryBenchmarkCard(result: AccessoryBenchmarkResult) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Text("Perbandingan Aksesori", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(
+                "Rata-rata pengukuran sisi baterai dari sesi yang selesai. Daya dihitung dari sampel tersimpan, bukan input charger.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            result.groups.forEachIndexed { index, group ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            group.label,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "${group.sessionCount} sesi",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        AccessoryMetric("Daya rata-rata", group.averageBatteryPowerW, "W", Modifier.weight(1f))
+                        AccessoryMetric("Arus rata-rata", group.averageCurrentMa, "mA", Modifier.weight(1f))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        AccessoryMetric("Laju pengisian", group.averageChargeRatePercentPerHour, "%/jam", Modifier.weight(1f))
+                        AccessoryMetric("Kenaikan suhu", group.averageTemperatureRiseCelsius, "°C", Modifier.weight(1f))
+                    }
+                }
+            }
+            if (result.comparabilityNotes.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text("Catatan kesebandingan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                result.comparabilityNotes.forEach { note ->
+                    Text(
+                        "• $note",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccessoryMetric(
+    label: String,
+    value: Double?,
+    unit: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            value?.let { String.format(Locale.US, "%.1f %s", it, unit) } ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

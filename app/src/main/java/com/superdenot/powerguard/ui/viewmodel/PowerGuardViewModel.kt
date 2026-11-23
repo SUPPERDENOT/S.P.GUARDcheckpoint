@@ -14,6 +14,8 @@ import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
 import com.superdenot.powerguard.data.repository.BatteryRepository
+import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkCalculator
+import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
@@ -36,6 +38,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -70,6 +73,15 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     val sessions: StateFlow<List<ChargingSessionEntity>> = repository.allSessionsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val accessoryBenchmark: StateFlow<AccessoryBenchmarkResult> =
+        repository.accessoryBenchmarkSessionsFlow
+            .map(AccessoryBenchmarkCalculator::calculate)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                AccessoryBenchmarkResult()
+            )
 
     val latestHealth: StateFlow<BatteryHealthEntity?> = repository.latestHealthFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -327,6 +339,21 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     fun selectSessionForCurve(sessionId: Long?) {
         _selectedSessionId.value = sessionId
+    }
+
+    fun updateSessionAccessoryLabel(sessionId: Long, label: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updated = repository.setAccessoryLabel(sessionId, label)
+                if (!updated) {
+                    Log.w("PowerGuard", "Label aksesori tidak diperbarui: sesi $sessionId tidak ditemukan")
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal menyimpan label aksesori untuk sesi $sessionId", error)
+            }
+        }
     }
 
     fun updateDesignCapacity(newCapacityMah: Int) {

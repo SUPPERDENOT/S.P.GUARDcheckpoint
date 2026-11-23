@@ -16,6 +16,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -95,7 +96,7 @@ class AppDatabaseMigrationTest {
         legacy.openHelper.writableDatabase.execSQL("""INSERT INTO battery_samples (id,sessionId,timestamp,batteryLevel,currentMa,voltageMv,tempCelsius,powerWatt,isScreenOn) VALUES (73,41,2000,56,900,4200,35.5,3.78,0)""")
         legacy.close()
         migrated = Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3)
             .allowMainThreadQueries().build()
     }
 
@@ -114,6 +115,7 @@ class AppDatabaseMigrationTest {
         assertEquals(35.5f, session.maxTempCelsius, 0.001f)
         assertFalse(session.hasCurrentData)
         assertFalse(session.hasTemperatureData)
+        assertNull(session.accessoryLabel)
         assertEquals(1, samples.size)
         assertEquals(73L, samples.single().id)
         assertEquals(900, samples.single().currentMa)
@@ -124,5 +126,5 @@ class AppDatabaseMigrationTest {
         assertFalse(samples.single().isChargingStatusAvailable)
     }
 
-    companion object { private const val DB_NAME = "spg-room-v1-v2-migration-test.db" }
+    companion object { private const val DB_NAME = "spg-room-v1-v3-migration-test.db" }
 }

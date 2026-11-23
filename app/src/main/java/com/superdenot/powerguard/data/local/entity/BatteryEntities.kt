@@ -24,7 +24,9 @@ data class ChargingSessionEntity(
     @ColumnInfo(defaultValue = "0")
     val hasCurrentData: Boolean = false,
     @ColumnInfo(defaultValue = "0")
-    val hasTemperatureData: Boolean = false
+    val hasTemperatureData: Boolean = false,
+    @ColumnInfo(name = "accessory_label", defaultValue = "NULL")
+    val accessoryLabel: String? = null
 )
 
 @Entity(
