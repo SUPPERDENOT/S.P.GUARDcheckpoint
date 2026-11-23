@@ -6,8 +6,10 @@
 - [x] Numeric renderer input is limited to four characters; adaptive rounding regression tests include negative decimal values and rounding across 10.
 - [x] Existing bitmap cache identity, bounded eviction, and synchronization retained.
 - [x] No sensor acquisition, current calibration, Room schema/data, `applicationId`, notification/service lifecycle, monitoring behavior, dependency, SDK, or app version change.
-- [ ] Focused renderer unit tests / `testDebugUnitTest`: NOT RUN — pending PR CI.
-- [ ] `assembleDebug`, Anti-Slop UI Audit Gate, and debug APK artifact upload: NOT RUN — pending PR CI.
+- [x] Focused renderer unit tests / `testDebugUnitTest`: PASS — GitHub Actions Run #521, commit `01d8c8886d22211b9c25e5c457bf9358648babd8`.
+- [x] `assembleDebug`: PASS — GitHub Actions Run #521.
+- [x] Anti-Slop UI Audit Gate: PASS — GitHub Actions Run #521.
+- [x] Debug APK and unit-test report uploads: PASS — artifact IDs `14812579421` and `14813028690`.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - [ ] PR #8 merge: HOLD — do not merge before the user confirms physical-device QA on the latest APK.
 

@@ -8,7 +8,8 @@
 
 ### Verification
 - Source and test changes: implemented on `feat/crisp-statusbar-indicator`; sensor acquisition, current calibration, Room v3, `applicationId`, notification/service lifecycle, and monitoring behavior are untouched.
-- Unit tests, Android build, Anti-Slop UI Audit Gate, and debug APK upload: NOT RUN — pending GitHub Actions for this follow-up commit.
+- GitHub Actions Run #521 (run ID `45165118889`) on commit `01d8c8886d22211b9c25e5c457bf9358648babd8`: SUCCESS — `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, debug APK upload, and unit-test report upload all passed.
+- Latest debug APK artifact: `android-debug-apk`, ID `14812579421`; unit-test report artifact ID `14813028690`.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — must be repeated with the latest APK before merge.
 - PR #8 remains OPEN / HOLD MERGE.
 
