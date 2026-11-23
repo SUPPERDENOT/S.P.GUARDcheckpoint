@@ -10,6 +10,7 @@
 - [x] `assembleDebug`: PASS — GitHub Actions Run #521.
 - [x] Anti-Slop UI Audit Gate: PASS — GitHub Actions Run #521.
 - [x] Debug APK and unit-test report uploads: PASS — artifact IDs `14812579421` and `14813028690`.
+- [x] Documentation follow-up commit `e49986f63afe8d9e6c9bac0bcc0a803bcc42251f`: GitHub Actions Run #522 SUCCESS — both jobs and all steps passed; debug APK artifact `14813983055`, unit-test report artifact `14813488060`.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - [ ] PR #8 merge: HOLD — do not merge before the user confirms physical-device QA on the latest APK.
 
