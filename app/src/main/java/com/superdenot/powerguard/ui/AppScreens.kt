@@ -88,7 +88,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Text(
-                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Deteksi: ${state.chargingProtocol}" else "Perangkat sedang menggunakan daya baterai",
+                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Protokol / kemampuan sumber: ${state.chargingProtocol}" else "Perangkat sedang menggunakan daya baterai",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -264,9 +264,14 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp
                 )
+                Text(
+                    "Daya merupakan hasil tegangan × arus baterai, bukan batas kemampuan sumber.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
-                    MiniMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
+                    MiniMetric("Daya baterai", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Tegangan", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "Tidak tersedia", Modifier.weight(1f))

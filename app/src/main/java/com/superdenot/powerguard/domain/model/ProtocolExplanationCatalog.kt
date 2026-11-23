@@ -12,18 +12,18 @@ data class ProtocolExplanation(
  */
 object ProtocolExplanationCatalog {
     private val explanations = mapOf(
-        "AC — Daya Standar" to ProtocolExplanation(
-            title = "Kemampuan AC standar",
-            powerRange = "Metadata yang tersedia tidak mencapai ambang 9V+ atau 10W; sebagian nilai dapat tidak tersedia.",
-            summary = "Android mengekspos informasi kemampuan sumber AC, tetapi tidak mengidentifikasi protokol pengisian tertentu. Ini bukan pengukuran daya keluaran adaptor."
+        "AC — Kemampuan Sumber Standar" to ProtocolExplanation(
+            title = "Kemampuan sumber AC standar",
+            powerRange = "Metadata maksimum yang tersedia tidak memenuhi ambang klasifikasi tegangan 8.500 mV atau kemampuan 10 W.",
+            summary = "Label ini merangkum kemampuan sumber AC berdasarkan metadata BatteryManager yang tersedia. Ini bukan pengukuran daya keluaran adaptor atau daya aktual yang sedang diterima baterai."
         ),
-        "AC — Kemampuan Daya Tinggi" to ProtocolExplanation(
-            title = "Kemampuan daya AC tinggi",
+        "AC — Kemampuan Sumber Tinggi (≥10 W)" to ProtocolExplanation(
+            title = "Kemampuan sumber AC tinggi",
             powerRange = "Estimasi kemampuan metadata ≥ 10 W.",
-            summary = "Label dihitung dari arus maksimum × tegangan maksimum yang dilaporkan BatteryManager. Nilai ini menunjukkan kemampuan sumber yang dilaporkan perangkat, bukan daya aktual yang sedang masuk ke baterai."
+            summary = "Label dihitung dari arus maksimum × tegangan maksimum yang dilaporkan BatteryManager. Nilai ini menunjukkan kemampuan sumber yang dilaporkan perangkat, bukan daya aktual yang sedang masuk ke baterai dan bukan identifikasi protokol tertentu."
         ),
-        "AC — Kemampuan 9V+" to ProtocolExplanation(
-            title = "Kemampuan tegangan AC 9V+",
+        "AC — Kemampuan Tegangan 9V+" to ProtocolExplanation(
+            title = "Kemampuan tegangan sumber AC 9V+",
             powerRange = "Tegangan maksimum metadata ≥ 8.500 mV.",
             summary = "Perangkat melaporkan kemampuan tegangan maksimum setidaknya 8,5 V. Informasi ini tidak membuktikan bahwa USB Power Delivery, Quick Charge, atau protokol tertentu sedang digunakan."
         ),
@@ -80,7 +80,7 @@ object ProtocolExplanationCatalog {
             powerRange = "Tidak tersedia.",
             summary = "Perangkat atau Android tidak menyediakan nilai protokol yang dapat diverifikasi melalui sumber yang diperiksa. Aplikasi tidak menyimpulkan protokol dari arus, tegangan, atau watt."
         ),
-        "AC — Kemampuan Daya Tidak Tersedia" to ProtocolExplanation(
+        "AC — Kemampuan Sumber Tidak Tersedia" to ProtocolExplanation(
             title = "Kemampuan sumber AC tidak tersedia",
             powerRange = "Tidak tersedia.",
             summary = "Sumber AC terdeteksi, tetapi metadata arus maksimum dan tegangan maksimum tidak cukup untuk mengklasifikasikan kemampuannya."
@@ -91,6 +91,12 @@ object ProtocolExplanationCatalog {
             summary = "Sumber USB terdeteksi, tetapi perangkat tidak menyediakan metadata arus maksimum yang dapat digunakan."
         )
     )
+
+    const val batterySidePowerExplanation =
+        "Daya baterai adalah hasil perhitungan tegangan baterai × arus baterai saat ini. Nilai ini menggambarkan pembacaan sisi baterai, bukan batas kemampuan sumber atau daya keluaran adaptor."
+
+    const val comparisonGuidance =
+        "Sesaat setelah kabel dipasang, arus dan daya dapat berubah ketika sistem mengatur pengisian. Untuk membandingkan kabel atau adaptor, amati pembacaan stabil dalam kondisi serupa (level baterai, suhu, dan beban perangkat). Jangan gunakan label kemampuan sumber atau satu pembacaan awal sebagai bukti protokol maupun kualitas aksesori."
 
     private fun explicitProtocol(label: String) = ProtocolExplanation(
         title = "Protokol eksplisit: $label",

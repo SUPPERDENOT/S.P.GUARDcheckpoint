@@ -60,10 +60,10 @@ internal object ChargingProtocolDetector {
                     currentMa.toDouble() * voltageMv.toDouble() / 1_000_000.0
                 } else null
                 when {
-                    voltageMv != null && voltageMv >= AC_HIGH_VOLTAGE_THRESHOLD_MV -> "AC — Kemampuan 9V+"
-                    maxPowerW != null && maxPowerW >= AC_HIGH_POWER_THRESHOLD_W -> "AC — Kemampuan Daya Tinggi"
-                    currentMa != null || voltageMv != null -> "AC — Daya Standar"
-                    else -> "AC — Kemampuan Daya Tidak Tersedia"
+                    voltageMv != null && voltageMv >= AC_HIGH_VOLTAGE_THRESHOLD_MV -> "AC — Kemampuan Tegangan 9V+"
+                    maxPowerW != null && maxPowerW >= AC_HIGH_POWER_THRESHOLD_W -> "AC — Kemampuan Sumber Tinggi (≥10 W)"
+                    currentMa != null || voltageMv != null -> "AC — Kemampuan Sumber Standar"
+                    else -> "AC — Kemampuan Sumber Tidak Tersedia"
                 }
             }
             Source.UNKNOWN -> if (input.sysfsAccess == SysfsAccess.DENIED) SELINUX_NOT_EXPOSED else NOT_EXPOSED
