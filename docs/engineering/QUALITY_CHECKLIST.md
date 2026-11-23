@@ -1,3 +1,37 @@
+## 2026-11-23 — PR #7 Charging Curve header follow-up
+
+- Root-cause source review: PASS — the chart previously placed title and all legend items in a single non-wrapping Row; this could force the rightmost legend outside a 360dp viewport.
+- Header layout: PASS — title moved to a dedicated line; legend items use FlowRow with 12dp horizontal / 4dp vertical spacing and the full Baterai (%) label.
+- Chart top inset: PASS — explicit 10dp top inset and 6dp bottom inset; no 45–50dp spacer was found inside ChargingCurveChart during source inspection. Physical screenshot confirmation remains required.
+- Chart rendering, selection gestures, sensor acquisition, charging calculations, Room schema/data, and monitoring lifecycle: PASS — no changes intended outside chart layout.
+- Unit tests and debug build: NOT RUN — pending CI for the follow-up commit.
+- Anti-Slop UI Audit Gate and APK upload: NOT RUN — pending CI.
+- 360dp / 720p physical-device screenshot QA on itel P55: NOT RUN — required before PR #7 can be merged.
+- PR #7 remains OPEN / HOLD MERGE.
+
+## 2026-11-23 — History curve compact-focus polish (PR #7)
+
+- [x] Baseline: branch created from post-PR #5/#6 main commit `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+- [x] Compact curve-focus header shows visible/total session count, `<1m` filter, and `Tutup` in one row; full History header/filter restored when closed: source implemented.
+- [x] Curve remains outside the independently scrolling session LazyColumn; scrolling/selecting sessions does not scroll the chart away: source structure verified.
+- [x] Accessory comparison card hidden only during curve-focus mode and restored after closing: source implemented.
+- [x] Chart heading/legend and vertical spacing compacted; selected-point date/time, current, temperature, and battery values shown in one horizontal strip. Peak/min current, max temperature, and sample count retained: source implemented.
+- [x] Missing curve readings render as unavailable marker and do not become measured zero: presentation helper and unit test added.
+- [x] Four accessory quick choices use wrapping FlowRow without fixed-width ellipsis; free-text field remains without placeholder: source implemented.
+- [x] No sensor, charging-calculation, Room v3, DAO/repository, AccessoryBenchmarkCalculator, monitoring lifecycle, dependency, SDK, package, applicationId, or app-version changes: source diff scope review.
+- [ ] Unit tests and assembleDebug: NOT RUN — pending PR CI.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — pending PR CI.
+- [ ] APK artifact upload: NOT RUN — pending PR CI.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
+- [ ] PR #7 merge: HOLD — do not merge before physical-device QA.
+
+## 2026-11-23 — PR #6 post-merge verification
+
+- [x] Run #510 on exact PR #6 head `a50dd540445379b95cd2d2a4b4a2ca833cdb77af`: SUCCESS — Anti-Slop UI Audit Gate and Build and Unit Tests completed successfully; `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all succeeded.
+- [x] User confirmed physical QA on itel P55 was completed before merge.
+- [x] PR #6 squash-merged to main; merge commit `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+- [x] Main baseline for PR #7: `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+
 ## 2026-11-23 — Overview source-label consistency and drawable cleanup
 
 - [x] Active Overview route verified: `MainActivity` renders `SuperdDashboardScreen`; Overview now labels the shared `chargingProtocol` value as `Protokol / kemampuan sumber`, matching Charging.

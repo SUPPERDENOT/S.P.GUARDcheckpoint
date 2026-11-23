@@ -1,3 +1,36 @@
+## 2026-11-23 — PR #7 follow-up: responsive Charging Curve header
+
+### Changed
+- Separated Charging Curve Analyzer into its own title line; placed the three legends in a wrapping FlowRow with 12dp horizontal and 4dp vertical spacing.
+- Renamed the battery legend to Baterai (%) and preserved the complete current and temperature labels.
+- Set the chart content inset explicitly to 10dp at the top and tightened the bottom inset to 6dp. Source inspection found no 45–50dp spacer in ChargingCurveChart; physical screenshot re-check is still required to confirm the reported blank region is resolved.
+
+### Verification
+- Source change: implemented on polish/history-curve-compact-focus; chart drawing, sample selection, sensor acquisition, charging calculations, and Room persistence are untouched.
+- Unit tests, assembleDebug, Anti-Slop UI Audit Gate, and APK artifact upload: pending CI for this commit.
+- Physical-device verification at 360dp / 720p on itel P55: NOT RUN for this follow-up. PR #7 remains OPEN and MUST NOT be merged until the user confirms screenshot re-verification.
+
+## 2026-11-23 — PR #6 squash merge
+
+- Squash-merged `feat/accessory-benchmark-history` (PR #6) into `main`; merge commit: `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+- Run #510 on the exact synchronized PR head `a50dd540445379b95cd2d2a4b4a2ca833cdb77af`: SUCCESS — Anti-Slop UI Audit Gate, unit tests, debug APK build, APK upload, and unit-test report upload completed successfully.
+- Physical QA on itel P55 was confirmed complete by the user before merge. Detailed observations were not included in the merge request.
+- Baseline for subsequent PR #7: `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
+
+## 2026-11-23 — History curve compact-focus polish (PR #7)
+
+### Changed
+- Added a single-row compact control bar while the charging curve is expanded, showing the visible/total session count, a compact `<1m` filter chip, and a `Tutup` action. The full History heading and filter switch return when the curve is closed.
+- Kept the curve outside the independently scrolling session `LazyColumn`, so it remains pinned while users scroll and select other sessions. The accessory comparison card is temporarily omitted during curve-focus mode and returns when the curve closes.
+- Compacted the chart heading/legend, canvas height, and vertical spacing. Replaced the two-row selected-point readout with a four-field horizontal strip (time, current, temperature, battery level); peak/min current, maximum temperature, and sample count remain present.
+- Replaced the fixed two-column accessory quick-choice rows with a wrapping `FlowRow`; free-text input remains placeholder-free.
+- Added unit tests for compact session-count formatting and measured-zero versus unavailable curve readings.
+
+### Scope and verification
+- UI-only scope: no sensor acquisition, charging calculations, Room schema v3, DAO/repository, `AccessoryBenchmarkCalculator`, Battery Monitoring lifecycle, Status Bar Indicator lifecycle, dependencies, SDK, applicationId, package namespace, or app version changes.
+- Source implementation and tests: committed on `polish/history-curve-compact-focus`; Android CI and 360dp / 720p physical-device QA pending.
+- Physical-device QA on itel P55: NOT RUN for PR #7; do not merge until user completes and confirms device QA.
+
 ## 2026-11-23 — Charging source-capability labels and battery-side power clarity
 
 ### Changed

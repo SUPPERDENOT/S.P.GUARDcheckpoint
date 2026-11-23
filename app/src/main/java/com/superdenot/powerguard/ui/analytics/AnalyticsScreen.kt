@@ -14,6 +14,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -38,12 +40,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +65,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
@@ -82,6 +86,9 @@ import java.util.Locale
 
 internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
     "$startLevel% -> $endLevel%"
+
+internal fun formatCurveSessionCount(visibleCount: Int, totalCount: Int): String =
+    "Kurva Sesi ($visibleCount/$totalCount)"
 
 
 @Composable
@@ -170,7 +177,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     val accessoryBenchmark by viewModel.accessoryBenchmark.collectAsState()
     var editingAccessorySession by remember { mutableStateOf<ChargingSessionEntity?>(null) }
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
-    var showCurve by remember { mutableStateOf(false) }
+    var isCurveExpanded by remember { mutableStateOf(false) }
     var hideMicroSessions by rememberSaveable { mutableStateOf(true) }
     val visibleSessions = remember(sessions, liveState.level, hideMicroSessions) {
         if (!hideMicroSessions) sessions else sessions.filter { session ->
@@ -197,41 +204,72 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        if (isCurveExpanded) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(
-                    if (hideMicroSessions) "${visibleSessions.size} dari ${sessions.size} sesi ditampilkan • sesi mikro disembunyikan"
-                    else "${sessions.size} sesi tersimpan • pilih sesi untuk detail",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = formatCurveSessionCount(visibleSessions.size, sessions.size),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                FilterChip(
+                    selected = hideMicroSessions,
+                    onClick = { hideMicroSessions = !hideMicroSessions },
+                    modifier = Modifier.semantics {
+                        contentDescription = "Sembunyikan sesi di bawah satu menit"
+                    },
+                    label = { Text("<1m", maxLines = 1, softWrap = false) }
+                )
+                androidx.compose.material3.TextButton(
+                    onClick = { isCurveExpanded = false },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text("Tutup")
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (hideMicroSessions) "${visibleSessions.size} dari ${sessions.size} sesi ditampilkan • sesi mikro disembunyikan"
+                        else "${sessions.size} sesi tersimpan • pilih sesi untuk detail",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                androidx.compose.material3.TextButton(onClick = { isCurveExpanded = true }) {
+                    Text("Lihat Kurva")
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Sembunyikan sesi < 1 menit",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                androidx.compose.material3.Switch(
+                    checked = hideMicroSessions,
+                    onCheckedChange = { hideMicroSessions = it }
+                )
             }
-            androidx.compose.material3.TextButton(onClick = { showCurve = !showCurve }) {
-                Text(if (showCurve) "Tutup Kurva" else "Lihat Kurva")
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "Sembunyikan sesi < 1 menit",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Switch(
-                checked = hideMicroSessions,
-                onCheckedChange = { hideMicroSessions = it }
-            )
         }
         AnimatedVisibility(
-            visible = showCurve,
+            visible = isCurveExpanded,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
@@ -245,7 +283,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-        if (accessoryBenchmark.groups.size >= 2) {
+        if (!isCurveExpanded && accessoryBenchmark.groups.size >= 2) {
             item { AccessoryBenchmarkCard(result = accessoryBenchmark) }
         }
         if (sessions.isEmpty() || visibleSessions.isEmpty()) {
@@ -402,6 +440,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AccessoryLabelDialog(
     session: ChargingSessionEntity,
@@ -415,29 +454,14 @@ private fun AccessoryLabelDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Pilihan cepat", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(
-                        onClick = { label = "Charger Bawaan" },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Charger Bawaan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    )
-                    AssistChip(
-                        onClick = { label = "Adaptor Cadangan" },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Adaptor Cadangan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(
-                        onClick = { label = "Kabel Utama" },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Kabel Utama", maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    )
-                    AssistChip(
-                        onClick = { label = "Kabel Cadangan" },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Kabel Cadangan", maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    AssistChip(onClick = { label = "Charger Bawaan" }, label = { Text("Charger Bawaan") })
+                    AssistChip(onClick = { label = "Adaptor Cadangan" }, label = { Text("Adaptor Cadangan") })
+                    AssistChip(onClick = { label = "Kabel Utama" }, label = { Text("Kabel Utama") })
+                    AssistChip(onClick = { label = "Kabel Cadangan" }, label = { Text("Kabel Cadangan") })
                 }
                 Text("Nama aksesori", style = MaterialTheme.typography.labelMedium)
                 OutlinedTextField(

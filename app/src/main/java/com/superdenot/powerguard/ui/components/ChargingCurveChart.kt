@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,7 +33,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
@@ -44,6 +49,10 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+internal fun formatCurveReading(isAvailable: Boolean, value: String): String =
+    if (isAvailable) value else "—"
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChargingCurveChart(
     samples: List<BatterySampleEntity>,
@@ -65,33 +74,33 @@ fun ChargingCurveChart(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-            .padding(10.dp)
+            .padding(start = 8.dp, top = 10.dp, end = 8.dp, bottom = 6.dp)
     ) {
         Text(
-            text = "Charging Curve Analyzer (Arus • Suhu • Level)",
+            text = "Charging Curve Analyzer",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
         )
 
-        Spacer(modifier = Modifier.height(5.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             LegendItem(color = EmeraldCharge, label = "Arus (mA)")
             LegendItem(color = AmberThermal, label = "Suhu (°C)")
-            LegendItem(color = CyanFastCharge, label = "Level (%)")
+            LegendItem(color = CyanFastCharge, label = "Baterai (%)")
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         if (samples.size < 2) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(82.dp),
+                    .height(64.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -111,7 +120,7 @@ fun ChargingCurveChart(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(96.dp)
+                    .height(76.dp)
                     .pointerInput(samples) {
                         detectTapGestures { offset ->
                             selectedIndexState.intValue = (
@@ -230,74 +239,131 @@ fun ChargingCurveChart(
             }
 
             selectedSample?.let { sample ->
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text(
-                            text = timeFormatter.format(Instant.ofEpochMilli(sample.timestamp)),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CurveSampleCell(
+                            label = "Waktu",
+                            value = timeFormatter.format(Instant.ofEpochMilli(sample.timestamp)),
+                            isAvailable = true,
+                            accent = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1.7f)
                         )
-                        Spacer(modifier = Modifier.height(5.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            TooltipValue(
-                                "Arus",
-                                if (sample.isCurrentAvailable) String.format(Locale.US, "%+d mA", sample.currentMa) else "Tidak tersedia",
-                                EmeraldCharge
-                            )
-                            TooltipValue(
-                                "Suhu",
-                                if (sample.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", sample.tempCelsius) else "Tidak tersedia",
-                                AmberThermal
-                            )
-                            TooltipValue(
-                                "Baterai",
-                                if (sample.isLevelAvailable) "${sample.batteryLevel}%" else "Tidak tersedia",
-                                CyanFastCharge
-                            )
-                        }
+                        CurveSampleCell(
+                            label = "Arus",
+                            value = String.format(Locale.US, "%+d mA", sample.currentMa),
+                            isAvailable = sample.isCurrentAvailable,
+                            accent = EmeraldCharge,
+                            modifier = Modifier.weight(1.05f)
+                        )
+                        CurveSampleCell(
+                            label = "Suhu",
+                            value = String.format(Locale.US, "%.1f°C", sample.tempCelsius),
+                            isAvailable = sample.isTemperatureAvailable,
+                            accent = AmberThermal,
+                            modifier = Modifier.weight(0.9f)
+                        )
+                        CurveSampleCell(
+                            label = "Baterai",
+                            value = "${sample.batteryLevel}%",
+                            isAvailable = sample.isLevelAvailable,
+                            accent = CyanFastCharge,
+                            modifier = Modifier.weight(0.8f)
+                        )
                     }
                 }
                 Text(
-                    text = "Geser atau sentuh grafik untuk membaca titik data",
+                    text = "Sentuh/geser grafik untuk memilih titik",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 5.dp)
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
             val peakMa = currentSamples.maxOfOrNull { it.currentMa }
             val minSampleMa = currentSamples.minOfOrNull { it.currentMa }
             val peakTemp = temperatureSamples.maxOfOrNull { it.tempCelsius }
             val currentSummary = if (peakMa != null && minSampleMa != null) {
-                "Puncak Arus: ${if (peakMa > 0) "+$peakMa" else "$peakMa"} mA • Terendah: ${if (minSampleMa > 0) "+$minSampleMa" else "$minSampleMa"} mA"
+                "${if (peakMa > 0) "+$peakMa" else "$peakMa"} / ${if (minSampleMa > 0) "+$minSampleMa" else "$minSampleMa"} mA"
             } else {
-                "Arus: Tidak tersedia"
+                "Arus: —"
             }
-            val temperatureSummary = peakTemp?.let { "Suhu Maks: ${String.format(Locale.US, "%.1f", it)}°C" } ?: "Suhu: Tidak tersedia"
-            Text(
-                text = "$currentSummary • $temperatureSummary (${samples.size} titik)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            val temperatureSummary = peakTemp?.let { "Maks ${String.format(Locale.US, "%.1f", it)}°C" } ?: "Suhu: —"
+            Spacer(modifier = Modifier.height(3.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = currentSummary,
+                    modifier = Modifier.weight(1.8f),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Text(
+                    text = temperatureSummary,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Text(
+                    text = "${samples.size} titik",
+                    modifier = Modifier.weight(0.7f),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TooltipValue(label: String, value: String, accent: Color) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = accent)
+private fun CurveSampleCell(
+    label: String,
+    value: String,
+    isAvailable: Boolean,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    val displayValue = formatCurveReading(isAvailable, value)
+    Column(
+        modifier = modifier.semantics {
+            contentDescription = "$label: ${if (isAvailable) value else "Tidak tersedia"}"
+        }
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            displayValue,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            fontSize = 10.sp,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
