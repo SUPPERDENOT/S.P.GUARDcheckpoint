@@ -19,6 +19,7 @@ import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
+import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.domain.model.AppUsageSummary
 import com.superdenot.powerguard.domain.model.LiveBatteryState
@@ -224,6 +225,32 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                     BatteryMonitorService.requestSyncSettings(getApplication())
                 }
             }
+        }
+    }
+
+    fun saveStatusBarIndicatorSettings(
+        parameter: StatusBarParameter,
+        displayMode: StatusBarDisplayMode,
+        rotationParameters: List<StatusBarParameter>,
+        rotationIntervalSeconds: Int,
+        currentScale: BatteryCurrentScale
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            executeSuspendFailClosed(
+                operation = {
+                    repository.saveStatusBarIndicatorSettings(
+                        parameter,
+                        displayMode,
+                        rotationParameters,
+                        rotationIntervalSeconds,
+                        currentScale
+                    )
+                },
+                onFailure = { error ->
+                    Log.e("PowerGuard", "Gagal menyimpan konfigurasi indikator status bar dan kalibrasi", error)
+                    Unit
+                }
+            )
         }
     }
 
