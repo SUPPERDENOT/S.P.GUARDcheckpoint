@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +52,7 @@ import kotlin.math.roundToInt
 internal fun formatCurveReading(isAvailable: Boolean, value: String): String =
     if (isAvailable) value else "—"
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChargingCurveChart(
     samples: List<BatterySampleEntity>,
@@ -71,25 +74,24 @@ fun ChargingCurveChart(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-            .padding(8.dp)
+            .padding(start = 8.dp, top = 10.dp, end = 8.dp, bottom = 6.dp)
     ) {
-        Row(
+        Text(
+            text = "Charging Curve Analyzer",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
+
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = "Charging Curve Analyzer",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                LegendItem(color = EmeraldCharge, label = "Arus (mA)")
-                LegendItem(color = AmberThermal, label = "Suhu (°C)")
-                LegendItem(color = CyanFastCharge, label = "Level (%)")
-            }
+            LegendItem(color = EmeraldCharge, label = "Arus (mA)")
+            LegendItem(color = AmberThermal, label = "Suhu (°C)")
+            LegendItem(color = CyanFastCharge, label = "Baterai (%)")
         }
 
         Spacer(modifier = Modifier.height(4.dp))

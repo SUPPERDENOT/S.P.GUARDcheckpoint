@@ -1,3 +1,14 @@
+## 2026-11-23 — PR #7 Charging Curve header follow-up
+
+- Root-cause source review: PASS — the chart previously placed title and all legend items in a single non-wrapping Row; this could force the rightmost legend outside a 360dp viewport.
+- Header layout: PASS — title moved to a dedicated line; legend items use FlowRow with 12dp horizontal / 4dp vertical spacing and the full Baterai (%) label.
+- Chart top inset: PASS — explicit 10dp top inset and 6dp bottom inset; no 45–50dp spacer was found inside ChargingCurveChart during source inspection. Physical screenshot confirmation remains required.
+- Chart rendering, selection gestures, sensor acquisition, charging calculations, Room schema/data, and monitoring lifecycle: PASS — no changes intended outside chart layout.
+- Unit tests and debug build: NOT RUN — pending CI for the follow-up commit.
+- Anti-Slop UI Audit Gate and APK upload: NOT RUN — pending CI.
+- 360dp / 720p physical-device screenshot QA on itel P55: NOT RUN — required before PR #7 can be merged.
+- PR #7 remains OPEN / HOLD MERGE.
+
 ## 2026-11-23 — History curve compact-focus polish (PR #7)
 
 - [x] Baseline: branch created from post-PR #5/#6 main commit `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.

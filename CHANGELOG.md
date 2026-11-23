@@ -1,3 +1,15 @@
+## 2026-11-23 — PR #7 follow-up: responsive Charging Curve header
+
+### Changed
+- Separated Charging Curve Analyzer into its own title line; placed the three legends in a wrapping FlowRow with 12dp horizontal and 4dp vertical spacing.
+- Renamed the battery legend to Baterai (%) and preserved the complete current and temperature labels.
+- Set the chart content inset explicitly to 10dp at the top and tightened the bottom inset to 6dp. Source inspection found no 45–50dp spacer in ChargingCurveChart; physical screenshot re-check is still required to confirm the reported blank region is resolved.
+
+### Verification
+- Source change: implemented on polish/history-curve-compact-focus; chart drawing, sample selection, sensor acquisition, charging calculations, and Room persistence are untouched.
+- Unit tests, assembleDebug, Anti-Slop UI Audit Gate, and APK artifact upload: pending CI for this commit.
+- Physical-device verification at 360dp / 720p on itel P55: NOT RUN for this follow-up. PR #7 remains OPEN and MUST NOT be merged until the user confirms screenshot re-verification.
+
 ## 2026-11-23 — PR #6 squash merge
 
 - Squash-merged `feat/accessory-benchmark-history` (PR #6) into `main`; merge commit: `d9e489f0e9d7c9a61d3948a58a2f782a12186086`.
