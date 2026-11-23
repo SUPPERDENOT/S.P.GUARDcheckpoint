@@ -1,9 +1,6 @@
 package com.superdenot.powerguard.ui
 
-import android.content.ClipData
-import android.content.Intent
 import android.os.SystemClock
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
@@ -15,11 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.core.content.FileProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,7 +27,6 @@ import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
-import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
@@ -42,7 +36,6 @@ import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
-import kotlinx.coroutines.launch
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
@@ -383,19 +376,15 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
-    val context = LocalContext.current
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     val currentScale by vm.batteryCurrentScale.collectAsState()
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
-    var currentScaleMenuExpanded by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
-    var isExportingDiagnosticLog by remember { mutableStateOf(false) }
-    val screenScope = rememberCoroutineScope()
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 4.dp),
         contentPadding = PaddingValues(
@@ -436,9 +425,9 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
                             Text(
                                 if (statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION) {
-                                    "Rotasi kustom • ${statusBarSetting.rotationParameters.joinToString(" / ") { it.label }} • ${statusBarSetting.rotationIntervalSeconds} dtk"
+                                    "Rotasi kustom • ${statusBarSetting.rotationParameters.joinToString(" / ") { it.label }} • ${statusBarSetting.rotationIntervalSeconds} dtk • Skala ${currentScale.label}"
                                 } else {
-                                    "Satu metrik • ${statusBarSetting.parameter.label}"
+                                    "Satu metrik • ${statusBarSetting.parameter.label} • Skala ${currentScale.label}"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -454,25 +443,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-        }
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Kalibrasi skala pembacaan sensor", fontWeight = FontWeight.Bold)
-                    Text("Mengoreksi arus BatteryManager CURRENT_NOW dan daya sisi baterai hasil V × I. Default 1x mempertahankan pembacaan standar. Ubah hanya jika hasil sensor terbukti berbeda faktor 1.000.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Box {
-                        OutlinedButton(onClick = { currentScaleMenuExpanded = true }, modifier = Modifier.fillMaxWidth()) { Text(currentScale.label) }
-                        DropdownMenu(expanded = currentScaleMenuExpanded, onDismissRequest = { currentScaleMenuExpanded = false }) {
-                            BatteryCurrentScale.values().forEach { scale ->
-                                DropdownMenuItem(text = { Text(scale.label) }, onClick = {
-                                    vm.setBatteryCurrentScale(scale); currentScaleMenuExpanded = false
-                                })
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -509,61 +479,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Diagnostik Auto Start", fontWeight = FontWeight.Bold)
-                    Text(
-                        "Simpan catatan teknis aktivasi monitoring ke file lokal untuk dianalisis. Tidak berisi data sensor atau konten pribadi.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedButton(
-                        enabled = !isExportingDiagnosticLog,
-                        onClick = {
-                            isExportingDiagnosticLog = true
-                            screenScope.launch {
-                                try {
-                                    val snapshot = AutoStartDiagnosticLog.createExportSnapshot(context)
-                                    val uri = FileProvider.getUriForFile(
-                                        context,
-                                        "${context.packageName}.fileprovider",
-                                        snapshot
-                                    )
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        clipData = ClipData.newUri(
-                                            context.contentResolver,
-                                            "Auto Start Diagnostic Log",
-                                            uri
-                                        )
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Bagikan diagnostic log"))
-                                } catch (error: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Gagal menyiapkan diagnostic log: ${error.javaClass.simpleName}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } finally {
-                                    isExportingDiagnosticLog = false
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.Share, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (isExportingDiagnosticLog) "Menyiapkan log..." else "Bagikan Diagnostic Log")
-                    }
-                }
-            }
-        }
-        item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Personalisasi", fontWeight = FontWeight.Bold)
@@ -587,6 +502,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         var draftRotationParameters by remember { mutableStateOf(statusBarSetting.rotationParameters.toSet()) }
         var draftIntervalSeconds by remember { mutableIntStateOf(statusBarSetting.rotationIntervalSeconds) }
         var draftIntervalInput by remember { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
+        var draftCurrentScale by remember { mutableStateOf(currentScale) }
 
         val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
         val canSave = draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
@@ -662,6 +578,31 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                     if (updated.size >= 2) draftRotationParameters = updated
                                 }
                             }
+                        )
+
+                        Text(
+                            "Kalibrasi skala arus",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            BatteryCurrentScale.values().forEachIndexed { index, scale ->
+                                SegmentedButton(
+                                    selected = draftCurrentScale == scale,
+                                    onClick = { draftCurrentScale = scale },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = BatteryCurrentScale.values().size
+                                    )
+                                ) {
+                                    Text(scale.label, maxLines = 1)
+                                }
+                            }
+                        }
+                        Text(
+                            "Berlaku global untuk pembacaan CURRENT_NOW dan daya hasil V × I. Default: 1x.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
@@ -770,12 +711,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         Button(
                             enabled = canSave,
                             onClick = {
-                                vm.setStatusBarParameter(draftParameter)
-                                if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
-                                    vm.setStatusBarRotationParameters(draftRotationParameters.toList())
-                                    vm.setStatusBarRotationIntervalSeconds(draftIntervalSeconds)
-                                }
-                                vm.setStatusBarDisplayMode(draftMode)
+                                vm.saveStatusBarIndicatorSettings(
+                                    parameter = draftParameter,
+                                    displayMode = draftMode,
+                                    rotationParameters = draftRotationParameters.toList(),
+                                    rotationIntervalSeconds = draftIntervalSeconds,
+                                    currentScale = draftCurrentScale
+                                )
                                 showStatusBarSettingsDialog = false
                             }
                         ) {
