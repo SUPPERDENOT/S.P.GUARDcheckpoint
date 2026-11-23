@@ -9,9 +9,9 @@ class ProtocolExplanationCatalogTest {
     @Test
     fun everyDetectorDisplayLabelHasAnExplanation() {
         val labels = listOf(
-            "AC — Daya Standar",
-            "AC — Kemampuan Daya Tinggi",
-            "AC — Kemampuan 9V+",
+            "AC — Kemampuan Sumber Standar",
+            "AC — Kemampuan Sumber Tinggi (≥10 W)",
+            "AC — Kemampuan Tegangan 9V+",
             "USB Arus Tinggi (SDP/CDP?)",
             "USB Arus Standar (SDP?)",
             "Fast Charge (HAL)",
@@ -20,7 +20,7 @@ class ProtocolExplanationCatalogTest {
             "Tidak Diekspos Perangkat (SELinux)",
             "Tidak Diekspos Perangkat",
             "Nirkabel (Standar Tak Terverifikasi)",
-            "AC — Kemampuan Daya Tidak Tersedia",
+            "AC — Kemampuan Sumber Tidak Tersedia",
             "USB — Arus Maksimum Tidak Tersedia",
             "USB PD PPS",
             "USB PD",
@@ -46,8 +46,10 @@ class ProtocolExplanationCatalogTest {
 
     @Test
     fun capabilityExplanationDoesNotClaimAChargingProtocol() {
-        val explanation = ProtocolExplanationCatalog.get("AC — Kemampuan Daya Tinggi")
+        val explanation = ProtocolExplanationCatalog.get("AC — Kemampuan Sumber Tinggi (≥10 W)")
         assertTrue(explanation.summary.contains("bukan daya aktual"))
+        assertTrue(ProtocolExplanationCatalog.batterySidePowerExplanation.contains("tegangan baterai × arus baterai"))
+        assertTrue(ProtocolExplanationCatalog.comparisonGuidance.contains("pembacaan stabil"))
         assertFalse(explanation.summary.contains("USB Power Delivery sedang digunakan"))
     }
 
