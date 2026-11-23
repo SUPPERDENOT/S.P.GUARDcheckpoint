@@ -1,3 +1,12 @@
+## 2026-11-23 — PR #4 squash merge: UI polish and session-based SOH
+
+- Squash-merged `feat/ui-polish-and-session-soh` into `main` (PR #4); merge commit: `94a814479fae8b803b7a27835686712b9408cbab`.
+- Included the 3D adaptive launcher asset synchronization, Charging protocol explanation catalog/info action, default-ON display-only History micro-session filter, and completed-session SOH estimator using the existing configurable design capacity.
+- CI Run #497 on PR head `6326dc5489e2b5f558ac352127662b902af17135`: SUCCESS — 214/214 unit tests, `assembleDebug`, Anti-Slop UI Audit Gate, and APK/test-report artifact uploads. This is PR-head CI, not yet a post-merge `main` CI result.
+- Physical QA on itel P55: completed and confirmed by the user.
+- The legacy green icon still shown by the Transsion security scanner is explicitly deferred for a separate investigation; no further launcher resource change was made as part of this merge.
+- No Room schema, Battery Monitoring lifecycle, Status Bar Indicator lifecycle, RECOVERY_HOLD, package, SDK, dependency, or app-version changes were part of the approved scope.
+
 ## 2026-11-22 — Run #490 Robolectric SDK configuration conflict fix
 
 ### Root cause
