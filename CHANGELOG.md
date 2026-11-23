@@ -1,3 +1,27 @@
+## 2026-11-23 — Accessory Benchmark for History
+
+### Added
+- Added optional accessory_label to charging_sessions and an explicit additive Room MIGRATION_2_3 (ALTER TABLE charging_sessions ADD COLUMN accessory_label TEXT DEFAULT NULL). The app database is now schema version 3 and registers both existing MIGRATION_1_2 and new MIGRATION_2_3.
+- Added DAO operations to update an individual session label, observe labeled sessions, and observe completed labeled sessions with their measured samples.
+- Added pure Kotlin domain/benchmark models and calculator. Sessions are grouped by trimmed, case-insensitive user labels; metrics are averaged per completed session.
+- Average current uses the existing persisted session average only when hasCurrentData confirms it is measured. Average battery-side power uses persisted samples with isPowerAvailable; samples explicitly marked as not charging are excluded. Temperature rise is the first available in-session temperature to the recorded session peak. Missing metrics remain unavailable rather than becoming zero.
+- Charge rate (%/jam) is calculated only for completed sessions lasting at least 5 minutes. Comparability notes are emitted when group mean starting battery levels differ by more than 15 percentage points or group mean starting temperatures differ by more than 4°C.
+- Added History session-detail label controls (Tambah/Ubah/Hapus), quick choices (Charger Bawaan, Adaptor Cadangan, Kabel Utama, Kabel Cadangan), and free text with a visible field heading and no placeholder.
+- Added a comparison card only when at least two distinct labels have completed sessions. The card presents session count, battery-side W, mA, %/jam, temperature rise, and comparability notes in a vertically responsive layout.
+- Added calculator, DAO persistence/relation, and Room migration regression tests.
+
+### Data integrity and scope
+- Wattage is treated only as measured battery-side power. It is not used to identify charger brand, charging protocol, or source capability.
+- No charger brand/protocol inference, sensor acquisition change, Battery Monitoring lifecycle change, Status Bar Indicator lifecycle change, RECOVERY_HOLD change, sample persistence algorithm change, or atomic session-finalization change was made.
+- applicationId (com.superdenot.superdguard), package namespace, dependencies, SDK, and app version are unchanged.
+- Work is isolated on feat/accessory-benchmark-history, created directly from main commit 77c8de31bf700e47b00717b85fb398070f2e7f5d. PR #5 branch was not touched and remains OPEN/unmerged.
+
+### Verification status
+- Source and diff review: in progress.
+- Unit tests and Android build: pending PR #6 CI.
+- Anti-Slop UI Audit Gate and APK artifact upload: pending PR #6 CI.
+- Physical-device QA on itel P55 (including 360dp / 720p layout and upgrade migration): NOT RUN; required before merge.
+
 ## 2026-11-23 — PR #4 squash merge: UI polish and session-based SOH
 
 - Squash-merged `feat/ui-polish-and-session-soh` into `main` (PR #4); merge commit: `94a814479fae8b803b7a27835686712b9408cbab`.
