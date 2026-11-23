@@ -47,7 +47,7 @@ interface BatteryDao {
     fun getLabeledSessionsFlow(): Flow<List<ChargingSessionEntity>>
 
     @Transaction
-    @Query("SELECT * FROM charging_sessions WHERE accessory_label IS NOT NULL AND TRIM(accessory_label) != '' ORDER BY startTime DESC")
+    @Query("SELECT * FROM charging_sessions WHERE endTime IS NOT NULL AND accessory_label IS NOT NULL AND TRIM(accessory_label) != '' ORDER BY startTime DESC")
     fun getLabeledSessionsWithSamplesFlow(): Flow<List<ChargingSessionWithSamples>>
 
     @Query("SELECT * FROM charging_sessions WHERE endTime IS NULL ORDER BY startTime DESC LIMIT 1")
