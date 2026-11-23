@@ -18,7 +18,8 @@
 - GitHub Actions Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: pending for the latest test/documentation follow-up commit.
 - GitHub Actions Run #527 (run ID `45246964970`) on commit `2fa4ca65333c4bf7cb8b33e118e17625d069a41b`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all passed.
 - Debug APK artifact: `android-debug-apk`, ID `14853533390` (expires 2026-12-07); unit-test report artifact ID `14853163872`.
-- Follow-up test assertions now cover full-line bitmap creation for all four source codes and notification-text mapping for the selectable resource-source metric. CI for this test/documentation follow-up commit: pending.
+- Follow-up test assertions cover full-line bitmap creation for AC / USB / WL / BAT and notification-text mapping for the selectable resource-source metric. GitHub Actions Run #528 (run ID `45247445044`) on commit `717bd714ff75e05b8551df8996c8326629daea71`: **SUCCESS** for Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload.
+- Debug APK artifact ID `14854875799` (`android-debug-apk`); unit-test report artifact ID `14855115433`.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - PR #8 remains OPEN / HOLD MERGE.
 
