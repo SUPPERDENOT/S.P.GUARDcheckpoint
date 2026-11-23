@@ -387,7 +387,27 @@ class SessionPersistenceFlowRegressionTest {
         )
 
         assertEquals(1, dao.updateAccessoryLabel(firstId, "Charger Bawaan"))
+        val firstSession = dao.getSessionById(firstId)!!
+        dao.updateSession(firstSession.copy(endTime = 10_000L, endLevel = 45))
+        dao.insertSample(
+            BatterySampleEntity(
+                sessionId = firstId,
+                timestamp = 5_000L,
+                batteryLevel = 43,
+                currentMa = 1_500,
+                voltageMv = 4_200,
+                tempCelsius = 35f,
+                powerWatt = 6.3f,
+                isScreenOn = false,
+                isCurrentAvailable = true,
+                isPowerAvailable = true,
+                isTemperatureAvailable = true
+            )
+        )
         assertEquals(1, dao.getLabeledSessionsFlow().first().size)
+        val benchmarkRows = dao.getLabeledSessionsWithSamplesFlow().first()
+        assertEquals(1, benchmarkRows.size)
+        assertEquals(1, benchmarkRows.single().samples.size)
         assertEquals("Charger Bawaan", dao.getSessionById(firstId)!!.accessoryLabel)
         assertEquals(null, dao.getSessionById(secondId)!!.accessoryLabel)
 
