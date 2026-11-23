@@ -77,6 +77,12 @@ class BatteryRepository(private val context: Context) {
         StatusBarIndicatorSettings.setEnabled(context, enabled)
     suspend fun setStatusBarParameter(parameter: com.superdenot.powerguard.domain.model.StatusBarParameter) =
         StatusBarIndicatorSettings.setParameter(context, parameter)
+    suspend fun setStatusBarDisplayMode(mode: com.superdenot.powerguard.domain.model.StatusBarDisplayMode) =
+        StatusBarIndicatorSettings.setDisplayMode(context, mode)
+    suspend fun setStatusBarRotationParameters(parameters: List<com.superdenot.powerguard.domain.model.StatusBarParameter>) =
+        StatusBarIndicatorSettings.setRotationParameters(context, parameters)
+    suspend fun setStatusBarRotationIntervalSeconds(seconds: Int) =
+        StatusBarIndicatorSettings.setRotationIntervalSeconds(context, seconds)
     fun setBatteryCurrentScale(scale: BatteryCurrentScale) = BatteryCurrentScaleSettings.set(context, scale)
 
     suspend fun saveCustomDesignCapacity(capacityMah: Int) {
@@ -99,6 +105,14 @@ class BatteryRepository(private val context: Context) {
         val normalizedLabel = label?.trim()?.takeIf { it.isNotEmpty() }
         return dao.updateAccessoryLabel(sessionId, normalizedLabel) == 1
     }
+
+    suspend fun clearAccessoryLabelGroup(label: String): Int {
+        val normalizedLabel = label.trim()
+        if (normalizedLabel.isEmpty()) return 0
+        return dao.clearAccessoryLabelGroup(normalizedLabel)
+    }
+
+    suspend fun clearAllAccessoryLabels(): Int = dao.clearAllAccessoryLabels()
 
     fun hasUsageStatsPermission(): Boolean {
         return anomalyDetector.hasUsageStatsPermission()

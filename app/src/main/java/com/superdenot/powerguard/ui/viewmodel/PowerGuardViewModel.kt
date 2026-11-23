@@ -239,6 +239,33 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun setStatusBarDisplayMode(mode: com.superdenot.powerguard.domain.model.StatusBarDisplayMode) {
+        viewModelScope.launch(Dispatchers.IO) {
+            executeSuspendFailClosed(
+                operation = { repository.setStatusBarDisplayMode(mode) },
+                onFailure = { error -> Log.e("PowerGuard", "Gagal menyimpan mode indikator status bar", error); Unit }
+            )
+        }
+    }
+
+    fun setStatusBarRotationParameters(parameters: List<StatusBarParameter>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            executeSuspendFailClosed(
+                operation = { repository.setStatusBarRotationParameters(parameters) },
+                onFailure = { error -> Log.e("PowerGuard", "Gagal menyimpan daftar rotasi indikator status bar", error); Unit }
+            )
+        }
+    }
+
+    fun setStatusBarRotationIntervalSeconds(seconds: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            executeSuspendFailClosed(
+                operation = { repository.setStatusBarRotationIntervalSeconds(seconds) },
+                onFailure = { error -> Log.e("PowerGuard", "Gagal menyimpan interval rotasi indikator status bar", error); Unit }
+            )
+        }
+    }
+
     fun setBatteryCurrentScale(scale: BatteryCurrentScale) {
         viewModelScope.launch(Dispatchers.IO) { repository.setBatteryCurrentScale(scale) }
     }
@@ -362,6 +389,30 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
                 throw cancelled
             } catch (error: Exception) {
                 Log.e("PowerGuard", "Gagal menyimpan label aksesori untuk sesi $sessionId", error)
+            }
+        }
+    }
+
+    fun clearAccessoryLabelGroup(label: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.clearAccessoryLabelGroup(label)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal menghapus label grup aksesori", error)
+            }
+        }
+    }
+
+    fun clearAllAccessoryLabels() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.clearAllAccessoryLabels()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.e("PowerGuard", "Gagal mereset label aksesori", error)
             }
         }
     }

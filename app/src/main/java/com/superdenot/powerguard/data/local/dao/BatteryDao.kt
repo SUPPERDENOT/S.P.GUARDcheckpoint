@@ -43,6 +43,12 @@ interface BatteryDao {
     @Query("UPDATE charging_sessions SET accessory_label = :accessoryLabel WHERE id = :sessionId")
     suspend fun updateAccessoryLabel(sessionId: Long, accessoryLabel: String?): Int
 
+    @Query("UPDATE charging_sessions SET accessory_label = NULL WHERE accessory_label IS NOT NULL AND LOWER(TRIM(accessory_label)) = LOWER(TRIM(:normalizedLabel))")
+    suspend fun clearAccessoryLabelGroup(normalizedLabel: String): Int
+
+    @Query("UPDATE charging_sessions SET accessory_label = NULL WHERE accessory_label IS NOT NULL")
+    suspend fun clearAllAccessoryLabels(): Int
+
     @Query("SELECT * FROM charging_sessions WHERE accessory_label IS NOT NULL AND TRIM(accessory_label) != '' ORDER BY startTime DESC")
     fun getLabeledSessionsFlow(): Flow<List<ChargingSessionEntity>>
 
