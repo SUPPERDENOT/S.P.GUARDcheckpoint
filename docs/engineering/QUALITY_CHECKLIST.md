@@ -1,3 +1,16 @@
+## 2026-11-23 — Overview source-label consistency and drawable cleanup
+
+- [x] Active Overview route verified: `MainActivity` renders `SuperdDashboardScreen`; Overview now labels the shared `chargingProtocol` value as `Protokol / kemampuan sumber`, matching Charging.
+- [x] Related surfaces reviewed: Dashboard capsule and monitoring notification already render the same shared label/value without conflicting source wording; legacy `DashboardScreen` is not routed from `MainActivity` and was left unchanged.
+- [x] `ic_status_turbo_ring.xml` reference audit: PASS — repository code search for `ic_status_turbo_ring` and `turbo_ring` returned no results; the PR #5 diff does not add references. Removed the unused drawable.
+- [x] Existing detector/catalog tests already cover the standardized capability labels; no new business-logic test added because this polish changes only Overview copy and removes an unreferenced resource.
+- [x] No sensor acquisition, power formula, Tier 2 classification/evidence, `applicationId`, monitoring lifecycle, persistence, dependency, SDK, or app version changes.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — pending CI after this polish.
+- [ ] `testDebugUnitTest` and `assembleDebug`: NOT RUN — pending CI after this polish.
+- [ ] APK artifact upload: NOT RUN — pending CI.
+- [ ] Physical-device QA on itel P55: NOT RUN — wait for successful CI, then perform the planned single device test.
+- [ ] PR #5 merge: HOLD — do not merge before itel P55 physical QA.
+
 ## 2026-11-23 — Charging source-capability label clarification
 
 - [x] Main base CI Run #500: PASS — Anti-Slop UI Audit Gate and Build and Unit Tests on `77c8de31bf700e47b00717b85fb398070f2e7f5d`.
