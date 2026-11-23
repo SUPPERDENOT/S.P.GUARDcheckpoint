@@ -89,4 +89,23 @@ object StatusBarIndicatorSettings {
     suspend fun setRotationIntervalSeconds(context: Context, seconds: Int) {
         context.powerGuardDataStore.edit { it[KEY_STATUS_BAR_ROTATION_INTERVAL_SECONDS] = seconds.coerceIn(1, 60) }
     }
+
+    suspend fun setConfiguration(
+        context: Context,
+        parameter: StatusBarParameter,
+        displayMode: StatusBarDisplayMode,
+        rotationParameters: List<StatusBarParameter>,
+        rotationIntervalSeconds: Int
+    ) {
+        if (parameter !in StatusBarParameter.selectableValues) return
+        val normalizedParameters = StatusBarParameter.selectableValues.filter { it in rotationParameters }
+        if (normalizedParameters.size < 2) return
+        context.powerGuardDataStore.edit {
+            it[KEY_STATUS_BAR_PARAMETER] = parameter.name
+            it[KEY_STATUS_BAR_DISPLAY_MODE] = displayMode.name
+            it[KEY_STATUS_BAR_ROTATION_PARAMETERS] =
+                normalizedParameters.mapTo(mutableSetOf()) { selected -> selected.name }
+            it[KEY_STATUS_BAR_ROTATION_INTERVAL_SECONDS] = rotationIntervalSeconds.coerceIn(1, 60)
+        }
+    }
 }
