@@ -83,6 +83,22 @@ class BatteryRepository(private val context: Context) {
         StatusBarIndicatorSettings.setRotationParameters(context, parameters)
     suspend fun setStatusBarRotationIntervalSeconds(seconds: Int) =
         StatusBarIndicatorSettings.setRotationIntervalSeconds(context, seconds)
+    suspend fun saveStatusBarIndicatorSettings(
+        parameter: com.superdenot.powerguard.domain.model.StatusBarParameter,
+        displayMode: com.superdenot.powerguard.domain.model.StatusBarDisplayMode,
+        rotationParameters: List<com.superdenot.powerguard.domain.model.StatusBarParameter>,
+        rotationIntervalSeconds: Int,
+        currentScale: BatteryCurrentScale
+    ) {
+        StatusBarIndicatorSettings.setConfiguration(
+            context,
+            parameter,
+            displayMode,
+            rotationParameters,
+            rotationIntervalSeconds
+        )
+        BatteryCurrentScaleSettings.set(context, currentScale)
+    }
     fun setBatteryCurrentScale(scale: BatteryCurrentScale) = BatteryCurrentScaleSettings.set(context, scale)
 
     suspend fun saveCustomDesignCapacity(capacityMah: Int) {
