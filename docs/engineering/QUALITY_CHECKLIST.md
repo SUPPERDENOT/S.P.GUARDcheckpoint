@@ -1,3 +1,17 @@
+## 2026-11-24 — PR #8 follow-up: resource-source glyph, custom rotation, accessory label cleanup
+
+- [x] Base/branch verification: PASS — `feat/crisp-statusbar-indicator` was identical to requested base `6d2c04727701c48a87cf9279fbbd1f0ce731e4f2` before edits.
+- [x] Renderer: PASS by source review — numeric/unit allocations 58% / 42%, 0.75dp target gap, unit width capped at 88% of the 24dp canvas; resource source has a separate one-line full-canvas path and retains the bounded bitmap cache.
+- [x] Resource-source provenance: PASS by source review — only `EXTRA_PLUGGED` metadata is mapped to AC / USB / WL / BAT; missing or unsupported metadata maps to an em dash.
+- [x] Settings: PASS by source review — single metric / custom rotation modes, six selectable metrics, minimum two selected rotation parameters, preset and custom 1–60 second interval, and DataStore persistence.
+- [x] Rotation timing: PASS by source review — selected metric derives deterministically from monotonic elapsed realtime in the existing notification refresh path; no timer, alarm, or service was added.
+- [x] Accessory labels: PASS by source review — DAO updates only `accessory_label`; group and reset-all actions leave session/sample rows untouched and are protected by confirmation dialogs.
+- [x] Protected constraints: PASS by diff scope — Room v3, default 1x current calibration, P0 lifecycle / RECOVERY_HOLD, `applicationId`, package, dependencies, SDK, and app version unchanged.
+- [x] Focused tests added for glyph ratios, one-line AC/USB/WL/BAT rendering, deterministic rotation, DataStore persistence, and DAO label clearing with session/sample retention.
+- [ ] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: NOT RUN — pending branch CI.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
+- [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
+
 ## 2026-11-23 — PR #8 follow-up: Status Bar glyph size and tight bounds
 
 - [x] Root-cause review: PASS — existing 48dp bitmap is intended for a system small-icon surface and uses fixed 22dp/11dp text plus FontMetrics baseline centering; the system-sized glyph therefore has excessive apparent whitespace after scaling.

@@ -1,3 +1,24 @@
+## 2026-11-24 — PR #8 follow-up: resource-source glyph, custom rotation, and accessory-label cleanup
+
+### Changed
+- Expanded the two-line numeric metric glyph allocation to 58% value / 42% unit, with a 0.75dp row gap and an 88% canvas-width ceiling for the unit glyph.
+- Restored the sixth selectable parameter, `Status sumber daya`. It uses only the `ACTION_BATTERY_CHANGED` `EXTRA_PLUGGED` metadata already read by BatteryMonitorEngine: AC, USB, WL, or BAT. If the extra is not exposed or the plug type is unsupported, the renderer displays an em dash rather than guessing.
+- Added a full-height, full-width one-line bitmap path for the resource-source code while retaining the bounded bitmap cache.
+- Added persistent Single metric / Custom rotation settings, a normalized list of at least two rotation parameters, and a 1–60 second interval. The selected metric is derived deterministically from SystemClock.elapsedRealtime() inside the existing notification update path; no alarm, timer, or additional service is created.
+- Added group-label clearing and reset-all label queries. Only charging_sessions.accessory_label is set to NULL; session rows and battery_samples remain intact. History now requires confirmation before either operation.
+
+### Protected behavior
+- Room remains schema version 3; no migration, entity, session/sample deletion, or historical-data rewrite was added.
+- Current calibration remains 1x by default. The CURRENT_NOW normalization path is unchanged.
+- BatteryMonitorService actor lifecycle, monitoring cadence, RECOVERY_HOLD persistence/recovery, and power-event startup policy are unchanged; rotation only selects the displayed metric within the existing notification refresh loop.
+- applicationId remains com.superdenot.superdguard. No dependency, SDK, package namespace, or app-version change.
+
+### Verification
+- Source changes and focused regression tests: implemented on `feat/crisp-statusbar-indicator`; CI pending.
+- GitHub Actions Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN for this commit yet.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-23 — PR #8 follow-up: larger, tighter Status Bar glyphs
 
 ### Changed

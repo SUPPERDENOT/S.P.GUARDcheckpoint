@@ -52,6 +52,14 @@ class LiveStatusBarRendererTest {
     }
 
     @Test
+    fun twoLineLayoutUsesRequestedValueUnitRatioAndUnitWidth() {
+        assertEquals(0.58f, LiveStatusBarRenderer.VALUE_HEIGHT_SHARE, 0.001f)
+        assertEquals(0.42f, LiveStatusBarRenderer.UNIT_HEIGHT_SHARE, 0.001f)
+        assertEquals(0.75f, LiveStatusBarRenderer.ROW_GAP_DP, 0.001f)
+        assertEquals(0.88f, LiveStatusBarRenderer.UNIT_MAX_WIDTH_RATIO, 0.001f)
+    }
+
+    @Test
     fun renderAcceptsValuesUpToFourCharacters() {
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("0", "mA")))
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-1.8", "A")))
@@ -66,6 +74,18 @@ class LiveStatusBarRendererTest {
         assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("bad\nvalue", "W")))
         assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("12345", "W")))
         assertEquals(0, LiveStatusBarRenderer.cacheSizeForTesting())
+    }
+
+    @Test
+    fun resourceSourceUsesFullBleedSingleLineWithoutUnit() {
+        val bitmap = LiveStatusBarRenderer.render(
+            StatusBarParameter.RESOURCE_SOURCE,
+            StatusBarReading("USB", "")
+        )
+        assertNotNull(bitmap)
+        assertEquals(24, bitmap!!.width)
+        assertEquals(24, bitmap.height)
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.RESOURCE_SOURCE, StatusBarReading("USB", "W")))
     }
 
     @Test
@@ -117,7 +137,7 @@ class LiveStatusBarRendererTest {
     }
 
     @Test
-    fun allFiveMetricsAndAdaptiveBatteryLevelAreCorrect() {
+    fun allSixMetricsAndAdaptiveBatteryLevelAreCorrect() {
         val state = LiveBatteryState(
             level = 85, currentMa = 2800, voltageMv = 4120, powerWatt = 2.8f,
             tempCelsius = 2.8f, isCharging = true
@@ -128,6 +148,11 @@ class LiveStatusBarRendererTest {
         assertEquals(StatusBarReading("2.8", "°C"), LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
         assertEquals(StatusBarReading("85", "%"), LiveStatusBarRenderer.format(state, StatusBarParameter.BATTERY_PERCENTAGE))
         assertEquals(StatusBarReading("5.0", "%"), LiveStatusBarRenderer.format(state.copy(level = 5), StatusBarParameter.BATTERY_PERCENTAGE))
+        assertEquals(StatusBarReading("AC", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = true, isChargeSourceAvailable = true, chargeSource = "AC Adapter"), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("USB", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = true, isChargeSourceAvailable = true, chargeSource = "USB Port"), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("WL", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = true, isChargeSourceAvailable = true, chargeSource = "Wireless"), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("BAT", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = false, isChargeSourceAvailable = true), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("—", ""), LiveStatusBarRenderer.format(state.copy(isChargeSourceAvailable = false), StatusBarParameter.RESOURCE_SOURCE))
     }
 
     @Test
@@ -148,7 +173,8 @@ class LiveStatusBarRendererTest {
         StatusBarParameter.selectableValues.forEach {
             val reading = LiveStatusBarRenderer.format(state, it)
             assertEquals("—", reading.valueText)
-            assertTrue(reading.unitText.isNotBlank())
+            if (it == StatusBarParameter.RESOURCE_SOURCE) assertTrue(reading.unitText.isEmpty())
+            else assertTrue(reading.unitText.isNotBlank())
         }
     }
 }
