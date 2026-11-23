@@ -5,6 +5,9 @@ import android.content.Intent
 import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -375,6 +378,7 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
     val context = LocalContext.current
@@ -383,7 +387,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     val currentScale by vm.batteryCurrentScale.collectAsState()
-    var statusBarParameterMenuExpanded by remember { mutableStateOf(false) }
+    var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
+    var rotationIntervalInput by remember(statusBarSetting.rotationIntervalSeconds) { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
     var currentScaleMenuExpanded by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
@@ -421,44 +426,27 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
+                        Column(
+                            Modifier.weight(1f).clickable { showStatusBarSettingsDialog = true },
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
                             Text(
-                                "Tampilkan satu parameter baterai pada ikon di status bar.",
+                                if (statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION) {
+                                    "Rotasi kustom • ${statusBarSetting.rotationParameters.joinToString(" / ") { it.label }} • ${statusBarSetting.rotationIntervalSeconds} dtk"
+                                } else {
+                                    "Satu metrik • ${statusBarSetting.parameter.label}"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(
-                            checked = statusBarSetting.enabled,
-                            onCheckedChange = vm::setStatusBarIndicatorEnabled
-                        )
+                        Switch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled)
                     }
-                    Text("Metrik yang ditampilkan", style = MaterialTheme.typography.labelMedium)
-                    Box {
-                        OutlinedButton(
-                            enabled = statusBarSetting.enabled,
-                            onClick = { statusBarParameterMenuExpanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(statusBarSetting.parameter.label)
-                        }
-                        DropdownMenu(
-                            expanded = statusBarParameterMenuExpanded,
-                            onDismissRequest = { statusBarParameterMenuExpanded = false }
-                        ) {
-                            StatusBarParameter.selectableValues.forEach { parameter ->
-                                DropdownMenuItem(
-                                    text = { Text(parameter.label) },
-                                    onClick = {
-                                        vm.setStatusBarParameter(parameter)
-                                        statusBarParameterMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                    TextButton(onClick = { showStatusBarSettingsDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Atur indikator")
                     }
                     Text(
                         "Perubahan diterapkan pada notifikasi pemantauan yang sedang aktif. Tampilan ikon dapat berbeda menurut versi Android dan perangkat.",
@@ -592,6 +580,86 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
     if (comingSoon) ComingSoonDialog { comingSoon = false }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
+    if (showStatusBarSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showStatusBarSettingsDialog = false },
+            title = { Text("Indikator status bar") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Mode tampilan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(
+                            selected = statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.SINGLE_METRIC,
+                            onClick = { vm.setStatusBarDisplayMode(com.superdenot.powerguard.domain.model.StatusBarDisplayMode.SINGLE_METRIC) },
+                            label = { Text("Satu metrik") }
+                        )
+                        FilterChip(
+                            selected = statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION,
+                            onClick = { vm.setStatusBarDisplayMode(com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION) },
+                            label = { Text("Rotasi kustom") }
+                        )
+                    }
+                    Text("Pilihan parameter", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    if (statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.SINGLE_METRIC) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            StatusBarParameter.selectableValues.forEach { parameter ->
+                                FilterChip(
+                                    selected = statusBarSetting.parameter == parameter,
+                                    onClick = { vm.setStatusBarParameter(parameter) },
+                                    label = { Text(parameter.label) }
+                                )
+                            }
+                        }
+                    } else {
+                        val selectedParameters = statusBarSetting.rotationParameters.toSet()
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            StatusBarParameter.selectableValues.forEach { parameter ->
+                                val selected = parameter in selectedParameters
+                                FilterChip(
+                                    selected = selected,
+                                    enabled = !selected || selectedParameters.size > 2,
+                                    onClick = {
+                                        val next = if (selected) selectedParameters - parameter else selectedParameters + parameter
+                                        if (next.size >= 2) vm.setStatusBarRotationParameters(next.toList())
+                                    },
+                                    label = { Text(parameter.label) }
+                                )
+                            }
+                        }
+                        Text("Pilih minimal 2 parameter untuk rotasi.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Interval rotasi (detik)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(2, 3, 5, 10).forEach { seconds ->
+                                FilterChip(
+                                    selected = statusBarSetting.rotationIntervalSeconds == seconds,
+                                    onClick = { vm.setStatusBarRotationIntervalSeconds(seconds) },
+                                    label = { Text("$seconds dtk") }
+                                )
+                            }
+                        }
+                        Text("Interval kustom (detik)", style = MaterialTheme.typography.labelMedium)
+                        OutlinedTextField(
+                            value = rotationIntervalInput,
+                            onValueChange = { input ->
+                                val digits = input.filter { it.isDigit() }.take(2)
+                                rotationIntervalInput = digits
+                                digits.toIntOrNull()?.takeIf { it in 1..60 }?.let(vm::setStatusBarRotationIntervalSeconds)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Text("Masukkan angka 1–60. Kolom ini tidak memakai placeholder.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showStatusBarSettingsDialog = false }) { Text("Selesai") } }
+        )
+    }
+
     if (showCapacityDialog) {
         var inputText by remember(capacity.capacityMah) {
             mutableStateOf(capacity.capacityMah?.toString().orEmpty())

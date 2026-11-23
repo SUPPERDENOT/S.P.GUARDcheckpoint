@@ -39,6 +39,7 @@ import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.engine.ChargingMahIntegrator
 import com.superdenot.powerguard.domain.engine.ChargingSessionDurationTracker
 import com.superdenot.powerguard.domain.model.LiveBatteryState
+import com.superdenot.powerguard.domain.model.StatusBarParameter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -2025,7 +2026,10 @@ class BatteryMonitorService : Service() {
                         publishLiveState(hudState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
-                        notificationSummaryToPost = NotificationVisualRenderer.formatStatusBarParameterText(hudState, statusBarIndicatorSetting.parameter)
+                        notificationSummaryToPost = NotificationVisualRenderer.formatStatusBarParameterText(
+                            hudState,
+                            statusBarIndicatorSetting.parameterAtElapsedRealtime(SystemClock.elapsedRealtime())
+                        )
                         return@withLock
                     }
                     val currentGen = maxOf(loopGeneration, latestStartGeneration.get())
@@ -2187,33 +2191,34 @@ class BatteryMonitorService : Service() {
 
     private fun startForegroundCompat(contentText: String) {
         synchronized(monitorNotificationPostLock) {
+            val nowElapsedMs = SystemClock.elapsedRealtime()
+            val activeParameter = statusBarIndicatorSetting.parameterAtElapsedRealtime(nowElapsedMs)
             var snapshotSequence = notificationStateSequence.get()
             var state = resolveNotificationBatteryState()
-            var notification = buildMonitorNotification(contentText, state)
+            var notification = buildMonitorNotification(contentText, state, activeParameter)
             var latestSequence = notificationStateSequence.get()
 
             while (snapshotSequence != latestSequence) {
                 snapshotSequence = latestSequence
                 state = resolveNotificationBatteryState()
-                notification = buildMonitorNotification(contentText, state)
+                notification = buildMonitorNotification(contentText, state, activeParameter)
                 latestSequence = notificationStateSequence.get()
             }
 
             if (snapshotSequence != latestSequence) return@synchronized
 
-            val reading = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val reading = LiveStatusBarRenderer.format(state, activeParameter)
             val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
                 state,
                 actorState == ActorLifecycleState.RECOVERY_HOLD
             )
             val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
-                LiveStatusBarRenderer.render(statusBarIndicatorSetting.parameter, reading, resources.displayMetrics.density) != null
+                LiveStatusBarRenderer.render(activeParameter, reading, resources.displayMetrics.density) != null
             val iconKey = if (hasDynamicIcon) {
-                "hud:" + statusBarIndicatorSetting.parameter + ":" + reading.valueText + ":" + reading.unitText
+                "hud:" + activeParameter + ":" + reading.valueText + ":" + reading.unitText
             } else {
                 visualSpec.cacheKey
             }
-            val nowElapsedMs = SystemClock.elapsedRealtime()
             val payloadSignature = listOf(
                 iconKey,
                 contentText,
@@ -3782,11 +3787,22 @@ class BatteryMonitorService : Service() {
     private fun buildMonitorNotification(contentText: String): Notification =
         buildMonitorNotification(contentText, resolveNotificationBatteryState())
 
-    private fun buildMonitorNotification(contentText: String, state: LiveBatteryState): Notification {
+    private fun buildMonitorNotification(contentText: String, state: LiveBatteryState): Notification =
+        buildMonitorNotification(
+            contentText,
+            state,
+            statusBarIndicatorSetting.parameterAtElapsedRealtime(SystemClock.elapsedRealtime())
+        )
+
+    private fun buildMonitorNotification(
+        contentText: String,
+        state: LiveBatteryState,
+        parameter: StatusBarParameter
+    ): Notification {
         val openAppIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(state, actorState == ActorLifecycleState.RECOVERY_HOLD)
-        val reading = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
-        val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(statusBarIndicatorSetting.parameter, reading, resources.displayMetrics.density) else null
+        val reading = LiveStatusBarRenderer.format(state, parameter)
+        val dynamicBitmap = if (statusBarIndicatorSetting.enabled) LiveStatusBarRenderer.render(parameter, reading, resources.displayMetrics.density) else null
         val builder = NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setContentTitle(NotificationVisualRenderer.resolveMonitorContentTitle(state))
             .setContentText(contentText)
@@ -3819,28 +3835,30 @@ class BatteryMonitorService : Service() {
     private fun notifyMonitorNotification(contentText: String, force: Boolean = false) {
         if (!::notificationManager.isInitialized || destroyRequested.get()) return
         synchronized(monitorNotificationPostLock) {
+            val nowElapsedMs = SystemClock.elapsedRealtime()
+            val activeParameter = statusBarIndicatorSetting.parameterAtElapsedRealtime(nowElapsedMs)
             var snapshotSequence = notificationStateSequence.get()
             var state = resolveNotificationBatteryState()
-            var notification = buildMonitorNotification(contentText, state)
+            var notification = buildMonitorNotification(contentText, state, activeParameter)
             var latestSequence = notificationStateSequence.get()
 
             while (snapshotSequence != latestSequence) {
                 snapshotSequence = latestSequence
                 state = resolveNotificationBatteryState()
-                notification = buildMonitorNotification(contentText, state)
+                notification = buildMonitorNotification(contentText, state, activeParameter)
                 latestSequence = notificationStateSequence.get()
             }
             if (snapshotSequence != latestSequence) return@synchronized
 
-            val reading = LiveStatusBarRenderer.format(state, statusBarIndicatorSetting.parameter)
+            val reading = LiveStatusBarRenderer.format(state, activeParameter)
             val visualSpec = NotificationVisualRenderer.resolveMonitorVisualSpec(
                 state,
                 actorState == ActorLifecycleState.RECOVERY_HOLD
             )
             val hasDynamicIcon = statusBarIndicatorSetting.enabled &&
-                LiveStatusBarRenderer.render(statusBarIndicatorSetting.parameter, reading, resources.displayMetrics.density) != null
+                LiveStatusBarRenderer.render(activeParameter, reading, resources.displayMetrics.density) != null
             val iconKey = if (hasDynamicIcon) {
-                "hud:" + statusBarIndicatorSetting.parameter + ":" + reading.valueText + ":" + reading.unitText
+                "hud:" + activeParameter + ":" + reading.valueText + ":" + reading.unitText
             } else {
                 visualSpec.cacheKey
             }
@@ -3853,7 +3871,6 @@ class BatteryMonitorService : Service() {
                 state.chargeSource,
                 actorState.name
             ).joinToString("|")
-            val nowElapsedMs = SystemClock.elapsedRealtime()
             val shouldPostTransition = monitorNotificationPostGate.shouldPost(
                 payloadSignature = payloadSignature,
                 criticalStateSignature = state.isPowerConnected.toString(),
