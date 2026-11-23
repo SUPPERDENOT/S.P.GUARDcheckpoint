@@ -1,3 +1,16 @@
+## 2026-11-23 — PR #8 follow-up: Status Bar glyph size and tight bounds
+
+- [x] Root-cause review: PASS — existing 48dp bitmap is intended for a system small-icon surface and uses fixed 22dp/11dp text plus FontMetrics baseline centering; the system-sized glyph therefore has excessive apparent whitespace after scaling.
+- [x] Bitmap target changed to 24dp; numeric and unit rows use bold sans-serif-condensed and are fitted within the full-bleed horizontal bound (97% maximum).
+- [x] Both baselines use Paint.getTextBounds; numeric visual top and unit visual bottom are anchored at 0.5dp; target inter-row gap is 1dp.
+- [x] Numeric renderer input is limited to four characters; adaptive rounding regression tests include negative decimal values and rounding across 10.
+- [x] Existing bitmap cache identity, bounded eviction, and synchronization retained.
+- [x] No sensor acquisition, current calibration, Room schema/data, `applicationId`, notification/service lifecycle, monitoring behavior, dependency, SDK, or app version change.
+- [ ] Focused renderer unit tests / `testDebugUnitTest`: NOT RUN — pending PR CI.
+- [ ] `assembleDebug`, Anti-Slop UI Audit Gate, and debug APK artifact upload: NOT RUN — pending PR CI.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before the user confirms physical-device QA on the latest APK.
+
 ## 2026-11-23 — Stacked Status Bar Indicator and global current-scale calibration (PR #8)
 
 - [x] Base commit verified: Run #514 SUCCESS on `1427664eccc69bb3c0f701b9e0b238ffef20d63e`; feature branch points to this exact SHA.
