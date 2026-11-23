@@ -1,7 +1,7 @@
 ## 2026-11-23 — PR #8 follow-up: Status Bar glyph size and tight bounds
 
 - [x] Root-cause review: PASS — existing 48dp bitmap is intended for a system small-icon surface and uses fixed 22dp/11dp text plus FontMetrics baseline centering; the system-sized glyph therefore has excessive apparent whitespace after scaling.
-- [x] Bitmap target changed to 24dp; numeric and unit rows use bold sans-serif-condensed and are fitted within the full-bleed horizontal bound (97% maximum).
+- [x] Bitmap target changed to 24dp; numeric and unit rows use bold sans-serif-condensed and are fitted within the full-bleed horizontal bound (95.8% maximum; 0.5dp side insets).
 - [x] Both baselines use Paint.getTextBounds; numeric visual top and unit visual bottom are anchored at 0.5dp; target inter-row gap is 1dp.
 - [x] Numeric renderer input is limited to four characters; adaptive rounding regression tests include negative decimal values and rounding across 10.
 - [x] Existing bitmap cache identity, bounded eviction, and synchronization retained.
