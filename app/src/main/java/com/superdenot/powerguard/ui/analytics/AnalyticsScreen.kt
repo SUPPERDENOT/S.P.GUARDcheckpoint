@@ -353,7 +353,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                             Column(Modifier.weight(1f)) {
                                 Text("Label aksesori", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
-                                    session.accessoryLabel ?: "Belum ditandai",
+                                    session.accessoryLabel?.takeIf { it.isNotBlank() } ?: "Belum ditandai",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
