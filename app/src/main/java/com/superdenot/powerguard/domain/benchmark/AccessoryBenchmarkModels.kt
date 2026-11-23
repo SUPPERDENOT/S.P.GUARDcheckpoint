@@ -17,6 +17,8 @@ data class AccessoryBenchmarkSession(
     val endTimeMillis: Long?,
     val startLevelPercent: Int,
     val endLevelPercent: Int?,
+    val averageCurrentMa: Int?,
+    val maxTemperatureCelsius: Float?,
     val samples: List<AccessoryBenchmarkSample>
 )
 
