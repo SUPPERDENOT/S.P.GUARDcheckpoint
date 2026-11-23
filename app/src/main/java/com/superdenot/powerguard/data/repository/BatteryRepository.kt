@@ -51,7 +51,9 @@ class BatteryRepository(private val context: Context) {
                             tempCelsius = sample.tempCelsius,
                             isCurrentAvailable = sample.isCurrentAvailable,
                             isPowerAvailable = sample.isPowerAvailable,
-                            isTemperatureAvailable = sample.isTemperatureAvailable
+                            isTemperatureAvailable = sample.isTemperatureAvailable,
+                            isChargingStatusAvailable = sample.isChargingStatusAvailable,
+                            isCharging = sample.isCharging
                         )
                     }
                 )
