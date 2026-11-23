@@ -408,7 +408,7 @@ private fun AccessoryLabelDialog(
     onDismiss: () -> Unit,
     onSave: (String?) -> Unit
 ) {
-    var label by remember(session.id) { mutableStateOf(session.accessoryLabel.orEmpty()) }
+    var label by rememberSaveable(session.id) { mutableStateOf(session.accessoryLabel.orEmpty()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (session.accessoryLabel.isNullOrBlank()) "Tambah label aksesori" else "Ubah label aksesori") },
@@ -499,11 +499,17 @@ private fun AccessoryBenchmarkCard(result: AccessoryBenchmarkResult) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         AccessoryMetric("Daya rata-rata", group.averageBatteryPowerW, "W", Modifier.weight(1f))
                         AccessoryMetric("Arus rata-rata", group.averageCurrentMa, "mA", Modifier.weight(1f))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         AccessoryMetric("Laju pengisian", group.averageChargeRatePercentPerHour, "%/jam", Modifier.weight(1f))
                         AccessoryMetric("Kenaikan suhu", group.averageTemperatureRiseCelsius, "°C", Modifier.weight(1f))
                     }
