@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -21,13 +22,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
+import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.service.AutoStartDiagnosticLog
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
@@ -581,83 +585,209 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     if (comingSoon) ComingSoonDialog { comingSoon = false }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
     if (showStatusBarSettingsDialog) {
-        AlertDialog(
-            onDismissRequest = { showStatusBarSettingsDialog = false },
-            title = { Text("Indikator status bar") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("Mode tampilan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.SINGLE_METRIC,
-                            onClick = { vm.setStatusBarDisplayMode(com.superdenot.powerguard.domain.model.StatusBarDisplayMode.SINGLE_METRIC) },
-                            label = { Text("Satu metrik") }
+        var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
+        var draftParameter by remember { mutableStateOf(statusBarSetting.parameter) }
+        var draftRotationParameters by remember { mutableStateOf(statusBarSetting.rotationParameters.toSet()) }
+        var draftIntervalSeconds by remember { mutableIntStateOf(statusBarSetting.rotationIntervalSeconds) }
+        var draftIntervalInput by remember { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
+
+        val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
+        val canSave = draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
+            (draftRotationParameters.size >= 2 && validCustomInterval)
+
+        Dialog(onDismissRequest = { showStatusBarSettingsDialog = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        "Indikator status bar",
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 440.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            "Mode tampilan",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        FilterChip(
-                            selected = statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION,
-                            onClick = { vm.setStatusBarDisplayMode(com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION) },
-                            label = { Text("Rotasi kustom") }
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            SegmentedButton(
+                                selected = draftMode == StatusBarDisplayMode.SINGLE_METRIC,
+                                onClick = { draftMode = StatusBarDisplayMode.SINGLE_METRIC },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                            ) {
+                                Text("Satu metrik", maxLines = 1, fontSize = 12.sp)
+                            }
+                            SegmentedButton(
+                                selected = draftMode == StatusBarDisplayMode.CUSTOM_ROTATION,
+                                onClick = { draftMode = StatusBarDisplayMode.CUSTOM_ROTATION },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                            ) {
+                                Text("Rotasi kustom", maxLines = 1, fontSize = 12.sp)
+                            }
+                        }
+
+                        Text(
+                            "Pilihan parameter",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
-                    Text("Pilihan parameter", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    if (statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.SINGLE_METRIC) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            StatusBarParameter.selectableValues.forEach { parameter ->
-                                FilterChip(
-                                    selected = statusBarSetting.parameter == parameter,
-                                    onClick = { vm.setStatusBarParameter(parameter) },
-                                    label = { Text(parameter.label) }
-                                )
-                            }
-                        }
-                    } else {
-                        val selectedParameters = statusBarSetting.rotationParameters.toSet()
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            StatusBarParameter.selectableValues.forEach { parameter ->
-                                val selected = parameter in selectedParameters
-                                FilterChip(
-                                    selected = selected,
-                                    enabled = !selected || selectedParameters.size > 2,
-                                    onClick = {
-                                        val next = if (selected) selectedParameters - parameter else selectedParameters + parameter
-                                        if (next.size >= 2) vm.setStatusBarRotationParameters(next.toList())
-                                    },
-                                    label = { Text(parameter.label) }
-                                )
-                            }
-                        }
-                        Text("Pilih minimal 2 parameter untuk rotasi.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Interval rotasi (detik)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(2, 3, 5, 10).forEach { seconds ->
-                                FilterChip(
-                                    selected = statusBarSetting.rotationIntervalSeconds == seconds,
-                                    onClick = { vm.setStatusBarRotationIntervalSeconds(seconds) },
-                                    label = { Text("$seconds dtk") }
-                                )
-                            }
-                        }
-                        Text("Interval kustom (detik)", style = MaterialTheme.typography.labelMedium)
-                        OutlinedTextField(
-                            value = rotationIntervalInput,
-                            onValueChange = { input ->
-                                val digits = input.filter { it.isDigit() }.take(2)
-                                rotationIntervalInput = digits
-                                digits.toIntOrNull()?.takeIf { it in 1..60 }?.let(vm::setStatusBarRotationIntervalSeconds)
+                        StatusBarParameterGrid(
+                            selectedParameters = if (draftMode == StatusBarDisplayMode.SINGLE_METRIC) {
+                                setOf(draftParameter)
+                            } else {
+                                draftRotationParameters
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            multiSelect = draftMode == StatusBarDisplayMode.CUSTOM_ROTATION,
+                            canDeselectSelected = draftRotationParameters.size > 2,
+                            onParameterClick = { parameter ->
+                                if (draftMode == StatusBarDisplayMode.SINGLE_METRIC) {
+                                    draftParameter = parameter
+                                } else {
+                                    val updated = draftRotationParameters.toMutableSet()
+                                    if (parameter in updated) {
+                                        if (updated.size > 2) updated.remove(parameter)
+                                    } else {
+                                        updated.add(parameter)
+                                    }
+                                    if (updated.size >= 2) draftRotationParameters = updated
+                                }
+                            }
                         )
-                        Text("Masukkan angka 1–60. Kolom ini tidak memakai placeholder.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+                            Text(
+                                "Interval rotasi (detik)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(2, 3, 5, 10).forEach { seconds ->
+                                    val selected = draftIntervalSeconds == seconds
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 40.dp)
+                                            .selectable(
+                                                selected = selected,
+                                                role = Role.RadioButton,
+                                                onClick = {
+                                                    draftIntervalSeconds = seconds
+                                                    draftIntervalInput = seconds.toString()
+                                                }
+                                            ),
+                                        shape = MaterialTheme.shapes.small,
+                                        color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surface,
+                                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            if (selected) 1.5.dp else 1.dp,
+                                            if (selected) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                "$seconds dtk",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontSize = 11.sp,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text("Interval kustom", style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        "Rentang 1–60 detik",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Column(
+                                    horizontalAlignment = Alignment.Start,
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text("Detik", style = MaterialTheme.typography.labelSmall)
+                                    OutlinedTextField(
+                                        value = draftIntervalInput,
+                                        onValueChange = { input ->
+                                            draftIntervalInput = input.filter(Char::isDigit).take(2)
+                                            draftIntervalInput.toIntOrNull()
+                                                ?.takeIf { it in 1..60 }
+                                                ?.let { draftIntervalSeconds = it }
+                                        },
+                                        modifier = Modifier.width(92.dp),
+                                        singleLine = true,
+                                        isError = !validCustomInterval,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                    )
+                                }
+                            }
+                            if (!validCustomInterval) {
+                                Text(
+                                    "Masukkan angka 1–60 untuk menyimpan interval.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { showStatusBarSettingsDialog = false }) {
+                            Text("Batal")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            enabled = canSave,
+                            onClick = {
+                                vm.setStatusBarParameter(draftParameter)
+                                if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+                                    vm.setStatusBarRotationParameters(draftRotationParameters.toList())
+                                    vm.setStatusBarRotationIntervalSeconds(draftIntervalSeconds)
+                                }
+                                vm.setStatusBarDisplayMode(draftMode)
+                                showStatusBarSettingsDialog = false
+                            }
+                        ) {
+                            Text("Simpan")
+                        }
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { showStatusBarSettingsDialog = false }) { Text("Selesai") } }
-        )
+            }
+        }
     }
 
     if (showCapacityDialog) {
@@ -704,6 +834,90 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
 }
 
+
+@Composable
+private fun StatusBarParameterGrid(
+    selectedParameters: Set<StatusBarParameter>,
+    multiSelect: Boolean,
+    canDeselectSelected: Boolean,
+    onParameterClick: (StatusBarParameter) -> Unit
+) {
+    val rows = listOf(
+        listOf(StatusBarParameter.POWER, StatusBarParameter.CURRENT),
+        listOf(StatusBarParameter.VOLTAGE, StatusBarParameter.TEMPERATURE),
+        listOf(StatusBarParameter.BATTERY_PERCENTAGE, StatusBarParameter.RESOURCE_SOURCE)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { parameter ->
+                    val selected = parameter in selectedParameters
+                    val enabled = !multiSelect || !selected || canDeselectSelected
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .selectable(
+                                selected = selected,
+                                enabled = enabled,
+                                role = if (multiSelect) Role.Checkbox else Role.RadioButton,
+                                onClick = { onParameterClick(parameter) }
+                            ),
+                        shape = MaterialTheme.shapes.small,
+                        color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                        border = androidx.compose.foundation.BorderStroke(
+                            if (selected) 1.5.dp else 1.dp,
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = when (parameter) {
+                                    StatusBarParameter.POWER -> "Daya (W)"
+                                    StatusBarParameter.CURRENT -> "Arus (A/mA)"
+                                    StatusBarParameter.VOLTAGE -> "Tegangan (V)"
+                                    StatusBarParameter.TEMPERATURE -> "Suhu (°C)"
+                                    StatusBarParameter.BATTERY_PERCENTAGE -> "Level (%)"
+                                    StatusBarParameter.RESOURCE_SOURCE -> "Sumber (AC/USB)"
+                                    StatusBarParameter.CHARGING_STATUS -> "Status"
+                                },
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            if (selected) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            } else {
+                                Spacer(Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun SectionHeading(title: String, subtitle: String) {
