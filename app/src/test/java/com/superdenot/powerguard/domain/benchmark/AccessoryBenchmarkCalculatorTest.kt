@@ -169,6 +169,43 @@ class AccessoryBenchmarkCalculatorTest {
     }
 
     @Test
+    fun explicitlyNonChargingSamplesAreExcludedFromBatterySideMetrics() {
+        val result = AccessoryBenchmarkCalculator.calculate(
+            listOf(
+                session(
+                    id = 1,
+                    label = "Charger Bawaan",
+                    startLevel = 40,
+                    endLevel = 45,
+                    startTime = 0L,
+                    endTime = 10 * MINUTE,
+                    samples = listOf(
+                        sample(1_000L, current = 1_000, power = 5f, temp = 30f),
+                        sample(2_000L, current = 9_000, power = 50f, temp = 50f, isCharging = false)
+                    ),
+                    averageCurrentMa = 1_000,
+                    maxTemperatureCelsius = 35f
+                ),
+                session(
+                    id = 2,
+                    label = "Kabel Utama",
+                    startLevel = 40,
+                    endLevel = 45,
+                    startTime = 0L,
+                    endTime = 10 * MINUTE,
+                    samples = listOf(sample(1_000L, current = 1_000, power = 5f, temp = 30f)),
+                    averageCurrentMa = 1_000,
+                    maxTemperatureCelsius = 35f
+                )
+            )
+        )
+
+        val charger = result.groups.single { it.label == "Charger Bawaan" }
+        assertEquals(5.0, charger.averageBatteryPowerW!!, 0.0001)
+        assertEquals(5.0, charger.averageTemperatureRiseCelsius!!, 0.0001)
+    }
+
+    @Test
     fun openSessionsAndBlankLabelsAreExcluded() {
         val result = AccessoryBenchmarkCalculator.calculate(
             listOf(
