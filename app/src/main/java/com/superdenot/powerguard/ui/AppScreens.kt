@@ -264,6 +264,11 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp
                 )
+                Text(
+                    "Daya merupakan hasil tegangan × arus baterai, bukan batas kemampuan sumber.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
                     MiniMetric("Daya baterai", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
