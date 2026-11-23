@@ -55,7 +55,6 @@ internal object LiveStatusBarRenderer {
     private const val ROW_GAP_DP = 1f
     private const val VALUE_HEIGHT_SHARE = 2f / 3f
     private const val UNIT_HEIGHT_SHARE = 1f / 3f
-    private const val MAX_WIDTH_SHARE = 0.97f
     private val GLYPH_TYPEFACE = Typeface.create("sans-serif-condensed", Typeface.BOLD)
 
     private data class CacheKey(
@@ -93,7 +92,7 @@ internal object LiveStatusBarRenderer {
         val horizontalInset = HORIZONTAL_INSET_DP * density
         val verticalInset = VERTICAL_INSET_DP * density
         val rowGap = ROW_GAP_DP * density
-        val maxWidth = (size - 2f * horizontalInset).coerceAtLeast(1f) * MAX_WIDTH_SHARE
+        val maxWidth = (size - 2f * horizontalInset).coerceAtLeast(1f)
         val contentHeight = (size - 2f * verticalInset - rowGap).coerceAtLeast(1f)
         val valueMaxHeight = contentHeight * VALUE_HEIGHT_SHARE
         val unitMaxHeight = contentHeight * UNIT_HEIGHT_SHARE
