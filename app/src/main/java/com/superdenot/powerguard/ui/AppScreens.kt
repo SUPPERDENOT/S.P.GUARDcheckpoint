@@ -76,7 +76,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val gaugeStatus = when {
         state.isTemperatureAvailable && state.tempCelsius >= 40f -> "Suhu Tinggi"
         state.isChargingStatusAvailable && state.isCharging -> "Mengisi"
-        state.isLevelAvailable && state.level >= 100 && !state.isCharging -> "Penuh"
+        state.isChargingStatusAvailable && state.isLevelAvailable && state.level >= 100 && !state.isCharging -> "Penuh"
         running -> "Aktif"
         else -> "Siaga"
     }
