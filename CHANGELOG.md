@@ -1,7 +1,7 @@
 ## 2026-11-24 — PR #11 (pending): data consistency, History polish, and Charge Guard alarms
 
 ### Changed
-- Session level range now uses the explicit Kotlin Unicode escape `\\u2192`; History duration labels are compact single-line values (`3j 30m`, `48m 21d`). The generic `Anomali tercatat` badge is suppressed when a specific anomaly badge is available.
+- Session level range now uses the explicit Kotlin Unicode escape `\u2192`; History duration labels are compact single-line values (`3j 30m`, `48m 21d`). The generic `Anomali tercatat` badge is suppressed when a specific anomaly badge is available.
 - Selected History sessions use a soft selection fill and chart icon instead of an orange anomaly-like border. The expanded curve panel is placed above the History filter chips.
 - Current-curve axis scaling ignores readings outside ±25,000 mA for display-scale calculation only; raw samples and Room data are not changed.
 - Overview and Insights now map the same persisted SOH snapshot for identical estimated-capacity and SOH values.
