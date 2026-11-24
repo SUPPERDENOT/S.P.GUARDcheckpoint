@@ -642,7 +642,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         }
                     }
                     Text(
-                        "Alarm hanya aktif saat status pengisian dan data sensor tersedia. Fitur ini memberi peringatan; tidak memutus aliran charger.",
+                        "Peringatan diproses saat Battery Monitoring aktif, perangkat sedang mengisi, dan data sensor tersedia. Tidak memutus aliran charger.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
