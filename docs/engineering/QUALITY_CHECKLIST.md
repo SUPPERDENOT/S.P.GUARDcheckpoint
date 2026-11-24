@@ -594,6 +594,21 @@
 
 # SPG Quality Checklist
 
+## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone
+
+- [x] Existing Charge Guard preference file reused; sound selection/title/vibration are persisted separately from Room and calibration.
+- [x] Settings row and dialog are wired to persisted state; picker exposes system default and silent choices.
+- [x] Dedicated notification channel ID is derived from effective sound URI + vibration setting; previous Charge Guard channel is deleted when replaced.
+- [x] Invalid custom URI resolution falls back to system notification URI; pure fallback and channel-ID regression tests added.
+- [x] Preview and Charge Guard notification posting use IO coroutines and do not execute in the sampling call stack.
+- [x] Source review confirms no intended changes to Room v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring channel, P0 lifecycle, or RECOVERY_HOLD.
+- [ ] Unit tests: NOT RUN — awaiting CI for the new commit.
+- [ ] Anti-Slop UI Audit Gate / assembleDebug / APK upload: NOT RUN — awaiting CI.
+- [ ] Physical-device QA on itel P55: NOT RUN — required before PR #11 merge.
+- [ ] PR #11 merge: HOLD until latest CI succeeds and physical-device QA is confirmed.
+
+---
+
 ## 2026-11-22 — Robolectric runtime SDK resolution in CI
 
 - Run #476 XML report inspected: PASS — all 80 reported failures were caused by Robolectric `MavenArtifactFetcher` failing to fetch the API 34 instrumented SDK jar with HTTP 429 from `repo1.maven.org`; this was a shared test-environment failure, not 80 distinct assertion mismatches.
