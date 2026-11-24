@@ -839,7 +839,7 @@ private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
                         Text(
                             if (point.hasData) {
                                 "Siklus: ${String.format(Locale.US, "%.2f", point.totalCycles)} • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(point.totalMahCharged.toLong())} mAh"
-                            } else "Belum ada rollup untuk hari ini",
+                            } else "Belum ada rollup untuk hari tersebut",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
