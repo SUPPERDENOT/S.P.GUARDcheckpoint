@@ -318,7 +318,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth()
-                        .background(if (isSelected) CyanFastCharge.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant,
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(10.dp))
                         .clip(RoundedCornerShape(10.dp))
                         .drawBehind {
@@ -627,7 +627,7 @@ private fun AccessoryBenchmarkCard(
                         .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) {
                         if (fraction > 0f) {
                             Box(Modifier.fillMaxWidth(fraction).fillMaxHeight()
-                                .background(if (ranking.fastestLabel == group.label) EmeraldCharge else CyanFastCharge,
+                                .background(if (ranking.fastestLabel == group.label) EmeraldCharge else MaterialTheme.colorScheme.primary,
                                     RoundedCornerShape(50)))
                         }
                     }
@@ -803,7 +803,7 @@ private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
                                 Modifier.fillMaxWidth(0.58f).height(barHeight)
                                     .background(
                                         if (point.peakTemperatureCelsius != null && point.peakTemperatureCelsius >= 40.0)
-                                            CrimsonAnomaly else CyanFastCharge,
+                                            CrimsonAnomaly else MaterialTheme.colorScheme.primary,
                                         RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
                                     )
                             )
