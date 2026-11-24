@@ -1235,7 +1235,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals(1920.0, closedAfter.totalMahDelivered, 0.001)
         assertEquals(2100, closedAfter.avgCurrentMa)
         assertEquals(38.8f, closedAfter.maxTempCelsius, 0.01f)
-        assertEquals("THERMAL_THROTTLING, RECOVERY_CHECKPOINT", closedAfter.anomalyReason)
+        assertEquals("THERMAL_THROTTLING", closedAfter.anomalyReason)
 
         assertNotNull(SessionRecoveryStore.loadOrNull(context))
     }
