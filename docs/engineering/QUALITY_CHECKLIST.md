@@ -4,12 +4,12 @@
 - [x] Branch: `feat/visual-presentation-and-ux-polish` created from the verified latest main SHA above.
 - [x] Header: 38dp brand row retains status-bar insets and replaces duplicate page name with a live service-state pill; bottom navigation identifies the active tab.
 - [x] Overview: one compact hero card groups the circular battery arc, four live readings, and valid ETA; SOH and system-readiness cards follow it.
-- [x] Charging / curve: sample-weighted temperature bands and CC/CV-like battery-side pattern heuristic added. UI copy explicitly says this is not direct protocol identification; unavailable/ambiguous data remains unknown.
+- [x] Charging / curve: segmented sample-weighted temperature band (Aman <38°C, Hangat 38–<40°C, Tinggi ≥40°C) and CC/CV-like battery-side pattern heuristic added. UI copy explicitly says this is not direct protocol identification; unavailable/ambiguous data remains unknown.
 - [x] Voltage presentation: V and mV shown together; battery-side power explanation moved into a tap dialog.
 - [x] Insights: seven-day trend aggregation, high-temperature marker, and Indonesian date formatter added.
 - [x] History: floating table header removed; mAh units localized inline; level range widened; selected session highlighted; unavailable average power omitted; legacy fixed-voltage watt estimate removed.
 - [x] Accessory comparison: normalized +%/jam, average peak temperature, horizontal bars, Tercepat and Cenderung Panas badges added.
-- [x] Settings: production-renderer bitmap preview (32dp container / 24dp bitmap) uses draft mode, parameters, and calibration scale; compact summary and Indonesian copy added.
+- [x] Settings: production-renderer bitmap preview (32dp container / 24dp bitmap) follows draft single/custom mode, selected rotation parameters and interval, and calibration scale; compact summary and Indonesian copy added.
 - [x] Focused unit tests added for thermal zones / CC-CV-like mapping, seven-day aggregation/date labels, accessory ranking/peak temperature, and Settings summary formatting.
 - [x] Protected scope by source review: Room v3, sensor acquisition/cadence, calibration default 1x, P0 BatteryMonitorService lifecycle, RECOVERY_HOLD, startup policy, and applicationId remain unchanged.
 - [x] No package, dependency, SDK, app-version, or build-number changes; no report export/copy feature added.
