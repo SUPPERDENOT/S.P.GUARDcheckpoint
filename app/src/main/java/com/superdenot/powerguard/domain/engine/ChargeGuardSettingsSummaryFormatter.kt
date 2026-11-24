@@ -8,7 +8,13 @@ object ChargeGuardSettingsSummaryFormatter {
             if (config.chargeLimitEnabled) add("Target ${config.targetLevelPercent}%")
             if (config.highTemperatureEnabled) add("Suhu ≥${config.highTemperatureThresholdCelsius}°C")
         }
-        return activeRules.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "Nonaktif"
+        val summary = activeRules.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "Nonaktif"
+        val repeat = when (config.repeatMode) {
+            ChargeGuardRepeatMode.ONCE -> null
+            ChargeGuardRepeatMode.EVERY_1_MINUTE -> "Ulang 1m"
+            ChargeGuardRepeatMode.EVERY_3_MINUTES -> "Ulang 3m"
+        }
+        return listOfNotNull(summary, repeat).joinToString(" · ")
     }
 
     fun formatAlert(soundTitle: String, vibrationTitle: String): String {
