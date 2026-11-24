@@ -598,14 +598,20 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     }
                     if (chargeGuardConfig.chargeLimitEnabled) {
                         Text("Target level", style = MaterialTheme.typography.labelMedium)
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                            ChargeGuardConfiguration.SUPPORTED_CHARGE_TARGETS.sorted().forEach { target ->
-                                FilterChip(
-                                    selected = chargeGuardConfig.targetLevelPercent == target,
-                                    onClick = { saveChargeGuard(chargeGuardConfig.copy(targetLevelPercent = target)) },
-                                    label = { Text("$target%", maxLines = 1, softWrap = false) },
-                                    modifier = Modifier.weight(1f)
-                                )
+                        val chargeTargets = ChargeGuardConfiguration.SUPPORTED_CHARGE_TARGETS.sorted()
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(chargeTargets.take(3), chargeTargets.drop(3)).forEach { rowTargets ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                    rowTargets.forEach { target ->
+                                        FilterChip(
+                                            selected = chargeGuardConfig.targetLevelPercent == target,
+                                            onClick = { saveChargeGuard(chargeGuardConfig.copy(targetLevelPercent = target)) },
+                                            label = { Text("$target%", maxLines = 1, softWrap = false) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    if (rowTargets.size == 2) Spacer(Modifier.weight(1f))
+                                }
                             }
                         }
                     }
