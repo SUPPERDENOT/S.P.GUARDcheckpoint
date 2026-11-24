@@ -1,3 +1,26 @@
+## 2026-11-24 — PR #11 follow-up: external audio fallback, custom vibration, and compact switches
+
+### Fixed and added
+- Replaced the four Material 3 Switch controls in Settings and the Charge Guard popup with the reusable CompactSwitch: 42×24dp track, 18dp thumb, animated 3dp inset travel, and 36dp interaction height.
+- Added READ_MEDIA_AUDIO for API 33+ and READ_EXTERNAL_STORAGE capped at API 32. When an external MediaStore audio URI is selected, Settings requests the relevant runtime permission if it is not already granted; denying it leaves the prior draft tone unchanged.
+- Preview playback validates custom URI readability through ContentResolver.openAssetFileDescriptor and rejects zero-length descriptors. SecurityException, FileNotFoundException, unreadable URI, missing Ringtone, or play exception advance to the system notification URI and then Android's notification default URI.
+- Preview playback retains the active Ringtone, stops a previous preview before starting another, and schedules a four-second stop. Selecting Hening stops the active preview; Off cancels any previous vibration.
+- Added Off, Singkat, Ganda (default), SOS, and Kustom vibration modes. Kustom records tap intervals as pulse/gap segments, clamps each segment to 50–1500ms, and caps the stored waveform at eight pulses.
+- Charge Guard notification channel identity now includes the full vibration waveform; channel vibration uses the selected waveform and notification-event audio attributes.
+- Settings Charge Guard summary now uses two ellipsized one-line rows. Every History session range label, including the unavailable end marker, uses SessionLevelRangeFormatter.
+
+### Verification and limitations
+- Regression tests added for built-in waveforms, custom timing sanitization/persistence, channel hash changes, inaccessible/missing external audio fallback, missing system ringtone fallback, and two-line Settings summary.
+- GitHub Actions for the final branch HEAD: PENDING.
+- Physical-device QA on itel P55: NOT RUN. Verify permission grant and denial, external tone playback, fallback behavior, all five vibration modes, and notification-channel behavior before merge.
+- Android cannot guarantee audible output if the system notification volume is muted, Do Not Disturb suppresses sound, the notification channel is muted, or both system default ringtone providers return no playable tone. The implementation guarantees fallback attempts for URI/provider/playback failures; it cannot override system audio policy.
+- CompactSwitch uses the explicitly requested 36dp interaction height. DESIGN.md specifies a 48dp minimum touch target; this is a documented accessibility trade-off requiring physical usability review.
+- PowerGuardViewModel's existing preview method already delegates to ChargeGuardAlertSoundPlayer on Dispatchers.IO, so no ViewModel change was necessary. The player implementation was corrected without duplicating preview orchestration.
+- Protected invariants remain unchanged by intent: Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, and applicationId.
+- PR #11 remains OPEN and UNMERGED; merge remains on hold until physical itel P55 QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #11 follow-up: compact Charge Guard popup and 50°C threshold
 
 ### Changed
