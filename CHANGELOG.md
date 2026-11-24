@@ -12,7 +12,7 @@
 
 ### Verification and limitations
 - Added unit tests for default/persisted repeat modes, one- and three-minute intervals, Sekali, the five-repeat cap, dismiss suppression, unplug reset, strict temperature hysteresis stop, and Settings summary text.
-- GitHub Actions for this final change: PENDING.
+- GitHub Actions Run #634 on implementation HEAD ec3099afd53d8d2d9f465104de44e89e43852e54: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, debug APK upload, and unit-test report upload. Debug APK artifact 14940768566; unit-test report artifact 14940269848. The earlier Run #632 exposed an invalid Compose padding overload; it was corrected before Run #633, and Run #634 validates the final implementation including the temperature repeat-cap test.
 - Physical-device QA on itel P55: NOT RUN; verify notification deleteIntent delivery, repeat timing, unplug stop, and temperature hysteresis before merge.
 - Repeat timing is sample-driven by the existing monitoring loop (approximately one-second evaluation cadence); notification dispatch can be delayed slightly by scheduler/service load.
 - The requested 36dp footer buttons and 32dp choice pills are smaller than the 48dp touch-target guidance in DESIGN.md; this deliberate compact-layout deviation requires thumb-use review on itel P55.
