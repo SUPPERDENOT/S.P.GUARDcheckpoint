@@ -189,7 +189,6 @@ object ChargeGuardSettings {
     ): List<ChargeGuardAlert> = synchronized(lock) {
         val prefs = preferences(context)
         val config = read(context)
-        if (!config.chargeLimitEnabled && !config.highTemperatureEnabled) return@synchronized emptyList()
         val storedSessionId = prefs.getLong(KEY_LAST_CHARGE_SESSION_ID, Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE }
         val storedTarget = prefs.getInt(KEY_LAST_CHARGE_TARGET, -1).takeIf { it >= 0 }
         val storedThreshold = prefs.getInt(KEY_STORED_TEMPERATURE_THRESHOLD, -1).takeIf { it >= 0 }
