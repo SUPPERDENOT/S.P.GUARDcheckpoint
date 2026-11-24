@@ -22,6 +22,28 @@ class ChargeGuardSettingsSummaryFormatterTest {
         )
     }
 
+
+    @Test fun nonDefaultRepeatModeIsIncludedInFirstSummaryLine() {
+        assertEquals(
+            "Target 80% · Suhu ≥40°C · Ulang 1m",
+            ChargeGuardSettingsSummaryFormatter.formatRules(
+                ChargeGuardConfiguration(
+                    chargeLimitEnabled = true,
+                    targetLevelPercent = 80,
+                    highTemperatureEnabled = true,
+                    highTemperatureThresholdCelsius = 40,
+                    repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
+                )
+            )
+        )
+        assertEquals(
+            "Nonaktif · Ulang 3m",
+            ChargeGuardSettingsSummaryFormatter.formatRules(
+                ChargeGuardConfiguration(repeatMode = ChargeGuardRepeatMode.EVERY_3_MINUTES)
+            )
+        )
+    }
+
     @Test fun invalidThresholdIsNormalizedBeforeFormatting() {
         assertEquals(
             "Suhu ≥40°C",
