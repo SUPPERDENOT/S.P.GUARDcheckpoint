@@ -11,11 +11,11 @@
 - [x] Temperature repeat remains active until temperature is strictly below threshold minus 2°C; exact hysteresis boundary does not re-arm.
 - [x] Added unit tests for repeat mode persistence, interval boundaries, five-repeat cap, dismiss suppression, unplug reset, hysteresis stop, and summary formatting.
 - [x] No Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, or applicationId change intended.
-- [ ] Diff review: PENDING.
-- [ ] Anti-Slop UI Audit Gate: PENDING.
-- [ ] testDebugUnitTest: PENDING.
-- [ ] assembleDebug: PENDING.
-- [ ] Upload APK / latest Artifact ID: PENDING.
+- [x] Diff review: PASS — changes since prior HEAD are limited to Charge Guard dialog/settings, repeat policy/persistence, dismiss receiver/service integration, focused tests, manifest receiver declaration, and documentation.
+- [x] Anti-Slop UI Audit Gate: SUCCESS (Run #634).
+- [x] testDebugUnitTest: SUCCESS (Run #634).
+- [x] assembleDebug: SUCCESS (Run #634).
+- [x] Upload APK: SUCCESS (Run #634); debug APK Artifact ID 14940768566; unit-test report Artifact ID 14940269848.
 - [ ] Physical-device QA on itel P55: NOT RUN; verify sticky footer reachability, 36dp/32dp touch usability, notification dismissal, repeat cadence, charger unplug, and temperature hysteresis.
 - [ ] PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
 
