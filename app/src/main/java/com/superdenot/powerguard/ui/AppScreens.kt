@@ -58,6 +58,9 @@ import com.superdenot.powerguard.domain.engine.ChargeGuardSettingsSummaryFormatt
 import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import com.superdenot.powerguard.data.repository.ChargeGuardVibrationPattern
 import com.superdenot.powerguard.ui.components.CompactSwitch
+import com.superdenot.powerguard.ui.components.BatteryGaugeView
+import com.superdenot.powerguard.ui.components.ThemePickerDialogs
+import com.superdenot.powerguard.ui.components.resolveBatteryGaugeColor
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
@@ -67,6 +70,9 @@ import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
+import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
+import com.superdenot.powerguard.ui.theme.LocalBatteryMetricTints
+import com.superdenot.powerguard.ui.theme.InstrumentGraphite
 import com.superdenot.powerguard.service.LiveStatusBarRenderer
 import com.superdenot.powerguard.ui.components.ChargingThermalSummaryPanel
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
@@ -95,19 +101,24 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
 
+    val isCriticalThermal = state.isTemperatureAvailable &&
+        state.tempCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS
+    val isWarm = state.isTemperatureAvailable &&
+        state.tempCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS && !isCriticalThermal
     val gaugeStatus = when {
-        state.isTemperatureAvailable && state.tempCelsius >= 40f -> "Suhu Tinggi"
+        isCriticalThermal -> "Suhu Tinggi"
+        isWarm -> "Hangat"
         state.isChargingStatusAvailable && state.isCharging -> "Mengisi"
         state.isChargingStatusAvailable && state.isLevelAvailable && state.level >= 100 && !state.isCharging -> "Penuh"
         running -> "Aktif"
         else -> "Siaga"
     }
-    val gaugeColor = when (gaugeStatus) {
-        "Suhu Tinggi" -> CrimsonAnomaly
-        "Mengisi", "Penuh" -> EmeraldCharge
-        "Aktif" -> MaterialTheme.colorScheme.primary
-        else -> AmberThermal
-    }
+    val gaugeColor = resolveBatteryGaugeColor(
+        LocalBatterySemanticColors.current, isCriticalThermal, isWarm,
+        state.isChargingStatusAvailable && state.isCharging
+    )
+    val metricTints = LocalBatteryMetricTints.current
+    val themePackConfig by vm.themePackConfig.collectAsState()
     val eta = state.chargingEtaMinutes
         ?.takeIf { state.isCharging && state.isChargingEtaTracking && it > 0L }
         ?.let { ChargingEtaEstimator.formatEta(it) }
@@ -131,24 +142,17 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                        BatteryArcGauge(
-                            progress = if (state.isLevelAvailable) state.level.coerceIn(0, 100) / 100f else 0f,
-                            color = gaugeColor,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                if (state.isLevelAvailable) "${state.level}%" else "—",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1
-                            )
-                            Text("BATERAI", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.8.sp)
-                        }
-                    }
+                    BatteryGaugeView(
+                        progress = if (state.isLevelAvailable) state.level.coerceIn(0, 100) / 100f else 0f,
+                        percentageLabel = if (state.isLevelAvailable) "${state.level}%" else "—",
+                        model = themePackConfig.gaugeModel,
+                        animation = themePackConfig.chargingAnimation,
+                        isCharging = state.isChargingStatusAvailable && state.isCharging,
+                        isCriticalThermal = isCriticalThermal,
+                        isWarm = isWarm,
+                        isVisibleOnScreen = true,
+                        modifier = Modifier.size(112.dp)
+                    )
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -160,12 +164,12 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                                 color = gaugeColor, fontWeight = FontWeight.Bold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f))
-                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f))
+                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f), metricTints.cold)
+                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f), metricTints.cold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—", Modifier.weight(1f))
-                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—", Modifier.weight(1f))
+                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—", Modifier.weight(1f), metricTints.warm)
+                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—", Modifier.weight(1f), metricTints.cold)
                         }
                         eta?.let {
                             Text("Estimasi penuh · $it", style = MaterialTheme.typography.labelSmall,
@@ -228,40 +232,24 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
 }
 
 @Composable
-private fun BatteryArcGauge(progress: Float, color: Color, modifier: Modifier = Modifier) {
-    val trackColor = MaterialTheme.colorScheme.outlineVariant
-    Canvas(modifier) {
-        val stroke = 7.dp.toPx()
-        val diameter = (size.minDimension - stroke).coerceAtLeast(1f)
-        val topLeft = androidx.compose.ui.geometry.Offset(
-            (size.width - diameter) / 2f,
-            (size.height - diameter) / 2f
-        )
-        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
-        drawArc(
-            color = trackColor,
-            startAngle = 135f,
-            sweepAngle = 270f,
-            useCenter = false,
-            topLeft = topLeft,
-            size = arcSize,
-            style = Stroke(stroke, cap = StrokeCap.Round)
-        )
-        if (progress > 0f) {
-            drawArc(
-                color = color,
-                startAngle = 135f,
-                sweepAngle = 270f * progress.coerceIn(0f, 1f),
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(stroke, cap = StrokeCap.Round)
-            )
-        }
+private fun HeroMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    containerColor: Color = Color.Transparent
+) {
+    Column(
+        modifier = modifier.background(containerColor, RoundedCornerShape(8.dp)).padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, softWrap = false)
     }
 }
 
-@Composable
 private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall,
@@ -489,11 +477,15 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     val currentScale by vm.batteryCurrentScale.collectAsState()
+    val themeConfig by vm.themePackConfig.collectAsState()
     val previewService by vm.liveState.collectAsState()
     val previewFallback by vm.fallbackState.collectAsState()
     val previewRunning by vm.isServiceRunning.collectAsState()
     val previewServiceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
     val previewFallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
+    val previewBatteryState = selectDashboardLiveState(
+        previewRunning, previewService, previewFallback, previewServiceAt, previewFallbackAt, SystemClock.elapsedRealtime()
+    )
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
@@ -620,6 +612,16 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     )
                 }
             }
+        }
+        item {
+            ThemePickerDialogs(
+                config = themeConfig,
+                batteryLevel = previewBatteryState.level.takeIf { previewBatteryState.isLevelAvailable },
+                isCharging = previewBatteryState.isChargingStatusAvailable && previewBatteryState.isCharging,
+                temperatureCelsius = previewBatteryState.tempCelsius,
+                isTemperatureAvailable = previewBatteryState.isTemperatureAvailable,
+                onSave = vm::setThemePackConfig
+            )
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
@@ -1001,7 +1003,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             fontWeight = FontWeight.SemiBold
                         )
                         Box(
-                            modifier = Modifier.size(32.dp).background(Color(0xFF252923), RoundedCornerShape(6.dp)),
+                            modifier = Modifier.size(32.dp).background(InstrumentGraphite, RoundedCornerShape(6.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             previewBitmap?.let { bitmap ->
