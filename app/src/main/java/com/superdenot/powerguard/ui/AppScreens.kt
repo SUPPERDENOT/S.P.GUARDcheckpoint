@@ -891,7 +891,7 @@ private fun StatusBarParameterGrid(
                                 role = if (multiSelect) Role.Checkbox else Role.RadioButton,
                                 onClick = { onParameterClick(parameter) }
                             ),
-                        shape = MaterialTheme.shapes.small,
+                        shape = RoundedCornerShape(8.dp),
                         color = if (selected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surface,
                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
