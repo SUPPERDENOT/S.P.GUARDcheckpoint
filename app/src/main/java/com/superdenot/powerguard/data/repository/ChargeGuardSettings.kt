@@ -7,23 +7,56 @@ import com.superdenot.powerguard.domain.engine.ChargeGuardAlarmState
 import com.superdenot.powerguard.domain.engine.ChargeGuardAlert
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
 
+enum class ChargeGuardVibrationPattern(val title: String) {
+    OFF("Off"),
+    SHORT("Singkat"),
+    DOUBLE("Ganda"),
+    SOS("SOS"),
+    CUSTOM("Kustom")
+}
+
 data class ChargeGuardAlertSoundSetting(
     val selection: String = DEFAULT,
     val title: String = "Nada Default",
-    val vibrate: Boolean = true
+    val vibrationPattern: ChargeGuardVibrationPattern = ChargeGuardVibrationPattern.DOUBLE,
+    val customVibrationTimings: List<Long> = emptyList()
 ) {
-    fun normalized(): ChargeGuardAlertSoundSetting = copy(
-        selection = selection.takeIf { it == DEFAULT || it == SILENT || it.startsWith("content://") || it.startsWith("file://") }
-            ?: DEFAULT,
-        title = title.trim().takeIf { it.isNotEmpty() } ?: when (selection) {
-            SILENT -> "Hening"
-            DEFAULT -> "Nada Default"
-            else -> "Nada pilihan"
-        }
-    )
+    fun normalized(): ChargeGuardAlertSoundSetting {
+        val safeTimings = customVibrationTimings.take(15)
+            .map { it.coerceIn(MIN_VIBRATION_SEGMENT_MS, MAX_VIBRATION_SEGMENT_MS) }
+            .let { if (it.size % 2 == 0) it.dropLast(1) else it }
+        return copy(
+            selection = selection.takeIf { it == DEFAULT || it == SILENT || it.startsWith("content://") || it.startsWith("file://") }
+                ?: DEFAULT,
+            title = title.trim().takeIf { it.isNotEmpty() } ?: when (selection) {
+                SILENT -> "Hening"
+                DEFAULT -> "Nada Default"
+                else -> "Nada pilihan"
+            },
+            customVibrationTimings = safeTimings
+        )
+    }
+
+    fun vibrationTimings(): LongArray = when (vibrationPattern) {
+        ChargeGuardVibrationPattern.OFF -> longArrayOf()
+        ChargeGuardVibrationPattern.SHORT -> longArrayOf(0L, 250L)
+        ChargeGuardVibrationPattern.DOUBLE -> longArrayOf(0L, 200L, 120L, 200L)
+        ChargeGuardVibrationPattern.SOS -> longArrayOf(
+            0L, 120L, 90L, 120L, 90L, 120L, 180L,
+            320L, 90L, 320L, 90L, 320L, 180L,
+            120L, 90L, 120L, 90L, 120L
+        )
+        ChargeGuardVibrationPattern.CUSTOM -> normalized().customVibrationTimings
+            .takeIf { it.size >= 3 }
+            ?.let { (listOf(0L) + it).toLongArray() }
+            ?: longArrayOf()
+    }
+
     companion object {
         const val DEFAULT = "DEFAULT"
         const val SILENT = "SILENT"
+        const val MIN_VIBRATION_SEGMENT_MS = 50L
+        const val MAX_VIBRATION_SEGMENT_MS = 1_500L
     }
 }
 
@@ -42,6 +75,8 @@ object ChargeGuardSettings {
     private const val KEY_ALERT_SOUND_SELECTION = "alert_sound_selection"
     private const val KEY_ALERT_SOUND_TITLE = "alert_sound_title"
     private const val KEY_ALERT_VIBRATE = "alert_vibrate"
+    private const val KEY_ALERT_VIBRATION_PATTERN = "alert_vibration_pattern"
+    private const val KEY_ALERT_CUSTOM_VIBRATION_TIMINGS = "alert_custom_vibration_timings"
     private const val KEY_ACTIVE_ALERT_CHANNEL_ID = "active_alert_channel_id"
     private val lock = Any()
 
@@ -67,10 +102,25 @@ object ChargeGuardSettings {
             ChargeGuardAlertSoundSetting.DEFAULT -> "Nada Default"
             else -> "Nada pilihan"
         }
+        val vibrationPattern = if (prefs.contains(KEY_ALERT_VIBRATION_PATTERN)) {
+            runCatching {
+                ChargeGuardVibrationPattern.valueOf(
+                    prefs.getString(KEY_ALERT_VIBRATION_PATTERN, ChargeGuardVibrationPattern.DOUBLE.name)
+                        ?: ChargeGuardVibrationPattern.DOUBLE.name
+                )
+            }.getOrDefault(ChargeGuardVibrationPattern.DOUBLE)
+        } else if (prefs.getBoolean(KEY_ALERT_VIBRATE, true)) {
+            ChargeGuardVibrationPattern.DOUBLE
+        } else {
+            ChargeGuardVibrationPattern.OFF
+        }
+        val customTimings = prefs.getString(KEY_ALERT_CUSTOM_VIBRATION_TIMINGS, "")
+            .orEmpty().split(',').mapNotNull { it.toLongOrNull() }
         return ChargeGuardAlertSoundSetting(
             selection = selection,
             title = prefs.getString(KEY_ALERT_SOUND_TITLE, defaultTitle) ?: defaultTitle,
-            vibrate = prefs.getBoolean(KEY_ALERT_VIBRATE, true)
+            vibrationPattern = vibrationPattern,
+            customVibrationTimings = customTimings
         ).normalized()
     }
 
@@ -79,7 +129,9 @@ object ChargeGuardSettings {
         preferences(context).edit()
             .putString(KEY_ALERT_SOUND_SELECTION, normalized.selection)
             .putString(KEY_ALERT_SOUND_TITLE, normalized.title)
-            .putBoolean(KEY_ALERT_VIBRATE, normalized.vibrate)
+            .putBoolean(KEY_ALERT_VIBRATE, normalized.vibrationPattern != ChargeGuardVibrationPattern.OFF)
+            .putString(KEY_ALERT_VIBRATION_PATTERN, normalized.vibrationPattern.name)
+            .putString(KEY_ALERT_CUSTOM_VIBRATION_TIMINGS, normalized.customVibrationTimings.joinToString(","))
             .apply()
     }
 
