@@ -36,12 +36,19 @@ object ChargeGuardSettings {
 
     fun save(context: Context, configuration: ChargeGuardConfiguration) {
         val config = configuration.normalized()
-        preferences(context).edit()
+        val prefs = preferences(context)
+        val previous = read(context)
+        val editor = prefs.edit()
             .putBoolean(KEY_CHARGE_LIMIT_ENABLED, config.chargeLimitEnabled)
             .putInt(KEY_CHARGE_TARGET_PERCENT, config.targetLevelPercent)
             .putBoolean(KEY_HIGH_TEMPERATURE_ENABLED, config.highTemperatureEnabled)
             .putInt(KEY_HIGH_TEMPERATURE_THRESHOLD, config.highTemperatureThresholdCelsius)
-            .apply()
+        if (!config.highTemperatureEnabled ||
+            previous.highTemperatureThresholdCelsius != config.highTemperatureThresholdCelsius
+        ) {
+            editor.putBoolean(KEY_TEMPERATURE_ARMED, true)
+        }
+        editor.apply()
     }
 
     fun evaluate(
