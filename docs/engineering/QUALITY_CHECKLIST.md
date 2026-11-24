@@ -2,7 +2,7 @@
 
 - [x] Baseline PR #10 merged; latest main SHA `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
 - [x] Created `feat/data-consistency-and-charge-guard` from the verified main SHA; branch is not behind main at implementation start.
-- [x] History range formatter uses explicit `\\u2192`; compact duration formatter is one line; generic anomaly badge is suppressed when specific anomaly badges exist.
+- [x] History range formatter uses explicit `\u2192`; compact duration formatter is one line; generic anomaly badge is suppressed when specific anomaly badges exist.
 - [x] Selected-session highlight and curve/filter ordering updated.
 - [x] Current chart scale excludes absolute current values above 25,000 mA without mutating raw sample values.
 - [x] Overview and Insights use one shared mapper over the same persisted SOH snapshot.
