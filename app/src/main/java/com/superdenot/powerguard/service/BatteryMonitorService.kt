@@ -3977,12 +3977,29 @@ class BatteryMonitorService : Service() {
         )
     }
 
+    private fun buildChargeGuardAlertNotification(alert: ChargeGuardAlert): Notification {
+        val openAppIntent = PendingIntent.getActivity(
+            this, 2, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+        )
+        val visualSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(alert.message, alert.code)
+        val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
+        return NotificationCompat.Builder(this, CHANNEL_ANOMALY)
+            .setContentTitle("SUPERD POWER GUARD • ${alert.title}")
+            .setContentText(alert.message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(alert.message))
+            .setSmallIcon(visualSpec.smallIconResId)
+            .setColor(visualSpec.accentColor)
+            .setLargeIcon(largeIcon)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(openAppIntent)
+            .setAutoCancel(true)
+            .build()
+    }
+
     private fun sendChargeGuardAlertNotification(alert: ChargeGuardAlert) {
         if (!::notificationManager.isInitialized || destroyRequested.get()) return
-        notificationManager.notify(
-            CHARGE_GUARD_NOTIFICATION_ID,
-            buildAnomalyAlertNotification(alert.message, alert.code, null)
-        )
+        notificationManager.notify(CHARGE_GUARD_NOTIFICATION_ID, buildChargeGuardAlertNotification(alert))
     }
 
     override fun onDestroy() {
