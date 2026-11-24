@@ -49,6 +49,7 @@ import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
 import com.superdenot.powerguard.domain.analytics.BatteryHealthSummaryMapper
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.domain.engine.ChargeGuardSettingsSummaryFormatter
 import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
@@ -476,9 +477,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val context = LocalContext.current
     val chargeGuardConfig by vm.chargeGuardConfig.collectAsState()
     val chargeGuardAlertSound by vm.chargeGuardAlertSound.collectAsState()
-    fun saveChargeGuard(next: ChargeGuardConfiguration) {
-        vm.setChargeGuardConfiguration(next)
-    }
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
@@ -492,34 +490,31 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
-    var showChargeGuardSoundDialog by remember { mutableStateOf(false) }
+    var showChargeGuardDialog by remember { mutableStateOf(false) }
+    var draftChargeGuardConfig by remember { mutableStateOf(chargeGuardConfig) }
+    var draftChargeGuardSound by remember { mutableStateOf(chargeGuardAlertSound) }
+
+    fun openChargeGuardDialog() {
+        draftChargeGuardConfig = chargeGuardConfig
+        draftChargeGuardSound = chargeGuardAlertSound
+        showChargeGuardDialog = true
+    }
+
     val ringtonePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             @Suppress("DEPRECATION")
             val pickedUri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            val selected = when {
-                pickedUri == null -> ChargeGuardAlertSoundSetting(
-                    selection = ChargeGuardAlertSoundSetting.SILENT,
-                    title = "Hening",
-                    vibrate = chargeGuardAlertSound.vibrate
-                )
-                pickedUri == Settings.System.DEFAULT_NOTIFICATION_URI -> ChargeGuardAlertSoundSetting(
-                    selection = ChargeGuardAlertSoundSetting.DEFAULT,
-                    title = "Nada Default",
-                    vibrate = chargeGuardAlertSound.vibrate
+            draftChargeGuardSound = when {
+                pickedUri == null -> draftChargeGuardSound.copy(selection = ChargeGuardAlertSoundSetting.SILENT, title = "Hening")
+                pickedUri == Settings.System.DEFAULT_NOTIFICATION_URI -> draftChargeGuardSound.copy(
+                    selection = ChargeGuardAlertSoundSetting.DEFAULT, title = "Nada Default"
                 )
                 else -> {
-                    val title = runCatching {
-                        RingtoneManager.getRingtone(context, pickedUri)?.getTitle(context)
-                    }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Nada pilihan"
-                    ChargeGuardAlertSoundSetting(
-                        selection = pickedUri.toString(),
-                        title = title,
-                        vibrate = chargeGuardAlertSound.vibrate
-                    )
+                    val title = runCatching { RingtoneManager.getRingtone(context, pickedUri)?.getTitle(context) }
+                        .getOrNull()?.takeIf { it.isNotBlank() } ?: "Nada pilihan"
+                    draftChargeGuardSound.copy(selection = pickedUri.toString(), title = title)
                 }
             }
-            vm.setChargeGuardAlertSound(selected)
         }
     }
     LazyColumn(
@@ -620,100 +615,36 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = ::openChargeGuardDialog),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    Text("Batas Pengisian & Peringatan Suhu", fontWeight = FontWeight.Bold)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Alarm batas pengisian", fontWeight = FontWeight.SemiBold)
-                            Text("Peringatkan saat level mencapai target ketika sedang mengisi.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(
-                            checked = chargeGuardConfig.chargeLimitEnabled,
-                            onCheckedChange = { saveChargeGuard(chargeGuardConfig.copy(chargeLimitEnabled = it)) }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("Peringatan & Nada", fontWeight = FontWeight.Bold)
+                        Text(
+                            ChargeGuardSettingsSummaryFormatter.format(chargeGuardConfig, chargeGuardAlertSound),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1, softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
-                    if (chargeGuardConfig.chargeLimitEnabled) {
-                        Text("Target level", style = MaterialTheme.typography.labelMedium)
-                        val chargeTargets = ChargeGuardConfiguration.SUPPORTED_CHARGE_TARGETS.sorted()
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            listOf(chargeTargets.take(3), chargeTargets.drop(3)).forEach { rowTargets ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                                    rowTargets.forEach { target ->
-                                        FilterChip(
-                                            selected = chargeGuardConfig.targetLevelPercent == target,
-                                            onClick = { saveChargeGuard(chargeGuardConfig.copy(targetLevelPercent = target)) },
-                                            label = { Text("$target%", maxLines = 1, softWrap = false) },
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-                                    if (rowTargets.size == 2) Spacer(Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Peringatan suhu tinggi", fontWeight = FontWeight.SemiBold)
-                            Text("Peringatan saat sensor suhu baterai mencapai ambang.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(
-                            checked = chargeGuardConfig.highTemperatureEnabled,
-                            onCheckedChange = { saveChargeGuard(chargeGuardConfig.copy(highTemperatureEnabled = it)) }
-                        )
-                    }
-                    if (chargeGuardConfig.highTemperatureEnabled) {
-                        Text("Ambang suhu", style = MaterialTheme.typography.labelMedium)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            ChargeGuardConfiguration.SUPPORTED_TEMPERATURE_THRESHOLDS.sorted().forEach { threshold ->
-                                FilterChip(
-                                    selected = chargeGuardConfig.highTemperatureThresholdCelsius == threshold,
-                                    onClick = { saveChargeGuard(chargeGuardConfig.copy(highTemperatureThresholdCelsius = threshold)) },
-                                    label = { Text("$threshold°C") },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Surface(
+                        modifier = Modifier.height(32.dp).clickable { vm.previewChargeGuardAlert() },
+                        shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f).clickable(
-                                role = Role.Button,
-                                onClick = { showChargeGuardSoundDialog = true }
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text("Nada peringatan", fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "${chargeGuardAlertSound.title} · ${if (chargeGuardAlertSound.vibrate) "Getar" else "Tanpa getar"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                softWrap = false
-                            )
+                        Box(Modifier.padding(horizontal = 11.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            Text("Tes", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         }
-                        OutlinedButton(
-                            onClick = vm::previewChargeGuardAlert,
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                        ) { Text("Tes") }
                     }
-                    Text(
-                        "Peringatan diproses saat Battery Monitoring aktif, perangkat sedang mengisi, dan data sensor tersedia. Tidak memutus aliran charger.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = "Atur peringatan dan nada",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -725,51 +656,103 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
     }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
-    if (showChargeGuardSoundDialog) {
-        Dialog(onDismissRequest = { showChargeGuardSoundDialog = false }) {
+    if (showChargeGuardDialog) {
+        Dialog(onDismissRequest = { showChargeGuardDialog = false }) {
             Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 380.dp),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
+                shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp
             ) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("Nada peringatan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text(chargeGuardAlertSound.title, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedButton(
-                        onClick = {
-                            val existingUri = when (chargeGuardAlertSound.selection) {
-                                ChargeGuardAlertSoundSetting.DEFAULT -> Settings.System.DEFAULT_NOTIFICATION_URI
-                                ChargeGuardAlertSoundSetting.SILENT -> null
-                                else -> runCatching { Uri.parse(chargeGuardAlertSound.selection) }.getOrNull()
-                            }
-                            val pickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_NOTIFICATION_URI)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existingUri)
-                            }
-                            showChargeGuardSoundDialog = false
-                            ringtonePickerLauncher.launch(pickerIntent)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Pilih nada sistem / file audio") }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Getar", fontWeight = FontWeight.SemiBold)
-                            Text(if (chargeGuardAlertSound.vibrate) "Aktif" else "Nonaktif",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())) {
+                    Text("Peringatan & Nada",
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Batas pengisian", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            Switch(checked = draftChargeGuardConfig.chargeLimitEnabled,
+                                onCheckedChange = { draftChargeGuardConfig = draftChargeGuardConfig.copy(chargeLimitEnabled = it) })
                         }
-                        Switch(
-                            checked = chargeGuardAlertSound.vibrate,
-                            onCheckedChange = { vm.setChargeGuardAlertSound(chargeGuardAlertSound.copy(vibrate = it)) }
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            listOf(80, 85, 90, 95, 100).forEach { target ->
+                                ChargeGuardChoicePill("$target%", draftChargeGuardConfig.targetLevelPercent == target,
+                                    { draftChargeGuardConfig = draftChargeGuardConfig.copy(targetLevelPercent = target) }, Modifier.weight(1f))
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Peringatan suhu tinggi", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            Switch(checked = draftChargeGuardConfig.highTemperatureEnabled,
+                                onCheckedChange = { draftChargeGuardConfig = draftChargeGuardConfig.copy(highTemperatureEnabled = it) })
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                            listOf(40, 42, 45, 50).forEach { threshold ->
+                                ChargeGuardChoicePill("$threshold°C", draftChargeGuardConfig.highTemperatureThresholdCelsius == threshold,
+                                    { draftChargeGuardConfig = draftChargeGuardConfig.copy(highTemperatureThresholdCelsius = threshold) }, Modifier.weight(1f))
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Text("Nada & Getar", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
+                                val existingUri = when (draftChargeGuardSound.selection) {
+                                    ChargeGuardAlertSoundSetting.DEFAULT -> Settings.System.DEFAULT_NOTIFICATION_URI
+                                    ChargeGuardAlertSoundSetting.SILENT -> null
+                                    else -> runCatching { Uri.parse(draftChargeGuardSound.selection) }.getOrNull()
+                                }
+                                val pickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_NOTIFICATION_URI)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existingUri)
+                                }
+                                ringtonePickerLauncher.launch(pickerIntent)
+                            },
+                            shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(draftChargeGuardSound.title, style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold, maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    Text("Pilih nada sistem / file audio", style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Text("Ubah ›", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ChargeGuardChoicePill(
+                                if (draftChargeGuardSound.vibrate) "Getar: Aktif" else "Getar: Nonaktif",
+                                draftChargeGuardSound.vibrate,
+                                { draftChargeGuardSound = draftChargeGuardSound.copy(vibrate = !draftChargeGuardSound.vibrate) },
+                                Modifier.weight(1f)
+                            )
+                            Surface(Modifier.height(32.dp).clickable { vm.previewChargeGuardAlert(draftChargeGuardSound) },
+                                shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surface,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                                Box(Modifier.padding(horizontal = 16.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                                    Text("Tes", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                        Text("Peringatan bekerja saat perangkat mengisi dan data sensor tersedia. Fitur ini memberi notifikasi, bukan memutus aliran charger.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextButton(onClick = { showChargeGuardSoundDialog = false }, modifier = Modifier.align(Alignment.End)) {
-                        Text("Selesai")
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { showChargeGuardDialog = false }) { Text("Batal") }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = {
+                            vm.setChargeGuardConfiguration(draftChargeGuardConfig)
+                            vm.setChargeGuardAlertSound(draftChargeGuardSound)
+                            showChargeGuardDialog = false
+                        }) { Text("Simpan") }
                     }
                 }
             }
@@ -1181,6 +1164,24 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
 }
 
+
+@Composable
+private fun ChargeGuardChoicePill(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.height(32.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        border = androidx.compose.foundation.BorderStroke(if (selected) 1.5.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(label, style = MaterialTheme.typography.labelMedium.copy(
+                platformStyle = PlatformTextStyle(includeFontPadding = false)),
+                fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
+        }
+    }
+}
 
 @Composable
 private fun StatusBarParameterGrid(
