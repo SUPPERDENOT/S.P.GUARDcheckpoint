@@ -4,27 +4,29 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ChargeGuardSettingsSummaryFormatterTest {
-    @Test fun activeThresholdsAndToneShareOneLine() {
-        val summary = ChargeGuardSettingsSummaryFormatter.format(
-            ChargeGuardConfiguration(true, 90, true, 45),
-            "Garry's Mod (x64)"
+    @Test fun activeThresholdsAreFormattedOnFirstSummaryLine() {
+        assertEquals(
+            "Target 90% · Suhu ≥45°C",
+            ChargeGuardSettingsSummaryFormatter.formatRules(ChargeGuardConfiguration(true, 90, true, 45))
         )
-        assertEquals("Target 90% · Suhu ≥45°C · Garry's Mod (x64)", summary)
     }
 
-    @Test fun inactiveGuardStillShowsSelectedTone() {
+    @Test fun inactiveGuardUsesCompactFirstSummaryLine() {
+        assertEquals("Nonaktif", ChargeGuardSettingsSummaryFormatter.formatRules(ChargeGuardConfiguration()))
+    }
+
+    @Test fun toneAndVibrationAreFormattedOnSecondSummaryLine() {
         assertEquals(
-            "Nonaktif · Nada Default",
-            ChargeGuardSettingsSummaryFormatter.format(ChargeGuardConfiguration(), "Nada Default")
+            "Nada: Nada pilihan · Getar: SOS",
+            ChargeGuardSettingsSummaryFormatter.formatAlert("Nada pilihan", "SOS")
         )
     }
 
     @Test fun invalidThresholdIsNormalizedBeforeFormatting() {
         assertEquals(
-            "Suhu ≥40°C · Nada Default",
-            ChargeGuardSettingsSummaryFormatter.format(
-                ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 48),
-                "Nada Default"
+            "Suhu ≥40°C",
+            ChargeGuardSettingsSummaryFormatter.formatRules(
+                ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 48)
             )
         )
     }
