@@ -36,7 +36,7 @@ if grep -q '0xFF12161F\|0xFF1B2230' "$THEME"; then
 fi
 pass "Legacy dark palette removed from active theme"
 
-if grep -R -nE 'Color\\(0x[[:xdigit:]]{8}\\)' "$ROOT/app/src/main/java" --include='*.kt' | grep -v '/ui/theme/'; then
+if grep -R -nE 'Color\\([[:space:]]*0x[[:xdigit:]]{8}[[:space:]]*\\)' "$ROOT/app/src/main/java" --include='*.kt' | grep -v '/ui/theme/'; then
   fail "Explicit Color hex literal must be centralized under ui/theme/"
 fi
 pass "Color hex literals centralized in ui/theme"

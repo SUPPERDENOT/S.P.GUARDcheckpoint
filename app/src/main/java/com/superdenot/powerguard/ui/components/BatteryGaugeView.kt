@@ -70,7 +70,7 @@ fun BatteryGaugeView(
         },
         contentAlignment = Alignment.Center
     ) {
-        if (isCharging && isVisibleOnScreen && animation != ChargingArcAnimation.STATIC) {
+        if (shouldAnimateBatteryGauge(isCharging, isVisibleOnScreen, isCriticalThermal, isWarm, animation)) {
             AnimatedBatteryGauge(
                 progress = safeProgress,
                 percentageLabel = percentageLabel,
@@ -258,6 +258,23 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
         Offset((size.width - terminalWidth) / 2f, top - terminalHeight),
         Size(terminalWidth, terminalHeight),
         CornerRadius(terminalHeight / 2f)
+    )
+    val terminalCenter = Offset(size.width / 2f, top - terminalHeight / 2f)
+    val plusHalfWidth = 2.dp.toPx()
+    val plusHalfHeight = 1.5.dp.toPx()
+    drawLine(
+        color,
+        Offset(terminalCenter.x - plusHalfWidth, terminalCenter.y),
+        Offset(terminalCenter.x + plusHalfWidth, terminalCenter.y),
+        strokeWidth = 1.dp.toPx(),
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color,
+        Offset(terminalCenter.x, terminalCenter.y - plusHalfHeight),
+        Offset(terminalCenter.x, terminalCenter.y + plusHalfHeight),
+        strokeWidth = 1.dp.toPx(),
+        cap = StrokeCap.Round
     )
     drawPath(body, trackColor, style = Stroke(2.dp.toPx()))
     val innerInset = 2.dp.toPx()

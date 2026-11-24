@@ -8,7 +8,8 @@
 - Added dedicated `spg_theme_preferences` SharedPreferences persistence for theme package, Basic mode/accent, dual-tint option, gauge model, and charging animation. Unknown string keys fall back safely; no `Enum.valueOf()` parsing is used.
 - Exposed the persisted configuration through `PowerGuardViewModel.themePackConfig: StateFlow<ThemePackConfig>` and applied it at the application Compose root.
 - Added ARC, CAPSULE, SEGMENTED (20 × 5% segments with 3.5° gaps), and WAVE gauge renderers. Charging animations are composed only while the gauge is charging, visible, and not in warm/critical thermal states; STATIC never creates an infinite transition.
-- Added the two-layer Settings picker with package swatches, draft-only live gauge preview, model/animation choices, package-specific controls, and a sticky footer. Midnight Violet dual tint differentiates electrical metrics from the temperature sub-card.
+- Added the two-layer Settings picker with package swatches, draft-only live gauge preview, model/animation choices, package-specific controls, and a sticky footer.
+- Follow-up source review: enforce the thermal animation gate inside the reusable gauge (including previews), draw the capsule's positive terminal marker, honor the disabled Midnight Violet dual-tint option, and reuse shared thermal thresholds in the preview. Midnight Violet dual tint differentiates electrical metrics from the temperature sub-card.
 
 ### Protected boundaries
 - No Room DB v3 entity, schema, or migration change.

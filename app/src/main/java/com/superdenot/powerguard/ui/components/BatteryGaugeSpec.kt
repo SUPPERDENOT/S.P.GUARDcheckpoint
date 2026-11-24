@@ -41,3 +41,15 @@ fun resolveBatteryGaugeColor(
     isCharging -> semanticColors.charging
     else -> semanticColors.normal
 }
+
+fun shouldAnimateBatteryGauge(
+    isCharging: Boolean,
+    isVisibleOnScreen: Boolean,
+    isCriticalThermal: Boolean,
+    isWarm: Boolean,
+    animation: ChargingArcAnimation
+): Boolean = isCharging &&
+    isVisibleOnScreen &&
+    !isCriticalThermal &&
+    !isWarm &&
+    animation != ChargingArcAnimation.STATIC

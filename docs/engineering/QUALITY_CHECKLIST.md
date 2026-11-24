@@ -9,6 +9,8 @@
 - [x] Added the two-layer Settings picker, draft live preview, sticky footer, and two-line summary.
 - [x] Centralized explicit color hex literals in `ui/theme/`; added an Anti-Slop audit guard for literals outside that package.
 - [x] Added unit tests for preference parser/fallback/round-trip, semantic color priority, segment boundaries, and summary formatting.
+- [x] Follow-up source review: thermal animation is gated in the reusable gauge, capsule terminal has a plus marker, dual-tint OFF removes both tints, and preview thresholds reuse the shared analyzer constants.
+- [x] Corrected the Anti-Slop color-literal regex and verified its match behavior against `Color(0xFF112233)`; final CI rerun pending.
 - [x] No intended changes to Room DB v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring P0 channel/lifecycle, RECOVERY_HOLD, or applicationId.
 - [ ] Full diff review: NOT RUN.
 - [ ] `testDebugUnitTest`: NOT RUN.

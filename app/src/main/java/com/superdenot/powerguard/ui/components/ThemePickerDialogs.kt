@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.ui.theme.BasicAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
@@ -191,16 +192,16 @@ fun ThemePickerDialogs(
                                         model = draft.gaugeModel,
                                         animation = draft.chargingAnimation,
                                         isCharging = isCharging,
-                                        isCriticalThermal = isTemperatureAvailable && temperatureCelsius >= 40f,
-                                        isWarm = isTemperatureAvailable && temperatureCelsius >= 38f && temperatureCelsius < 40f,
+                                        isCriticalThermal = isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS,
+                                        isWarm = isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS && temperatureCelsius < 40f,
                                         isVisibleOnScreen = true,
                                         modifier = Modifier.size(82.dp)
                                     )
                                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         Text(
                                             when {
-                                                isTemperatureAvailable && temperatureCelsius >= 40f -> "Kritis termal"
-                                                isTemperatureAvailable && temperatureCelsius >= 38f -> "Hangat"
+                                                isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS -> "Kritis termal"
+                                                isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS -> "Hangat"
                                                 isCharging -> "Mengisi"
                                                 else -> "Normal"
                                             },

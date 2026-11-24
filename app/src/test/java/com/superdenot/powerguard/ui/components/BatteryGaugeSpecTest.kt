@@ -3,6 +3,8 @@ package com.superdenot.powerguard.ui.components
 import androidx.compose.ui.graphics.Color
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BatteryGaugeSpecTest {
@@ -56,5 +58,54 @@ class BatteryGaugeSpecTest {
         assertEquals(20, segmentedGaugeLitCount(100))
         assertEquals(0, segmentedGaugeLitCount(-20))
         assertEquals(20, segmentedGaugeLitCount(140))
+    }
+
+    @Test
+    fun chargingAnimationOnlyRunsWhenVisibleAndThermallyNormal() {
+        assertTrue(
+            shouldAnimateBatteryGauge(
+                isCharging = true,
+                isVisibleOnScreen = true,
+                isCriticalThermal = false,
+                isWarm = false,
+                animation = ChargingArcAnimation.ENERGY_SWEEP
+            )
+        )
+        assertFalse(
+            shouldAnimateBatteryGauge(
+                isCharging = true,
+                isVisibleOnScreen = true,
+                isCriticalThermal = true,
+                isWarm = false,
+                animation = ChargingArcAnimation.COMET_HEAD
+            )
+        )
+        assertFalse(
+            shouldAnimateBatteryGauge(
+                isCharging = true,
+                isVisibleOnScreen = true,
+                isCriticalThermal = false,
+                isWarm = true,
+                animation = ChargingArcAnimation.SEGMENTED_FLOW
+            )
+        )
+        assertFalse(
+            shouldAnimateBatteryGauge(
+                isCharging = true,
+                isVisibleOnScreen = false,
+                isCriticalThermal = false,
+                isWarm = false,
+                animation = ChargingArcAnimation.ENERGY_SWEEP
+            )
+        )
+        assertFalse(
+            shouldAnimateBatteryGauge(
+                isCharging = true,
+                isVisibleOnScreen = true,
+                isCriticalThermal = false,
+                isWarm = false,
+                animation = ChargingArcAnimation.STATIC
+            )
+        )
     }
 }

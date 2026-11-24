@@ -163,8 +163,8 @@ fun PowerGuardTheme(
     val metricTints = when (config) {
         is ThemePackConfig.MidnightViolet -> BatteryMetricTints(
             enabled = config.dualTintMetrics,
-            cold = MidnightColdMetric,
-            warm = MidnightWarmMetric
+            cold = if (config.dualTintMetrics) MidnightColdMetric else Color.Transparent,
+            warm = if (config.dualTintMetrics) MidnightWarmMetric else Color.Transparent
         )
         is ThemePackConfig.Basic -> BatteryMetricTints()
     }
