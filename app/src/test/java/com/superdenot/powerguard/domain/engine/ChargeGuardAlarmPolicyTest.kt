@@ -53,10 +53,15 @@ class ChargeGuardAlarmPolicyTest {
             ChargeGuardConfiguration(highTemperatureEnabled = true), ChargeGuardAlarmState(),
             1L, true, 80, true, 50f, false, 2_000_000L
         )
+        val notCharging = ChargeGuardAlarmPolicy.evaluate(
+            ChargeGuardConfiguration(highTemperatureEnabled = true), ChargeGuardAlarmState(),
+            1L, false, 80, true, 50f, true, 2_000_000L
+        )
         val disabled = ChargeGuardAlarmPolicy.evaluate(
             ChargeGuardConfiguration(), ChargeGuardAlarmState(), 1L, true, 100, true, 50f, true, 2_000_000L
         )
         assertTrue(unavailable.alerts.isEmpty())
+        assertTrue(notCharging.alerts.isEmpty())
         assertTrue(disabled.alerts.isEmpty())
     }
 }
