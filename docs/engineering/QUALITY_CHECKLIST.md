@@ -11,10 +11,10 @@
 - [x] All History session level-range labels route through SessionLevelRangeFormatter; unavailable end values use the same Unicode arrow formatter.
 - [x] Unit tests added for built-in waveform definitions, custom sanitization/persistence, channel hash variation, inaccessible/missing audio fallback, and summary formatting.
 - [x] No Room schema/entity/migration, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, SDK, dependency, version, or applicationId change intended.
-- [ ] Anti-Slop UI Audit Gate: PENDING.
-- [ ] testDebugUnitTest: PENDING.
-- [ ] assembleDebug: PENDING.
-- [ ] APK upload / latest Artifact ID: PENDING.
+- [x] Anti-Slop UI Audit Gate: SUCCESS (Run #620).
+- [x] testDebugUnitTest: SUCCESS (Run #620).
+- [x] assembleDebug: SUCCESS (Run #620).
+- [x] APK upload: SUCCESS (Run #620); debug APK Artifact ID 14937035355; unit-test report Artifact ID 14936547835.
 - [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
 - [ ] PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
 
