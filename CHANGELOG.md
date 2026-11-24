@@ -11,7 +11,8 @@
 
 ### Verification
 - Source review: PASS — both segmented rows are removed; all requested selection pills are 32dp high; interval presets and numeric input occupy one row.
-- Automated GitHub Actions checks: PENDING for the latest branch commit.
+- GitHub Actions Run #547 (`45323370940`) on commit `cb80e97c359fe74d02362ffd52d0dd997c93e0be`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all passed.
+- Debug APK artifact ID: `14888163325` (`android-debug-apk`; expires 2026-12-08). Unit-test report artifact ID: `14888802071`.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - Accessibility note: the requested 32dp visual controls are below the 48dp touch-target minimum in `DESIGN.md`; this explicit compact-size requirement is retained and must be assessed during physical QA.
 - PR #8 remains OPEN / HOLD MERGE.
