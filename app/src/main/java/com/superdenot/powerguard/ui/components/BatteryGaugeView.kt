@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,7 +109,7 @@ private fun AnimatedBatteryGauge(
         ),
         label = "battery-gauge-phase"
     )
-    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, phase.value)
+    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, phase)
 }
 
 @Composable
@@ -119,7 +120,7 @@ private fun StaticBatteryGauge(
     animation: ChargingArcAnimation,
     gaugeColor: Color
 ) {
-    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, 0f)
+    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, null)
 }
 
 @Composable
@@ -129,7 +130,7 @@ private fun BatteryGaugeRenderer(
     model: BatteryGaugeModel,
     animation: ChargingArcAnimation,
     gaugeColor: Color,
-    phase: Float
+    phase: State<Float>?
 ) {
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -138,16 +139,18 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.ARC -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawArcGauge(progress, gaugeColor, trackColor, phase, animation)
+                    drawArcGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, animation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
         }
         BatteryGaugeModel.CAPSULE -> {
-            val textColor = if (progress >= 0.48f) Color.White else onSurfaceColor
+            val textColor = if (progress >= 0.56f) {
+                if (gaugeColor.luminance() < 0.18f) Color.White else InstrumentGraphite
+            } else onSurfaceColor
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawCapsuleGauge(progress, gaugeColor, trackColor, phase, animation)
+                    drawCapsuleGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, animation)
                 }
                 Text(
                     percentageLabel,
@@ -161,7 +164,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.SEGMENTED -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase, animation)
+                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, animation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
@@ -366,7 +369,7 @@ private fun WaveGauge(
     gaugeColor: Color,
     trackColor: Color,
     borderColor: Color,
-    phase: Float,
+    phase: State<Float>?,
     animation: ChargingArcAnimation,
     upperTextColor: Color
 ) {
@@ -380,7 +383,7 @@ private fun WaveGauge(
             }
             clipPath(circle) {
                 drawRect(trackColor)
-                val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase
+                val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f?.value ?: 0f
                 val liquid = waveFillPath(size.width, size.height, progress, wavePhase)
                 drawPath(liquid, gaugeColor)
                 if (animation == ChargingArcAnimation.SEGMENTED_FLOW) {
