@@ -117,7 +117,7 @@ fun AnalyticsScreen(
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
     }
-    val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas App")
+    val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
         bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     )
@@ -847,7 +847,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Izin Usage Access diperlukan agar PowerGuard dapat mendeteksi aplikasi aktif saat terjadi anomali pengisian daya.",
+                            text = "Izin Akses Penggunaan diperlukan agar PowerGuard dapat mendeteksi aplikasi aktif saat terjadi anomali pengisian daya.",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(10.dp))
