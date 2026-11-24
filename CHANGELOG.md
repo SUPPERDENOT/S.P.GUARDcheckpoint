@@ -1,3 +1,25 @@
+## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone controls
+
+### Changed
+- Replaced the remaining Settings alert-tone placeholder with a compact `Nada peringatan` row inside the existing Charge Guard card. The selected tone and vibration state share one summary line; the adjacent `Tes` action previews the configured sound and vibration.
+- Added a concise settings dialog with the Android notification ringtone picker (`TYPE_NOTIFICATION`), default and silent choices, custom local audio selection, and a vibration toggle.
+- Persisted the selection marker / URI, display title, and vibration preference in the isolated `powerguard_charge_guard` SharedPreferences file.
+- Added a dedicated immutable Android 8+ Charge Guard notification channel whose ID is derived from the effective sound URI and vibration configuration. Replaced channel IDs are deleted when the configuration changes; the foreground monitoring channel remains separate.
+- Invalid or inaccessible custom audio URIs fall back to `Settings.System.DEFAULT_NOTIFICATION_URI` for both channel creation and preview. Preview and notification dispatch run on IO/service coroutines, outside the sensor sampling loop.
+
+### Protected behavior
+- Room DB v3, sensor acquisition and sampling cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, and `RECOVERY_HOLD` remain unchanged.
+- `applicationId` remains `com.superdenot.superdguard`; no dependency, SDK, app-version, or build-configuration change.
+
+### Verification
+- Added tests for sound/vibration preference defaults and persistence, invalid custom-URI fallback, and stable/configuration-sensitive alert channel IDs.
+- Source implementation and focused tests were included in PR CI Run #601 on head `747f12e98511e7d4ca1a11e5a1e070d3ca06f501`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload: **SUCCESS**. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45399600005)
+- Debug APK artifact ID: `14920844863` (`android-debug-apk`); unit-test report artifact ID: `14921524240`.
+- Physical-device QA on itel P55: **NOT RUN** — required before PR #11 merge.
+- PR #11 merge: **HOLD** until physical-device QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #11 (pending): data consistency, History polish, and Charge Guard alarms
 
 ### Changed
