@@ -15,9 +15,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -524,7 +526,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.fillMaxWidth()) {
                     Text(
                         "Indikator status bar",
-                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -533,8 +535,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             .fillMaxWidth()
                             .heightIn(max = 440.dp)
                             .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 20.dp, vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
                             "Mode tampilan",
@@ -667,20 +669,40 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                     modifier = Modifier.weight(1f),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                OutlinedTextField(
-                                    value = draftIntervalInput,
-                                    onValueChange = { input ->
-                                        draftIntervalInput = input.filter(Char::isDigit).take(2)
-                                        draftIntervalInput.toIntOrNull()
-                                            ?.takeIf { it in 1..60 }
-                                            ?.let { draftIntervalSeconds = it }
-                                    },
-                                    modifier = Modifier.width(72.dp).height(48.dp),
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                                    isError = !validCustomInterval,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                                )
+                                Surface(
+                                    modifier = Modifier.width(56.dp).height(34.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (validCustomInterval) MaterialTheme.colorScheme.outlineVariant
+                                        else MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        BasicTextField(
+                                            value = draftIntervalInput,
+                                            onValueChange = { input ->
+                                                draftIntervalInput = input.filter(Char::isDigit).take(2)
+                                                draftIntervalInput.toIntOrNull()
+                                                    ?.takeIf { it in 1..60 }
+                                                    ?.let { draftIntervalSeconds = it }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                            singleLine = true,
+                                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                textAlign = TextAlign.Center,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            ),
+                                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                        )
+                                    }
+                                }
                             }
                             if (!validCustomInterval) {
                                 Text(
@@ -781,11 +803,11 @@ private fun StatusBarParameterGrid(
         listOf(StatusBarParameter.VOLTAGE, StatusBarParameter.TEMPERATURE),
         listOf(StatusBarParameter.BATTERY_PERCENTAGE, StatusBarParameter.RESOURCE_SOURCE)
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         rows.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 row.forEach { parameter ->
                     val selected = parameter in selectedParameters
@@ -793,7 +815,7 @@ private fun StatusBarParameterGrid(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 48.dp)
+                            .height(36.dp)
                             .selectable(
                                 selected = selected,
                                 enabled = enabled,
@@ -823,7 +845,7 @@ private fun StatusBarParameterGrid(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontSize = 12.sp,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
