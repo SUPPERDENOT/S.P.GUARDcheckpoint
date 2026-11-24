@@ -383,7 +383,7 @@ private fun WaveGauge(
             }
             clipPath(circle) {
                 drawRect(trackColor)
-                val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f?.value ?: 0f
+                val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f
                 val liquid = waveFillPath(size.width, size.height, progress, wavePhase)
                 drawPath(liquid, gaugeColor)
                 if (animation == ChargingArcAnimation.SEGMENTED_FLOW) {
@@ -399,7 +399,7 @@ private fun WaveGauge(
             drawCircle(borderColor, diameter / 2f, Offset(size.width / 2f, size.height / 2f),
                 style = Stroke(1.5.dp.toPx()))
         }
-        val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase
+        val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f
         Box(
             Modifier.fillMaxSize().drawWithContent {
                 val path = waveTextClipPath(size.width, size.height, progress, wavePhase, above = true)
