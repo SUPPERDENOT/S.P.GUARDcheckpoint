@@ -205,6 +205,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
 
 @Composable
 private fun BatteryArcGauge(progress: Float, color: Color, modifier: Modifier = Modifier) {
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
     Canvas(modifier) {
         val stroke = 7.dp.toPx()
         val diameter = (size.minDimension - stroke).coerceAtLeast(1f)
@@ -214,7 +215,7 @@ private fun BatteryArcGauge(progress: Float, color: Color, modifier: Modifier = 
         )
         val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
         drawArc(
-            color = MaterialTheme.colorScheme.outlineVariant,
+            color = trackColor,
             startAngle = 135f,
             sweepAngle = 270f,
             useCenter = false,
