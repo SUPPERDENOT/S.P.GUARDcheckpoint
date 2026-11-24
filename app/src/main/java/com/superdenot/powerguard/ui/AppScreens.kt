@@ -462,6 +462,11 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     val currentScale by vm.batteryCurrentScale.collectAsState()
+    val previewService by vm.liveState.collectAsState()
+    val previewFallback by vm.fallbackState.collectAsState()
+    val previewRunning by vm.isServiceRunning.collectAsState()
+    val previewServiceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
+    val previewFallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
@@ -478,7 +483,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Battery Monitoring", fontWeight = FontWeight.Bold)
+                            Text("Pemantauan Baterai", fontWeight = FontWeight.Bold)
                             Text(
                                 "Pantau otomatis saat charger tersambung. OFF akan menghentikan layanan.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -501,13 +506,15 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
                             Text(
-                                if (statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION) {
-                                    "Rotasi kustom • ${statusBarSetting.rotationParameters.joinToString(" / ") { it.label }} • ${statusBarSetting.rotationIntervalSeconds} dtk • Skala ${currentScale.label}"
-                                } else {
-                                    "Satu metrik • ${statusBarSetting.parameter.label} • Skala ${currentScale.label}"
-                                },
+                                StatusBarSettingsSummaryFormatter.format(
+                                    statusBarSetting.displayMode, statusBarSetting.parameter,
+                                    statusBarSetting.rotationParameters, statusBarSetting.rotationIntervalSeconds, currentScale
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                         Switch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled)
@@ -533,17 +540,17 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Kapasitas baterai", fontWeight = FontWeight.Bold)
                     Text(
-                        "Design capacity: ${capacity.capacityMah?.let { "$it mAh" } ?: "Tidak tersedia"}",
+                        "Kapasitas desain: ${capacity.capacityMah?.let { "$it mAh" } ?: "Tidak tersedia"}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "Source: ${if (capacity.isManualOverride) "Manual" else "Automatic"}",
+                        "Sumber: ${if (capacity.isManualOverride) "Manual" else "Otomatis"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedButton(onClick = { showCapacityDialog = true }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Edit, null)
-                        Text("  Edit Design Capacity")
+                        Text("  Ubah Kapasitas Desain")
                     }
                 }
             }
@@ -555,7 +562,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     Text("Periksa dan atur akses Android yang mendukung pemantauan serta analisis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Settings, null)
-                        Text("  Buka Initial Setup")
+                        Text("  Buka Pengaturan Awal")
                     }
                 }
             }
@@ -601,12 +608,47 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 tonalElevation = 6.dp
             ) {
                 Column(Modifier.fillMaxWidth()) {
-                    Text(
-                        "Indikator status bar",
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
+                    val previewBaseState = selectDashboardLiveState(
+                        previewRunning, previewService, previewFallback, previewServiceAt,
+                        previewFallbackAt, SystemClock.elapsedRealtime()
                     )
+                    val previewParameters = StatusBarParameter.selectableValues.filter { it in draftRotationParameters }
+                    val previewParameter = if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+                        previewParameters.firstOrNull() ?: draftParameter
+                    } else draftParameter
+                    val scaleRatio = (draftCurrentScale.multiplier / currentScale.multiplier)
+                        .takeIf { it.isFinite() && it > 0.0 } ?: 1.0
+                    val previewReadingState = previewBaseState.copy(
+                        currentMa = (previewBaseState.currentMa * scaleRatio).toInt(),
+                        powerWatt = (previewBaseState.powerWatt * scaleRatio).toFloat()
+                    )
+                    val previewDensity = LocalDensity.current.density
+                    val previewBitmap = remember(previewReadingState, previewParameter, previewDensity,
+                        draftMode, draftRotationParameters, draftIntervalSeconds, draftCurrentScale) {
+                        val reading = LiveStatusBarRenderer.format(previewReadingState, previewParameter)
+                        LiveStatusBarRenderer.render(previewParameter, reading, previewDensity)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            "Indikator status bar",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Box(
+                            modifier = Modifier.size(32.dp).background(Color(0xFF252923), RoundedCornerShape(6.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            previewBitmap?.let { bitmap ->
+                                Image(bitmap.asImageBitmap(), contentDescription = "Pratinjau ikon status bar",
+                                    modifier = Modifier.size(24.dp), colorFilter = ColorFilter.tint(Color.White))
+                            } ?: Text("—", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
