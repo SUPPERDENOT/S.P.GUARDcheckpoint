@@ -309,7 +309,7 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             shape = RoundedCornerShape(16.dp)
