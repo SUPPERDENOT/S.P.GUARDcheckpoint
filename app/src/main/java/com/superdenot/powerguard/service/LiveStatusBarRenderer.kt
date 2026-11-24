@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
-import java.nio.ByteBuffer
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import java.util.LinkedHashMap
@@ -120,7 +119,7 @@ internal object LiveStatusBarRenderer {
             val bounds = textBounds(value, paint)
             val baseline = size / 2f - (bounds.top + bounds.bottom) / 2f
             canvas.drawText(value, size / 2f, baseline, paint)
-            applyAlphaContrastBoost(bitmap)
+            drawAlphaContrastBoost(canvas, value, size / 2f, baseline, paint)
             return bitmap
         }
 
@@ -137,7 +136,8 @@ internal object LiveStatusBarRenderer {
         val unitBaseline = size - verticalInset - unitBounds.bottom
         canvas.drawText(value, size / 2f, valueBaseline, valuePaint)
         canvas.drawText(unit, size / 2f, unitBaseline, unitPaint)
-        applyAlphaContrastBoost(bitmap)
+        drawAlphaContrastBoost(canvas, value, size / 2f, valueBaseline, valuePaint)
+        drawAlphaContrastBoost(canvas, unit, size / 2f, unitBaseline, unitPaint)
         return bitmap
     }
 
@@ -147,16 +147,12 @@ internal object LiveStatusBarRenderer {
         if (alpha <= 0) return 0
         return (alpha + (255 - alpha) * ALPHA_CONTRAST_BOOST).roundToInt().coerceIn(1, 255)
     }
-    private fun applyAlphaContrastBoost(bitmap: Bitmap) {
-        val buffer = ByteBuffer.allocate(bitmap.byteCount)
-        bitmap.copyPixelsToBuffer(buffer)
-        val pixels = buffer.array()
-        for (index in pixels.indices) {
-            val alpha = pixels[index].toInt() and 0xFF
-            if (alpha in 1..254) pixels[index] = boostAlpha(alpha).toByte()
+    private fun drawAlphaContrastBoost(canvas: Canvas, text: String, x: Float, baseline: Float, sourcePaint: Paint) {
+        // A second low-alpha SRC_OVER pass compounds edge coverage without reading ALPHA_8 pixels.
+        val boostPaint = Paint(sourcePaint).apply {
+            alpha = (255 * ALPHA_CONTRAST_BOOST).roundToInt()
         }
-        buffer.rewind()
-        bitmap.copyPixelsFromBuffer(buffer)
+        canvas.drawText(text, x, baseline, boostPaint)
     }
 
     private fun fittedPaint(text: String, maxHeight: Float, maxWidth: Float): Paint {

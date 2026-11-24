@@ -444,7 +444,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         val finalRow = faultDao.getSessionById(sessionId)!!
         assertEquals("mAh tidak boleh tergandakan saat recovery ulang", 740.0, finalRow.totalMahDelivered, 0.001)
         assertEquals("Sampel tidak boleh terduplikasi saat recovery ulang", 1, faultDao.countSamplesAtTimestamp(sessionId, batchTs))
-        assertEquals("Anomaly reason tidak boleh terduplikasi", "THERMAL_THROTTLING", finalRow.anomalyReason)
+        assertEquals("Anomaly reason tidak boleh terduplikasi", "THERMAL_THROTTLING, RECOVERY_CHECKPOINT", finalRow.anomalyReason)
         assertEquals(SessionRecoveryStore.CheckpointLoadResult.Empty, SessionRecoveryStore.load(context))
     }
 
@@ -1235,7 +1235,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals(1920.0, closedAfter.totalMahDelivered, 0.001)
         assertEquals(2100, closedAfter.avgCurrentMa)
         assertEquals(38.8f, closedAfter.maxTempCelsius, 0.01f)
-        assertEquals("THERMAL_THROTTLING", closedAfter.anomalyReason)
+        assertEquals("THERMAL_THROTTLING, RECOVERY_CHECKPOINT", closedAfter.anomalyReason)
 
         assertNotNull(SessionRecoveryStore.loadOrNull(context))
     }
@@ -1685,7 +1685,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals(650.0, row.totalMahDelivered, 0.001)
         assertEquals("Recovery berulang tidak boleh menimpa rata-rata durable Room", 1400, row.avgCurrentMa)
         assertEquals(38.0f, row.maxTempCelsius, 0.01f)
-        assertEquals("SLOW_CHARGING", row.anomalyReason)
+        assertEquals("SLOW_CHARGING, RECOVERY_CHECKPOINT", row.anomalyReason)
         assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, batchTs))
     }
 
@@ -2184,7 +2184,7 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals(BatteryMonitorService.SessionFinalizationResult.ALREADY_CLOSED_IDEMPOTENT, result)
 
         val updated = faultDao.getSessionById(sessionId)!!
-        assertEquals("SLOW_CHARGING, THERMAL_THROTTLING", updated.anomalyReason)
+        assertEquals("SLOW_CHARGING, THERMAL_THROTTLING, RECOVERY_CHECKPOINT", updated.anomalyReason)
         assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, pendingTs))
         assertEquals(0, service.getInMemorySessionSnapshotForTesting().bufferedSamplesCount)
     }
