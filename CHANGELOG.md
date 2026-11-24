@@ -1,3 +1,30 @@
+## 2026-11-24 — PR #10: visual presentation, diagnostic summaries, and live status-bar preview
+
+### Changed
+- Replaced the duplicated page label in the 38dp brand header with a compact real-time service-state pill: Mengisi, Penuh, Aktif, or Siaga. The bottom navigation remains the active-tab indicator.
+- Consolidated the Overview battery level and live readings into one hero card with a circular arc gauge, status-dependent color, four measured metrics, and ETA only while the estimator reports valid tracking data. Kept SOH and system-readiness cards directly below it.
+- Added session-sample thermal duration bands (Aman <38°C, Hangat 38–<40°C, Tinggi ≥40°C) and CC/CV-like pattern indicators to Charging and the curve analyzer. CC/CV is explicitly a battery-side pattern heuristic, not protocol detection; insufficient/ambiguous samples remain unknown.
+- Standardized displayed voltage as V with the corresponding mV value, and moved the battery-side power explanation into a tap-accessible information dialog.
+- Added a seven-day daily-cycle mini chart with high-temperature markers and Indonesian date labels (Hari Ini, Kemarin, or dd MMM yyyy).
+- Removed the History floating column header, displayed localized mAh values inline, widened the level range, highlighted the selected curve session, omitted unavailable average-power text, and removed the legacy current × fixed-voltage watt estimate.
+- Added average peak-temperature aggregation per accessory label, normalized +%/jam comparison bars, and automatic Tercepat / Cenderung Panas badges. Cenderung Panas uses the established 40°C threshold.
+- Added a 32dp dark-backed Settings preview using the production LiveStatusBarRenderer and draft current-scale adjustment; condensed the Settings summary line and localized visible labels to Indonesian.
+
+### Protected behavior
+- Room database remains v3; no entity, schema, migration, or historical-data changes.
+- Battery sensor acquisition, sampling cadence, calibration default 1x, P0 BatteryMonitorService lifecycle, RECOVERY_HOLD, and startup policy are unchanged.
+- applicationId remains com.superdenot.superdguard. No package, dependency, SDK, app-version, or build-number changes.
+- No export/copy-report feature was added.
+
+### Verification
+- Implementation and focused unit tests are on `feat/visual-presentation-and-ux-polish`; final diff review and CI are pending.
+- Added tests for thermal-zone durations and CC/CV-like pattern mapping, seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
+- GitHub Actions PR CI: PENDING.
+- Debug APK artifact: PENDING.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #10 merge.
+
+---
+
 ## 2026-11-24 — PR #9: compact five-tab header, History anomaly filters, and crisp rotation
 
 ### Changed
