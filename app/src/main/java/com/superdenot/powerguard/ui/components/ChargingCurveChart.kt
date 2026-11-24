@@ -368,6 +368,9 @@ internal fun ChargingThermalSummaryPanel(summary: ChargingThermalSummary) {
             verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("Distribusi zona suhu", style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold)
+            Text("Aman <38°C · Hangat 38–<40°C · Tinggi ≥40°C",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
             val totalMinutes = summary.safeMinutes + summary.warmMinutes + summary.highMinutes
             if (totalMinutes > 0) {
                 Row(
