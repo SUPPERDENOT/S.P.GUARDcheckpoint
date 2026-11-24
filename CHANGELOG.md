@@ -3,7 +3,7 @@
 ### Changed
 - Replaced the duplicated page label in the 38dp brand header with a compact real-time service-state pill: Mengisi, Penuh, Aktif, or Siaga. The bottom navigation remains the active-tab indicator.
 - Consolidated the Overview battery level and live readings into one hero card with a circular arc gauge, status-dependent color, four measured metrics, and ETA only while the estimator reports valid tracking data. Kept SOH and system-readiness cards directly below it.
-- Added a segmented session-sample thermal duration band (Aman <38°C, Hangat 38–<40°C, Tinggi ≥40°C) and CC/CV-like pattern indicators to Charging and the curve analyzer. CC/CV is explicitly a battery-side pattern heuristic, not protocol detection; insufficient/ambiguous samples remain unknown.
+- Added a segmented session-sample thermal duration band (Aman <38°C, Hangat 38–<40°C, Tinggi ≥40°C) and CC/CV-like pattern indicators to Charging and the curve analyzer. CC/CV is explicitly a battery-side pattern heuristic, not protocol detection; insufficient/ambiguous samples and samples separated by gaps over two minutes remain unknown.
 - Standardized displayed voltage as V with the corresponding mV value, and moved the battery-side power explanation into a tap-accessible information dialog.
 - Added a seven-day daily-cycle mini chart with high-temperature markers and Indonesian date labels (Hari Ini, Kemarin, or dd MMM yyyy).
 - Removed the History floating column header, displayed localized mAh values inline, widened the level range, highlighted the selected curve session, omitted unavailable average-power text, and removed the legacy current × fixed-voltage watt estimate.
@@ -17,7 +17,7 @@
 - No export/copy-report feature was added.
 
 ### Verification
-- Implementation and focused unit tests are on `feat/visual-presentation-and-ux-polish`; final diff review and CI are pending.
+- Implementation and focused unit tests are on `feat/visual-presentation-and-ux-polish`; source diff reviewed against main base `4140b41313959087a1b97c4a823ff4f176376ed7` (21 changed files; no service, Room, engine, Gradle, manifest, package, or version files changed).
 - Added tests for thermal-zone durations and CC/CV-like pattern mapping, seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
 - GitHub Actions PR CI: PENDING.
 - Debug APK artifact: PENDING.
