@@ -1,3 +1,21 @@
+## 2026-11-24 — PR #8 follow-up: uniform 32dp Status Bar dialog pills
+
+### Changed
+- Replaced both Material 3 segmented-button rows (display mode and current-scale calibration) with equal-width 32dp bordered selection pills, 6dp spacing, centered labels, matching selected container/border styling, and no check glyphs.
+- Reduced all six parameter choices to 32dp-high, 8dp-rounded bordered pills. Labels are centered horizontally and vertically with zero inner padding and font padding disabled.
+- Combined the four rotation presets and the free numeric interval into one 32dp-high row: four equal-weight preset pills followed by a 52dp-wide BasicTextField. The field uses numeric input, IME Done, no placeholder, and remains synchronized with preset selection.
+- A manually edited valid 1–60 second value highlights the input border; tapping a preset restores the preset selection and updates the input value.
+
+### Protected behavior
+- UI-only change in `AppScreens.kt`. Local draft ownership, 1–60 validation, Simpan/Batal behavior, renderer, sensor acquisition, current calibration default 1x, Room DB v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+
+### Verification
+- Source review: PASS — both segmented rows are removed; all requested selection pills are 32dp high; interval presets and numeric input occupy one row.
+- Automated GitHub Actions checks: PENDING for the latest branch commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- Accessibility note: the requested 32dp visual controls are below the 48dp touch-target minimum in `DESIGN.md`; this explicit compact-size requirement is retained and must be assessed during physical QA.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-24 — PR #8 follow-up: compact parameter cells and custom interval input
 
 ### Changed
