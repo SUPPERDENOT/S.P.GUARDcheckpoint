@@ -1,3 +1,23 @@
+## 2026-11-24 — PR #11: data consistency, History polish, and Charge Guard alarms
+
+- [x] Baseline PR #10 merged; latest main SHA `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
+- [x] Created `feat/data-consistency-and-charge-guard` from the verified main SHA; branch is not behind main at implementation start.
+- [x] History range formatter uses explicit `\\u2192`; compact duration formatter is one line; generic anomaly badge is suppressed when specific anomaly badges exist.
+- [x] Selected-session highlight and curve/filter ordering updated.
+- [x] Current chart scale excludes absolute current values above 25,000 mA without mutating raw sample values.
+- [x] Overview and Insights use one shared mapper over the same persisted SOH snapshot.
+- [x] Seven-day chart has distinct Indonesian weekday abbreviations, selectable bars, and daily mAh summary formatting.
+- [x] Existing temperature ribbons verified present in Charging and curve session UI; Status Bar dialog adds IME padding and retains vertical scrolling.
+- [x] Charge Guard uses separate SharedPreferences; both new toggles default OFF; target and temperature choices are constrained to the requested values.
+- [x] Alarm policy uses one alert per charge session/target, temperature hysteresis, and a 15-minute cooldown. Service integration is after the existing active-sample state construction; RECOVERY_HOLD early-return path is unchanged.
+- [x] Unit tests added for formatters, outlier scaling, SOH snapshot mapping, daily trend summary/labels, anomaly badge suppression, charge/temperature alarm policy, and SharedPreferences defaults/persistence.
+- [x] Room v3 schema and entities unchanged; sensor acquisition, sampling cadence, calibration default 1x, P0 lifecycle transitions, RECOVERY_HOLD, and applicationId unchanged by intended diff.
+- [ ] Final diff review and PR CI: PENDING.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until CI SUCCESS and physical QA confirmation.
+
+---
+
 ## 2026-11-24 — PR #10: visual presentation, diagnostic summaries, and live status-bar preview
 
 - [x] Baseline: PR #9 merged at `6fbea39ea0fa694f32b3185b7218f8e5a5238675`; main CI Run #559 SUCCESS. Latest main after the documentation-only restoration is `4140b41313959087a1b97c4a823ff4f176376ed7`; main CI Run #560 SUCCESS. PR #10 targets that main SHA.
@@ -18,8 +38,8 @@
 - [x] `testDebugUnitTest` and `assembleDebug`: SUCCESS — PR CI Run #573 (`45360070719`).
 - [x] APK and unit-test report uploads: SUCCESS — PR CI Run #573.
 - [x] Debug APK artifact ID: `14904586066` (`android-debug-apk`); unit-test report artifact ID: `14904536043`.
-- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
-- [ ] PR #10 merge: HOLD until physical QA is confirmed.
+- [x] Physical-device QA on itel P55 at 360dp / 720p: PASS — user confirmed CI #577 APK artifact `14904452445`.
+- [x] PR #10 squash-merged at `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
 
 ---
 
