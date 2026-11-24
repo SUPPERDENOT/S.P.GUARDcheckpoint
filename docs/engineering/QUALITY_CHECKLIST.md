@@ -1,3 +1,22 @@
+## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone controls
+
+- [x] Settings placeholder replaced by a functional `Nada peringatan` row inside the existing Charge Guard card; selected tone and vibration state are summarized in one line.
+- [x] `Tes` previews the configured ringtone and vibration without running on the UI thread.
+- [x] Android ringtone picker supports notification tones, default, silent, and custom local audio selection; no storage permission added.
+- [x] Tone selection marker / URI, display title, and vibration preference persist in the dedicated Charge Guard SharedPreferences file.
+- [x] Android 8+ alert channel ID is configuration-derived (`charge_guard_alert_<hash>`); old alert channel is deleted on configuration change. Foreground monitoring channel remains separate.
+- [x] Invalid or inaccessible custom audio URI falls back to `Settings.System.DEFAULT_NOTIFICATION_URI` for preview and notification channel setup.
+- [x] Unit tests cover preference defaults/persistence, invalid-URI fallback, and channel ID stability/configuration changes.
+- [x] Reviewed service integration: alert notification dispatch uses the service IO scope; alert evaluation remains after the active-sample state is built and does not enter the `RECOVERY_HOLD` early-return path.
+- [x] Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, and applicationId remain unchanged by this follow-up.
+- [x] PR CI Run #601 on head `747f12e98511e7d4ca1a11e5a1e070d3ca06f501`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS.
+- [x] Debug APK artifact ID: `14920844863`; unit-test report artifact ID: `14921524240`.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until physical-device QA is confirmed.
+- [ ] Re-run all CI gates after this documentation update.
+
+---
+
 ## 2026-11-24 — PR #11: data consistency, History polish, and Charge Guard alarms
 
 - [x] Baseline PR #10 merged; latest main SHA `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
