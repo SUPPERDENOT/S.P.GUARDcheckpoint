@@ -83,7 +83,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val gaugeColor = when (gaugeStatus) {
         "Suhu Tinggi" -> CrimsonAnomaly
         "Mengisi", "Penuh" -> EmeraldCharge
-        "Aktif" -> CyanFastCharge
+        "Aktif" -> MaterialTheme.colorScheme.primary
         else -> AmberThermal
     }
     val eta = state.chargingEtaMinutes
