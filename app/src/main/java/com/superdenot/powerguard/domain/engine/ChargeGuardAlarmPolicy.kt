@@ -16,7 +16,7 @@ data class ChargeGuardConfiguration(
 
     companion object {
         val SUPPORTED_CHARGE_TARGETS = setOf(80, 85, 90, 95, 100)
-        val SUPPORTED_TEMPERATURE_THRESHOLDS = setOf(40, 42, 45)
+        val SUPPORTED_TEMPERATURE_THRESHOLDS = setOf(40, 42, 45, 50)
     }
 }
 
@@ -76,7 +76,7 @@ object ChargeGuardAlarmPolicy {
             next = next.copy(temperatureArmed = true)
         } else if (isCharging && isTemperatureAvailable && temperatureCelsius.isFinite()) {
             val threshold = config.highTemperatureThresholdCelsius.toFloat()
-            if (temperatureCelsius <= threshold - TEMPERATURE_REARM_HYSTERESIS_C) {
+            if (temperatureCelsius < threshold - TEMPERATURE_REARM_HYSTERESIS_C) {
                 next = next.copy(temperatureArmed = true)
             } else if (temperatureCelsius >= threshold && next.temperatureArmed) {
                 val cooldownElapsed = next.lastTemperatureAlertAtEpochMs == 0L ||
