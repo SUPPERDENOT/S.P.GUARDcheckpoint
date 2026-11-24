@@ -2,11 +2,18 @@ package com.superdenot.powerguard.domain.engine
 
 import java.util.Locale
 
+enum class ChargeGuardRepeatMode(val title: String, val intervalMs: Long) {
+    ONCE("Sekali", 0L),
+    EVERY_1_MINUTE("Tiap 1 mnt", 60_000L),
+    EVERY_3_MINUTES("Tiap 3 mnt", 180_000L)
+}
+
 data class ChargeGuardConfiguration(
     val chargeLimitEnabled: Boolean = false,
     val targetLevelPercent: Int = 85,
     val highTemperatureEnabled: Boolean = false,
-    val highTemperatureThresholdCelsius: Int = 40
+    val highTemperatureThresholdCelsius: Int = 40,
+    val repeatMode: ChargeGuardRepeatMode = ChargeGuardRepeatMode.ONCE
 ) {
     fun normalized(): ChargeGuardConfiguration = copy(
         targetLevelPercent = targetLevelPercent.takeIf { it in SUPPORTED_CHARGE_TARGETS } ?: 85,
@@ -17,6 +24,7 @@ data class ChargeGuardConfiguration(
     companion object {
         val SUPPORTED_CHARGE_TARGETS = setOf(80, 85, 90, 95, 100)
         val SUPPORTED_TEMPERATURE_THRESHOLDS = setOf(40, 42, 45, 50)
+        const val MAX_REPEATS_PER_INCIDENT = 5
     }
 }
 
@@ -29,7 +37,15 @@ data class ChargeGuardAlarmState(
     val lastChargeAlertTargetPercent: Int? = null,
     val temperatureArmed: Boolean = true,
     val lastTemperatureAlertAtEpochMs: Long = 0L,
-    val temperatureThresholdCelsius: Int? = null
+    val temperatureThresholdCelsius: Int? = null,
+    val chargeRepeatSessionId: Long? = null,
+    val chargeRepeatTargetPercent: Int? = null,
+    val chargeRepeatCount: Int = 0,
+    val chargeRepeatLastAtEpochMs: Long = 0L,
+    val chargeRepeatDismissed: Boolean = false,
+    val temperatureRepeatCount: Int = 0,
+    val temperatureRepeatLastAtEpochMs: Long = 0L,
+    val temperatureRepeatDismissed: Boolean = false
 )
 
 data class ChargeGuardAlarmEvaluation(val state: ChargeGuardAlarmState, val alerts: List<ChargeGuardAlert>)
@@ -53,45 +69,126 @@ object ChargeGuardAlarmPolicy {
         val config = configuration.normalized()
         var next = state
         val alerts = mutableListOf<ChargeGuardAlert>()
+        val repeatIntervalMs = config.repeatMode.intervalMs
 
-        if (config.chargeLimitEnabled && isCharging && isBatteryLevelAvailable &&
-            sessionId != null && batteryLevel >= config.targetLevelPercent &&
-            (next.lastChargeAlertSessionId != sessionId ||
-                next.lastChargeAlertTargetPercent != config.targetLevelPercent)
-        ) {
-            alerts += ChargeGuardAlert(
-                ChargeGuardAlertType.CHARGE_LIMIT_REACHED,
-                "Batas pengisian tercapai",
-                "Level baterai telah mencapai ${config.targetLevelPercent}%. Lepaskan charger jika ingin menghentikan pengisian.",
-                "CHARGE_LIMIT_REACHED"
+        val chargeConditionActive = config.chargeLimitEnabled && isCharging &&
+            isBatteryLevelAvailable && sessionId != null &&
+            batteryLevel >= config.targetLevelPercent
+
+        if (!chargeConditionActive) {
+            next = next.copy(
+                chargeRepeatSessionId = null,
+                chargeRepeatTargetPercent = null,
+                chargeRepeatCount = 0,
+                chargeRepeatLastAtEpochMs = 0L,
+                chargeRepeatDismissed = false
             )
-            next = next.copy(lastChargeAlertSessionId = sessionId, lastChargeAlertTargetPercent = config.targetLevelPercent)
+        } else {
+            val isNewChargeIncident = next.lastChargeAlertSessionId != sessionId ||
+                next.lastChargeAlertTargetPercent != config.targetLevelPercent
+            if (isNewChargeIncident) {
+                alerts += ChargeGuardAlert(
+                    ChargeGuardAlertType.CHARGE_LIMIT_REACHED,
+                    "Batas pengisian tercapai",
+                    "Level baterai telah mencapai ${config.targetLevelPercent}%. Lepaskan charger jika ingin menghentikan pengisian.",
+                    "CHARGE_LIMIT_REACHED"
+                )
+                next = next.copy(
+                    lastChargeAlertSessionId = sessionId,
+                    lastChargeAlertTargetPercent = config.targetLevelPercent,
+                    chargeRepeatSessionId = sessionId,
+                    chargeRepeatTargetPercent = config.targetLevelPercent,
+                    chargeRepeatCount = 0,
+                    chargeRepeatLastAtEpochMs = nowEpochMs,
+                    chargeRepeatDismissed = false
+                )
+            } else if (
+                next.chargeRepeatSessionId == sessionId &&
+                next.chargeRepeatTargetPercent == config.targetLevelPercent &&
+                repeatIntervalMs > 0L &&
+                !next.chargeRepeatDismissed &&
+                next.chargeRepeatCount < ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT &&
+                nowEpochMs - next.chargeRepeatLastAtEpochMs >= repeatIntervalMs
+            ) {
+                alerts += ChargeGuardAlert(
+                    ChargeGuardAlertType.CHARGE_LIMIT_REACHED,
+                    "Pengulangan: batas pengisian tercapai",
+                    "Level baterai masih ${batteryLevel}% (target ${config.targetLevelPercent}%). Lepaskan charger jika ingin menghentikan pengisian.",
+                    "CHARGE_LIMIT_REACHED"
+                )
+                next = next.copy(
+                    chargeRepeatCount = next.chargeRepeatCount + 1,
+                    chargeRepeatLastAtEpochMs = nowEpochMs
+                )
+            }
         }
 
         if (next.temperatureThresholdCelsius != config.highTemperatureThresholdCelsius) {
-            next = next.copy(temperatureArmed = true, temperatureThresholdCelsius = config.highTemperatureThresholdCelsius)
+            next = next.copy(
+                temperatureArmed = true,
+                temperatureThresholdCelsius = config.highTemperatureThresholdCelsius,
+                temperatureRepeatCount = 0,
+                temperatureRepeatLastAtEpochMs = 0L,
+                temperatureRepeatDismissed = false
+            )
         }
 
-        if (!config.highTemperatureEnabled) {
-            next = next.copy(temperatureArmed = true)
-        } else if (isCharging && isTemperatureAvailable && temperatureCelsius.isFinite()) {
-            val threshold = config.highTemperatureThresholdCelsius.toFloat()
-            if (temperatureCelsius < threshold - TEMPERATURE_REARM_HYSTERESIS_C) {
-                next = next.copy(temperatureArmed = true)
-            } else if (temperatureCelsius >= threshold && next.temperatureArmed) {
-                val cooldownElapsed = next.lastTemperatureAlertAtEpochMs == 0L ||
-                    nowEpochMs - next.lastTemperatureAlertAtEpochMs >= TEMPERATURE_COOLDOWN_MS
-                if (cooldownElapsed) {
-                    alerts += ChargeGuardAlert(
-                        ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED,
-                        "Peringatan suhu baterai tinggi",
-                        "Suhu baterai mencapai ${String.format(Locale.US, "%.1f", temperatureCelsius)}°C (ambang ${config.highTemperatureThresholdCelsius}°C). Periksa kondisi perangkat dan pengisian.",
-                        "CHARGE_GUARD_HIGH_TEMPERATURE"
-                    )
-                    next = next.copy(temperatureArmed = false, lastTemperatureAlertAtEpochMs = nowEpochMs)
-                }
+        val temperatureAvailable = isTemperatureAvailable && temperatureCelsius.isFinite()
+        val temperatureThreshold = config.highTemperatureThresholdCelsius.toFloat()
+        val temperatureRearmLevel = temperatureThreshold - TEMPERATURE_REARM_HYSTERESIS_C
+
+        if (!config.highTemperatureEnabled || !isCharging || !temperatureAvailable) {
+            next = next.copy(
+                temperatureRepeatCount = 0,
+                temperatureRepeatLastAtEpochMs = 0L,
+                temperatureRepeatDismissed = false
+            )
+            if (!config.highTemperatureEnabled) next = next.copy(temperatureArmed = true)
+        } else if (temperatureCelsius < temperatureRearmLevel) {
+            next = next.copy(
+                temperatureArmed = true,
+                temperatureRepeatCount = 0,
+                temperatureRepeatLastAtEpochMs = 0L,
+                temperatureRepeatDismissed = false
+            )
+        } else if (temperatureCelsius >= temperatureThreshold && next.temperatureArmed) {
+            val cooldownElapsed = next.lastTemperatureAlertAtEpochMs == 0L ||
+                nowEpochMs - next.lastTemperatureAlertAtEpochMs >= TEMPERATURE_COOLDOWN_MS
+            if (cooldownElapsed) {
+                alerts += ChargeGuardAlert(
+                    ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED,
+                    "Peringatan suhu baterai tinggi",
+                    "Suhu baterai mencapai ${String.format(Locale.US, "%.1f", temperatureCelsius)}°C (ambang ${config.highTemperatureThresholdCelsius}°C). Periksa kondisi perangkat dan pengisian.",
+                    "CHARGE_GUARD_HIGH_TEMPERATURE"
+                )
+                next = next.copy(
+                    temperatureArmed = false,
+                    lastTemperatureAlertAtEpochMs = nowEpochMs,
+                    temperatureRepeatCount = 0,
+                    temperatureRepeatLastAtEpochMs = nowEpochMs,
+                    temperatureRepeatDismissed = false
+                )
             }
+        } else if (
+            !next.temperatureArmed &&
+            next.temperatureRepeatLastAtEpochMs > 0L &&
+            repeatIntervalMs > 0L &&
+            !next.temperatureRepeatDismissed &&
+            next.temperatureRepeatCount < ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT &&
+            nowEpochMs - next.temperatureRepeatLastAtEpochMs >= repeatIntervalMs
+        ) {
+            alerts += ChargeGuardAlert(
+                ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED,
+                "Pengulangan: suhu baterai tinggi",
+                "Suhu baterai masih ${String.format(Locale.US, "%.1f", temperatureCelsius)}°C (ambang ${config.highTemperatureThresholdCelsius}°C). Periksa kondisi perangkat dan pengisian.",
+                "CHARGE_GUARD_HIGH_TEMPERATURE"
+            )
+            next = next.copy(
+                temperatureRepeatCount = next.temperatureRepeatCount + 1,
+                temperatureRepeatLastAtEpochMs = nowEpochMs
+            )
         }
+
         return ChargeGuardAlarmEvaluation(next, alerts)
     }
 }
