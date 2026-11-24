@@ -1966,6 +1966,7 @@ class BatteryMonitorService : Service() {
         var manualTicks = 0L
         var holdTicks = 0L
         var lastChargerTransitionGen = -1L
+        var lastStatusBarRefreshElapsedMs: Long? = null
 
         while (serviceScope.isActive && !destroyRequested.get()) {
             try {
@@ -2172,7 +2173,13 @@ class BatteryMonitorService : Service() {
                     lastNotificationBody = summary
                     notifyMonitorNotification(summary)
                 }
-                refreshStatusBarIndicatorNotification(_liveState.value)
+                val refreshNow = SystemClock.elapsedRealtime()
+                val refreshIntervalMs = StatusBarRotationRefreshPolicy.intervalMs(statusBarIndicatorSetting, isScreenOn)
+                val previousRefresh = lastStatusBarRefreshElapsedMs
+                if (previousRefresh == null || refreshNow - previousRefresh >= refreshIntervalMs) {
+                    refreshStatusBarIndicatorNotification(_liveState.value)
+                    lastStatusBarRefreshElapsedMs = refreshNow
+                }
             } catch (ce: CancellationException) {
                 throw ce
             } catch (error: Throwable) {

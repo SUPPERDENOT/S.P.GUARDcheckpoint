@@ -313,7 +313,8 @@ class P0RecoveryAndFinalizationRegressionTest {
         assertEquals("Rata-rata durable Room tidak boleh ditimpa checkpoint recovery", 1400, updatedSession.avgCurrentMa)
         assertEquals(38.5f, updatedSession.maxTempCelsius, 0.01f)
         assertTrue(updatedSession.isAnomaly)
-        assertEquals("SLOW_CHARGING", updatedSession.anomalyReason)
+        assertTrue(updatedSession.anomalyReason.orEmpty().split(",").map { it.trim() }.contains("SLOW_CHARGING"))
+        assertTrue(updatedSession.anomalyReason.orEmpty().split(",").map { it.trim() }.contains("RECOVERY_CHECKPOINT"))
         assertEquals(1, faultDao.countSamplesAtTimestamp(sessionId, batchTs))
         assertEquals(SessionRecoveryStore.CheckpointLoadResult.Empty, SessionRecoveryStore.load(context))
     }

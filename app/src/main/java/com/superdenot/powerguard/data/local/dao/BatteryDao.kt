@@ -338,7 +338,8 @@ interface BatteryDao {
         }
 
         val mergedAnomaly = existing.isAnomaly || recoveredHasAnomaly
-        val mergedReason = listOfNotNull(existing.anomalyReason, recoveredAnomalyReason)
+        val mergedReason = listOfNotNull(existing.anomalyReason, recoveredAnomalyReason,
+            com.superdenot.powerguard.domain.analytics.SessionAnomalyEvaluator.RECOVERY_MARKER)
             .flatMap { it.split(",") }
             .map { it.trim() }
             .filter { it.isNotEmpty() }

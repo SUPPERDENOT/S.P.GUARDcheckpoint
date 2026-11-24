@@ -1,3 +1,24 @@
+## 2026-11-24 — PR #9: compact five-tab header, History anomaly filters, and crisp rotation
+
+- [x] Baseline: PR #8 merged and main CI Run #550 SUCCESS on `79c5523704ba62e431d30b31bbdb31da14ecbba0`; branch created from that SHA.
+- [x] Header: 38dp row, statusBarsPadding, 16dp horizontal padding, 0.5dp divider, brand/page label.
+- [x] Subheaders: removed from Charging, Insights, History, Settings; first content inset normalized to 8dp.
+- [x] History: five LazyRow filter chips, default < 1 mnt; large Switch row removed.
+- [x] Domain: anomaly evaluator, presentation mapper, date grouping, and deterministic filter matching implemented.
+- [x] Recovery provenance: written only during existing checkpoint reconciliation; Room v3 and isAnomaly / RECOVERY_HOLD state unchanged.
+- [x] Session metadata: source and temperature shown; power is — W because session-average voltage/power is not persisted.
+- [x] Renderer: condensed bold typeface and bounded bitmap cache retained; five-character values and 8% alpha boost added.
+- [x] Rotation policy: 1,000ms for enabled custom rotation while interactive; 3,000ms otherwise; sample loop unchanged.
+- [x] Focused unit tests added/updated for anomaly evaluation, filters, alpha boost, and refresh policy.
+- [ ] Diff review: pending.
+- [ ] Anti-Slop UI Audit Gate: pending CI.
+- [ ] testDebugUnitTest / assembleDebug / APK upload: pending CI.
+- [ ] APK artifact ID: pending CI.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- [ ] PR #9 merge: HOLD until physical QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #8 follow-up: uniform 32dp Status Bar dialog pills
 
 - [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at `907a90a0f3c0668e3e3199688109bf386b1ad6cc`; PR #8 was OPEN / not merged.
