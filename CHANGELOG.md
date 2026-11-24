@@ -15,6 +15,7 @@
 - Added tests for sound/vibration preference defaults and persistence, invalid custom-URI fallback, and stable/configuration-sensitive alert channel IDs.
 - Source implementation and focused tests were included in PR CI Run #601 on head `747f12e98511e7d4ca1a11e5a1e070d3ca06f501`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload: **SUCCESS**. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45399600005)
 - Debug APK artifact ID: `14920844863` (`android-debug-apk`); unit-test report artifact ID: `14921524240`.
+- Documentation follow-up CI Run #602 on head `31ed906448fe584c6a9baed608afcb1ab61cb3b0`: all required jobs SUCCESS; latest debug APK artifact ID `14925414575`; unit-test report artifact ID `14926982019`. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45407641307).
 - Physical-device QA on itel P55: **NOT RUN** — required before PR #11 merge.
 - PR #11 merge: **HOLD** until physical-device QA is confirmed.
 
