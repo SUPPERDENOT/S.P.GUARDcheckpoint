@@ -11,7 +11,7 @@
 
 ### Verification and limitations
 - Regression tests added for built-in waveforms, custom timing sanitization/persistence, channel hash changes, inaccessible/missing external audio fallback, missing system ringtone fallback, and two-line Settings summary.
-- GitHub Actions for the final branch HEAD: PENDING.
+- GitHub Actions Run #620 on implementation commit 87ebc3b4d6641ccda84e8fafb3b2b9ce4b53f150: SUCCESS for Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, debug APK upload, and unit-test report upload. APK artifact 14937035355; unit-test report artifact 14936547835.
 - Physical-device QA on itel P55: NOT RUN. Verify permission grant and denial, external tone playback, fallback behavior, all five vibration modes, and notification-channel behavior before merge.
 - Android cannot guarantee audible output if the system notification volume is muted, Do Not Disturb suppresses sound, the notification channel is muted, or both system default ringtone providers return no playable tone. The implementation guarantees fallback attempts for URI/provider/playback failures; it cannot override system audio policy.
 - CompactSwitch uses the explicitly requested 36dp interaction height. DESIGN.md specifies a 48dp minimum touch target; this is a documented accessibility trade-off requiring physical usability review.
