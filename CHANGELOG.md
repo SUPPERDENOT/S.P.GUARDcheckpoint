@@ -728,6 +728,24 @@
 
 # Changelog
 
+## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone and preview
+
+### Implemented
+- Added persisted Charge Guard alert sound selection (system default, silent, or selected audio URI), display title, and independent vibration preference in the existing `powerguard_charge_guard` SharedPreferences file.
+- Added a Settings row with a one-line tone/vibration summary, non-blocking preview, compact picker dialog, and Android notification ringtone picker with default/silent options.
+- Added a dedicated versioned Charge Guard notification channel. Its ID is derived from effective sound URI and vibration setting; the previous Charge Guard channel is deleted when configuration changes.
+- Invalid or revoked custom audio URIs fall back to `Settings.System.DEFAULT_NOTIFICATION_URI` for preview and alert channel creation.
+- Charge Guard channel resolution and notification posting run on the service IO scope, outside the sensor sampling call stack.
+- No storage permission is requested. Added only Android's normal vibration permission.
+
+### Protected scope and verification
+- Room v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring channel, P0 lifecycle, `RECOVERY_HOLD`, and `applicationId` are not intentionally changed.
+- Unit tests added for sound preference defaults/persistence, invalid URI fallback, and channel ID stability/configuration changes.
+- Unit tests, Anti-Slop gate, Android build, and APK upload: pending CI on the resulting PR #11 head.
+- Physical-device QA on itel P55: NOT RUN; required before merge.
+
+---
+
 ## 2026-11-19 — Physical-device Auto Start validation (itel P55 NFC)
 
 ### Test results
