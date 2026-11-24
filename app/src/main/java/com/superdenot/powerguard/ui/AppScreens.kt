@@ -802,7 +802,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             val next = if (existing.isEmpty()) {
                                                 listOf(120L)
                                             } else {
-                                                val gap = (now - lastCustomTapAt - 120L).coerceIn(50L, 1_500L)
+                                                val gap = if (lastCustomTapAt == 0L) 50L
+                                                    else (now - lastCustomTapAt - 120L).coerceIn(50L, 1_500L)
                                                 existing + gap + 120L
                                             }
                                             draftChargeGuardSound = draftChargeGuardSound.copy(
