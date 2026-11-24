@@ -1,3 +1,19 @@
+## 2026-11-24 — PR #8 follow-up: compact Settings and Status Bar controls
+
+### Changed
+- Replaced the full-width `Atur indikator` TextButton with a full-width Material 3 `OutlinedButton`, matching the neighboring Settings actions and adding a compact Tune icon.
+- Removed the check icon and its reserved trailing space from the 2 × 3 Status Bar parameter grid. Selected state continues to use the selected container tone, stronger border, and selected text weight/color, allowing labels to use the full cell width.
+- Reworked the custom interval row to place `Interval kustom (1–60 dtk)` on the left and a centered, placeholder-free 72dp × 48dp numeric field on the right.
+
+### Protected behavior
+- UI-only change in `AppScreens.kt`; draft, Simpan/Batal behavior, renderer, sensor acquisition, current calibration (default 1x), Room DB v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+
+### Verification
+- Source diff review: PASS — only the requested Settings and popup UI composition plus this documentation/checklist were changed.
+- Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on the latest commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-24 — PR #8 follow-up: combine current calibration with Status Bar settings
 
 ### Changed
