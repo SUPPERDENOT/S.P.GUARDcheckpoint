@@ -1,3 +1,28 @@
+## 2026-11-24 — PR #11 follow-up: audio fallback, custom vibration, and compact switches
+
+- [x] Replaced all four Settings/Charge Guard Material 3 Switch controls with reusable CompactSwitch (42×24dp track, 18dp thumb, animated movement, 36dp interaction height).
+- [x] Added READ_MEDIA_AUDIO for API 33+ and READ_EXTERNAL_STORAGE with maxSdkVersion=32; runtime permission is requested after an external MediaStore URI is selected and permission is missing.
+- [x] Custom URI validation checks openAssetFileDescriptor(..., "r") and rejects null/zero-length descriptors. SecurityException and FileNotFoundException are treated as inaccessible.
+- [x] Preview player tries the selected custom URI, then Settings.System.DEFAULT_NOTIFICATION_URI, then RingtoneManager's notification default. Missing ringtone or play exception advances to the next candidate.
+- [x] Preview player retains the Ringtone instance, stops the previous preview, and auto-stops after four seconds. Hening stops active audio; Off cancels prior vibration.
+- [x] Added Off, Singkat, Ganda (default), SOS, and Kustom vibration patterns. Custom segments are sanitized to 50–1500ms, limited to 15 pulse/gap segments (maximum eight pulses), and persisted in Charge Guard SharedPreferences.
+- [x] Notification-channel ID hashes the effective sound URI and complete vibration waveform; channel vibration uses the selected timings.
+- [x] Settings summary is split into two ellipsized single-line rows.
+- [x] All History session level-range labels route through SessionLevelRangeFormatter; unavailable end values use the same Unicode arrow formatter.
+- [x] Unit tests added for built-in waveform definitions, custom sanitization/persistence, channel hash variation, inaccessible/missing audio fallback, and summary formatting.
+- [x] No Room schema/entity/migration, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, SDK, dependency, version, or applicationId change intended.
+- [ ] Anti-Slop UI Audit Gate: PENDING.
+- [ ] testDebugUnitTest: PENDING.
+- [ ] assembleDebug: PENDING.
+- [ ] APK upload / latest Artifact ID: PENDING.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
+
+### Accessibility note
+- CompactSwitch interaction height is 36dp as explicitly requested. DESIGN.md sets a 48dp minimum target; this deviation is recorded for physical usability review rather than being reported as fully compliant.
+
+---
+
 ## 2026-11-24 — PR #11 follow-up: compact Charge Guard popup and 50°C threshold
 
 - [x] Replaced the expanded Settings Charge Guard controls with a compact one-row `Peringatan & Nada` card, dynamic single-line summary, quick `Tes`, and chevron.
