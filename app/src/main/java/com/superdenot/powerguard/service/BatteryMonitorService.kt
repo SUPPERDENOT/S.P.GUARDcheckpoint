@@ -22,6 +22,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.ContextCompat
 import com.superdenot.powerguard.MainActivity
+import com.superdenot.powerguard.receiver.ChargeGuardAlertDismissReceiver
 import com.superdenot.powerguard.R
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
@@ -2128,18 +2129,16 @@ class BatteryMonitorService : Service() {
                             chargingEtaMinutes = etaMinutes,
                             isChargingEtaTracking = activeSessionId != null && effectiveSensor.isCharging && effectiveSensor.isPowerConnected
                         )
-                        if (effectiveSensor.isCharging) {
-                            ChargeGuardSettings.evaluate(
-                                context = applicationContext,
-                                sessionId = activeSessionId,
-                                isCharging = effectiveSensor.isCharging,
-                                batteryLevel = effectiveSensor.level,
-                                isBatteryLevelAvailable = effectiveSensor.isLevelAvailable,
-                                temperatureCelsius = effectiveSensor.tempCelsius,
-                                isTemperatureAvailable = effectiveSensor.isTemperatureAvailable,
-                                nowEpochMs = System.currentTimeMillis()
-                            ).forEach(::sendChargeGuardAlertNotification)
-                        }
+                        ChargeGuardSettings.evaluate(
+                            context = applicationContext,
+                            sessionId = activeSessionId,
+                            isCharging = effectiveSensor.isCharging,
+                            batteryLevel = effectiveSensor.level,
+                            isBatteryLevelAvailable = effectiveSensor.isLevelAvailable,
+                            temperatureCelsius = effectiveSensor.tempCelsius,
+                            isTemperatureAvailable = effectiveSensor.isTemperatureAvailable,
+                            nowEpochMs = System.currentTimeMillis()
+                        ).forEach(::sendChargeGuardAlertNotification)
                         publishLiveState(updatedState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
@@ -3990,6 +3989,18 @@ class BatteryMonitorService : Service() {
         )
         val visualSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(alert.message, alert.code)
         val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
+        val dismissRequestCode = when (alert.type) {
+            ChargeGuardAlertType.CHARGE_LIMIT_REACHED -> CHARGE_LIMIT_NOTIFICATION_ID
+            ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED -> HIGH_TEMPERATURE_NOTIFICATION_ID
+        }
+        val dismissIntent = PendingIntent.getBroadcast(
+            this,
+            dismissRequestCode,
+            Intent(this, ChargeGuardAlertDismissReceiver::class.java).apply {
+                putExtra(ChargeGuardAlertDismissReceiver.EXTRA_ALERT_TYPE, alert.type.name)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("SUPERD POWER GUARD • ${alert.title}")
             .setContentText(alert.message)
@@ -4000,6 +4011,7 @@ class BatteryMonitorService : Service() {
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent)
+            .setDeleteIntent(dismissIntent)
             .setAutoCancel(true)
             .build()
     }
