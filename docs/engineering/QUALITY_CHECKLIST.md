@@ -1,3 +1,14 @@
+## 2026-11-24 — PR #8 follow-up: compact Settings and Status Bar controls
+
+- [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at requested base `446996fed5200bd20179990ced292a5596f8392e`; PR #8 was OPEN / not merged.
+- [x] Settings action: PASS by source review — `Atur indikator` uses full-width `OutlinedButton` with Tune icon, matching the neighboring Settings OutlinedButtons.
+- [x] Parameter grid: PASS by source review — trailing check icon and reserved spacer removed; selected container, stronger border, and selected text weight/color remain; label receives the full cell width.
+- [x] Custom interval: PASS by source review — one horizontal row, concise left label, centered placeholder-free 72dp × 48dp numeric field, and existing 1–60 validation retained.
+- [x] Scope: PASS by diff review — only `AppScreens.kt`, `CHANGELOG.md`, and this checklist changed; draft/save behavior, renderer, sensor, calibration default 1x, Room v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` untouched.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for latest branch commit.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
 ## 2026-11-24 — PR #8 follow-up: calibration draft and Auto-Start diagnostic UI removal
 
 - [x] Baseline and merge gate: PASS — branch `feat/crisp-statusbar-indicator`; PR #8 verified OPEN / not merged before changes.
