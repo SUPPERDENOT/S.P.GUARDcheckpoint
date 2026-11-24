@@ -1,3 +1,31 @@
+## 2026-11-24 — PR #10: visual presentation, diagnostic summaries, and live status-bar preview
+
+### Changed
+- Replaced the duplicated page label in the 38dp brand header with a compact real-time service-state pill: Mengisi, Penuh, Aktif, or Siaga. The bottom navigation remains the active-tab indicator.
+- Consolidated the Overview battery level and live readings into one hero card with a circular arc gauge, status-dependent color, four measured metrics, and ETA only while the estimator reports valid tracking data. Kept SOH and system-readiness cards directly below it.
+- Added a segmented session-sample thermal duration band (Aman <38°C, Hangat 38–<40°C, Tinggi ≥40°C) and CC/CV-like pattern indicators to Charging and the curve analyzer. CC/CV is explicitly a battery-side pattern heuristic, not protocol detection; insufficient/ambiguous samples and samples separated by gaps over two minutes remain unknown.
+- Standardized displayed voltage as V with the corresponding mV value, and moved the battery-side power explanation into a tap-accessible information dialog.
+- Added a seven-day daily-cycle mini chart with high-temperature markers and Indonesian date labels (Hari Ini, Kemarin, or dd MMM yyyy).
+- Removed the History floating column header, displayed localized mAh values inline, widened the level range, highlighted the selected curve session, omitted unavailable average-power text, and removed the legacy current × fixed-voltage watt estimate.
+- Added average peak-temperature aggregation per accessory label, normalized +%/jam comparison bars, and automatic Tercepat / Cenderung Panas badges. Cenderung Panas uses the established 40°C threshold.
+- Added a 32dp dark-backed Settings preview using the production LiveStatusBarRenderer; the bitmap follows draft single/custom mode, selected rotation parameters and interval, and draft current-scale adjustment. Condensed the Settings summary line and localized visible labels to Indonesian.
+
+### Protected behavior
+- Room database remains v3; no entity, schema, migration, or historical-data changes.
+- Battery sensor acquisition, sampling cadence, calibration default 1x, P0 BatteryMonitorService lifecycle, RECOVERY_HOLD, and startup policy are unchanged.
+- applicationId remains com.superdenot.superdguard. No package, dependency, SDK, app-version, or build-number changes.
+- No export/copy-report feature was added.
+
+### Verification
+- Full diff review: PASS — 21 changed files reviewed against PR #10 base `4140b41313959087a1b97c4a823ff4f176376ed7`; no Room entity/schema/migration, BatteryMonitorService, sensor acquisition, sampling cadence, calibration default, or build-configuration files changed.
+- Added tests for thermal-zone durations and CC/CV-like pattern mapping (including long-gap Unknown behavior), seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
+- GitHub Actions PR CI Run #573: SUCCESS on commit `8aad816e1f0f59c3a5041bda3c517ae3e2cf986b` — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all succeeded. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45360070719)
+- Earlier PR CI runs identified missing/duplicate imports; corrected before Run #573.
+- Debug APK artifact: `14904586066` (`android-debug-apk`); unit-test report artifact: `14904536043`.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #10 merge. PR #10 remains OPEN and unmerged.
+
+---
+
 ## 2026-11-24 — PR #9: compact five-tab header, History anomaly filters, and crisp rotation
 
 ### Changed

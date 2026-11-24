@@ -32,7 +32,8 @@ data class AccessoryBenchmarkGroup(
     val averageChargeRatePercentPerHour: Double?,
     val averageTemperatureRiseCelsius: Double?,
     val averageStartLevelPercent: Double?,
-    val averageStartTemperatureCelsius: Double?
+    val averageStartTemperatureCelsius: Double?,
+    val averagePeakTemperatureCelsius: Double? = null
 )
 
 data class AccessoryBenchmarkResult(

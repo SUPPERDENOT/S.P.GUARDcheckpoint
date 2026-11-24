@@ -76,6 +76,13 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     val sessions: StateFlow<List<ChargingSessionEntity>> = repository.allSessionsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val currentSessionSamples: StateFlow<List<BatterySampleEntity>> = sessions
+        .flatMapLatest { items ->
+            val activeSessionId = items.firstOrNull { it.endTime == null }?.id
+            if (activeSessionId == null) flowOf(emptyList()) else repository.getSamplesForSession(activeSessionId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val accessoryBenchmark: StateFlow<AccessoryBenchmarkResult> =
         repository.accessoryBenchmarkSessionsFlow
             .map(AccessoryBenchmarkCalculator::calculate)

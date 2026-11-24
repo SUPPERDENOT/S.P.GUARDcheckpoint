@@ -29,7 +29,8 @@ object AccessoryBenchmarkCalculator {
                 averageChargeRatePercentPerHour = metrics.mapNotNull { it.chargeRatePercentPerHour }.averageOrNull(),
                 averageTemperatureRiseCelsius = metrics.mapNotNull { it.temperatureRiseCelsius }.averageOrNull(),
                 averageStartLevelPercent = labeledSessions.map { it.startLevelPercent.toDouble() }.averageOrNull(),
-                averageStartTemperatureCelsius = metrics.mapNotNull { it.startTemperatureCelsius }.averageOrNull()
+                averageStartTemperatureCelsius = metrics.mapNotNull { it.startTemperatureCelsius }.averageOrNull(),
+                averagePeakTemperatureCelsius = metrics.mapNotNull { it.peakTemperatureCelsius }.averageOrNull()
             )
         }.sortedBy { it.label.lowercase(Locale.ROOT) }
 
@@ -91,7 +92,8 @@ object AccessoryBenchmarkCalculator {
             averageCurrentMa = session.averageCurrentMa?.toDouble(),
             chargeRatePercentPerHour = chargeRate,
             temperatureRiseCelsius = temperatureRise,
-            startTemperatureCelsius = firstTemperature
+            startTemperatureCelsius = firstTemperature,
+            peakTemperatureCelsius = peakTemperature
         )
     }
 
@@ -159,6 +161,7 @@ object AccessoryBenchmarkCalculator {
         val averageCurrentMa: Double?,
         val chargeRatePercentPerHour: Double?,
         val temperatureRiseCelsius: Double?,
-        val startTemperatureCelsius: Double?
+        val startTemperatureCelsius: Double?,
+        val peakTemperatureCelsius: Double?
     )
 }

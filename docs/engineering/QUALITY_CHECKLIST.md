@@ -1,3 +1,28 @@
+## 2026-11-24 — PR #10: visual presentation, diagnostic summaries, and live status-bar preview
+
+- [x] Baseline: PR #9 merged at `6fbea39ea0fa694f32b3185b7218f8e5a5238675`; main CI Run #559 SUCCESS. Latest main after the documentation-only restoration is `4140b41313959087a1b97c4a823ff4f176376ed7`; main CI Run #560 SUCCESS. PR #10 targets that main SHA.
+- [x] Branch: `feat/visual-presentation-and-ux-polish` already existed when this task was resumed; verified aligned with PR #10 base and zero commits behind latest main. No duplicate branch was created.
+- [x] Header: 38dp brand row retains status-bar insets and replaces duplicate page name with a live service-state pill; bottom navigation identifies the active tab.
+- [x] Overview: one compact hero card groups the circular battery arc, four live readings, and valid ETA; SOH and system-readiness cards follow it.
+- [x] Charging / curve: segmented sample-weighted temperature band (Aman <38°C, Hangat 38–<40°C, Tinggi ≥40°C) and CC/CV-like battery-side pattern heuristic added. UI copy explicitly says this is not direct protocol identification; unavailable/ambiguous data and sample gaps over two minutes remain unknown.
+- [x] Voltage presentation: V and mV shown together; battery-side power explanation moved into a tap dialog.
+- [x] Insights: seven-day trend aggregation, high-temperature marker, and Indonesian date formatter added.
+- [x] History: floating table header removed; mAh units localized inline; level range widened; selected session highlighted; unavailable average power omitted; legacy fixed-voltage watt estimate removed.
+- [x] Accessory comparison: normalized +%/jam, average peak temperature, horizontal bars, Tercepat and Cenderung Panas badges added.
+- [x] Settings: production-renderer bitmap preview (32dp container / 24dp bitmap) follows draft single/custom mode, selected rotation parameters and interval, and calibration scale; compact summary and Indonesian copy added.
+- [x] Focused unit tests added for thermal zones / CC-CV-like mapping, seven-day aggregation/date labels, accessory ranking/peak temperature, and Settings summary formatting.
+- [x] Protected scope by source review: Room v3, sensor acquisition/cadence, calibration default 1x, P0 BatteryMonitorService lifecycle, RECOVERY_HOLD, startup policy, and applicationId remain unchanged.
+- [x] No package, dependency, SDK, app-version, or build-number changes; no report export/copy feature added.
+- [x] Final full diff review: PASS — 21 changed files; no Room, service, sensor acquisition, calibration, Gradle, manifest, package, or version files changed.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — PR CI Run #573 (`45360070719`).
+- [x] `testDebugUnitTest` and `assembleDebug`: SUCCESS — PR CI Run #573 (`45360070719`).
+- [x] APK and unit-test report uploads: SUCCESS — PR CI Run #573.
+- [x] Debug APK artifact ID: `14904586066` (`android-debug-apk`); unit-test report artifact ID: `14904536043`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- [ ] PR #10 merge: HOLD until physical QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #9: compact five-tab header, History anomaly filters, and crisp rotation
 
 - [x] Baseline: PR #8 merged and main CI Run #550 SUCCESS on `79c5523704ba62e431d30b31bbdb31da14ecbba0`; branch created from that SHA.

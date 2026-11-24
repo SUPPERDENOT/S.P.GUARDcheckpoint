@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -80,6 +82,9 @@ import com.superdenot.powerguard.domain.analytics.SessionAnomaly
 import com.superdenot.powerguard.domain.analytics.SessionAnomalyEvaluator
 import com.superdenot.powerguard.domain.analytics.SessionPresentationMapper
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
+import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkRanker
+import com.superdenot.powerguard.domain.analytics.DailyCycleTrend
+import com.superdenot.powerguard.domain.analytics.DailyCycleTrendPoint
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
@@ -91,9 +96,11 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.text.NumberFormat
+import java.time.LocalDate
 
 internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
-    "$startLevel% -> $endLevel%"
+    "$startLevel% → $endLevel%"
 
 internal fun formatCurveSessionCount(visibleCount: Int, totalCount: Int): String =
     "Kurva Sesi ($visibleCount/$totalCount)"
@@ -110,7 +117,7 @@ fun AnalyticsScreen(
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
     }
-    val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas App")
+    val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
         bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     )
@@ -243,7 +250,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                     )
                 }
                 androidx.compose.material3.TextButton(onClick = { isCurveExpanded = true }) {
-                    Text("Lihat Kurva")
+                    Text("Analisis Kurva Pengisian")
                 }
             }
         }
@@ -292,9 +299,6 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 )
             }
         } else {
-            stickyHeader {
-                SessionTableHeader()
-            }
             itemsIndexed(visibleSessions, key = { _, item -> item.id }) { index, session ->
                 val isActive = session.endTime == null
                 val presentation = SessionPresentationMapper.map(session, liveState.level, nowEpochMs)
@@ -314,9 +318,14 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth()
-                        .background(if (isSelected) CyanFastCharge.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant,
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(10.dp))
                         .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            width = if (isSelected) 1.5.dp else 0.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = RoundedCornerShape(10.dp)
+                        )
                         .drawBehind {
                             if (presentation.anomalies.isNotEmpty()) drawLine(
                                 color = CrimsonAnomaly, start = Offset(0f, 0f),
@@ -339,21 +348,23 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         }
                         Text(
                             text = timeLabel + if (isActive) " • Aktif" else "",
-                            modifier = Modifier.weight(0.36f),
+                            modifier = Modifier.weight(0.27f),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
                             color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% -> —",
-                            modifier = Modifier.weight(0.18f),
+                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% → —",
+                            modifier = Modifier.weight(0.31f),
                             style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
-                            text = String.format(Locale.US, "%.0f", session.totalMahDelivered),
-                            modifier = Modifier.weight(0.20f),
+                            text = NumberFormat.getIntegerInstance(Locale("id", "ID")).format(session.totalMahDelivered) + " mAh",
+                            modifier = Modifier.weight(0.22f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.End,
                             color = EmeraldCharge,
@@ -361,7 +372,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         )
                         Text(
                             text = duration,
-                            modifier = Modifier.weight(0.26f),
+                            modifier = Modifier.weight(0.20f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.End,
                             maxLines = 2
@@ -373,8 +384,15 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("${presentation.sourceLabel} · ${presentation.powerLabel} · ${presentation.temperatureLabel}",
-                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val metadata = listOfNotNull(
+                            presentation.sourceLabel.takeIf { it.isNotBlank() },
+                            presentation.powerLabel.takeUnless { it == "— W" || it.isBlank() },
+                            presentation.temperatureLabel.takeIf { it.isNotBlank() }
+                        ).joinToString(" · ")
+                        if (metadata.isNotBlank()) {
+                            Text(metadata, style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         session.accessoryLabel?.takeIf { it.isNotBlank() }?.let { label ->
                             Surface(color = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -402,15 +420,15 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SessionDetailMiniBox(
                                 label = "Arus Rata-rata",
-                                value = "${session.avgCurrentMa} mA",
-                                subValue = "Suhu maks. ${String.format(Locale.US, "%.1f", session.maxTempCelsius)}°C",
+                                value = if (session.hasCurrentData) "${session.avgCurrentMa} mA" else "—",
+                                subValue = if (session.hasCurrentData) "Rata-rata arus baterai" else "Data arus tidak tersedia",
                                 accent = EmeraldCharge,
                                 modifier = Modifier.weight(1f)
                             )
                             SessionDetailMiniBox(
                                 label = "Perubahan Baterai",
                                 value = delta?.let { deltaValue -> (if (deltaValue >= 0) "+$deltaValue%" else "$deltaValue%") } ?: "—",
-                                subValue = "Daya masuk ${String.format(Locale.US, "%.1f", session.totalMahDelivered)} mAh",
+                                subValue = "Level awal ${session.startLevel}%",
                                 accent = when {
                                     delta == null -> MaterialTheme.colorScheme.onSurfaceVariant
                                     delta >= 0 -> EmeraldCharge
@@ -442,8 +460,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                                 text = NotificationVisualRenderer.formatAnomalyReason(
                                     session.anomalyReason.orEmpty().split(',')
                                         .filterNot { it.trim() == SessionAnomalyEvaluator.RECOVERY_MARKER }
-                                        .joinToString(", ").ifBlank { null },
-                                    session.maxTempCelsius.takeIf { it > 0f }
+                                        .joinToString(", ").ifBlank { null }
                                 ),
                                 color = CrimsonAnomaly,
                                 style = MaterialTheme.typography.labelSmall,
@@ -559,63 +576,72 @@ private fun AccessoryBenchmarkCard(
     onDeleteGroup: (String) -> Unit,
     onResetAll: () -> Unit
 ) {
+    val ranking = remember(result.groups) { AccessoryBenchmarkRanker.rank(result.groups) }
+    val maxRate = result.groups.mapNotNull { it.averageChargeRatePercentPerHour }
+        .filter { it.isFinite() && it > 0.0 }.maxOrNull() ?: 0.0
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp)
-        ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Perbandingan Aksesori", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("Perbandingan Aksesori", modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 TextButton(onClick = onResetAll, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
                     Text("Reset Semua")
                 }
             }
             Text(
-                "Rata-rata pengukuran sisi baterai dari sesi yang selesai. Daya dihitung dari sampel tersimpan, bukan input charger.",
+                "Laju dinormalisasi sebagai kenaikan level per jam; suhu puncak adalah rata-rata sesi berlabel yang selesai.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             result.groups.forEachIndexed { index, group ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            group.label,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            "${group.sessionCount} sesi",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(
-                            onClick = { onDeleteGroup(group.label) },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                        ) { Text("Hapus") }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(group.label, modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (ranking.fastestLabel == group.label) {
+                            Surface(color = EmeraldCharge.copy(alpha = 0.13f), contentColor = EmeraldCharge,
+                                shape = RoundedCornerShape(50)) {
+                                Text("Tercepat", modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        if (group.label in ranking.warmLabels) {
+                            Spacer(Modifier.width(4.dp))
+                            Surface(color = AmberThermal.copy(alpha = 0.15f), contentColor = AmberThermal,
+                                shape = RoundedCornerShape(50)) {
+                                Text("Cenderung Panas", modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${group.sessionCount} sesi", modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = { onDeleteGroup(group.label) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)) { Text("Hapus") }
+                    }
+                    val rate = group.averageChargeRatePercentPerHour
+                    val fraction = if (rate != null && maxRate > 0.0) (rate / maxRate).toFloat().coerceIn(0f, 1f) else 0f
+                    Box(Modifier.fillMaxWidth().height(5.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) {
+                        if (fraction > 0f) {
+                            Box(Modifier.fillMaxWidth(fraction).fillMaxHeight()
+                                .background(if (ranking.fastestLabel == group.label) EmeraldCharge else MaterialTheme.colorScheme.primary,
+                                    RoundedCornerShape(50)))
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AccessoryMetric("Laju pengisian", rate, "%/jam", Modifier.weight(1f))
+                        AccessoryMetric("Suhu puncak rata-rata", group.averagePeakTemperatureCelsius, "°C", Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         AccessoryMetric("Daya rata-rata", group.averageBatteryPowerW, "W", Modifier.weight(1f))
                         AccessoryMetric("Arus rata-rata", group.averageCurrentMa, "mA", Modifier.weight(1f))
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        AccessoryMetric("Laju pengisian", group.averageChargeRatePercentPerHour, "%/jam", Modifier.weight(1f))
-                        AccessoryMetric("Kenaikan suhu", group.averageTemperatureRiseCelsius, "°C", Modifier.weight(1f))
                     }
                 }
             }
@@ -623,11 +649,8 @@ private fun AccessoryBenchmarkCard(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Text("Catatan kesebandingan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 result.comparabilityNotes.forEach { note ->
-                    Text(
-                        "• $note",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("• $note", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -644,202 +667,13 @@ private fun AccessoryMetric(
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
-            value?.let { String.format(Locale.US, "%.1f %s", it, unit) } ?: "—",
+            value?.let {
+                if (unit == "%/jam" && it > 0.0) String.format(Locale.US, "+%.1f %s", it, unit)
+                else String.format(Locale.US, "%.1f %s", it, unit)
+            } ?: "—",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
-    }
-}
-
-@Composable
-private fun SessionTableHeader() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("Waktu", modifier = Modifier.weight(0.36f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        Text("Level", modifier = Modifier.weight(0.18f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Text("mAh", modifier = Modifier.weight(0.20f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
-        Text("Durasi", modifier = Modifier.weight(0.26f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
-    }
-}
-
-@Composable
-private fun SessionHistoryCard(
-    session: ChargingSessionEntity,
-    effectiveEndLevel: Int,
-    effectiveEndTime: Long,
-    isSelected: Boolean,
-    isExpanded: Boolean,
-    onClick: () -> Unit
-) {
-    val dateTimeFormatter = remember {
-        DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm").withZone(ZoneId.systemDefault())
-    }
-    val timeOnlyFormatter = remember {
-        DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
-    }
-
-    val startStr = dateTimeFormatter.format(Instant.ofEpochMilli(session.startTime))
-    val startClock = timeOnlyFormatter.format(Instant.ofEpochMilli(session.startTime))
-    val endClock = if (session.endTime != null) {
-        timeOnlyFormatter.format(Instant.ofEpochMilli(session.endTime))
-    } else {
-        "Sedang Berjalan"
-    }
-
-    val durationSec = ((effectiveEndTime - session.startTime) / 1000L).coerceAtLeast(0L)
-    val durationFormatted = formatDurationIndo(durationSec)
-
-    val deltaPct = effectiveEndLevel - session.startLevel
-    val deltaPctStr = when {
-        deltaPct > 0 -> "+$deltaPct%"
-        deltaPct < 0 -> "$deltaPct%"
-        else -> "0%"
-    }
-    val endPctLabel = formatSessionLevelRange(session.startLevel, effectiveEndLevel) +
-        if (session.endLevel == null) " (Aktif)" else ""
-
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) CyanFastCharge.copy(alpha = 0.14f)
-            else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = if (isSelected) BorderStroke(1.dp, CyanFastCharge.copy(alpha = 0.45f)) else null,
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "$startStr • ${session.chargerType}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (session.isAnomaly) {
-                        Surface(color = CrimsonAnomaly.copy(alpha = 0.2f), shape = RoundedCornerShape(50)) {
-                            Text(
-                                text = "ANOMALI",
-                                color = CrimsonAnomaly,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                        contentDescription = if (isExpanded) "Tutup Detail" else "Lihat Detail",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "Level: $endPctLabel ($deltaPctStr)  |  Terisi: ${String.format(Locale.US, "%+.1f mAh", session.totalMahDelivered)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (session.totalMahDelivered >= 0) EmeraldCharge else CrimsonAnomaly
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = "Durasi: $durationFormatted • Arus Rata-rata: ${session.avgCurrentMa} mA • Suhu Maks: ${String.format(Locale.US, "%.1f", session.maxTempCelsius)}°C",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // Panel Detail Interaktif saat Kartu Sesi Diklik
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column(modifier = Modifier.padding(top = 10.dp)) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SessionDetailMiniBox(
-                            label = "Durasi Pengisian",
-                            value = durationFormatted,
-                            subValue = "$startClock - $endClock",
-                            accent = CyanFastCharge,
-                            modifier = Modifier.weight(1f)
-                        )
-                        SessionDetailMiniBox(
-                            label = "Persentase Terisi",
-                            value = "$deltaPctStr (${formatSessionLevelRange(session.startLevel, effectiveEndLevel)})",
-                            subValue = String.format(Locale.US, "Kapasitas: %+.1f mAh", session.totalMahDelivered),
-                            accent = if (deltaPct > 0 || session.totalMahDelivered > 0) EmeraldCharge else CrimsonAnomaly,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(3.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        val estAvgWatt = (session.avgCurrentMa / 1000.0) * 4.1
-                        SessionDetailMiniBox(
-                            label = "Performa Arus & Daya",
-                            value = "${session.avgCurrentMa} mA (~${String.format(Locale.US, "%.1f", estAvgWatt)} W)",
-                            subValue = "Sumber: ${session.chargerType}",
-                            accent = EmeraldCharge,
-                            modifier = Modifier.weight(1f)
-                        )
-                        SessionDetailMiniBox(
-                            label = "Suhu & Deep Sleep",
-                            value = "${String.format(Locale.US, "%.1f", session.maxTempCelsius)}°C Maks",
-                            subValue = "Deep Sleep CPU: ${(session.deepSleepRatio * 100).toInt()}%",
-                            accent = if (session.maxTempCelsius >= 40f) CrimsonAnomaly else AmberThermal,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            session.anomalyReason.orEmpty().split(',')
-                .filterNot { it.trim() == SessionAnomalyEvaluator.RECOVERY_MARKER }
-                .joinToString(", ")
-                .takeIf { it.isNotBlank() }
-                ?.let { visibleReason ->
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = NotificationVisualRenderer.formatAnomalyReason(
-                            visibleReason,
-                            session.maxTempCelsius.takeIf { it > 0f }
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = CrimsonAnomaly
-                    )
-                }
-        }
     }
 }
 
@@ -851,29 +685,16 @@ private fun SessionDetailMiniBox(
     accent: Color,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(10.dp),
-        modifier = modifier
-    ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = accent
-            )
-            Text(
-                text = subValue,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(10.dp), modifier = modifier) {
+        Column(Modifier.padding(10.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(2.dp))
+            Text(value, style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold, color = accent)
+            Text(subValue, fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -892,6 +713,8 @@ private fun formatDurationIndo(totalSeconds: Long): String {
 @Composable
 private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val rollups by viewModel.dailyRollups.collectAsState()
+    val today = LocalDate.now()
+    val trend = remember(rollups, today) { DailyCycleTrend.aggregate(rollups, today) }
 
     LazyColumn(
         contentPadding = bottomScrollPadding,
@@ -904,66 +727,99 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Laporan Siklus Harian",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 10.dp)
-                )
+                Text("Laporan Siklus Harian", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 10.dp))
                 OutlinedButton(
                     onClick = { viewModel.triggerManualRollup() },
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                     modifier = Modifier.height(36.dp)
                 ) {
-                    Text(
-                        text = "Hitung Sekarang",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Text("Hitung Sekarang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        maxLines = 1, softWrap = false)
                 }
             }
         }
-
+        item { SevenDayCycleMiniChart(trend) }
         if (rollups.isEmpty()) {
             item {
-                Text(
-                    text = "Belum ada ringkasan harian. Tekan 'Hitung Sekarang' setelah melakukan sesi pengisian.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Belum ada ringkasan harian. Tekan 'Hitung Sekarang' setelah melakukan sesi pengisian.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             items(rollups, key = { it.dateKey }) { rollup ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(DailyCycleTrend.formatDateLabel(rollup.dateKey, today),
+                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Tanggal: ${rollup.dateKey}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
+                            "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} siklus • Total Masuk: +${String.format(Locale.US, "%.0f", rollup.totalMahCharged)} mAh",
+                            style = MaterialTheme.typography.bodyMedium, color = EmeraldCharge)
                         Text(
-                            text = "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} cycle • Total Masuk: +${String.format(Locale.US, "%.0f", rollup.totalMahCharged)} mAh",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = EmeraldCharge
-                        )
-                        Text(
-                            text = "Suhu Maks: ${String.format(Locale.US, "%.1f", rollup.maxTempCelsius)}°C • Jumlah Anomali: ${rollup.anomalyCount}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            "Suhu Maks: ${String.format(Locale.US, "%.1f", rollup.maxTempCelsius)}°C • Jumlah Anomali: ${rollup.anomalyCount}",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
+    val maxCycles = points.maxOfOrNull { it.totalCycles }?.coerceAtLeast(0.1) ?: 0.1
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Tren Siklus & Suhu Puncak · 7 Hari", style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                points.forEach { point ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        if (point.peakTemperatureCelsius != null && point.peakTemperatureCelsius >= 40.0) {
+                            Box(Modifier.size(6.dp).background(CrimsonAnomaly, RoundedCornerShape(50)))
+                        } else {
+                            Spacer(Modifier.size(6.dp))
+                        }
+                        Text(if (point.hasData) String.format(Locale.US, "%.1f", point.totalCycles) else "—",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1)
+                        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.BottomCenter) {
+                            val barHeight = if (point.hasData && point.totalCycles > 0.0)
+                                (point.totalCycles / maxCycles * 44.0).coerceAtLeast(3.0).dp else 2.dp
+                            Box(
+                                Modifier.fillMaxWidth(0.58f).height(barHeight)
+                                    .background(
+                                        if (point.peakTemperatureCelsius != null && point.peakTemperatureCelsius >= 40.0)
+                                            CrimsonAnomaly else MaterialTheme.colorScheme.primary,
+                                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                                    )
+                            )
+                        }
+                        Text(point.date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale("id", "ID"))
+                            .take(2), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
+                }
+            }
+            Text("Titik merah menandai suhu puncak ≥40°C. Hari tanpa rollup ditampilkan sebagai data tidak tersedia.",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -995,7 +851,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Izin Usage Access diperlukan agar PowerGuard dapat mendeteksi aplikasi aktif saat terjadi anomali pengisian daya.",
+                            text = "Izin Akses Penggunaan diperlukan agar PowerGuard dapat mendeteksi aplikasi aktif saat terjadi anomali pengisian daya.",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(10.dp))

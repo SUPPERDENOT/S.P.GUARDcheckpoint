@@ -199,7 +199,7 @@ fun DashboardScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = if (activeState.isCharging) activeState.chargingProtocol else "DISCHARGING",
+                                    text = if (activeState.isCharging) activeState.chargingProtocol else "TIDAK MENGISI",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
@@ -311,7 +311,7 @@ fun DashboardScreen(
 
                         val deepSleepPct = (activeState.deepSleepRatio * 100).toInt()
                         Text(
-                            text = "Rasio Deep Sleep CPU: $deepSleepPct% (Tinggi = minim wakelock latar belakang)",
+                            text = "Rasio mode tidur CPU: $deepSleepPct% (Tinggi = minim wakelock latar belakang)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -364,7 +364,7 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = if (designCapacity.isManualOverride) "Sumber: Manual Override" else if (designCapacity.capacityMah != null) "Sumber: Automatic" else "Sumber: Automatic (tidak tersedia)",
+                                text = if (designCapacity.isManualOverride) "Sumber: Manual Override" else if (designCapacity.capacityMah != null) "Sumber: Otomatis" else "Sumber: Otomatis (tidak tersedia)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -391,9 +391,9 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("Battery Monitoring", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Pemantauan Baterai", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Text(
-                            "Kontrol utama tersedia di Settings. Layanan hanya berjalan saat Battery Monitoring ON dan charger tersambung.",
+                            "Kontrol utama tersedia di Setelan. Layanan hanya berjalan saat Battery Monitoring ON dan charger tersambung.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -540,7 +540,7 @@ fun DashboardScreen(
             text = {
                 Column {
                     Text(
-                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual akan dipakai sampai Anda kembali ke Automatic.",
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual akan dipakai sampai Anda kembali ke Otomatis.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -570,7 +570,7 @@ fun DashboardScreen(
                         viewModel.useAutomaticDesignCapacity()
                         showCapacityDialog = false
                     }) {
-                        Text("Gunakan Automatic")
+                        Text("Gunakan Otomatis")
                     }
                     TextButton(onClick = { showCapacityDialog = false }) {
                         Text("Batal")
@@ -630,7 +630,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                     content = "© 2026 superdenot. Hak cipta atas aplikasi dan kode SUPERD POWER GUARD tetap berada pada pemegang hak cipta. Repository saat ini tidak menyertakan berkas LICENSE yang memberikan lisensi open-source untuk kode aplikasi. Artinya, kode aplikasi tidak otomatis boleh disalin, dimodifikasi, atau didistribusikan ulang. Lisensi komponen pihak ketiga dijelaskan pada bagian berikutnya dan tidak mengubah status lisensi kode aplikasi."
                 )
                 InfoSectionItem(
-                    title = "4. Open-Source & Third-Party Notices",
+                    title = "4. Pemberitahuan Sumber Terbuka & Pihak Ketiga",
                     content = "Dependency yang dideklarasikan langsung pada konfigurasi build mencakup AndroidX Core, Activity, Lifecycle, Jetpack Compose, Material 3, Room, WorkManager, DataStore, Kotlin Coroutines, JUnit 4, Robolectric, dan AndroidX Test.\n\nLisensi komponen tersebut mengikuti proyek masing-masing; antara lain Apache License 2.0 untuk banyak komponen AndroidX, Kotlin, Coroutines, Room, WorkManager, DataStore, dan Robolectric; serta Eclipse Public License 1.0 untuk JUnit 4. Daftar ini adalah ringkasan dependency langsung, bukan inventaris lengkap seluruh dependency transitif. Setiap komponen tetap dimiliki oleh pengembang/pemegang hak cipta masing-masing. Distribusi aplikasi wajib tetap menyertakan pemberitahuan dan teks lisensi yang diwajibkan oleh dependency yang benar-benar ikut dalam paket."
                 )
                 InfoSectionItem(
