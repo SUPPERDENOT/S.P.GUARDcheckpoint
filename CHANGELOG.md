@@ -10,7 +10,8 @@
 
 ### Verification
 - Source diff review: PASS — limited to the Status Bar settings dialog layout and this documentation/checklist.
-- Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on the resulting branch commit.
+- GitHub Actions Run #542 on source commit `12182dc41536afcbaba758aa66f926f5eefdb50d`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload.
+- Debug APK artifact ID: `14886369907` (`android-debug-apk`; expires 2026-12-08). Unit-test report artifact ID: `14886509930`.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - PR #8 remains OPEN / HOLD MERGE.
 
