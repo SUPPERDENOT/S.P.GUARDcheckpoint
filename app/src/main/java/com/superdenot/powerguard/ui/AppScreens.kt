@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -39,7 +40,9 @@ import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
-import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
+import com.superdenot.powerguard.domain.analytics.BatteryHealthSummaryMapper
+import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.data.repository.ChargeGuardSettings
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
@@ -69,6 +72,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val fallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
     val health by vm.latestHealth.collectAsState()
+    val healthSummary = remember(health) { BatteryHealthSummaryMapper.fromStored(health) }
     val capacity by vm.designCapacitySetting.collectAsState()
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
@@ -166,8 +170,8 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     SectionHeading("KESEHATAN BATERAI (SOH)", "Estimasi kapasitas dan acuan desain")
-                    DiagnosticLine("Kapasitas terestimasi", health?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
-                    DiagnosticLine("Estimasi SOH", health?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
+                    DiagnosticLine("Kapasitas terestimasi", healthSummary?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
+                    DiagnosticLine("Estimasi SOH", healthSummary?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
                     DiagnosticLine("Kapasitas desain", capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia")
                     DiagnosticLine("Sumber", if (capacity.isManualOverride) "Manual" else "Otomatis")
                 }
@@ -399,12 +403,9 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    val sessions by vm.sessions.collectAsState()
+    val health by vm.latestHealth.collectAsState()
+    val healthSummary = remember(health) { BatteryHealthSummaryMapper.fromStored(health) }
     val capacity by vm.designCapacitySetting.collectAsState()
-    val designCapacityMah = capacity.capacityMah ?: BatteryHealthEstimator.DEFAULT_DESIGN_CAPACITY_MAH
-    val estimate = remember(sessions, designCapacityMah) {
-        BatteryHealthEstimator.estimate(sessions, designCapacityMah)
-    }
 
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
         Card(
@@ -419,7 +420,7 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     Column(Modifier.weight(1f)) {
                         Text("Estimasi SOH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            estimate?.let { String.format(Locale.US, "%.1f%%", it.healthPercentage) } ?: "Belum tersedia",
+                            healthSummary?.let { String.format(Locale.US, "%.1f%%", it.healthPercentage) } ?: "Belum tersedia",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -427,15 +428,15 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     Column(Modifier.weight(1f)) {
                         Text("mAh Efektif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            estimate?.let { "${it.effectiveCapacityMah} mAh" } ?: "—",
+                            healthSummary?.let { "${it.estimatedCapacityMah} mAh" } ?: "—",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
                 Text(
-                    if (estimate != null) "Berdasarkan ${estimate.validSessionCount} sesi selesai • Kapasitas desain $designCapacityMah mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
-                    else "Belum cukup sesi valid. Estimasi memerlukan sesi selesai dengan kenaikan SoC minimal 15%. Kapasitas desain $designCapacityMah mAh.",
+                    if (healthSummary != null) "Snapshot SOH tersimpan • Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
+                    else "Belum ada snapshot SOH yang valid. Estimasi akan tersedia setelah sesi pengisian memenuhi kriteria.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -461,6 +462,12 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
+    val context = LocalContext.current
+    var chargeGuardConfig by remember(context) { mutableStateOf(ChargeGuardSettings.read(context)) }
+    fun saveChargeGuard(next: ChargeGuardConfiguration) {
+        chargeGuardConfig = next.normalized()
+        ChargeGuardSettings.save(context, chargeGuardConfig)
+    }
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
@@ -473,7 +480,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val previewFallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
-    var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 8.dp),
@@ -572,11 +578,68 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Personalisasi", fontWeight = FontWeight.Bold)
-                    ComingSoonButton("Studio nada peringatan") { comingSoon = true }
-                    ComingSoonButton("Profil peringatan khusus") { comingSoon = true }
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("Batas Pengisian & Peringatan Suhu", fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Alarm batas pengisian", fontWeight = FontWeight.SemiBold)
+                            Text("Peringatkan saat level mencapai target ketika sedang mengisi.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = chargeGuardConfig.chargeLimitEnabled,
+                            onCheckedChange = { saveChargeGuard(chargeGuardConfig.copy(chargeLimitEnabled = it)) }
+                        )
+                    }
+                    if (chargeGuardConfig.chargeLimitEnabled) {
+                        Text("Target level", style = MaterialTheme.typography.labelMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            ChargeGuardConfiguration.SUPPORTED_CHARGE_TARGETS.sorted().forEach { target ->
+                                FilterChip(
+                                    selected = chargeGuardConfig.targetLevelPercent == target,
+                                    onClick = { saveChargeGuard(chargeGuardConfig.copy(targetLevelPercent = target)) },
+                                    label = { Text("$target%", maxLines = 1, softWrap = false) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Peringatan suhu tinggi", fontWeight = FontWeight.SemiBold)
+                            Text("Peringatan saat sensor suhu baterai mencapai ambang.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = chargeGuardConfig.highTemperatureEnabled,
+                            onCheckedChange = { saveChargeGuard(chargeGuardConfig.copy(highTemperatureEnabled = it)) }
+                        )
+                    }
+                    if (chargeGuardConfig.highTemperatureEnabled) {
+                        Text("Ambang suhu", style = MaterialTheme.typography.labelMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ChargeGuardConfiguration.SUPPORTED_TEMPERATURE_THRESHOLDS.sorted().forEach { threshold ->
+                                FilterChip(
+                                    selected = chargeGuardConfig.highTemperatureThresholdCelsius == threshold,
+                                    onClick = { saveChargeGuard(chargeGuardConfig.copy(highTemperatureThresholdCelsius = threshold)) },
+                                    label = { Text("$threshold°C") },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        "Alarm hanya aktif saat status pengisian dan data sensor tersedia. Fitur ini memberi peringatan; tidak memutus aliran charger.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -587,7 +650,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
     }
-    if (comingSoon) ComingSoonDialog { comingSoon = false }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
     if (showStatusBarSettingsDialog) {
         var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
@@ -606,7 +668,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
 
         Dialog(onDismissRequest = { showStatusBarSettingsDialog = false }) {
             Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
@@ -1143,31 +1205,6 @@ private fun StatusPill(label: String, accent: Color) {
     Surface(color = accent.copy(alpha = .14f), shape = RoundedCornerShape(50)) {
         Text(label, Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = accent, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
     }
-}
-
-@Composable
-private fun ComingSoonButton(label: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-        Text(label, Modifier.weight(1f))
-        StatusPill("SEGERA HADIR", AmberThermal)
-    }
-}
-
-@Composable
-fun ComingSoonDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Rounded.Bolt, null, tint = CyanFastCharge, modifier = Modifier.size(30.dp)) },
-        title = { Text("Segera Hadir", fontWeight = FontWeight.Bold) },
-        text = { Text("Fitur ini sedang disiapkan dan akan tersedia pada pembaruan SUPERD POWER GUARD berikutnya.") },
-        confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)) {
-                Text("Mengerti", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        shape = RoundedCornerShape(22.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant
-    )
 }
 
 private fun Set<String>.toggle(value: String): Set<String> = if (value in this) this - value else this + value
