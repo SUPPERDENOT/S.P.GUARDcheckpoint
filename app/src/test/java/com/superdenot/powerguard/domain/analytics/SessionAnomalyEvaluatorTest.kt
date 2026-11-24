@@ -39,7 +39,18 @@ class SessionAnomalyEvaluatorTest {
         assertEquals(listOf(SessionAnomaly.RECOVERY), SessionAnomalyEvaluator.evaluate(recovered, 21, 121_000L))
         assertTrue(!recovered.isAnomaly)
     }
-    @Test fun existingEngineAnomalyRemainsVisible() {
-        assertTrue(SessionAnomaly.RECORDED in SessionAnomalyEvaluator.evaluate(session(reason = "SLOW_CHARGING", isAnomaly = true), 21, 121_000L))
+    @Test fun genericRecordedBadgeIsHiddenWhenSpecificAnomalyExists() {
+        val result = SessionAnomalyEvaluator.evaluate(
+            session(mah = 300.0, isAnomaly = true), 21, 121_000L
+        )
+        assertTrue(SessionAnomaly.CHARGE_SPIKE in result)
+        assertTrue(SessionAnomaly.RECORDED !in result)
+    }
+
+    @Test fun genericRecordedBadgeRemainsWhenNoSpecificAnomalyExists() {
+        assertEquals(
+            listOf(SessionAnomaly.RECORDED),
+            SessionAnomalyEvaluator.evaluate(session(reason = "SLOW_CHARGING", isAnomaly = true), 21, 121_000L)
+        )
     }
 }
