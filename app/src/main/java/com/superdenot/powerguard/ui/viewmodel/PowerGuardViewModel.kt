@@ -185,10 +185,10 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun previewChargeGuardAlert() {
-        val setting = _chargeGuardAlertSound.value
+    fun previewChargeGuardAlert(setting: ChargeGuardAlertSoundSetting = _chargeGuardAlertSound.value) {
+        val normalized = setting.normalized()
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { ChargeGuardAlertSoundPlayer.play(getApplication(), setting) }
+            runCatching { ChargeGuardAlertSoundPlayer.play(getApplication(), normalized) }
                 .onFailure { error -> Log.w("PowerGuard", "Pratinjau nada Charge Guard gagal", error) }
         }
     }
