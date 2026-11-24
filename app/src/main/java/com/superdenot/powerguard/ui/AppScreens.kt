@@ -1148,7 +1148,7 @@ private fun StatusPill(label: String, accent: Color) {
 private fun ComingSoonButton(label: String, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Text(label, Modifier.weight(1f))
-        StatusPill("COMING SOON", AmberThermal)
+        StatusPill("SEGERA HADIR", AmberThermal)
     }
 }
 
@@ -1157,7 +1157,7 @@ fun ComingSoonDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Bolt, null, tint = CyanFastCharge, modifier = Modifier.size(30.dp)) },
-        title = { Text("Coming Soon", fontWeight = FontWeight.Bold) },
+        title = { Text("Segera Hadir", fontWeight = FontWeight.Bold) },
         text = { Text("Fitur ini sedang disiapkan dan akan tersedia pada pembaruan SUPERD POWER GUARD berikutnya.") },
         confirmButton = {
             Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)) {
