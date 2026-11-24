@@ -32,6 +32,12 @@ class ChargeGuardSettingsTest {
         assertEquals(40, config.highTemperatureThresholdCelsius)
     }
 
+    @Test fun fiftyDegreeTemperatureThresholdPersistsThroughChargeGuardSettings() {
+        val expected = ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 50)
+        ChargeGuardSettings.save(context, expected)
+        assertEquals(50, ChargeGuardSettings.read(context).highTemperatureThresholdCelsius)
+    }
+
     @Test fun alertSoundDefaultsToSystemNotificationToneWithVibrationEnabled() {
         val setting = ChargeGuardSettings.readAlertSound(context)
         assertEquals(ChargeGuardAlertSoundSetting.DEFAULT, setting.selection)
