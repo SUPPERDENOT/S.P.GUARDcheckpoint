@@ -107,6 +107,28 @@ class ChargeGuardSettingsTest {
         assertEquals(expected, ChargeGuardSettings.readAlertSound(context))
     }
 
+
+    @Test fun repeatModeDefaultsToOnceAndPersistsAllChoices() {
+        assertEquals(ChargeGuardRepeatMode.ONCE, ChargeGuardSettings.read(context).repeatMode)
+        ChargeGuardRepeatMode.values().forEach { mode ->
+            val config = ChargeGuardConfiguration(repeatMode = mode)
+            ChargeGuardSettings.save(context, config)
+            assertEquals(mode, ChargeGuardSettings.read(context).repeatMode)
+        }
+    }
+
+    @Test fun dismissingChargeAlertPersistsItsRepeatStopFlag() {
+        ChargeGuardSettings.dismissRepeats(context, com.superdenot.powerguard.domain.engine.ChargeGuardAlertType.CHARGE_LIMIT_REACHED)
+        val prefs = context.getSharedPreferences("powerguard_charge_guard", Context.MODE_PRIVATE)
+        assertTrue(prefs.getBoolean("charge_repeat_dismissed", false))
+    }
+
+    @Test fun dismissingTemperatureAlertPersistsItsRepeatStopFlag() {
+        ChargeGuardSettings.dismissRepeats(context, com.superdenot.powerguard.domain.engine.ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED)
+        val prefs = context.getSharedPreferences("powerguard_charge_guard", Context.MODE_PRIVATE)
+        assertTrue(prefs.getBoolean("temperature_repeat_dismissed", false))
+    }
+
     @Test fun independentChargeGuardSettingsPersistInTheirOwnPreferenceFile() {
         val expected = ChargeGuardConfiguration(
             chargeLimitEnabled = true,
