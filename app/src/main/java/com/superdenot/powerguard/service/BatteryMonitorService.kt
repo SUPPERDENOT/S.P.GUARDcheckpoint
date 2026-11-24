@@ -30,6 +30,8 @@ import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.repository.BatteryCurrentScaleSettings
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
+import com.superdenot.powerguard.data.repository.ChargeGuardSettings
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlert
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
@@ -2118,6 +2120,18 @@ class BatteryMonitorService : Service() {
                             chargingEtaMinutes = etaMinutes,
                             isChargingEtaTracking = activeSessionId != null && effectiveSensor.isCharging && effectiveSensor.isPowerConnected
                         )
+                        if (effectiveSensor.isCharging) {
+                            ChargeGuardSettings.evaluate(
+                                context = applicationContext,
+                                sessionId = activeSessionId,
+                                isCharging = effectiveSensor.isCharging,
+                                batteryLevel = effectiveSensor.level,
+                                isBatteryLevelAvailable = effectiveSensor.isLevelAvailable,
+                                temperatureCelsius = effectiveSensor.tempCelsius,
+                                isTemperatureAvailable = effectiveSensor.isTemperatureAvailable,
+                                nowEpochMs = System.currentTimeMillis()
+                            ).forEach(::sendChargeGuardAlertNotification)
+                        }
                         publishLiveState(updatedState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
@@ -3963,6 +3977,14 @@ class BatteryMonitorService : Service() {
         )
     }
 
+    private fun sendChargeGuardAlertNotification(alert: ChargeGuardAlert) {
+        if (!::notificationManager.isInitialized || destroyRequested.get()) return
+        notificationManager.notify(
+            CHARGE_GUARD_NOTIFICATION_ID,
+            buildAnomalyAlertNotification(alert.message, alert.code, null)
+        )
+    }
+
     override fun onDestroy() {
         if (::notificationManager.isInitialized) {
             notificationManager.cancel(LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID)
@@ -3997,6 +4019,7 @@ class BatteryMonitorService : Service() {
         private const val DEFAULT_ETA_DESIGN_CAPACITY_MAH = 5000
         private const val ANOMALY_NOTIFICATION_ID = 1002
         private const val LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID = 1003
+        private const val CHARGE_GUARD_NOTIFICATION_ID = 1004
 
         private const val SAMPLE_FLUSH_BATCH_SIZE = 60
         private const val MAX_SAMPLE_BUFFER_SIZE = 300
