@@ -321,6 +321,11 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(10.dp))
                         .clip(RoundedCornerShape(10.dp))
+                        .border(
+                            width = if (isSelected) 1.5.dp else 0.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = RoundedCornerShape(10.dp)
+                        )
                         .drawBehind {
                             if (presentation.anomalies.isNotEmpty()) drawLine(
                                 color = CrimsonAnomaly, start = Offset(0f, 0f),
@@ -455,8 +460,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                                 text = NotificationVisualRenderer.formatAnomalyReason(
                                     session.anomalyReason.orEmpty().split(',')
                                         .filterNot { it.trim() == SessionAnomalyEvaluator.RECOVERY_MARKER }
-                                        .joinToString(", ").ifBlank { null },
-                                    session.maxTempCelsius.takeIf { it > 0f }
+                                        .joinToString(", ").ifBlank { null }
                                 ),
                                 color = CrimsonAnomaly,
                                 style = MaterialTheme.typography.labelSmall,
