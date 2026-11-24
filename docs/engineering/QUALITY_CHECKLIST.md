@@ -1,3 +1,17 @@
+## 2026-11-24 — PR #8 follow-up: uniform 32dp Status Bar dialog pills
+
+- [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at `907a90a0f3c0668e3e3199688109bf386b1ad6cc`; PR #8 was OPEN / not merged.
+- [x] Display mode: PASS by source review — two equal-weight 32dp Surface pills, 6dp gap, 8dp corners, centered text with font padding disabled, matching selected container/border colors, and no check icon.
+- [x] Parameter grid: PASS by source review — six 32dp Surface pills in a 2 × 3 grid, 6dp gaps, 8dp corners, zero vertical padding, and centered text with font padding disabled.
+- [x] Current-scale calibration: PASS by source review — three equal-weight 32dp Surface pills, 6dp gap, matching selected styling, centered text, and no segmented control/check icon.
+- [x] Rotation interval: PASS by source review — one horizontal row with four equal-weight 32dp presets plus a 52dp × 32dp numeric BasicTextField; preset taps synchronize the input and custom 1–60 input updates the draft and active border.
+- [x] Keyboard and validation: PASS by source review — numeric keyboard with IME Done, no placeholder, existing 1–60 validation and Simpan gate retained.
+- [x] Protected scope: PASS by source review — only dialog layout/state presentation and documentation changed; draft/save semantics, renderer, sensor, calibration default 1x, Room v3, monitoring lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for latest branch commit.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [!] Accessibility trade-off: 32dp visual control height is below the 48dp touch-target minimum in `DESIGN.md`; retained only because the task explicitly specifies 32dp. Confirm usability on device and consider larger hit regions if the layout permits.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
 ## 2026-11-24 — PR #8 follow-up: compact parameter cells and custom interval input
 
 - [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at requested base `d81a016c55b5e5d2dcfa716c901d6d9d02f409b9`; PR #8 was OPEN / not merged.
