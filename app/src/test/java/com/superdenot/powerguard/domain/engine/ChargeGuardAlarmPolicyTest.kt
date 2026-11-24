@@ -35,6 +35,18 @@ class ChargeGuardAlarmPolicyTest {
         assertTrue(cooled.state.temperatureArmed)
     }
 
+    @Test fun fiftyDegreeThresholdAlertsAtFiftyAndOnlyRearmsBelowFortyEight() {
+        assertTrue(50 in ChargeGuardConfiguration.SUPPORTED_TEMPERATURE_THRESHOLDS)
+        val config = ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 50)
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 1L, true, 70, true, 50f, true, 3_000_000L)
+        assertEquals(ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED, first.alerts.single().type)
+        assertFalse(first.state.temperatureArmed)
+        val atFortyEight = ChargeGuardAlarmPolicy.evaluate(config, first.state, 1L, true, 70, true, 48f, true, 3_100_000L)
+        assertFalse(atFortyEight.state.temperatureArmed)
+        val belowFortyEight = ChargeGuardAlarmPolicy.evaluate(config, atFortyEight.state, 1L, true, 70, true, 47.9f, true, 3_200_000L)
+        assertTrue(belowFortyEight.state.temperatureArmed)
+    }
+
     @Test fun temperatureCooldownPreventsRepeatedEventsFromSpamming() {
         val config = ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 42)
         val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 1L, true, 70, true, 43f, true, 2_000_000L)
