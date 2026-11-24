@@ -685,6 +685,8 @@ private fun formatDurationIndo(totalSeconds: Long): String {
 @Composable
 private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
     val rollups by viewModel.dailyRollups.collectAsState()
+    val today = LocalDate.now()
+    val trend = remember(rollups, today) { DailyCycleTrend.aggregate(rollups, today) }
 
     LazyColumn(
         contentPadding = bottomScrollPadding,
@@ -697,66 +699,99 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Laporan Siklus Harian",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 10.dp)
-                )
+                Text("Laporan Siklus Harian", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 10.dp))
                 OutlinedButton(
                     onClick = { viewModel.triggerManualRollup() },
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                     modifier = Modifier.height(36.dp)
                 ) {
-                    Text(
-                        text = "Hitung Sekarang",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Text("Hitung Sekarang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        maxLines = 1, softWrap = false)
                 }
             }
         }
-
+        item { SevenDayCycleMiniChart(trend) }
         if (rollups.isEmpty()) {
             item {
-                Text(
-                    text = "Belum ada ringkasan harian. Tekan 'Hitung Sekarang' setelah melakukan sesi pengisian.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Belum ada ringkasan harian. Tekan 'Hitung Sekarang' setelah melakukan sesi pengisian.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             items(rollups, key = { it.dateKey }) { rollup ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(DailyCycleTrend.formatDateLabel(rollup.dateKey, today),
+                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Tanggal: ${rollup.dateKey}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
+                            "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} siklus • Total Masuk: +${String.format(Locale.US, "%.0f", rollup.totalMahCharged)} mAh",
+                            style = MaterialTheme.typography.bodyMedium, color = EmeraldCharge)
                         Text(
-                            text = "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} cycle • Total Masuk: +${String.format(Locale.US, "%.0f", rollup.totalMahCharged)} mAh",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = EmeraldCharge
-                        )
-                        Text(
-                            text = "Suhu Maks: ${String.format(Locale.US, "%.1f", rollup.maxTempCelsius)}°C • Jumlah Anomali: ${rollup.anomalyCount}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            "Suhu Maks: ${String.format(Locale.US, "%.1f", rollup.maxTempCelsius)}°C • Jumlah Anomali: ${rollup.anomalyCount}",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
+    val maxCycles = points.maxOfOrNull { it.totalCycles }?.coerceAtLeast(0.1) ?: 0.1
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Tren Siklus & Suhu Puncak · 7 Hari", style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                points.forEach { point ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        if (point.peakTemperatureCelsius != null && point.peakTemperatureCelsius >= 40.0) {
+                            Box(Modifier.size(6.dp).background(CrimsonAnomaly, RoundedCornerShape(50)))
+                        } else {
+                            Spacer(Modifier.size(6.dp))
+                        }
+                        Text(if (point.hasData) String.format(Locale.US, "%.1f", point.totalCycles) else "—",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1)
+                        Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.BottomCenter) {
+                            val barHeight = if (point.hasData && point.totalCycles > 0.0)
+                                (point.totalCycles / maxCycles * 44.0).coerceAtLeast(3.0).dp else 2.dp
+                            Box(
+                                Modifier.fillMaxWidth(0.58f).height(barHeight)
+                                    .background(
+                                        if (point.peakTemperatureCelsius != null && point.peakTemperatureCelsius >= 40.0)
+                                            CrimsonAnomaly else CyanFastCharge,
+                                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                                    )
+                            )
+                        }
+                        Text(point.date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale("id", "ID"))
+                            .take(2), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
+                }
+            }
+            Text("Titik merah menandai suhu puncak ≥40°C. Hari tanpa rollup ditampilkan sebagai data tidak tersedia.",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
