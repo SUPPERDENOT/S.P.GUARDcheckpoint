@@ -13,7 +13,7 @@
 - [x] Debug APK artifact ID: `14920844863`; unit-test report artifact ID: `14921524240`.
 - [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
 - [ ] PR #11 merge: HOLD until physical-device QA is confirmed.
-- [ ] Re-run all CI gates after this documentation update.
+- [x] Documentation follow-up CI Run #602: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS; APK artifact `14925414575`, test report `14926982019`.
 
 ---
 
