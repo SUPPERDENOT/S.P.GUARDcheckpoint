@@ -87,8 +87,8 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
         else -> AmberThermal
     }
     val eta = state.chargingEtaMinutes
-        ?.takeIf { state.isCharging && state.isChargingEtaTracking && it >= 0L }
-        ?.let(ChargingEtaEstimator::formatEta)
+        ?.takeIf { state.isCharging && state.isChargingEtaTracking && it > 0L }
+        ?.let { ChargingEtaEstimator.formatEta(it) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
