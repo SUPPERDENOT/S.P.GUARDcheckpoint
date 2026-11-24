@@ -70,7 +70,9 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val fallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
     val health by vm.latestHealth.collectAsState()
-    val healthSummary = remember(health) { BatteryHealthSummaryMapper.fromStored(health) }
+    val healthSummary = remember(health) {
+        health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
+    }
     val capacity by vm.designCapacitySetting.collectAsState()
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
