@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.analytics
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class SessionLevelRangeFormatterTest {
@@ -8,5 +9,9 @@ class SessionLevelRangeFormatterTest {
     fun formatsStartAndEndBatteryLevelsWithSingleLineArrow() {
         assertEquals("38% → 38%", formatSessionLevelRange(38, 38))
         assertEquals("55% → 56%", formatSessionLevelRange(55, 56))
+        assertEquals("44% → 54%", formatSessionLevelRange(44, 54))
+        assertEquals("44% → 62%", formatSessionLevelRange(44, 62))
+        assertEquals("44% → —", formatSessionLevelRange(44, null))
+        assertFalse(formatSessionLevelRange(44, 54).contains("'n"))
     }
 }

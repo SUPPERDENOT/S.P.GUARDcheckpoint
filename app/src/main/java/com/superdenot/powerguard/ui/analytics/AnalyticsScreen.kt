@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -97,10 +98,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.text.NumberFormat
+import kotlin.math.roundToLong
 import java.time.LocalDate
 
-internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
-    "$startLevel% → $endLevel%"
+internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int?): String =
+    if (endLevel == null) "$startLevel% \u2192 —" else "$startLevel% \u2192 $endLevel%"
 
 internal fun formatCurveSessionCount(visibleCount: Int, totalCount: Int): String =
     "Kurva Sesi ($visibleCount/$totalCount)"
@@ -254,6 +256,13 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 }
             }
         }
+        AnimatedVisibility(
+            visible = isCurveExpanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            ChargingCurveChart(samples = samples)
+        }
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -264,13 +273,6 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                     onClick = { selectedHistoryFilter = filter },
                     label = { Text(filter.label, maxLines = 1, softWrap = false) })
             }
-        }
-        AnimatedVisibility(
-            visible = isCurveExpanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            ChargingCurveChart(samples = samples)
         }
 
         LazyColumn(
@@ -321,11 +323,6 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(10.dp))
                         .clip(RoundedCornerShape(10.dp))
-                        .border(
-                            width = if (isSelected) 1.5.dp else 0.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            shape = RoundedCornerShape(10.dp)
-                        )
                         .drawBehind {
                             if (presentation.anomalies.isNotEmpty()) drawLine(
                                 color = CrimsonAnomaly, start = Offset(0f, 0f),
@@ -348,15 +345,15 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         }
                         Text(
                             text = timeLabel + if (isActive) " • Aktif" else "",
-                            modifier = Modifier.weight(0.27f),
+                            modifier = Modifier.weight(0.25f),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
                             color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% → —",
-                            modifier = Modifier.weight(0.31f),
+                            text = formatSessionLevelRange(session.startLevel, endLevel),
+                            modifier = Modifier.weight(0.29f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
@@ -370,12 +367,21 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                             color = EmeraldCharge,
                             fontWeight = FontWeight.Bold
                         )
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Rounded.ShowChart,
+                                contentDescription = "Sesi dipilih untuk analisis kurva",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
                         Text(
                             text = duration,
-                            modifier = Modifier.weight(0.20f),
+                            modifier = Modifier.weight(0.18f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.End,
-                            maxLines = 2
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
 
@@ -699,14 +705,14 @@ private fun SessionDetailMiniBox(
     }
 }
 
-private fun formatDurationIndo(totalSeconds: Long): String {
+internal fun formatDurationIndo(totalSeconds: Long): String {
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
     return when {
-        hours > 0 -> String.format(Locale.US, "%d jam %02d mnt", hours, minutes)
-        minutes > 0 -> String.format(Locale.US, "%02d mnt %02d dtk", minutes, seconds)
-        else -> String.format(Locale.US, "%02d detik", seconds)
+        hours > 0 -> "${hours}j ${minutes}m"
+        minutes > 0 -> "${minutes}m ${seconds}d"
+        else -> "${seconds}d"
     }
 }
 
@@ -757,7 +763,7 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
                             style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} siklus • Total Masuk: +${String.format(Locale.US, "%.0f", rollup.totalMahCharged)} mAh",
+                            "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} siklus • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(rollup.totalMahCharged.roundToLong())} mAh",
                             style = MaterialTheme.typography.bodyMedium, color = EmeraldCharge)
                         Text(
                             "Suhu Maks: ${String.format(Locale.US, "%.1f", rollup.maxTempCelsius)}°C • Jumlah Anomali: ${rollup.anomalyCount}",
@@ -772,6 +778,9 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
 @Composable
 private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
     val maxCycles = points.maxOfOrNull { it.totalCycles }?.coerceAtLeast(0.1) ?: 0.1
+    var selectedDate by remember(points) { mutableStateOf(points.lastOrNull()?.date) }
+    val selectedPoint = points.firstOrNull { it.date == selectedDate }
+    val today = LocalDate.now()
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -788,7 +797,7 @@ private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
             ) {
                 points.forEach { point ->
                     Column(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).clickable { selectedDate = point.date },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
@@ -812,13 +821,37 @@ private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
                                     )
                             )
                         }
-                        Text(point.date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale("id", "ID"))
-                            .take(2), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        Text(DailyCycleTrend.formatWeekdayShort(point.date),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (point.date == selectedDate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (point.date == selectedDate) FontWeight.Bold else FontWeight.Normal,
+                            maxLines = 1)
                     }
                 }
             }
-            Text("Titik merah menandai suhu puncak ≥40°C. Hari tanpa rollup ditampilkan sebagai data tidak tersedia.",
+            selectedPoint?.let { point ->
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(DailyCycleTrend.formatDateLabel(point.date.toString(), today),
+                            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (point.hasData) {
+                                "Siklus: ${String.format(Locale.US, "%.2f", point.totalCycles)} • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(point.totalMahCharged.roundToLong())} mAh"
+                            } else "Belum ada rollup untuk hari tersebut",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "Suhu Maks: ${point.peakTemperatureCelsius?.let { String.format(Locale.US, "%.1f", it) + "°C" } ?: "—"} • Anomali: ${point.anomalyCount}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Text("Titik merah menandai suhu puncak ≥40°C. Ketuk batang untuk melihat ringkasan hari tersebut.",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

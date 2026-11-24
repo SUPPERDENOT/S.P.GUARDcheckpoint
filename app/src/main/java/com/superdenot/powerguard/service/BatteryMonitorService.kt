@@ -5,6 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.net.Uri
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -12,12 +15,14 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.ContextCompat
 import com.superdenot.powerguard.MainActivity
+import com.superdenot.powerguard.receiver.ChargeGuardAlertDismissReceiver
 import com.superdenot.powerguard.R
 import com.superdenot.powerguard.data.local.AppDatabase
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
@@ -30,6 +35,11 @@ import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.repository.BatteryCurrentScaleSettings
 import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
+import com.superdenot.powerguard.data.repository.ChargeGuardSettings
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlertChannelPolicy
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlertSoundUriResolver
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlert
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlertType
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
@@ -537,6 +547,7 @@ class BatteryMonitorService : Service() {
                 START_NOT_STICKY
             }
             ACTION_SYNC_SETTINGS -> {
+                serviceScope.launch { runCatching { syncChargeGuardAlertChannel(applicationContext) } }
                 lifecycleChannel.trySend(LifecycleCommand.SettingsChanged)
                 START_NOT_STICKY
             }
@@ -2118,6 +2129,16 @@ class BatteryMonitorService : Service() {
                             chargingEtaMinutes = etaMinutes,
                             isChargingEtaTracking = activeSessionId != null && effectiveSensor.isCharging && effectiveSensor.isPowerConnected
                         )
+                        ChargeGuardSettings.evaluate(
+                            context = applicationContext,
+                            sessionId = activeSessionId,
+                            isCharging = effectiveSensor.isCharging,
+                            batteryLevel = effectiveSensor.level,
+                            isBatteryLevelAvailable = effectiveSensor.isLevelAvailable,
+                            temperatureCelsius = effectiveSensor.tempCelsius,
+                            isTemperatureAvailable = effectiveSensor.isTemperatureAvailable,
+                            nowEpochMs = System.currentTimeMillis()
+                        ).forEach(::sendChargeGuardAlertNotification)
                         publishLiveState(updatedState)
                         _lastSensorUpdateElapsedRealtime.value = SystemClock.elapsedRealtime()
                         _lastMonitorError.value = null
@@ -3749,6 +3770,7 @@ class BatteryMonitorService : Service() {
 
         notificationManager.createNotificationChannel(monitorChannel)
         notificationManager.createNotificationChannel(alertChannel)
+        serviceScope.launch { runCatching { syncChargeGuardAlertChannel(applicationContext) } }
     }
 
     private fun resolveNotificationBatteryState(): LiveBatteryState {
@@ -3937,14 +3959,12 @@ class BatteryMonitorService : Service() {
             peakTemperatureCelsius
         )
         val expandedText = "$formattedLabel\n$alertMessage"
-        val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
         return NotificationCompat.Builder(this, CHANNEL_ANOMALY)
             .setContentTitle("SUPERD GUARD • Peringatan Daya")
             .setContentText(formattedLabel)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
             .setSmallIcon(visualSpec.smallIconResId)
             .setColor(visualSpec.accentColor)
-            .setLargeIcon(largeIcon)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent)
@@ -3961,6 +3981,53 @@ class BatteryMonitorService : Service() {
             ANOMALY_NOTIFICATION_ID,
             buildAnomalyAlertNotification(alertMessage, anomalyCode, peakTemperatureCelsius)
         )
+    }
+
+    private fun buildChargeGuardAlertNotification(alert: ChargeGuardAlert, channelId: String): Notification {
+        val openAppIntent = PendingIntent.getActivity(
+            this, 2, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+        )
+        val visualSpec = NotificationVisualRenderer.resolveAnomalyVisualSpec(alert.message, alert.code)
+        val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
+        val dismissRequestCode = when (alert.type) {
+            ChargeGuardAlertType.CHARGE_LIMIT_REACHED -> CHARGE_LIMIT_NOTIFICATION_ID
+            ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED -> HIGH_TEMPERATURE_NOTIFICATION_ID
+        }
+        val dismissIntent = PendingIntent.getBroadcast(
+            this,
+            dismissRequestCode,
+            Intent(this, ChargeGuardAlertDismissReceiver::class.java).apply {
+                putExtra(ChargeGuardAlertDismissReceiver.EXTRA_ALERT_TYPE, alert.type.name)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        return NotificationCompat.Builder(this, channelId)
+            .setContentTitle("SUPERD POWER GUARD • ${alert.title}")
+            .setContentText(alert.message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(alert.message))
+            .setSmallIcon(visualSpec.smallIconResId)
+            .setColor(visualSpec.accentColor)
+            .setLargeIcon(largeIcon)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(openAppIntent)
+            .setDeleteIntent(dismissIntent)
+            .setAutoCancel(true)
+            .build()
+    }
+
+    private fun sendChargeGuardAlertNotification(alert: ChargeGuardAlert) {
+        if (!::notificationManager.isInitialized || destroyRequested.get()) return
+        val notificationId = when (alert.type) {
+            ChargeGuardAlertType.CHARGE_LIMIT_REACHED -> CHARGE_LIMIT_NOTIFICATION_ID
+            ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED -> HIGH_TEMPERATURE_NOTIFICATION_ID
+        }
+        serviceScope.launch {
+            runCatching {
+                val channelId = syncChargeGuardAlertChannel(applicationContext)
+                notificationManager.notify(notificationId, buildChargeGuardAlertNotification(alert, channelId))
+            }.onFailure { error -> Log.w("PowerGuard", "Gagal mengirim notifikasi Charge Guard", error) }
+        }
     }
 
     override fun onDestroy() {
@@ -3990,6 +4057,46 @@ class BatteryMonitorService : Service() {
         private const val EXTRA_AUTO_START_EPOCH_ID = "com.superdenot.powerguard.EXTRA_AUTO_START_EPOCH_ID"
         private const val EXTRA_AUTO_START_T0_ELAPSED_REALTIME = "com.superdenot.powerguard.EXTRA_AUTO_START_T0_ELAPSED_REALTIME"
 
+        internal fun syncChargeGuardAlertChannel(context: Context): String {
+            val appContext = context.applicationContext
+            val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val soundSetting = ChargeGuardSettings.readAlertSound(appContext)
+            val defaultUri = Settings.System.DEFAULT_NOTIFICATION_URI
+            val secondaryDefaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val effectiveSound = ChargeGuardAlertSoundUriResolver.resolvePlayable(
+                selection = soundSetting.selection,
+                defaultUri = defaultUri.toString(),
+                secondaryDefaultUri = secondaryDefaultUri?.toString(),
+                canOpenCustomUri = { raw ->
+                    appContext.contentResolver.openAssetFileDescriptor(Uri.parse(raw), "r")?.use { it.length != 0L } == true
+                },
+                canCreateRingtone = { raw ->
+                    RingtoneManager.getRingtone(appContext, Uri.parse(raw)) != null
+                }
+            )
+            val vibrationTimings = soundSetting.vibrationTimings()
+            val channelId = ChargeGuardAlertChannelPolicy.channelId(effectiveSound, vibrationTimings)
+            val previousChannelId = ChargeGuardSettings.readActiveAlertChannelId(appContext)
+            if (previousChannelId != null && previousChannelId != channelId) {
+                manager.deleteNotificationChannel(previousChannelId)
+            }
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            val channel = NotificationChannel(
+                channelId, "Peringatan Charge Guard", NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Nada dan getar untuk peringatan target pengisian dan suhu baterai"
+                setSound(effectiveSound?.let(Uri::parse), audioAttributes)
+                enableVibration(vibrationTimings.isNotEmpty())
+                vibrationPattern = vibrationTimings.takeIf { it.isNotEmpty() }
+            }
+            manager.createNotificationChannel(channel)
+            ChargeGuardSettings.saveActiveAlertChannelId(appContext, channelId)
+            return channelId
+        }
+
         private const val CHANNEL_MONITOR = "powerguard_live_monitor"
         private const val CHANNEL_ANOMALY = "powerguard_anomaly_alerts"
         private const val LEGACY_CHANNEL_STATUS_BAR_INDICATOR = "powerguard_status_bar_indicator"
@@ -3997,6 +4104,8 @@ class BatteryMonitorService : Service() {
         private const val DEFAULT_ETA_DESIGN_CAPACITY_MAH = 5000
         private const val ANOMALY_NOTIFICATION_ID = 1002
         private const val LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID = 1003
+        private const val CHARGE_LIMIT_NOTIFICATION_ID = 1004
+        private const val HIGH_TEMPERATURE_NOTIFICATION_ID = 1005
 
         private const val SAMPLE_FLUSH_BATCH_SIZE = 60
         private const val MAX_SAMPLE_BUFFER_SIZE = 300

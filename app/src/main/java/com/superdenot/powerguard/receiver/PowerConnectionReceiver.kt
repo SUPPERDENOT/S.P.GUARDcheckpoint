@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.os.Process
 import android.util.Log
 import com.superdenot.powerguard.data.local.AppDatabase
+import com.superdenot.powerguard.data.repository.ChargeGuardSettings
 import com.superdenot.powerguard.data.local.SessionRecoveryStore
 import com.superdenot.powerguard.data.local.dao.BatteryDao
 import com.superdenot.powerguard.data.local.dao.SessionFinalizationStatus
@@ -48,6 +49,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                 startMonitorServiceSafe(context, AutoStartTrigger.POWER_CONNECTED, detectedAt)
             }
             Intent.ACTION_POWER_DISCONNECTED -> {
+                ChargeGuardSettings.stopRepeats(context)
                 AutoStartCoordinator.onChargingDisconnected()
                 handlePowerDisconnected(context)
             }

@@ -1,3 +1,114 @@
+## 2026-11-24 — PR #11 final polish: sticky popup, state-aware footer, and alert repetition
+
+- [x] Charge Guard dialog has a fixed compact header, weighted scrollable body, and sticky compact footer.
+- [x] Tone picker and draft Tes action share one row.
+- [x] Footer Batal is an outlined 36dp CircleShape button; Simpan uses the same size and is enabled only when the draft differs from persisted configuration/tone settings.
+- [x] Removed the outer Settings-card Tes action; retained the chevron and full-width two-line ellipsized summary.
+- [x] Added persisted repeat modes Sekali (default), Tiap 1 mnt, and Tiap 3 mnt; summary displays Ulang 1m / Ulang 3m when applicable.
+- [x] Added repeat policy with maximum five repeats per incident after the initial alert, independently tracked for charge-limit and temperature alerts.
+- [x] Added notification deleteIntent and non-exported lightweight dismissal receiver; dismissal suppresses further repeats for that active incident without changing service lifecycle.
+- [x] Charger disconnect receiver immediately clears active repeat state. Existing service evaluation also reconciles inactive conditions on samples.
+- [x] Temperature repeat remains active until temperature is strictly below threshold minus 2°C; exact hysteresis boundary does not re-arm.
+- [x] Added unit tests for repeat mode persistence, interval boundaries, five-repeat cap, dismiss suppression, unplug reset, hysteresis stop, and summary formatting.
+- [x] No Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, or applicationId change intended.
+- [x] Diff review: PASS — changes since prior HEAD are limited to Charge Guard dialog/settings, repeat policy/persistence, dismiss receiver/service integration, focused tests, manifest receiver declaration, and documentation.
+- [x] Anti-Slop UI Audit Gate: SUCCESS (Run #634).
+- [x] testDebugUnitTest: SUCCESS (Run #634).
+- [x] assembleDebug: SUCCESS (Run #634).
+- [x] Upload APK: SUCCESS (Run #634); debug APK Artifact ID 14940768566; unit-test report Artifact ID 14940269848.
+- [ ] Physical-device QA on itel P55: NOT RUN; verify sticky footer reachability, 36dp/32dp touch usability, notification dismissal, repeat cadence, charger unplug, and temperature hysteresis.
+- [ ] PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
+
+### Accessibility trade-off
+- Footer buttons are 36dp and selection pills are 32dp per the requested compact design; DESIGN.md specifies 48dp minimum touch targets. This is a documented exception, not an accessibility PASS, and must be reviewed on device.
+
+---
+
+## 2026-11-24 — PR #11 follow-up: audio fallback, custom vibration, and compact switches
+
+- [x] Replaced all four Settings/Charge Guard Material 3 Switch controls with reusable CompactSwitch (42×24dp track, 18dp thumb, animated movement, 36dp interaction height).
+- [x] Added READ_MEDIA_AUDIO for API 33+ and READ_EXTERNAL_STORAGE with maxSdkVersion=32; runtime permission is requested after an external MediaStore URI is selected and permission is missing.
+- [x] Custom URI validation checks openAssetFileDescriptor(..., "r") and rejects null/zero-length descriptors. SecurityException and FileNotFoundException are treated as inaccessible.
+- [x] Preview player tries the selected custom URI, then Settings.System.DEFAULT_NOTIFICATION_URI, then RingtoneManager's notification default. Missing ringtone or play exception advances to the next candidate.
+- [x] Preview player retains the Ringtone instance, stops the previous preview, and auto-stops after four seconds. Hening stops active audio; Off cancels prior vibration.
+- [x] Added Off, Singkat, Ganda (default), SOS, and Kustom vibration patterns. Custom segments are sanitized to 50–1500ms, limited to 15 pulse/gap segments (maximum eight pulses), and persisted in Charge Guard SharedPreferences.
+- [x] Notification-channel ID hashes the effective sound URI and complete vibration waveform; channel vibration uses the selected timings.
+- [x] Settings summary is split into two ellipsized single-line rows.
+- [x] All History session level-range labels route through SessionLevelRangeFormatter; unavailable end values use the same Unicode arrow formatter.
+- [x] Unit tests added for built-in waveform definitions, custom sanitization/persistence, channel hash variation, inaccessible/missing audio fallback, and summary formatting.
+- [x] No Room schema/entity/migration, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, SDK, dependency, version, or applicationId change intended.
+- [x] Anti-Slop UI Audit Gate: SUCCESS (Run #620).
+- [x] testDebugUnitTest: SUCCESS (Run #620).
+- [x] assembleDebug: SUCCESS (Run #620).
+- [x] APK upload: SUCCESS (Run #620); debug APK Artifact ID 14937035355; unit-test report Artifact ID 14936547835.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
+
+### Accessibility note
+- CompactSwitch interaction height is 36dp as explicitly requested. DESIGN.md sets a 48dp minimum target; this deviation is recorded for physical usability review rather than being reported as fully compliant.
+
+---
+
+## 2026-11-24 — PR #11 follow-up: compact Charge Guard popup and 50°C threshold
+
+- [x] Replaced the expanded Settings Charge Guard controls with a compact one-row `Peringatan & Nada` card, dynamic single-line summary, quick `Tes`, and chevron.
+- [x] Added scrollable and IME-aware popup using the Status Bar Indicator dialog container pattern.
+- [x] Charge target and temperature thresholds use uniform 32dp selectable pills (5 charge choices; 4 temperature choices including 50°C).
+- [x] Popup edits are draft-only; `Batal` discards changes and `Simpan` persists both Charge Guard configuration and alert tone/vibration.
+- [x] Ringtone picker uses `TYPE_NOTIFICATION`, default/silent flags, and the current draft URI. Draft `Tes` previews tone/vibration without persisting the draft.
+- [x] 50°C threshold is accepted by configuration normalization and SharedPreferences round-trip.
+- [x] Hysteresis regression test verifies 48°C does not re-arm at a 50°C threshold and 47.9°C does.
+- [x] Compact summary formatter tests active thresholds/tone, inactive state, and normalization of unsupported thresholds.
+- [x] History formatter source retains `\\u2192`; History test verifies `44% → 54%` and excludes malformed apostrophe-`n` text.
+- [x] Reviewed protected boundaries: Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring, `RECOVERY_HOLD`, and applicationId unchanged.
+- [x] GitHub Actions CI Run #608 on branch HEAD `ba7110bfe41f8e77ac05c4e424ad91fc766a265c`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS. APK artifact `14933876095`; test report `14933741143`.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until physical-device QA is confirmed.
+
+---
+
+## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone controls
+
+- [x] Settings placeholder replaced by a functional `Nada peringatan` row inside the existing Charge Guard card; selected tone and vibration state are summarized in one line.
+- [x] `Tes` previews the configured ringtone and vibration without running on the UI thread.
+- [x] Android ringtone picker supports notification tones, default, silent, and custom local audio selection; no storage permission added.
+- [x] Tone selection marker / URI, display title, and vibration preference persist in the dedicated Charge Guard SharedPreferences file.
+- [x] Android 8+ alert channel ID is configuration-derived (`charge_guard_alert_<hash>`); old alert channel is deleted on configuration change. Foreground monitoring channel remains separate.
+- [x] Invalid or inaccessible custom audio URI falls back to `Settings.System.DEFAULT_NOTIFICATION_URI` for preview and notification channel setup.
+- [x] Unit tests cover preference defaults/persistence, invalid-URI fallback, and channel ID stability/configuration changes.
+- [x] Reviewed service integration: alert notification dispatch uses the service IO scope; alert evaluation remains after the active-sample state is built and does not enter the `RECOVERY_HOLD` early-return path.
+- [x] Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, and applicationId remain unchanged by this follow-up.
+- [x] PR CI Run #601 on head `747f12e98511e7d4ca1a11e5a1e070d3ca06f501`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS.
+- [x] Debug APK artifact ID: `14920844863`; unit-test report artifact ID: `14921524240`.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until physical-device QA is confirmed.
+- [x] Documentation follow-up CI Run #602: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS; APK artifact `14925414575`, test report `14926982019`.
+
+---
+
+## 2026-11-24 — PR #11: data consistency, History polish, and Charge Guard alarms
+
+- [x] Baseline PR #10 merged; latest main SHA `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
+- [x] Created `feat/data-consistency-and-charge-guard` from the verified main SHA; branch is not behind main at implementation start.
+- [x] History range formatter uses explicit `\u2192`; compact duration formatter is one line; generic anomaly badge is suppressed when specific anomaly badges exist.
+- [x] Selected-session highlight and curve/filter ordering updated.
+- [x] Current chart scale excludes absolute current values above 25,000 mA without mutating raw sample values.
+- [x] Overview and Insights use one shared mapper over the same persisted SOH snapshot.
+- [x] Seven-day chart has distinct Indonesian weekday abbreviations, selectable bars, and daily mAh summary formatting.
+- [x] Existing temperature ribbons verified present in Charging and curve session UI; Status Bar dialog adds IME padding and retains vertical scrolling.
+- [x] Charge Guard uses separate SharedPreferences; both new toggles default OFF; target and temperature choices are constrained to the requested values.
+- [x] Alarm policy uses one alert per charge session/target, temperature hysteresis, and a 15-minute cooldown. Service integration is after the existing active-sample state construction; RECOVERY_HOLD early-return path is unchanged.
+- [x] Unit tests added for formatters, outlier scaling, SOH snapshot mapping, daily trend summary/labels, anomaly badge suppression, charge/temperature alarm policy, and SharedPreferences defaults/persistence.
+- [x] Room v3 schema and entities unchanged; sensor acquisition, sampling cadence, calibration default 1x, P0 lifecycle transitions, RECOVERY_HOLD, and applicationId unchanged by intended diff.
+- [x] Final diff review: PASS — 21 changed files; no Room entity/schema/migration, Gradle, manifest, package/version, sensor acquisition, sampling cadence, or calibration files changed. The service diff is limited to the post-sample alert evaluation and notification helpers.
+- [x] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload: SUCCESS — PR CI Run #591 (`45390892432`).
+- [x] Debug APK artifact ID: `14917414475` (`android-debug-apk`); unit-test report artifact ID: `14919250772`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until CI SUCCESS and physical QA confirmation.
+
+---
+
 ## 2026-11-24 — PR #10: visual presentation, diagnostic summaries, and live status-bar preview
 
 - [x] Baseline: PR #9 merged at `6fbea39ea0fa694f32b3185b7218f8e5a5238675`; main CI Run #559 SUCCESS. Latest main after the documentation-only restoration is `4140b41313959087a1b97c4a823ff4f176376ed7`; main CI Run #560 SUCCESS. PR #10 targets that main SHA.
@@ -14,12 +125,10 @@
 - [x] Protected scope by source review: Room v3, sensor acquisition/cadence, calibration default 1x, P0 BatteryMonitorService lifecycle, RECOVERY_HOLD, startup policy, and applicationId remain unchanged.
 - [x] No package, dependency, SDK, app-version, or build-number changes; no report export/copy feature added.
 - [x] Final full diff review: PASS — 21 changed files; no Room, service, sensor acquisition, calibration, Gradle, manifest, package, or version files changed.
-- [x] Anti-Slop UI Audit Gate: SUCCESS — PR CI Run #573 (`45360070719`).
-- [x] `testDebugUnitTest` and `assembleDebug`: SUCCESS — PR CI Run #573 (`45360070719`).
-- [x] APK and unit-test report uploads: SUCCESS — PR CI Run #573.
-- [x] Debug APK artifact ID: `14904586066` (`android-debug-apk`); unit-test report artifact ID: `14904536043`.
-- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
-- [ ] PR #10 merge: HOLD until physical QA is confirmed.
+- [x] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK and test-report uploads: SUCCESS — final PR CI Run #577 (`45360617867`).
+- [x] Debug APK artifact ID: `14904452445` (`android-debug-apk`); unit-test report artifact ID: `14903734041`.
+- [x] Physical-device QA on itel P55 at 360dp / 720p: PASS — user confirmed CI #577 APK artifact `14904452445`.
+- [x] PR #10 squash-merged at `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
 
 ---
 
@@ -572,6 +681,21 @@
 - Package, SDK, dependencies, app version, and build number: PASS — unchanged.
 
 # SPG Quality Checklist
+
+## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone
+
+- [x] Existing Charge Guard preference file reused; sound selection/title/vibration are persisted separately from Room and calibration.
+- [x] Settings row and dialog are wired to persisted state; picker exposes system default and silent choices.
+- [x] Dedicated notification channel ID is derived from effective sound URI + vibration setting; previous Charge Guard channel is deleted when replaced.
+- [x] Invalid custom URI resolution falls back to system notification URI; pure fallback and channel-ID regression tests added.
+- [x] Preview and Charge Guard notification posting use IO coroutines and do not execute in the sampling call stack.
+- [x] Source review confirms no intended changes to Room v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring channel, P0 lifecycle, or RECOVERY_HOLD.
+- [x] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload: SUCCESS — CI Run #600 on `b152498c7b6a93b383c30cdd312fb484a8852ba4`.
+- [x] Debug APK artifact ID: `14921189893`; unit-test report artifact ID: `14922038659`.
+- [ ] Physical-device QA on itel P55: NOT RUN — required before PR #11 merge.
+- [ ] PR #11 merge: HOLD until latest CI succeeds and physical-device QA is confirmed.
+
+---
 
 ## 2026-11-22 — Robolectric runtime SDK resolution in CI
 

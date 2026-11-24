@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
+import com.superdenot.powerguard.domain.analytics.CurrentChartScaleCalculator
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSummary
 import com.superdenot.powerguard.ui.theme.AmberThermal
@@ -125,8 +126,9 @@ fun ChargingCurveChart(
         } else {
             val currentSamples = samples.filter { it.isCurrentAvailable }
             val temperatureSamples = samples.filter { it.isTemperatureAvailable }
-            val minMa = if (currentSamples.isNotEmpty()) min(0f, currentSamples.minOf { it.currentMa.toFloat() }) else 0f
-            val maxMa = if (currentSamples.isNotEmpty()) max(500f, currentSamples.maxOf { it.currentMa.toFloat() }) else 500f
+            val currentScale = CurrentChartScaleCalculator.calculate(currentSamples.map { it.currentMa })
+            val minMa = currentScale.minimumMilliAmps
+            val maxMa = currentScale.maximumMilliAmps
             val minTemp = if (temperatureSamples.isNotEmpty()) min(20f, temperatureSamples.minOf { it.tempCelsius }) else 20f
             val maxTemp = if (temperatureSamples.isNotEmpty()) max(50f, temperatureSamples.maxOf { it.tempCelsius }) else 50f
 

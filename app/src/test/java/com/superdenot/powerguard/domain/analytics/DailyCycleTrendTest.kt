@@ -20,6 +20,18 @@ class DailyCycleTrendTest {
         assertEquals(0.4, points.last().totalCycles, 0.0001)
         assertTrue(points.last().peakTemperatureCelsius!! >= 40.0)
         assertFalse(points[5].hasData)
+        assertEquals(500.0, points.last().totalMahCharged, 0.0001)
+        assertEquals(1, points.last().anomalyCount)
+    }
+
+    @Test fun formatsThreeLetterWeekdayLabelsWithoutMondayTuesdayCollision() {
+        assertEquals("Rab", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 11, 25)))
+        assertEquals("Kam", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 11, 26)))
+        assertEquals("Jum", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 11, 27)))
+        assertEquals("Sab", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 11, 28)))
+        assertEquals("Min", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 11, 29)))
+        assertEquals("Sen", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 11, 30)))
+        assertEquals("Sel", DailyCycleTrend.formatWeekdayShort(LocalDate.of(2026, 12, 1)))
     }
 
     @Test fun formatsTodayYesterdayAndOlderDates() {

@@ -17,6 +17,9 @@ import com.superdenot.powerguard.data.repository.BatteryRepository
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkCalculator
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
+import com.superdenot.powerguard.data.repository.ChargeGuardSettings
+import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
+import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
@@ -27,6 +30,7 @@ import com.superdenot.powerguard.service.AutoStartCoordinator
 import com.superdenot.powerguard.service.AutoStartRequestResult
 import com.superdenot.powerguard.service.AutoStartTrigger
 import com.superdenot.powerguard.service.BatteryMonitorService
+import com.superdenot.powerguard.service.ChargeGuardAlertSoundPlayer
 import com.superdenot.powerguard.worker.ChargingAutoStartScheduler
 import com.superdenot.powerguard.worker.DailyRollupWorker
 import kotlinx.coroutines.CancellationException
@@ -100,6 +104,10 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     val designCapacitySetting: StateFlow<DesignCapacitySetting> = repository.designCapacitySettingFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesignCapacitySetting(null, false))
+    private val _chargeGuardConfig = MutableStateFlow(ChargeGuardSettings.read(application))
+    val chargeGuardConfig: StateFlow<ChargeGuardConfiguration> = _chargeGuardConfig.asStateFlow()
+    private val _chargeGuardAlertSound = MutableStateFlow(ChargeGuardSettings.readAlertSound(application))
+    val chargeGuardAlertSound: StateFlow<ChargeGuardAlertSoundSetting> = _chargeGuardAlertSound.asStateFlow()
     val batteryMonitoringEnabled: StateFlow<Boolean> = repository.batteryMonitoringEnabledFlow
         .catch { error ->
             Log.e("PowerGuard", "Gagal mengamati preferensi Battery Monitoring; pemantauan dinonaktifkan", error)
@@ -159,6 +167,30 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun setAppForeground(isForeground: Boolean) {
         _appForeground.value = isForeground
         AutoStartCoordinator.setAppForeground(isForeground)
+    }
+
+    fun setChargeGuardConfiguration(configuration: ChargeGuardConfiguration) {
+        val normalized = configuration.normalized()
+        ChargeGuardSettings.save(getApplication(), normalized)
+        _chargeGuardConfig.value = normalized
+    }
+
+    fun setChargeGuardAlertSound(setting: ChargeGuardAlertSoundSetting) {
+        val normalized = setting.normalized()
+        ChargeGuardSettings.saveAlertSound(getApplication(), normalized)
+        _chargeGuardAlertSound.value = normalized
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { BatteryMonitorService.syncChargeGuardAlertChannel(getApplication()) }
+                .onFailure { error -> Log.w("PowerGuard", "Gagal memperbarui channel nada Charge Guard", error) }
+        }
+    }
+
+    fun previewChargeGuardAlert(setting: ChargeGuardAlertSoundSetting = _chargeGuardAlertSound.value) {
+        val normalized = setting.normalized()
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { ChargeGuardAlertSoundPlayer.play(getApplication(), normalized) }
+                .onFailure { error -> Log.w("PowerGuard", "Pratinjau nada Charge Guard gagal", error) }
+        }
     }
 
     fun startMonitorIfCharging() {

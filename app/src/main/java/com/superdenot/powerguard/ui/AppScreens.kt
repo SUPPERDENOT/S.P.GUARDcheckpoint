@@ -1,6 +1,16 @@
 package com.superdenot.powerguard.ui
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.RingtoneManager
+import android.net.Uri
+import android.os.Build
 import android.os.SystemClock
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -32,6 +42,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -39,7 +51,13 @@ import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
-import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
+import com.superdenot.powerguard.domain.analytics.BatteryHealthSummaryMapper
+import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.domain.engine.ChargeGuardRepeatMode
+import com.superdenot.powerguard.domain.engine.ChargeGuardSettingsSummaryFormatter
+import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
+import com.superdenot.powerguard.data.repository.ChargeGuardVibrationPattern
+import com.superdenot.powerguard.ui.components.CompactSwitch
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
@@ -69,6 +87,9 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val fallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
     val health by vm.latestHealth.collectAsState()
+    val healthSummary = remember(health) {
+        health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
+    }
     val capacity by vm.designCapacitySetting.collectAsState()
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
@@ -166,8 +187,8 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     SectionHeading("KESEHATAN BATERAI (SOH)", "Estimasi kapasitas dan acuan desain")
-                    DiagnosticLine("Kapasitas terestimasi", health?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
-                    DiagnosticLine("Estimasi SOH", health?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
+                    DiagnosticLine("Kapasitas terestimasi", healthSummary?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
+                    DiagnosticLine("Estimasi SOH", healthSummary?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
                     DiagnosticLine("Kapasitas desain", capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia")
                     DiagnosticLine("Sumber", if (capacity.isManualOverride) "Manual" else "Otomatis")
                 }
@@ -399,12 +420,11 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    val sessions by vm.sessions.collectAsState()
-    val capacity by vm.designCapacitySetting.collectAsState()
-    val designCapacityMah = capacity.capacityMah ?: BatteryHealthEstimator.DEFAULT_DESIGN_CAPACITY_MAH
-    val estimate = remember(sessions, designCapacityMah) {
-        BatteryHealthEstimator.estimate(sessions, designCapacityMah)
+    val health by vm.latestHealth.collectAsState()
+    val healthSummary = remember(health) {
+        health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
     }
+    val capacity by vm.designCapacitySetting.collectAsState()
 
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
         Card(
@@ -419,7 +439,7 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     Column(Modifier.weight(1f)) {
                         Text("Estimasi SOH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            estimate?.let { String.format(Locale.US, "%.1f%%", it.healthPercentage) } ?: "Belum tersedia",
+                            healthSummary?.let { String.format(Locale.US, "%.1f%%", it.healthPercentage) } ?: "Belum tersedia",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -427,15 +447,15 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     Column(Modifier.weight(1f)) {
                         Text("mAh Efektif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            estimate?.let { "${it.effectiveCapacityMah} mAh" } ?: "—",
+                            healthSummary?.let { "${it.estimatedCapacityMah} mAh" } ?: "—",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
                 Text(
-                    if (estimate != null) "Berdasarkan ${estimate.validSessionCount} sesi selesai • Kapasitas desain $designCapacityMah mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
-                    else "Belum cukup sesi valid. Estimasi memerlukan sesi selesai dengan kenaikan SoC minimal 15%. Kapasitas desain $designCapacityMah mAh.",
+                    if (healthSummary != null) "Snapshot SOH tersimpan • Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
+                    else "Belum ada snapshot SOH yang valid. Estimasi akan tersedia setelah sesi pengisian memenuhi kriteria.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -461,6 +481,9 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
+    val context = LocalContext.current
+    val chargeGuardConfig by vm.chargeGuardConfig.collectAsState()
+    val chargeGuardAlertSound by vm.chargeGuardAlertSound.collectAsState()
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
@@ -473,8 +496,65 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val previewFallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
-    var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    var showChargeGuardDialog by remember { mutableStateOf(false) }
+    var draftChargeGuardConfig by remember { mutableStateOf(chargeGuardConfig) }
+    var draftChargeGuardSound by remember { mutableStateOf(chargeGuardAlertSound) }
+    var pendingExternalAudioUri by remember { mutableStateOf<Uri?>(null) }
+    var lastCustomTapAt by remember { mutableLongStateOf(0L) }
+
+    fun openChargeGuardDialog() {
+        draftChargeGuardConfig = chargeGuardConfig
+        draftChargeGuardSound = chargeGuardAlertSound
+        lastCustomTapAt = 0L
+        showChargeGuardDialog = true
+    }
+
+    fun applyPickedTone(pickedUri: Uri) {
+        draftChargeGuardSound = when {
+            pickedUri == Settings.System.DEFAULT_NOTIFICATION_URI -> draftChargeGuardSound.copy(
+                selection = ChargeGuardAlertSoundSetting.DEFAULT, title = "Nada Default"
+            )
+            else -> {
+                val title = runCatching { RingtoneManager.getRingtone(context, pickedUri)?.getTitle(context) }
+                    .getOrNull()?.takeIf { it.isNotBlank() } ?: "Nada pilihan"
+                draftChargeGuardSound.copy(selection = pickedUri.toString(), title = title)
+            }
+        }
+    }
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val pending = pendingExternalAudioUri
+        pendingExternalAudioUri = null
+        if (granted && pending != null) applyPickedTone(pending)
+    }
+
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val pickedUri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            if (pickedUri == null) {
+                draftChargeGuardSound = draftChargeGuardSound.copy(
+                    selection = ChargeGuardAlertSoundSetting.SILENT, title = "Hening"
+                )
+            } else {
+                val permission = when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> Manifest.permission.READ_MEDIA_AUDIO
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> Manifest.permission.READ_EXTERNAL_STORAGE
+                    else -> null
+                }
+                val isExternalMedia = pickedUri.scheme == "content" && pickedUri.authority == "media"
+                val needsPermission = isExternalMedia && permission != null &&
+                    ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
+                if (needsPermission) {
+                    pendingExternalAudioUri = pickedUri
+                    audioPermissionLauncher.launch(permission!!)
+                } else {
+                    applyPickedTone(pickedUri)
+                }
+            }
+        }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 8.dp),
         contentPadding = PaddingValues(
@@ -494,7 +574,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(checked = monitoringEnabled, onCheckedChange = vm::setBatteryMonitoringEnabled)
+                        CompactSwitch(checked = monitoringEnabled, onCheckedChange = vm::setBatteryMonitoringEnabled,
+                            contentDescription = "Pemantauan Baterai")
                     }
                     error?.let { Text(it, color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall) }
                 }
@@ -521,7 +602,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
-                        Switch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled)
+                        CompactSwitch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled,
+                            contentDescription = "Indikator status bar")
                     }
                     OutlinedButton(
                         onClick = { showStatusBarSettingsDialog = true },
@@ -572,11 +654,37 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Personalisasi", fontWeight = FontWeight.Bold)
-                    ComingSoonButton("Studio nada peringatan") { comingSoon = true }
-                    ComingSoonButton("Profil peringatan khusus") { comingSoon = true }
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = ::openChargeGuardDialog),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("Peringatan & Nada", fontWeight = FontWeight.Bold)
+                        Text(
+                            ChargeGuardSettingsSummaryFormatter.formatRules(chargeGuardConfig),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1, softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
+                            ChargeGuardSettingsSummaryFormatter.formatAlert(
+                                chargeGuardAlertSound.title, chargeGuardAlertSound.vibrationPattern.title
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1, softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = "Atur peringatan dan nada",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -587,8 +695,237 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
     }
-    if (comingSoon) ComingSoonDialog { comingSoon = false }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
+    if (showChargeGuardDialog) {
+        val hasUnsavedChanges = draftChargeGuardConfig != chargeGuardConfig ||
+            draftChargeGuardSound != chargeGuardAlertSound
+        Dialog(onDismissRequest = { showChargeGuardDialog = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+                    Text(
+                        "Peringatan & Nada",
+                        modifier = Modifier.fillMaxWidth().padding(
+                            start = 16.dp, top = 14.dp, end = 16.dp, bottom = 10.dp
+                        ),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Batas pengisian", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            CompactSwitch(
+                                checked = draftChargeGuardConfig.chargeLimitEnabled,
+                                onCheckedChange = { draftChargeGuardConfig = draftChargeGuardConfig.copy(chargeLimitEnabled = it) },
+                                contentDescription = "Batas pengisian"
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            listOf(80, 85, 90, 95, 100).forEach { target ->
+                                ChargeGuardChoicePill(
+                                    "$target%",
+                                    draftChargeGuardConfig.targetLevelPercent == target,
+                                    { draftChargeGuardConfig = draftChargeGuardConfig.copy(targetLevelPercent = target) },
+                                    Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Peringatan suhu tinggi", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            CompactSwitch(
+                                checked = draftChargeGuardConfig.highTemperatureEnabled,
+                                onCheckedChange = { draftChargeGuardConfig = draftChargeGuardConfig.copy(highTemperatureEnabled = it) },
+                                contentDescription = "Peringatan suhu tinggi"
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                            listOf(40, 42, 45, 50).forEach { threshold ->
+                                ChargeGuardChoicePill(
+                                    "$threshold°C",
+                                    draftChargeGuardConfig.highTemperatureThresholdCelsius == threshold,
+                                    { draftChargeGuardConfig = draftChargeGuardConfig.copy(highTemperatureThresholdCelsius = threshold) },
+                                    Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Text("Pengulangan", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ChargeGuardRepeatMode.values().forEach { mode ->
+                                ChargeGuardChoicePill(
+                                    mode.title,
+                                    draftChargeGuardConfig.repeatMode == mode,
+                                    { draftChargeGuardConfig = draftChargeGuardConfig.copy(repeatMode = mode) },
+                                    Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Text("Nada & Getar", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).clickable {
+                                    val existingUri = when (draftChargeGuardSound.selection) {
+                                        ChargeGuardAlertSoundSetting.DEFAULT -> Settings.System.DEFAULT_NOTIFICATION_URI
+                                        ChargeGuardAlertSoundSetting.SILENT -> null
+                                        else -> runCatching { Uri.parse(draftChargeGuardSound.selection) }.getOrNull()
+                                    }
+                                    val pickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                        putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_NOTIFICATION_URI)
+                                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existingUri)
+                                    }
+                                    ringtonePickerLauncher.launch(pickerIntent)
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "${draftChargeGuardSound.title} · Ubah ›",
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = { vm.previewChargeGuardAlert(draftChargeGuardSound) },
+                                modifier = Modifier.height(36.dp),
+                                shape = androidx.compose.foundation.shape.CircleShape,
+                                contentPadding = PaddingValues(horizontal = 14.dp)
+                            ) { Text("Tes") }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ChargeGuardVibrationPattern.values().forEach { pattern ->
+                                ChargeGuardChoicePill(
+                                    pattern.title,
+                                    draftChargeGuardSound.vibrationPattern == pattern,
+                                    {
+                                        draftChargeGuardSound = draftChargeGuardSound.copy(vibrationPattern = pattern)
+                                        lastCustomTapAt = 0L
+                                    },
+                                    Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        if (draftChargeGuardSound.vibrationPattern == ChargeGuardVibrationPattern.CUSTOM) {
+                            val pulseCount = (draftChargeGuardSound.customVibrationTimings.size + 1) / 2
+                            val durationMs = draftChargeGuardSound.customVibrationTimings.sum()
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(44.dp).clickable {
+                                        val now = SystemClock.elapsedRealtime()
+                                        val existing = draftChargeGuardSound.customVibrationTimings
+                                        if (pulseCount < 6) {
+                                            val next = if (existing.isEmpty()) {
+                                                listOf(120L)
+                                            } else {
+                                                val gap = if (lastCustomTapAt == 0L) 50L
+                                                    else (now - lastCustomTapAt - 120L).coerceIn(50L, 1_500L)
+                                                existing + gap + 120L
+                                            }
+                                            draftChargeGuardSound = draftChargeGuardSound.copy(
+                                                vibrationPattern = ChargeGuardVibrationPattern.CUSTOM,
+                                                customVibrationTimings = next
+                                            )
+                                        }
+                                        lastCustomTapAt = now
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                ) {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            "Ketuk Irama  ·  $pulseCount/6",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                                TextButton(onClick = {
+                                    draftChargeGuardSound = draftChargeGuardSound.copy(customVibrationTimings = emptyList())
+                                    lastCustomTapAt = 0L
+                                }) { Text("Reset") }
+                            }
+                            Text(
+                                if (pulseCount < 2) "Ketuk minimal 2 kali untuk merekam pola."
+                                else "Durasi pola: $durationMs ms · $pulseCount pulsa",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            "Peringatan bekerja saat perangkat mengisi dan data sensor tersedia. Fitur ini memberi notifikasi, bukan memutus aliran charger.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { showChargeGuardDialog = false },
+                            modifier = Modifier.height(36.dp).weight(1f),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) { Text("Batal") }
+                        Button(
+                            onClick = {
+                                vm.setChargeGuardConfiguration(draftChargeGuardConfig)
+                                vm.setChargeGuardAlertSound(draftChargeGuardSound)
+                                showChargeGuardDialog = false
+                            },
+                            enabled = hasUnsavedChanges,
+                            modifier = Modifier.height(36.dp).weight(1f),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) { Text("Simpan") }
+                    }
+                }
+            }
+        }
+    }
     if (showStatusBarSettingsDialog) {
         var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
         var draftParameter by remember { mutableStateOf(statusBarSetting.parameter) }
@@ -606,12 +943,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
 
         Dialog(onDismissRequest = { showStatusBarSettingsDialog = false }) {
             Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
             ) {
-                Column(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())
+                ) {
                     val previewBaseState = selectDashboardLiveState(
                         previewRunning, previewService, previewFallback, previewServiceAt,
                         previewFallbackAt, SystemClock.elapsedRealtime()
@@ -674,8 +1013,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 440.dp)
-                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -997,6 +1334,24 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
 
 
 @Composable
+private fun ChargeGuardChoicePill(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.height(32.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        border = androidx.compose.foundation.BorderStroke(if (selected) 1.5.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(label, style = MaterialTheme.typography.labelMedium.copy(
+                platformStyle = PlatformTextStyle(includeFontPadding = false)),
+                fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
+        }
+    }
+}
+
+@Composable
 private fun StatusBarParameterGrid(
     selectedParameters: Set<StatusBarParameter>,
     multiSelect: Boolean,
@@ -1143,31 +1498,6 @@ private fun StatusPill(label: String, accent: Color) {
     Surface(color = accent.copy(alpha = .14f), shape = RoundedCornerShape(50)) {
         Text(label, Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = accent, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
     }
-}
-
-@Composable
-private fun ComingSoonButton(label: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-        Text(label, Modifier.weight(1f))
-        StatusPill("SEGERA HADIR", AmberThermal)
-    }
-}
-
-@Composable
-fun ComingSoonDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Rounded.Bolt, null, tint = CyanFastCharge, modifier = Modifier.size(30.dp)) },
-        title = { Text("Segera Hadir", fontWeight = FontWeight.Bold) },
-        text = { Text("Fitur ini sedang disiapkan dan akan tersedia pada pembaruan SUPERD POWER GUARD berikutnya.") },
-        confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)) {
-                Text("Mengerti", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        shape = RoundedCornerShape(22.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant
-    )
 }
 
 private fun Set<String>.toggle(value: String): Set<String> = if (value in this) this - value else this + value
