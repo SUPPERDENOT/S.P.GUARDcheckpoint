@@ -49,6 +49,7 @@ import com.superdenot.powerguard.ui.theme.EmeraldCharge
 import com.superdenot.powerguard.ui.theme.MidnightVioletAccent
 import com.superdenot.powerguard.ui.theme.ThemeGaugeSummaryFormatter
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
+import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
 
 @Composable
@@ -172,44 +173,46 @@ fun ThemePickerDialogs(
                     ) {
                         Text("Pratinjau langsung", style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth().height(104.dp).padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        PowerGuardTheme(config = draft) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                             ) {
-                                BatteryGaugeView(
-                                    progress = (batteryLevel ?: 0).coerceIn(0, 100) / 100f,
-                                    percentageLabel = batteryLevel?.let { "$it%" } ?: "—",
-                                    model = draft.gaugeModel,
-                                    animation = draft.chargingAnimation,
-                                    isCharging = isCharging,
-                                    isCriticalThermal = isTemperatureAvailable && temperatureCelsius >= 40f,
-                                    isWarm = isTemperatureAvailable && temperatureCelsius >= 38f && temperatureCelsius < 40f,
-                                    isVisibleOnScreen = true,
-                                    modifier = Modifier.size(82.dp)
-                                )
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Text(
-                                        when {
-                                            isTemperatureAvailable && temperatureCelsius >= 40f -> "Kritis termal"
-                                            isTemperatureAvailable && temperatureCelsius >= 38f -> "Hangat"
-                                            isCharging -> "Mengisi"
-                                            else -> "Normal"
-                                        },
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold
+                                Row(
+                                    Modifier.fillMaxWidth().height(104.dp).padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    BatteryGaugeView(
+                                        progress = (batteryLevel ?: 0).coerceIn(0, 100) / 100f,
+                                        percentageLabel = batteryLevel?.let { "$it%" } ?: "—",
+                                        model = draft.gaugeModel,
+                                        animation = draft.chargingAnimation,
+                                        isCharging = isCharging,
+                                        isCriticalThermal = isTemperatureAvailable && temperatureCelsius >= 40f,
+                                        isWarm = isTemperatureAvailable && temperatureCelsius >= 38f && temperatureCelsius < 40f,
+                                        isVisibleOnScreen = true,
+                                        modifier = Modifier.size(82.dp)
                                     )
-                                    Text(
-                                        "Model: ${draft.gaugeModel.label}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text(
+                                            when {
+                                                isTemperatureAvailable && temperatureCelsius >= 40f -> "Kritis termal"
+                                                isTemperatureAvailable && temperatureCelsius >= 38f -> "Hangat"
+                                                isCharging -> "Mengisi"
+                                                else -> "Normal"
+                                            },
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            "Model: ${draft.gaugeModel.label}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
