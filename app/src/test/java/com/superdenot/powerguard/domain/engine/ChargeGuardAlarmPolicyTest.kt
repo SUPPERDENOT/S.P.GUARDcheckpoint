@@ -99,7 +99,7 @@ class ChargeGuardAlarmPolicyTest {
         repeat(ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT) { index ->
             result = ChargeGuardAlarmPolicy.evaluate(
                 config, result.state, 8L, true, 85, true, 35f, true,
-                70_000L + (index + 1) * ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+                70_000L + index * ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
             )
             assertEquals("repeat ${index + 1}", 1, result.alerts.size)
         }
