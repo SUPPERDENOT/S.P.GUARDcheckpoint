@@ -350,14 +350,16 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                             color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% -> —",
-                            modifier = Modifier.weight(0.18f),
+                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% → —",
+                            modifier = Modifier.weight(0.28f),
                             style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
-                            text = String.format(Locale.US, "%.0f", session.totalMahDelivered),
-                            modifier = Modifier.weight(0.20f),
+                            text = NumberFormat.getIntegerInstance(Locale("id", "ID")).format(session.totalMahDelivered) + " mAh",
+                            modifier = Modifier.weight(0.22f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.End,
                             color = EmeraldCharge,
