@@ -5,7 +5,10 @@
 - [x] Custom interval: PASS by source review — `BasicTextField` is centered, single-line, placeholder-free, and contained in a 56dp × 34dp `Surface` with 8dp rounded corners and validation-aware border color. Existing numeric filtering and 1–60 validation are retained.
 - [x] Dialog density: PASS by source review — title/content horizontal inset is 16dp and content section spacing is 8dp.
 - [x] Protected scope: PASS by source diff review — only `AppScreens.kt`, `CHANGELOG.md`, and this checklist are changed; draft/save behavior, renderer, sensor, calibration default 1x, Room v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` are untouched.
-- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for the latest branch commit.
+- [x] Anti-Slop UI Audit Gate: PASS — GitHub Actions Run #542.
+- [x] `testDebugUnitTest`: PASS — GitHub Actions Run #542.
+- [x] `assembleDebug`: PASS — GitHub Actions Run #542.
+- [x] APK and unit-test report uploads: PASS — debug APK artifact `14886369907`; unit-test report artifact `14886509930`.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
 
