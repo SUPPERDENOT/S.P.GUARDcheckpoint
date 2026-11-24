@@ -1,3 +1,21 @@
+## 2026-11-24 — PR #11 follow-up: compact Charge Guard popup and 50°C threshold
+
+- [x] Replaced the expanded Settings Charge Guard controls with a compact one-row `Peringatan & Nada` card, dynamic single-line summary, quick `Tes`, and chevron.
+- [x] Added scrollable and IME-aware popup using the Status Bar Indicator dialog container pattern.
+- [x] Charge target and temperature thresholds use uniform 32dp selectable pills (5 charge choices; 4 temperature choices including 50°C).
+- [x] Popup edits are draft-only; `Batal` discards changes and `Simpan` persists both Charge Guard configuration and alert tone/vibration.
+- [x] Ringtone picker uses `TYPE_NOTIFICATION`, default/silent flags, and the current draft URI. Draft `Tes` previews tone/vibration without persisting the draft.
+- [x] 50°C threshold is accepted by configuration normalization and SharedPreferences round-trip.
+- [x] Hysteresis regression test verifies 48°C does not re-arm at a 50°C threshold and 47.9°C does.
+- [x] Compact summary formatter tests active thresholds/tone, inactive state, and normalization of unsupported thresholds.
+- [x] History formatter source retains `\\u2192`; History test verifies `44% → 54%` and excludes malformed apostrophe-`n` text.
+- [x] Reviewed protected boundaries: Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring, `RECOVERY_HOLD`, and applicationId unchanged.
+- [ ] GitHub Actions CI for final branch HEAD: PENDING.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #11 merge: HOLD until physical-device QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone controls
 
 - [x] Settings placeholder replaced by a functional `Nada peringatan` row inside the existing Charge Guard card; selected tone and vibration state are summarized in one line.
