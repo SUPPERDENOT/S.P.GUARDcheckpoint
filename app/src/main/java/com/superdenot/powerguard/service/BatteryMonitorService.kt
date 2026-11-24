@@ -32,6 +32,7 @@ import com.superdenot.powerguard.data.repository.DesignCapacitySettings
 import com.superdenot.powerguard.data.repository.BatteryMonitoringSettings
 import com.superdenot.powerguard.data.repository.ChargeGuardSettings
 import com.superdenot.powerguard.domain.engine.ChargeGuardAlert
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlertType
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSettings
 import com.superdenot.powerguard.domain.engine.AnomalyDetector
@@ -3999,7 +4000,11 @@ class BatteryMonitorService : Service() {
 
     private fun sendChargeGuardAlertNotification(alert: ChargeGuardAlert) {
         if (!::notificationManager.isInitialized || destroyRequested.get()) return
-        notificationManager.notify(CHARGE_GUARD_NOTIFICATION_ID, buildChargeGuardAlertNotification(alert))
+        val notificationId = when (alert.type) {
+            ChargeGuardAlertType.CHARGE_LIMIT_REACHED -> CHARGE_LIMIT_NOTIFICATION_ID
+            ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED -> HIGH_TEMPERATURE_NOTIFICATION_ID
+        }
+        notificationManager.notify(notificationId, buildChargeGuardAlertNotification(alert))
     }
 
     override fun onDestroy() {
@@ -4036,7 +4041,8 @@ class BatteryMonitorService : Service() {
         private const val DEFAULT_ETA_DESIGN_CAPACITY_MAH = 5000
         private const val ANOMALY_NOTIFICATION_ID = 1002
         private const val LEGACY_STATUS_BAR_INDICATOR_NOTIFICATION_ID = 1003
-        private const val CHARGE_GUARD_NOTIFICATION_ID = 1004
+        private const val CHARGE_LIMIT_NOTIFICATION_ID = 1004
+        private const val HIGH_TEMPERATURE_NOTIFICATION_ID = 1005
 
         private const val SAMPLE_FLUSH_BATCH_SIZE = 60
         private const val MAX_SAMPLE_BUFFER_SIZE = 300
