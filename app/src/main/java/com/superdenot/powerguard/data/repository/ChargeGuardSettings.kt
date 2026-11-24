@@ -55,6 +55,8 @@ object ChargeGuardSettings {
         nowEpochMs: Long
     ): List<ChargeGuardAlert> = synchronized(lock) {
         val prefs = preferences(context)
+        val config = read(context)
+        if (!config.chargeLimitEnabled && !config.highTemperatureEnabled) return@synchronized emptyList()
         val storedSessionId = prefs.getLong(KEY_LAST_CHARGE_SESSION_ID, Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE }
         val storedTarget = prefs.getInt(KEY_LAST_CHARGE_TARGET, -1).takeIf { it >= 0 }
         val storedThreshold = prefs.getInt(KEY_STORED_TEMPERATURE_THRESHOLD, -1).takeIf { it >= 0 }
@@ -66,7 +68,7 @@ object ChargeGuardSettings {
             temperatureThresholdCelsius = storedThreshold
         )
         val result = ChargeGuardAlarmPolicy.evaluate(
-            configuration = read(context),
+            configuration = config,
             state = state,
             sessionId = sessionId,
             isCharging = isCharging,
@@ -76,13 +78,15 @@ object ChargeGuardSettings {
             isTemperatureAvailable = isTemperatureAvailable,
             nowEpochMs = nowEpochMs
         )
-        prefs.edit()
-            .putLong(KEY_LAST_CHARGE_SESSION_ID, result.state.lastChargeAlertSessionId ?: Long.MIN_VALUE)
-            .putInt(KEY_LAST_CHARGE_TARGET, result.state.lastChargeAlertTargetPercent ?: -1)
-            .putBoolean(KEY_TEMPERATURE_ARMED, result.state.temperatureArmed)
-            .putLong(KEY_LAST_TEMPERATURE_ALERT_AT, result.state.lastTemperatureAlertAtEpochMs)
-            .putInt(KEY_STORED_TEMPERATURE_THRESHOLD, result.state.temperatureThresholdCelsius ?: -1)
-            .apply()
+        if (result.state != state) {
+            prefs.edit()
+                .putLong(KEY_LAST_CHARGE_SESSION_ID, result.state.lastChargeAlertSessionId ?: Long.MIN_VALUE)
+                .putInt(KEY_LAST_CHARGE_TARGET, result.state.lastChargeAlertTargetPercent ?: -1)
+                .putBoolean(KEY_TEMPERATURE_ARMED, result.state.temperatureArmed)
+                .putLong(KEY_LAST_TEMPERATURE_ALERT_AT, result.state.lastTemperatureAlertAtEpochMs)
+                .putInt(KEY_STORED_TEMPERATURE_THRESHOLD, result.state.temperatureThresholdCelsius ?: -1)
+                .apply()
+        }
         result.alerts
     }
 }
