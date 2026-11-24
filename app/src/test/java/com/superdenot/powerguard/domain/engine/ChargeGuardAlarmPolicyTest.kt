@@ -130,6 +130,32 @@ class ChargeGuardAlarmPolicyTest {
         assertEquals(1, due.alerts.size)
     }
 
+
+    @Test fun temperatureIncidentAlsoStopsAfterFiveRepeats() {
+        val config = ChargeGuardConfiguration(
+            highTemperatureEnabled = true,
+            highTemperatureThresholdCelsius = 40,
+            repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
+        )
+        var result = ChargeGuardAlarmPolicy.evaluate(
+            config, ChargeGuardAlarmState(), 13L, true, 80, true, 41f, true, 5_000L
+        )
+        assertEquals(1, result.alerts.size)
+        repeat(ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT) { index ->
+            result = ChargeGuardAlarmPolicy.evaluate(
+                config, result.state, 13L, true, 80, true, 41f, true,
+                65_000L + index * ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+            )
+            assertEquals(1, result.alerts.size)
+        }
+        val capped = ChargeGuardAlarmPolicy.evaluate(
+            config, result.state, 13L, true, 80, true, 41f, true,
+            result.state.temperatureRepeatLastAtEpochMs + ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+        )
+        assertTrue(capped.alerts.isEmpty())
+        assertEquals(ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT, capped.state.temperatureRepeatCount)
+    }
+
     @Test fun dismissedChargeAndTemperatureIncidentsDoNotRepeat() {
         val config = ChargeGuardConfiguration(
             chargeLimitEnabled = true,
