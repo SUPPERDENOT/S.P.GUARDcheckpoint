@@ -9,7 +9,7 @@ import java.util.Locale
 
 data class SessionPresentation(
     val endLevel: Int?,
-    val deltaPercent: Int?
+    val deltaPercent: Int?,
     val durationSeconds: Long,
     val sourceLabel: String,
     val powerLabel: String,
