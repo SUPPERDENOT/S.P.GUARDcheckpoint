@@ -14,7 +14,7 @@
 
 ### Verification
 - Added unit tests for the 50°C preference round-trip, alert trigger and strict below-48°C hysteresis, compact summary output, and History arrow output / malformed-text exclusion.
-- CI: pending for the resulting branch HEAD; do not treat source writes as build or test verification.
+- CI Run #608 on branch HEAD `ba7110bfe41f8e77ac05c4e424ad91fc766a265c`: `Anti-Slop UI Audit Gate`, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all **SUCCESS**. Debug APK artifact `14933876095`; unit-test report `14933741143`. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45418505229).
 - Physical-device QA on itel P55: **NOT RUN** — required before PR #11 merge.
 - PR #11 merge: **HOLD** until physical-device QA is confirmed.
 
