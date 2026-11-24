@@ -7,10 +7,12 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -29,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +43,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.ui.*
+import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 
@@ -78,7 +83,28 @@ class MainActivity : ComponentActivity() {
                         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
                 }
 
-                val labels = listOf("Overview", "Charging", "Insights", "History", "Settings")
+                val labels = listOf("Ringkasan", "Pengisian", "Analisis", "Riwayat", "Setelan")
+                val headerServiceRunning by vm.isServiceRunning.collectAsState()
+                val headerServiceState by vm.liveState.collectAsState()
+                val headerFallbackState by vm.fallbackState.collectAsState()
+                val headerServiceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
+                val headerFallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
+                val headerBatteryState = selectDashboardLiveState(
+                    headerServiceRunning, headerServiceState, headerFallbackState,
+                    headerServiceAt, headerFallbackAt, SystemClock.elapsedRealtime()
+                )
+                val headerLabel = when {
+                    headerBatteryState.isLevelAvailable && headerBatteryState.level >= 100 && !headerBatteryState.isCharging -> "Penuh"
+                    headerBatteryState.isChargingStatusAvailable && headerBatteryState.isCharging -> "Mengisi"
+                    headerServiceRunning -> "Aktif"
+                    else -> "Siaga"
+                }
+                val headerStatusColor = when {
+                    headerBatteryState.isTemperatureAvailable && headerBatteryState.tempCelsius >= 40f -> Color(0xFFB8473D)
+                    headerLabel == "Mengisi" || headerLabel == "Penuh" -> Color(0xFF39765B)
+                    headerLabel == "Aktif" -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
                 val navColors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -99,9 +125,15 @@ class MainActivity : ComponentActivity() {
                                 Text("SUPERD POWER GUARD", modifier = Modifier.weight(1f),
                                     fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, letterSpacing = 0.35.sp,
                                     maxLines = 1, softWrap = false, color = MaterialTheme.colorScheme.onBackground)
-                                Text(labels[currentTab], style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(50)) {
+                                    Row(Modifier.padding(horizontal = 9.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Box(Modifier.size(7.dp).clip(CircleShape).background(headerStatusColor))
+                                        Text(headerLabel, style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false,
+                                            color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                }
                             }
                             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         }
@@ -116,35 +148,35 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = currentTab == 0,
                                 onClick = { currentTab = 0 },
-                                icon = { Icon(Icons.Rounded.Home, contentDescription = "Overview", modifier = Modifier.size(21.dp)) },
+                                icon = { Icon(Icons.Rounded.Home, contentDescription = "Ringkasan", modifier = Modifier.size(21.dp)) },
                                 label = { Text(labels[0], fontSize = 11.sp, maxLines = 1) },
                                 colors = navColors
                             )
                             NavigationBarItem(
                                 selected = currentTab == 1,
                                 onClick = { currentTab = 1 },
-                                icon = { Icon(Icons.Rounded.BatteryChargingFull, contentDescription = "Charging", modifier = Modifier.size(21.dp)) },
+                                icon = { Icon(Icons.Rounded.BatteryChargingFull, contentDescription = "Pengisian", modifier = Modifier.size(21.dp)) },
                                 label = { Text(labels[1], fontSize = 11.sp, maxLines = 1) },
                                 colors = navColors
                             )
                             NavigationBarItem(
                                 selected = currentTab == 2,
                                 onClick = { currentTab = 2 },
-                                icon = { Icon(Icons.Rounded.Insights, contentDescription = "Insights", modifier = Modifier.size(21.dp)) },
+                                icon = { Icon(Icons.Rounded.Insights, contentDescription = "Analisis", modifier = Modifier.size(21.dp)) },
                                 label = { Text(labels[2], fontSize = 11.sp, maxLines = 1) },
                                 colors = navColors
                             )
                             NavigationBarItem(
                                 selected = currentTab == 3,
                                 onClick = { currentTab = 3 },
-                                icon = { Icon(Icons.Rounded.History, contentDescription = "History", modifier = Modifier.size(21.dp)) },
+                                icon = { Icon(Icons.Rounded.History, contentDescription = "Riwayat", modifier = Modifier.size(21.dp)) },
                                 label = { Text(labels[3], fontSize = 11.sp, maxLines = 1) },
                                 colors = navColors
                             )
                             NavigationBarItem(
                                 selected = currentTab == 4,
                                 onClick = { currentTab = 4 },
-                                icon = { Icon(Icons.Rounded.Settings, contentDescription = "Settings", modifier = Modifier.size(21.dp)) },
+                                icon = { Icon(Icons.Rounded.Settings, contentDescription = "Setelan", modifier = Modifier.size(21.dp)) },
                                 label = { Text(labels[4], fontSize = 11.sp, maxLines = 1) },
                                 colors = navColors
                             )

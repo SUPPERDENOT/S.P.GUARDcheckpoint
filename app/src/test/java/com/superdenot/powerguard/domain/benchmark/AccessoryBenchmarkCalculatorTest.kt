@@ -49,12 +49,14 @@ class AccessoryBenchmarkCalculatorTest {
         assertEquals(7.0, charger.averageTemperatureRiseCelsius!!, 0.0001)
         assertEquals(20.0, charger.averageStartLevelPercent!!, 0.0001)
         assertEquals(32.0, charger.averageStartTemperatureCelsius!!, 0.0001)
+        assertEquals(39.0, charger.averagePeakTemperatureCelsius!!, 0.0001)
 
         val cable = result.groups.single { it.label == "Kabel Utama" }
         assertEquals(9.0, cable.averageBatteryPowerW!!, 0.0001)
         assertEquals(3_000.0, cable.averageCurrentMa!!, 0.0001)
         assertEquals(15.0, cable.averageChargeRatePercentPerHour!!, 0.0001)
         assertEquals(4.0, cable.averageTemperatureRiseCelsius!!, 0.0001)
+        assertEquals(40.0, cable.averagePeakTemperatureCelsius!!, 0.0001)
         assertTrue(result.comparabilityNotes.any { it.contains("Level awal") })
         assertTrue(result.comparabilityNotes.none { it.contains("Suhu awal") })
     }
@@ -132,6 +134,7 @@ class AccessoryBenchmarkCalculatorTest {
             assertNull(group.averageCurrentMa)
             assertNull(group.averageTemperatureRiseCelsius)
             assertNull(group.averageStartTemperatureCelsius)
+            assertNull(group.averagePeakTemperatureCelsius)
         }
     }
 
@@ -165,6 +168,7 @@ class AccessoryBenchmarkCalculatorTest {
             assertEquals(0.0, group.averageCurrentMa!!, 0.0001)
             assertEquals(0.0, group.averageChargeRatePercentPerHour!!, 0.0001)
             assertEquals(0.0, group.averageTemperatureRiseCelsius!!, 0.0001)
+            assertEquals(33.0, group.averagePeakTemperatureCelsius!!, 0.0001)
         }
     }
 
