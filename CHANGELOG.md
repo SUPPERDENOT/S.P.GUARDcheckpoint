@@ -18,8 +18,9 @@
 
 ### Verification
 - Implementation and focused tests added on `feat/slim-header-history-and-crisp-rotation`.
-- Diff review and GitHub Actions CI: PENDING.
-- Debug APK artifact ID: PENDING CI.
+- Diff review: completed for the 19 changed files against the PR #9 base.
+- GitHub Actions CI: **SUCCESS** — Run #557 (`45339264157`) on head `9e123240245999c6a972b3e141a4af20a1177ff9`; Anti-Slop UI Audit Gate PASS, 258 unit tests PASS (0 failures), `assembleDebug` PASS, APK and test-report uploads PASS.
+- Debug APK artifact ID: **14895517683** (`android-debug-apk`).
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #9 merge.
 
 ---

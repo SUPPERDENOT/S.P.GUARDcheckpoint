@@ -10,10 +10,10 @@
 - [x] Renderer: condensed bold typeface and bounded bitmap cache retained; five-character values and 8% alpha boost added.
 - [x] Rotation policy: 1,000ms for enabled custom rotation while interactive; 3,000ms otherwise; sample loop unchanged.
 - [x] Focused unit tests added/updated for anomaly evaluation, filters, alpha boost, and refresh policy.
-- [ ] Diff review: pending.
-- [ ] Anti-Slop UI Audit Gate: pending CI.
-- [ ] testDebugUnitTest / assembleDebug / APK upload: pending CI.
-- [ ] APK artifact ID: pending CI.
+- [x] Diff review: completed for all 19 changed files against the PR #9 base.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — CI Run #557 (`45339264157`).
+- [x] `testDebugUnitTest`: SUCCESS — 258 tests, 0 failures; `assembleDebug`: SUCCESS; APK upload: SUCCESS.
+- [x] Debug APK artifact ID: `14895517683` (`android-debug-apk`); test report artifact ID: `14895093496`.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
 - [ ] PR #9 merge: HOLD until physical QA is confirmed.
 
