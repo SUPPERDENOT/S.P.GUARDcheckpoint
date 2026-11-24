@@ -1,3 +1,25 @@
+## 2026-11-24 — PR #11 final polish: sticky Charge Guard popup and bounded alert repetition
+
+### Changed
+- Split the Charge Guard dialog into a fixed compact header, a scrollable middle body, and a sticky compact footer. The tone picker and draft preview button now share one row.
+- Replaced the footer's plain text actions with 36dp outlined Batal and state-aware Simpan buttons. Simpan is disabled until the draft configuration or tone/vibration settings differ from persisted values.
+- Removed the quick Tes action from the outer Settings card; the card now presents the two-line summary and chevron only.
+- Added Sekali (default), Tiap 1 mnt, and Tiap 3 mnt repeat modes to the dedicated Charge Guard SharedPreferences configuration. The summary adds Ulang 1m / Ulang 3m when selected.
+- Added per-incident repeat state for charge-limit and high-temperature alerts. The initial alert may be followed by at most five repeats at the selected interval. Repeats are emitted from the existing monitoring sample loop; no alarm scheduler or separate service was introduced.
+- Charge repeats stop when the charge condition becomes inactive or the charger disconnect receiver clears the active repeat state. Temperature repeats stop when the charger disconnects, the temperature sensor is unavailable, or temperature falls strictly below threshold minus 2°C. A reading exactly at the hysteresis boundary does not re-arm.
+- Added a lightweight non-exported ChargeGuardAlertDismissReceiver through each alert notification's deleteIntent. Swiping the notification marks only that incident as dismissed; it does not start, stop, or otherwise alter the foreground monitoring lifecycle.
+- Kept the foreground monitoring channel, P0 service lifecycle, Room DB v3, sensor sampling/acquisition, calibration default 1x, RECOVERY_HOLD, and applicationId unchanged by intent.
+
+### Verification and limitations
+- Added unit tests for default/persisted repeat modes, one- and three-minute intervals, Sekali, the five-repeat cap, dismiss suppression, unplug reset, strict temperature hysteresis stop, and Settings summary text.
+- GitHub Actions for this final change: PENDING.
+- Physical-device QA on itel P55: NOT RUN; verify notification deleteIntent delivery, repeat timing, unplug stop, and temperature hysteresis before merge.
+- Repeat timing is sample-driven by the existing monitoring loop (approximately one-second evaluation cadence); notification dispatch can be delayed slightly by scheduler/service load.
+- The requested 36dp footer buttons and 32dp choice pills are smaller than the 48dp touch-target guidance in DESIGN.md; this deliberate compact-layout deviation requires thumb-use review on itel P55.
+- PR #11 remains OPEN and UNMERGED. Merge remains on hold until physical itel P55 QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #11 follow-up: external audio fallback, custom vibration, and compact switches
 
 ### Fixed and added
