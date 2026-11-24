@@ -366,6 +366,23 @@ internal fun ChargingThermalSummaryPanel(summary: ChargingThermalSummary) {
             verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("Distribusi zona suhu", style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold)
+            val totalMinutes = summary.safeMinutes + summary.warmMinutes + summary.highMinutes
+            if (totalMinutes > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(50)),
+                    horizontalArrangement = Arrangement.spacedBy(1.dp)
+                ) {
+                    if (summary.safeMinutes > 0) {
+                        Box(Modifier.weight(summary.safeMinutes.toFloat()).fillMaxHeight().background(EmeraldCharge))
+                    }
+                    if (summary.warmMinutes > 0) {
+                        Box(Modifier.weight(summary.warmMinutes.toFloat()).fillMaxHeight().background(AmberThermal))
+                    }
+                    if (summary.highMinutes > 0) {
+                        Box(Modifier.weight(summary.highMinutes.toFloat()).fillMaxHeight().background(CrimsonAnomaly))
+                    }
+                }
+            }
             Text(
                 if (summary.hasTemperatureData) {
                     "${summary.safeMinutes}m Aman · ${summary.warmMinutes}m Hangat · ${summary.highMinutes}m Tinggi"
