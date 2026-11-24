@@ -403,7 +403,7 @@ internal fun ChargingThermalSummaryPanel(summary: ChargingThermalSummary) {
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 fontWeight = FontWeight.SemiBold)
-            Text("Indikasi pola dari sampel sisi baterai; bukan identifikasi protokol langsung.",
+            Text("Jeda sampel >2 menit tidak dihitung. Pola sisi baterai ini bukan identifikasi protokol langsung.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
