@@ -343,7 +343,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         }
                         Text(
                             text = timeLabel + if (isActive) " • Aktif" else "",
-                            modifier = Modifier.weight(0.30f),
+                            modifier = Modifier.weight(0.27f),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
@@ -351,7 +351,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         )
                         Text(
                             text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% → —",
-                            modifier = Modifier.weight(0.28f),
+                            modifier = Modifier.weight(0.31f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
@@ -415,8 +415,8 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SessionDetailMiniBox(
                                 label = "Arus Rata-rata",
-                                value = "${session.avgCurrentMa} mA",
-                                subValue = "Rata-rata sesi tersimpan",
+                                value = if (session.hasCurrentData) "${session.avgCurrentMa} mA" else "—",
+                                subValue = if (session.hasCurrentData) "Rata-rata arus baterai" else "Data arus tidak tersedia",
                                 accent = EmeraldCharge,
                                 modifier = Modifier.weight(1f)
                             )
@@ -670,6 +670,28 @@ private fun AccessoryMetric(
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@Composable
+private fun SessionDetailMiniBox(
+    label: String,
+    value: String,
+    subValue: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(10.dp), modifier = modifier) {
+        Column(Modifier.padding(10.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(2.dp))
+            Text(value, style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold, color = accent)
+            Text(subValue, fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
