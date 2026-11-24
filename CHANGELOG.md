@@ -17,11 +17,12 @@
 - No export/copy-report feature was added.
 
 ### Verification
-- Implementation and focused unit tests are on `feat/visual-presentation-and-ux-polish`; source diff reviewed against main base `4140b41313959087a1b97c4a823ff4f176376ed7` (21 changed files; no service, Room, engine, Gradle, manifest, package, or version files changed).
-- Added tests for thermal-zone durations and CC/CV-like pattern mapping, seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
-- GitHub Actions PR CI: SUCCESS — Run #569 (`45359675657`) on source head `1b713b6427bcf5698a8d4749c53e5ac5308a645a`; Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK/test-report uploads all SUCCESS.
-- Debug APK artifact ID: `14904620662` (`android-debug-apk`); unit-test report artifact ID: `14904461069`.
-- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #10 merge.
+- Full diff review: PASS — 21 changed files reviewed against PR #10 base `4140b41313959087a1b97c4a823ff4f176376ed7`; no Room entity/schema/migration, BatteryMonitorService, sensor acquisition, sampling cadence, calibration default, or build-configuration files changed.
+- Added tests for thermal-zone durations and CC/CV-like pattern mapping (including long-gap Unknown behavior), seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
+- GitHub Actions PR CI Run #573: SUCCESS on commit `8aad816e1f0f59c3a5041bda3c517ae3e2cf986b` — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all succeeded. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45360070719)
+- Earlier PR CI runs identified missing/duplicate imports; corrected before Run #573.
+- Debug APK artifact: `14904586066` (`android-debug-apk`); unit-test report artifact: `14904536043`.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #10 merge. PR #10 remains OPEN and unmerged.
 
 ---
 
