@@ -375,7 +375,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     )
                     DiagnosticLine("Muatan bersih tercatat", String.format(Locale.US, "%+.2f mAh", state.sessionMahDelivered))
                     DiagnosticLine("Durasi sesi", "${state.sessionDurationSec / 60} menit")
-                    DiagnosticLine("CPU deep sleep", "${(state.deepSleepRatio * 100).toInt()}%")
+                    DiagnosticLine("Mode tidur CPU", "${(state.deepSleepRatio * 100).toInt()}%")
                 }
             }
         }
@@ -960,7 +960,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Automatic.",
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     OutlinedTextField(
