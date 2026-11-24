@@ -379,7 +379,7 @@ private fun WaveGauge(
         Box(
             Modifier.fillMaxSize().drawWithContent {
                 val path = waveTextClipPath(size.width, size.height, progress, wavePhase, above = true)
-                clipPath(path) { drawContent() }
+                clipPath(path) { this@drawWithContent.drawContent() }
             },
             contentAlignment = Alignment.Center
         ) {
