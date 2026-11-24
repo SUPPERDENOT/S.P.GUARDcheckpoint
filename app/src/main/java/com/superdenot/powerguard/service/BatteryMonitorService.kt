@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.net.Uri
 import android.content.Context
 import android.content.Intent
@@ -4049,14 +4050,20 @@ class BatteryMonitorService : Service() {
             val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val soundSetting = ChargeGuardSettings.readAlertSound(appContext)
             val defaultUri = Settings.System.DEFAULT_NOTIFICATION_URI
-            val effectiveSound = ChargeGuardAlertSoundUriResolver.resolve(
+            val secondaryDefaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val effectiveSound = ChargeGuardAlertSoundUriResolver.resolvePlayable(
                 selection = soundSetting.selection,
                 defaultUri = defaultUri.toString(),
+                secondaryDefaultUri = secondaryDefaultUri?.toString(),
                 canOpenCustomUri = { raw ->
-                    appContext.contentResolver.openAssetFileDescriptor(Uri.parse(raw), "r")?.use { true } ?: false
+                    appContext.contentResolver.openAssetFileDescriptor(Uri.parse(raw), "r")?.use { it.length != 0L } == true
+                },
+                canCreateRingtone = { raw ->
+                    RingtoneManager.getRingtone(appContext, Uri.parse(raw)) != null
                 }
             )
-            val channelId = ChargeGuardAlertChannelPolicy.channelId(effectiveSound, soundSetting.vibrate)
+            val vibrationTimings = soundSetting.vibrationTimings()
+            val channelId = ChargeGuardAlertChannelPolicy.channelId(effectiveSound, vibrationTimings)
             val previousChannelId = ChargeGuardSettings.readActiveAlertChannelId(appContext)
             if (previousChannelId != null && previousChannelId != channelId) {
                 manager.deleteNotificationChannel(previousChannelId)
@@ -4070,8 +4077,8 @@ class BatteryMonitorService : Service() {
             ).apply {
                 description = "Nada dan getar untuk peringatan target pengisian dan suhu baterai"
                 setSound(effectiveSound?.let(Uri::parse), audioAttributes)
-                enableVibration(soundSetting.vibrate)
-                vibrationPattern = if (soundSetting.vibrate) longArrayOf(0L, 220L, 110L, 220L) else null
+                enableVibration(vibrationTimings.isNotEmpty())
+                vibrationPattern = vibrationTimings.takeIf { it.isNotEmpty() }
             }
             manager.createNotificationChannel(channel)
             ChargeGuardSettings.saveActiveAlertChannelId(appContext, channelId)
