@@ -602,8 +602,8 @@
 - [x] Invalid custom URI resolution falls back to system notification URI; pure fallback and channel-ID regression tests added.
 - [x] Preview and Charge Guard notification posting use IO coroutines and do not execute in the sampling call stack.
 - [x] Source review confirms no intended changes to Room v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring channel, P0 lifecycle, or RECOVERY_HOLD.
-- [ ] Unit tests: NOT RUN — awaiting CI for the new commit.
-- [ ] Anti-Slop UI Audit Gate / assembleDebug / APK upload: NOT RUN — awaiting CI.
+- [x] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload: SUCCESS — CI Run #600 on `b152498c7b6a93b383c30cdd312fb484a8852ba4`.
+- [x] Debug APK artifact ID: `14921189893`; unit-test report artifact ID: `14922038659`.
 - [ ] Physical-device QA on itel P55: NOT RUN — required before PR #11 merge.
 - [ ] PR #11 merge: HOLD until latest CI succeeds and physical-device QA is confirmed.
 
