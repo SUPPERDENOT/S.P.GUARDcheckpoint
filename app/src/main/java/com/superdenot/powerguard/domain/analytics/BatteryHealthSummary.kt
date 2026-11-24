@@ -8,9 +8,8 @@ data class BatteryHealthSummary(val estimatedCapacityMah: Int, val healthPercent
 object BatteryHealthSummaryMapper {
     fun fromStored(snapshot: BatteryHealthEntity?): BatteryHealthSummary? {
         snapshot ?: return null
-        if (snapshot.estimatedCapacityMah !in 1_000..20_000) return null
-        if (snapshot.designCapacityMah !in 1_000..20_000) return null
-        if (!snapshot.healthPercentage.isFinite() || snapshot.healthPercentage !in 10f..110f) return null
+        if (snapshot.estimatedCapacityMah <= 0 || snapshot.designCapacityMah <= 0) return null
+        if (!snapshot.healthPercentage.isFinite() || snapshot.healthPercentage <= 0f) return null
         return BatteryHealthSummary(snapshot.estimatedCapacityMah, snapshot.healthPercentage, snapshot.designCapacityMah)
     }
 }
