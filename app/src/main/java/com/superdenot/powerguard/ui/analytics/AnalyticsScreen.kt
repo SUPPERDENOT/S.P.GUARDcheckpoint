@@ -377,8 +377,15 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("${presentation.sourceLabel} · ${presentation.powerLabel} · ${presentation.temperatureLabel}",
-                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val metadata = listOfNotNull(
+                            presentation.sourceLabel.takeIf { it.isNotBlank() },
+                            presentation.powerLabel.takeUnless { it == "— W" || it.isBlank() },
+                            presentation.temperatureLabel.takeIf { it.isNotBlank() }
+                        ).joinToString(" · ")
+                        if (metadata.isNotBlank()) {
+                            Text(metadata, style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         session.accessoryLabel?.takeIf { it.isNotBlank() }?.let { label ->
                             Surface(color = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -563,63 +570,72 @@ private fun AccessoryBenchmarkCard(
     onDeleteGroup: (String) -> Unit,
     onResetAll: () -> Unit
 ) {
+    val ranking = remember(result.groups) { AccessoryBenchmarkRanker.rank(result.groups) }
+    val maxRate = result.groups.mapNotNull { it.averageChargeRatePercentPerHour }
+        .filter { it.isFinite() && it > 0.0 }.maxOrNull() ?: 0.0
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp)
-        ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Perbandingan Aksesori", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("Perbandingan Aksesori", modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 TextButton(onClick = onResetAll, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
                     Text("Reset Semua")
                 }
             }
             Text(
-                "Rata-rata pengukuran sisi baterai dari sesi yang selesai. Daya dihitung dari sampel tersimpan, bukan input charger.",
+                "Laju dinormalisasi sebagai kenaikan level per jam; suhu puncak adalah rata-rata sesi berlabel yang selesai.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             result.groups.forEachIndexed { index, group ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            group.label,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            "${group.sessionCount} sesi",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(
-                            onClick = { onDeleteGroup(group.label) },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                        ) { Text("Hapus") }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(group.label, modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (ranking.fastestLabel == group.label) {
+                            Surface(color = EmeraldCharge.copy(alpha = 0.13f), contentColor = EmeraldCharge,
+                                shape = RoundedCornerShape(50)) {
+                                Text("Tercepat", modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        if (group.label in ranking.warmLabels) {
+                            Spacer(Modifier.width(4.dp))
+                            Surface(color = AmberThermal.copy(alpha = 0.15f), contentColor = AmberThermal,
+                                shape = RoundedCornerShape(50)) {
+                                Text("Cenderung Panas", modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${group.sessionCount} sesi", modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = { onDeleteGroup(group.label) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)) { Text("Hapus") }
+                    }
+                    val rate = group.averageChargeRatePercentPerHour
+                    val fraction = if (rate != null && maxRate > 0.0) (rate / maxRate).toFloat().coerceIn(0f, 1f) else 0f
+                    Box(Modifier.fillMaxWidth().height(5.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) {
+                        if (fraction > 0f) {
+                            Box(Modifier.fillMaxWidth(fraction).fillMaxHeight()
+                                .background(if (ranking.fastestLabel == group.label) EmeraldCharge else CyanFastCharge,
+                                    RoundedCornerShape(50)))
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AccessoryMetric("Laju pengisian", rate, "%/jam", Modifier.weight(1f))
+                        AccessoryMetric("Suhu puncak rata-rata", group.averagePeakTemperatureCelsius, "°C", Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         AccessoryMetric("Daya rata-rata", group.averageBatteryPowerW, "W", Modifier.weight(1f))
                         AccessoryMetric("Arus rata-rata", group.averageCurrentMa, "mA", Modifier.weight(1f))
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        AccessoryMetric("Laju pengisian", group.averageChargeRatePercentPerHour, "%/jam", Modifier.weight(1f))
-                        AccessoryMetric("Kenaikan suhu", group.averageTemperatureRiseCelsius, "°C", Modifier.weight(1f))
                     }
                 }
             }
@@ -627,11 +643,8 @@ private fun AccessoryBenchmarkCard(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Text("Catatan kesebandingan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 result.comparabilityNotes.forEach { note ->
-                    Text(
-                        "• $note",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("• $note", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -648,7 +661,10 @@ private fun AccessoryMetric(
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
-            value?.let { String.format(Locale.US, "%.1f %s", it, unit) } ?: "—",
+            value?.let {
+                if (unit == "%/jam" && it > 0.0) String.format(Locale.US, "+%.1f %s", it, unit)
+                else String.format(Locale.US, "%.1f %s", it, unit)
+            } ?: "—",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
