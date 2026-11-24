@@ -1,3 +1,28 @@
+## 2026-11-25 — PR #12: theme packs and animated battery gauges
+
+- [x] Created `feat/theme-system-and-battery-gauges` directly from verified `main` HEAD `229081788c01ebbe1b20d9a0b4c9ce2dac2d122d`.
+- [x] Added Basic and Midnight Violet theme-pack configuration; SYSTEM mode uses reactive `isSystemInDarkTheme()`.
+- [x] Added safe key parsers and dedicated SharedPreferences persistence for package, mode, accent, dual tint, gauge model, and charging animation.
+- [x] Exposed theme config as a ViewModel StateFlow and applied it at the Compose root.
+- [x] Added four Canvas gauge models and four charging animation modes; infinite transition is only composed while charging, visible, and thermally normal.
+- [x] Enforced semantic color priority: critical thermal > warm > charging > normal theme accent. Existing analyzer thresholds 40°C / 38°C are reused.
+- [x] Added the two-layer Settings picker, draft live preview, sticky footer, and two-line summary.
+- [x] Centralized explicit color hex literals in `ui/theme/`; added an Anti-Slop audit guard for literals outside that package.
+- [x] Added unit tests for preference parser/fallback/round-trip, semantic color priority, segment boundaries, and summary formatting.
+- [x] No intended changes to Room DB v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring P0 channel/lifecycle, RECOVERY_HOLD, or applicationId.
+- [ ] Full diff review: NOT RUN.
+- [ ] `testDebugUnitTest`: NOT RUN.
+- [ ] `assembleDebug`: NOT RUN.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN.
+- [ ] APK upload / artifact ID: PENDING CI.
+- [ ] Physical-device QA on itel P55 360dp / 720p: NOT RUN.
+- [ ] PR #12 merge: HOLD until CI and physical-device QA are confirmed.
+
+### Accessibility exception
+- Requested 32dp choice pills and 36dp sticky-footer buttons are below the 48dp touch-target guidance in DESIGN.md. Keep this as an explicit QA item; do not report full accessibility compliance before device review.
+
+---
+
 ## 2026-11-24 — PR #11 final polish: sticky popup, state-aware footer, and alert repetition
 
 - [x] Charge Guard dialog has a fixed compact header, weighted scrollable body, and sticky compact footer.
