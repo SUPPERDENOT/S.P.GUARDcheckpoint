@@ -1,3 +1,25 @@
+## 2026-11-24 — PR #11 follow-up: compact Charge Guard popup and 50°C threshold
+
+### Changed
+- Replaced the expanded inline Charge Guard form with a compact one-row `Peringatan & Nada` Settings card. Its single-line summary reflects enabled charge/temperature rules and the selected alert tone; quick actions provide `Tes` and a chevron affordance.
+- Added a scrollable, IME-aware `Peringatan & Nada` popup matching the Status Bar Indicator dialog container and footer pattern. All threshold, enable/disable, ringtone, and vibration edits are draft-only until `Simpan`; `Batal` discards them.
+- Added uniform 32dp option pills: five charge targets (80–100%) and four temperature thresholds (40/42/45/50°C). Ringtone selection uses the Android notification picker with default/silent choices and the current draft URI. The draft `Tes` action previews the draft tone and vibration without persisting it.
+- Added a pure domain formatter for the compact Settings summary.
+- Added 50°C to the supported Charge Guard temperature thresholds. Temperature re-arming now requires a reading strictly below threshold minus 2°C; for a 50°C threshold, 48°C does not re-arm and any lower reading does.
+- Verified History session level range remains formatted with the Kotlin Unicode escape `\\u2192` (for example, `44% → 54%`); no malformed apostrophe-`n` sequence exists in `AnalyticsScreen.kt`.
+
+### Protected behavior
+- Room DB v3, sensor acquisition and sampling cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, `RECOVERY_HOLD`, and `applicationId com.superdenot.superdguard` remain unchanged.
+- `BatteryMonitorService` continues to evaluate Charge Guard through the existing `ChargeGuardSettings.evaluate` active-sample hook; no service lifecycle or sensor-loop changes were required. The 50°C option is consumed through the existing normalized domain policy.
+
+### Verification
+- Added unit tests for the 50°C preference round-trip, alert trigger and strict below-48°C hysteresis, compact summary output, and History arrow output / malformed-text exclusion.
+- CI: pending for the resulting branch HEAD; do not treat source writes as build or test verification.
+- Physical-device QA on itel P55: **NOT RUN** — required before PR #11 merge.
+- PR #11 merge: **HOLD** until physical-device QA is confirmed.
+
+---
+
 ## 2026-11-24 — PR #11 follow-up: Charge Guard alert tone controls
 
 ### Changed
