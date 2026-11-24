@@ -119,8 +119,8 @@ fun PowerGuardTheme(
                 lightColorScheme(
                     primary = accent,
                     onPrimary = Color.White,
-                    primaryContainer = TerracottaContainer,
-                    onPrimaryContainer = TerracottaOnContainer,
+                    primaryContainer = accent.copy(alpha = 0.16f),
+                    onPrimaryContainer = InstrumentGraphite,
                     secondary = EmeraldCharge,
                     onSecondary = Color.White,
                     secondaryContainer = EmeraldContainer,
