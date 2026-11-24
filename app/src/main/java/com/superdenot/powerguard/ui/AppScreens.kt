@@ -150,7 +150,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                         isCharging = state.isChargingStatusAvailable && state.isCharging && !isCriticalThermal && !isWarm,
                         isCriticalThermal = isCriticalThermal,
                         isWarm = isWarm,
-                        isVisibleOnScreen = true,
+                        isVisibleOnScreen = isActive,
                         modifier = Modifier.size(112.dp)
                     )
                     Column(
