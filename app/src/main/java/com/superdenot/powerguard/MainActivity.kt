@@ -94,13 +94,12 @@ class MainActivity : ComponentActivity() {
                     headerServiceAt, headerFallbackAt, SystemClock.elapsedRealtime()
                 )
                 val headerLabel = when {
-                    headerBatteryState.isLevelAvailable && headerBatteryState.level >= 100 && !headerBatteryState.isCharging -> "Penuh"
+                    headerBatteryState.isChargingStatusAvailable && headerBatteryState.isLevelAvailable && headerBatteryState.level >= 100 && !headerBatteryState.isCharging -> "Penuh"
                     headerBatteryState.isChargingStatusAvailable && headerBatteryState.isCharging -> "Mengisi"
                     headerServiceRunning -> "Aktif"
                     else -> "Siaga"
                 }
                 val headerStatusColor = when {
-                    headerBatteryState.isTemperatureAvailable && headerBatteryState.tempCelsius >= 40f -> Color(0xFFB8473D)
                     headerLabel == "Mengisi" || headerLabel == "Penuh" -> Color(0xFF39765B)
                     headerLabel == "Aktif" -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
