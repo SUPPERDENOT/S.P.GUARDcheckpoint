@@ -7,7 +7,9 @@
 - [x] Rotation interval: PASS by source review — one horizontal row with four equal-weight 32dp presets plus a 52dp × 32dp numeric BasicTextField; preset taps synchronize the input and custom 1–60 input updates the draft and active border.
 - [x] Keyboard and validation: PASS by source review — numeric keyboard with IME Done, no placeholder, existing 1–60 validation and Simpan gate retained.
 - [x] Protected scope: PASS by source review — only dialog layout/state presentation and documentation changed; draft/save semantics, renderer, sensor, calibration default 1x, Room v3, monitoring lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
-- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for latest branch commit.
+- [x] Anti-Slop UI Audit Gate: PASS — Run #547 (`45323370940`).
+- [x] `testDebugUnitTest` and `assembleDebug`: PASS — Build and Unit Tests job completed successfully; Gradle reported `BUILD SUCCESSFUL`.
+- [x] APK and unit-test report uploads: PASS — debug APK artifact `14888163325`; unit-test report artifact `14888802071`.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
 - [!] Accessibility trade-off: 32dp visual control height is below the 48dp touch-target minimum in `DESIGN.md`; retained only because the task explicitly specifies 32dp. Confirm usability on device and consider larger hit regions if the layout permits.
 - [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
