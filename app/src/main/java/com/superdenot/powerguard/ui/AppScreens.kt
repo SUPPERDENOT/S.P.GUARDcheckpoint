@@ -255,7 +255,16 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val serviceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
     val fallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
     val state = selectDashboardLiveState(running, service, fallback, serviceAt, fallbackAt, SystemClock.elapsedRealtime())
+    val currentSamples by vm.currentSessionSamples.collectAsState()
+    val thermalSummary = remember(currentSamples) {
+        ChargingThermalPhaseAnalyzer.analyze(currentSamples.map { sample ->
+            ChargingThermalSample(sample.timestamp, sample.tempCelsius, sample.isTemperatureAvailable,
+                sample.currentMa, sample.isCurrentAvailable, sample.voltageMv, sample.isVoltageAvailable,
+                sample.isChargingStatusAvailable, sample.isCharging)
+        })
+    }
     var showProtocolInfo by remember { mutableStateOf(false) }
+    var showPowerInfo by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
@@ -324,27 +333,32 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "PEMBACAAN BATERAI • SISI BATERAI",
-                    color = CyanFastCharge,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp
-                )
-                Text(
-                    "Daya merupakan hasil tegangan × arus baterai, bukan batas kemampuan sumber.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "PEMBACAAN BATERAI • SISI BATERAI",
+                        modifier = Modifier.weight(1f),
+                        color = CyanFastCharge,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    )
+                    IconButton(onClick = { showPowerInfo = true }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Rounded.Info, contentDescription = "Informasi pengukuran daya baterai",
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
                     MiniMetric("Daya baterai", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniMetric("Tegangan", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "Tidak tersedia", Modifier.weight(1f))
+                    MiniMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V (%d mV)", state.voltageMv / 1000.0, state.voltageMv) else "Tidak tersedia", Modifier.weight(1f))
                     MiniMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "Tidak tersedia", Modifier.weight(1f))
                 }
             }
+        }
+        item {
+            ChargingThermalSummaryPanel(thermalSummary)
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
@@ -367,6 +381,14 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         ProtocolInfoDialog(
             protocolLabel = state.chargingProtocol,
             onDismiss = { showProtocolInfo = false }
+        )
+    }
+    if (showPowerInfo) {
+        AlertDialog(
+            onDismissRequest = { showPowerInfo = false },
+            title = { Text("Pengukuran daya baterai") },
+            text = { Text("Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.") },
+            confirmButton = { TextButton(onClick = { showPowerInfo = false }) { Text("Mengerti") } }
         )
     }
 }
