@@ -7,6 +7,26 @@ import com.superdenot.powerguard.domain.engine.ChargeGuardAlarmState
 import com.superdenot.powerguard.domain.engine.ChargeGuardAlert
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
 
+data class ChargeGuardAlertSoundSetting(
+    val selection: String = DEFAULT,
+    val title: String = "Nada Default",
+    val vibrate: Boolean = true
+) {
+    fun normalized(): ChargeGuardAlertSoundSetting = copy(
+        selection = selection.takeIf { it == DEFAULT || it == SILENT || it.startsWith("content://") || it.startsWith("file://") }
+            ?: DEFAULT,
+        title = title.trim().takeIf { it.isNotEmpty() } ?: when (selection) {
+            SILENT -> "Hening"
+            DEFAULT -> "Nada Default"
+            else -> "Nada pilihan"
+        }
+    )
+    companion object {
+        const val DEFAULT = "DEFAULT"
+        const val SILENT = "SILENT"
+    }
+}
+
 /** Preferences and per-incident alarm state are isolated from Room and sensor calibration. */
 object ChargeGuardSettings {
     private const val PREFERENCES_NAME = "powerguard_charge_guard"
@@ -19,6 +39,10 @@ object ChargeGuardSettings {
     private const val KEY_TEMPERATURE_ARMED = "temperature_alarm_armed"
     private const val KEY_LAST_TEMPERATURE_ALERT_AT = "last_temperature_alert_at"
     private const val KEY_STORED_TEMPERATURE_THRESHOLD = "stored_temperature_threshold_c"
+    private const val KEY_ALERT_SOUND_SELECTION = "alert_sound_selection"
+    private const val KEY_ALERT_SOUND_TITLE = "alert_sound_title"
+    private const val KEY_ALERT_VIBRATE = "alert_vibrate"
+    private const val KEY_ACTIVE_ALERT_CHANNEL_ID = "active_alert_channel_id"
     private val lock = Any()
 
     private fun preferences(context: Context): SharedPreferences =
@@ -32,6 +56,38 @@ object ChargeGuardSettings {
             highTemperatureEnabled = prefs.getBoolean(KEY_HIGH_TEMPERATURE_ENABLED, false),
             highTemperatureThresholdCelsius = prefs.getInt(KEY_HIGH_TEMPERATURE_THRESHOLD, 40)
         ).normalized()
+    }
+
+    fun readAlertSound(context: Context): ChargeGuardAlertSoundSetting {
+        val prefs = preferences(context)
+        val selection = prefs.getString(KEY_ALERT_SOUND_SELECTION, ChargeGuardAlertSoundSetting.DEFAULT)
+            ?: ChargeGuardAlertSoundSetting.DEFAULT
+        val defaultTitle = when (selection) {
+            ChargeGuardAlertSoundSetting.SILENT -> "Hening"
+            ChargeGuardAlertSoundSetting.DEFAULT -> "Nada Default"
+            else -> "Nada pilihan"
+        }
+        return ChargeGuardAlertSoundSetting(
+            selection = selection,
+            title = prefs.getString(KEY_ALERT_SOUND_TITLE, defaultTitle) ?: defaultTitle,
+            vibrate = prefs.getBoolean(KEY_ALERT_VIBRATE, true)
+        ).normalized()
+    }
+
+    fun saveAlertSound(context: Context, setting: ChargeGuardAlertSoundSetting) {
+        val normalized = setting.normalized()
+        preferences(context).edit()
+            .putString(KEY_ALERT_SOUND_SELECTION, normalized.selection)
+            .putString(KEY_ALERT_SOUND_TITLE, normalized.title)
+            .putBoolean(KEY_ALERT_VIBRATE, normalized.vibrate)
+            .apply()
+    }
+
+    fun readActiveAlertChannelId(context: Context): String? =
+        preferences(context).getString(KEY_ACTIVE_ALERT_CHANNEL_ID, null)
+
+    fun saveActiveAlertChannelId(context: Context, channelId: String) {
+        preferences(context).edit().putString(KEY_ACTIVE_ALERT_CHANNEL_ID, channelId).apply()
     }
 
     fun save(context: Context, configuration: ChargeGuardConfiguration) {
