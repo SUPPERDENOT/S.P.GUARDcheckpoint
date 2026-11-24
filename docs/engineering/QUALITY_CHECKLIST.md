@@ -35,10 +35,8 @@
 - [x] Protected scope by source review: Room v3, sensor acquisition/cadence, calibration default 1x, P0 BatteryMonitorService lifecycle, RECOVERY_HOLD, startup policy, and applicationId remain unchanged.
 - [x] No package, dependency, SDK, app-version, or build-number changes; no report export/copy feature added.
 - [x] Final full diff review: PASS — 21 changed files; no Room, service, sensor acquisition, calibration, Gradle, manifest, package, or version files changed.
-- [x] Anti-Slop UI Audit Gate: SUCCESS — PR CI Run #573 (`45360070719`).
-- [x] `testDebugUnitTest` and `assembleDebug`: SUCCESS — PR CI Run #573 (`45360070719`).
-- [x] APK and unit-test report uploads: SUCCESS — PR CI Run #573.
-- [x] Debug APK artifact ID: `14904586066` (`android-debug-apk`); unit-test report artifact ID: `14904536043`.
+- [x] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK and test-report uploads: SUCCESS — final PR CI Run #577 (`45360617867`).
+- [x] Debug APK artifact ID: `14904452445` (`android-debug-apk`); unit-test report artifact ID: `14903734041`.
 - [x] Physical-device QA on itel P55 at 360dp / 720p: PASS — user confirmed CI #577 APK artifact `14904452445`.
 - [x] PR #10 squash-merged at `18d771a9fca0d51703b01f3c81d8a00c350febc5`; main CI Run #578 and Dynamic Run #14 SUCCESS.
 
