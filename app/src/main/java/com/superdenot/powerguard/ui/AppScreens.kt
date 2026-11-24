@@ -1,6 +1,13 @@
 package com.superdenot.powerguard.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.SystemClock
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -32,6 +39,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -41,6 +49,7 @@ import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
 import com.superdenot.powerguard.domain.analytics.BatteryHealthSummaryMapper
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
@@ -464,7 +473,9 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
+    val context = LocalContext.current
     val chargeGuardConfig by vm.chargeGuardConfig.collectAsState()
+    val chargeGuardAlertSound by vm.chargeGuardAlertSound.collectAsState()
     fun saveChargeGuard(next: ChargeGuardConfiguration) {
         vm.setChargeGuardConfiguration(next)
     }
@@ -481,6 +492,36 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    var showChargeGuardSoundDialog by remember { mutableStateOf(false) }
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val pickedUri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val selected = when {
+                pickedUri == null -> ChargeGuardAlertSoundSetting(
+                    selection = ChargeGuardAlertSoundSetting.SILENT,
+                    title = "Hening",
+                    vibrate = chargeGuardAlertSound.vibrate
+                )
+                pickedUri == Settings.System.DEFAULT_NOTIFICATION_URI -> ChargeGuardAlertSoundSetting(
+                    selection = ChargeGuardAlertSoundSetting.DEFAULT,
+                    title = "Nada Default",
+                    vibrate = chargeGuardAlertSound.vibrate
+                )
+                else -> {
+                    val title = runCatching {
+                        RingtoneManager.getRingtone(context, pickedUri)?.getTitle(context)
+                    }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Nada pilihan"
+                    ChargeGuardAlertSoundSetting(
+                        selection = pickedUri.toString(),
+                        title = title,
+                        vibrate = chargeGuardAlertSound.vibrate
+                    )
+                }
+            }
+            vm.setChargeGuardAlertSound(selected)
+        }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 8.dp),
         contentPadding = PaddingValues(
@@ -641,6 +682,33 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             }
                         }
                     }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f).clickable(
+                                role = Role.Button,
+                                onClick = { showChargeGuardSoundDialog = true }
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text("Nada peringatan", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${chargeGuardAlertSound.title} · ${if (chargeGuardAlertSound.vibrate) "Getar" else "Tanpa getar"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = vm::previewChargeGuardAlert,
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        ) { Text("Tes") }
+                    }
                     Text(
                         "Peringatan diproses saat Battery Monitoring aktif, perangkat sedang mengisi, dan data sensor tersedia. Tidak memutus aliran charger.",
                         style = MaterialTheme.typography.labelSmall,
@@ -657,6 +725,56 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
     }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
+    if (showChargeGuardSoundDialog) {
+        Dialog(onDismissRequest = { showChargeGuardSoundDialog = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 380.dp),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("Nada peringatan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text(chargeGuardAlertSound.title, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(
+                        onClick = {
+                            val existingUri = when (chargeGuardAlertSound.selection) {
+                                ChargeGuardAlertSoundSetting.DEFAULT -> Settings.System.DEFAULT_NOTIFICATION_URI
+                                ChargeGuardAlertSoundSetting.SILENT -> null
+                                else -> runCatching { Uri.parse(chargeGuardAlertSound.selection) }.getOrNull()
+                            }
+                            val pickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_NOTIFICATION_URI)
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existingUri)
+                            }
+                            showChargeGuardSoundDialog = false
+                            ringtonePickerLauncher.launch(pickerIntent)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Pilih nada sistem / file audio") }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Getar", fontWeight = FontWeight.SemiBold)
+                            Text(if (chargeGuardAlertSound.vibrate) "Aktif" else "Nonaktif",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = chargeGuardAlertSound.vibrate,
+                            onCheckedChange = { vm.setChargeGuardAlertSound(chargeGuardAlertSound.copy(vibrate = it)) }
+                        )
+                    }
+                    TextButton(onClick = { showChargeGuardSoundDialog = false }, modifier = Modifier.align(Alignment.End)) {
+                        Text("Selesai")
+                    }
+                }
+            }
+        }
+    }
     if (showStatusBarSettingsDialog) {
         var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
         var draftParameter by remember { mutableStateOf(statusBarSetting.parameter) }
