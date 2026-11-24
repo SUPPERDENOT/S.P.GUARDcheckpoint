@@ -256,7 +256,7 @@ private fun InitialPermissionSetup(
                 SetupPermissionRow("Optimasi baterai", "Pengecualian membantu Android mengizinkan auto-start saat charger tersambung.", batteryOptimizationIgnored, "ATUR", onOpenBatteryOptimization)
                 SetupPermissionRow("Akses pengguna", "Opsional — diperlukan untuk analisis penggunaan aplikasi.", usageAccessGranted, "ATUR", onOpenUsageAccess)
                 Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text("Lanjut ke aplikasi") }
-                Text("Akses opsional tidak akan dipaksakan. Anda dapat mengubahnya kapan saja melalui Settings.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                Text("Akses opsional tidak akan dipaksakan. Anda dapat mengubahnya kapan saja melalui Setelan.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             }
         }
     }
