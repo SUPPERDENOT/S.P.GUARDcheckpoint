@@ -2,6 +2,7 @@ package com.superdenot.powerguard.domain.engine
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -73,6 +74,123 @@ class ChargeGuardAlarmPolicyTest {
         assertEquals(2, result.alerts.size)
         assertTrue(result.alerts.any { it.type == ChargeGuardAlertType.CHARGE_LIMIT_REACHED })
         assertTrue(result.alerts.any { it.type == ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED })
+    }
+
+
+    @Test fun onceModeNeverRepeatsAnActiveChargeIncident() {
+        val config = ChargeGuardConfiguration(chargeLimitEnabled = true, targetLevelPercent = 80)
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 7L, true, 85, true, 35f, true, 1_000L)
+        val later = ChargeGuardAlarmPolicy.evaluate(config, first.state, 7L, true, 90, true, 35f, true, 1_000L + 600_000L)
+        assertEquals(1, first.alerts.size)
+        assertTrue(later.alerts.isEmpty())
+    }
+
+    @Test fun oneMinuteRepeatWaitsForFullIntervalAndStopsAfterFiveRepeats() {
+        val config = ChargeGuardConfiguration(
+            chargeLimitEnabled = true,
+            targetLevelPercent = 80,
+            repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
+        )
+        var result = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 8L, true, 85, true, 35f, true, 10_000L)
+        assertEquals(1, result.alerts.size)
+        val early = ChargeGuardAlarmPolicy.evaluate(config, result.state, 8L, true, 85, true, 35f, true, 69_999L)
+        assertTrue(early.alerts.isEmpty())
+        result = early
+        repeat(ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT) { index ->
+            result = ChargeGuardAlarmPolicy.evaluate(
+                config, result.state, 8L, true, 85, true, 35f, true,
+                70_000L + (index + 1) * ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+            )
+            assertEquals("repeat ${index + 1}", 1, result.alerts.size)
+        }
+        val capped = ChargeGuardAlarmPolicy.evaluate(
+            config, result.state, 8L, true, 85, true, 35f, true,
+            result.state.chargeRepeatLastAtEpochMs + ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+        )
+        assertTrue(capped.alerts.isEmpty())
+        assertEquals(ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT, capped.state.chargeRepeatCount)
+    }
+
+    @Test fun threeMinuteRepeatUsesThreeMinuteInterval() {
+        val config = ChargeGuardConfiguration(
+            chargeLimitEnabled = true,
+            targetLevelPercent = 85,
+            repeatMode = ChargeGuardRepeatMode.EVERY_3_MINUTES
+        )
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 9L, true, 90, true, 35f, true, 1_000L)
+        val early = ChargeGuardAlarmPolicy.evaluate(
+            config, first.state, 9L, true, 90, true, 35f, true,
+            1_000L + ChargeGuardRepeatMode.EVERY_3_MINUTES.intervalMs - 1L
+        )
+        val due = ChargeGuardAlarmPolicy.evaluate(
+            config, early.state, 9L, true, 90, true, 35f, true,
+            1_000L + ChargeGuardRepeatMode.EVERY_3_MINUTES.intervalMs
+        )
+        assertTrue(early.alerts.isEmpty())
+        assertEquals(1, due.alerts.size)
+    }
+
+    @Test fun dismissedChargeAndTemperatureIncidentsDoNotRepeat() {
+        val config = ChargeGuardConfiguration(
+            chargeLimitEnabled = true,
+            targetLevelPercent = 80,
+            highTemperatureEnabled = true,
+            highTemperatureThresholdCelsius = 40,
+            repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
+        )
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 10L, true, 85, true, 42f, true, 20_000L)
+        val dismissed = first.state.copy(
+            chargeRepeatDismissed = true,
+            temperatureRepeatDismissed = true
+        )
+        val later = ChargeGuardAlarmPolicy.evaluate(
+            config, dismissed, 10L, true, 85, true, 43f, true,
+            20_000L + ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+        )
+        assertTrue(later.alerts.isEmpty())
+        assertTrue(later.state.chargeRepeatDismissed)
+        assertTrue(later.state.temperatureRepeatDismissed)
+    }
+
+    @Test fun unpluggingClearsBothActiveRepeatIncidents() {
+        val config = ChargeGuardConfiguration(
+            chargeLimitEnabled = true,
+            targetLevelPercent = 80,
+            highTemperatureEnabled = true,
+            highTemperatureThresholdCelsius = 40,
+            repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
+        )
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 11L, true, 90, true, 43f, true, 30_000L)
+        val unplugged = ChargeGuardAlarmPolicy.evaluate(
+            config, first.state, 11L, false, 90, true, 43f, true, 31_000L
+        )
+        assertNull(unplugged.state.chargeRepeatSessionId)
+        assertEquals(0, unplugged.state.chargeRepeatCount)
+        assertEquals(0, unplugged.state.temperatureRepeatCount)
+        assertEquals(0L, unplugged.state.temperatureRepeatLastAtEpochMs)
+        assertTrue(unplugged.alerts.isEmpty())
+    }
+
+    @Test fun temperatureRepeatStopsOnlyAfterStrictlyCrossingHysteresis() {
+        val config = ChargeGuardConfiguration(
+            highTemperatureEnabled = true,
+            highTemperatureThresholdCelsius = 50,
+            repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
+        )
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 12L, true, 80, true, 50f, true, 40_000L)
+        val atHysteresis = ChargeGuardAlarmPolicy.evaluate(
+            config, first.state, 12L, true, 80, true, 48f, true,
+            40_000L + ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+        )
+        assertFalse(atHysteresis.state.temperatureArmed)
+        assertEquals(1, atHysteresis.alerts.size)
+        val belowHysteresis = ChargeGuardAlarmPolicy.evaluate(
+            config, atHysteresis.state, 12L, true, 80, true, 47.9f, true,
+            atHysteresis.state.temperatureRepeatLastAtEpochMs + ChargeGuardRepeatMode.EVERY_1_MINUTE.intervalMs
+        )
+        assertTrue(belowHysteresis.state.temperatureArmed)
+        assertEquals(0, belowHysteresis.state.temperatureRepeatCount)
+        assertTrue(belowHysteresis.alerts.isEmpty())
     }
 
     @Test fun unavailableTemperatureAndDisabledSettingsNeverNotify() {
