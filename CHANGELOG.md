@@ -19,8 +19,8 @@
 ### Verification
 - Implementation and focused unit tests are on `feat/visual-presentation-and-ux-polish`; source diff reviewed against main base `4140b41313959087a1b97c4a823ff4f176376ed7` (21 changed files; no service, Room, engine, Gradle, manifest, package, or version files changed).
 - Added tests for thermal-zone durations and CC/CV-like pattern mapping, seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
-- GitHub Actions PR CI: PENDING.
-- Debug APK artifact: PENDING.
+- GitHub Actions PR CI: SUCCESS — Run #569 (`45359675657`) on source head `1b713b6427bcf5698a8d4749c53e5ac5308a645a`; Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK/test-report uploads all SUCCESS.
+- Debug APK artifact ID: `14904620662` (`android-debug-apk`); unit-test report artifact ID: `14904461069`.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #10 merge.
 
 ---
