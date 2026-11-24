@@ -3,6 +3,7 @@ package com.superdenot.powerguard.data.repository
 import android.content.Context
 import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.domain.engine.ChargeGuardRepeatMode
 import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -127,6 +128,25 @@ class ChargeGuardSettingsTest {
         ChargeGuardSettings.dismissRepeats(context, com.superdenot.powerguard.domain.engine.ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED)
         val prefs = context.getSharedPreferences("powerguard_charge_guard", Context.MODE_PRIVATE)
         assertTrue(prefs.getBoolean("temperature_repeat_dismissed", false))
+    }
+
+
+    @Test fun unplugResetClearsBothPersistedRepeatCounters() {
+        val prefs = context.getSharedPreferences("powerguard_charge_guard", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong("charge_repeat_session_id", 77L)
+            .putInt("charge_repeat_target", 80)
+            .putInt("charge_repeat_count", 3)
+            .putLong("charge_repeat_last_at", 90_000L)
+            .putInt("temperature_repeat_count", 2)
+            .putLong("temperature_repeat_last_at", 91_000L)
+            .commit()
+        ChargeGuardSettings.stopRepeats(context)
+        assertEquals(Long.MIN_VALUE, prefs.getLong("charge_repeat_session_id", Long.MIN_VALUE))
+        assertEquals(0, prefs.getInt("charge_repeat_count", -1))
+        assertEquals(0L, prefs.getLong("charge_repeat_last_at", -1L))
+        assertEquals(0, prefs.getInt("temperature_repeat_count", -1))
+        assertEquals(0L, prefs.getLong("temperature_repeat_last_at", -1L))
     }
 
     @Test fun independentChargeGuardSettingsPersistInTheirOwnPreferenceFile() {
