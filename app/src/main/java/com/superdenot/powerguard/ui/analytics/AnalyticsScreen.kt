@@ -189,7 +189,9 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
     var isCurveExpanded by remember { mutableStateOf(false) }
     var selectedHistoryFilter by rememberSaveable { mutableStateOf(HistorySessionFilter.MICRO) }
-    val nowEpochMs = System.currentTimeMillis()
+    val nowEpochMs = remember(sessions, liveState.level, selectedHistoryFilter) {
+        System.currentTimeMillis()
+    }
     val visibleSessions = remember(sessions, liveState.level, selectedHistoryFilter, nowEpochMs) {
         HistorySessionFilterMatcher.filter(sessions, selectedHistoryFilter, liveState.level, nowEpochMs)
     }
