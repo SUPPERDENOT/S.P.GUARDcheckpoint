@@ -710,7 +710,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     Text(
                         "Peringatan & Nada",
                         modifier = Modifier.fillMaxWidth().padding(
-                            horizontal = 16.dp, top = 14.dp, bottom = 10.dp
+                            start = 16.dp, top = 14.dp, end = 16.dp, bottom = 10.dp
                         ),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
