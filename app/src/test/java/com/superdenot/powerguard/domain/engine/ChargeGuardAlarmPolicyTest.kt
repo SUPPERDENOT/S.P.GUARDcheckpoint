@@ -48,6 +48,21 @@ class ChargeGuardAlarmPolicyTest {
         assertEquals(1, afterCooldown.alerts.size)
     }
 
+    @Test fun chargeAndTemperatureAlertsCanTriggerInTheSameSample() {
+        val config = ChargeGuardConfiguration(
+            chargeLimitEnabled = true,
+            targetLevelPercent = 85,
+            highTemperatureEnabled = true,
+            highTemperatureThresholdCelsius = 40
+        )
+        val result = ChargeGuardAlarmPolicy.evaluate(
+            config, ChargeGuardAlarmState(), 5L, true, 90, true, 42f, true, 2_000_000L
+        )
+        assertEquals(2, result.alerts.size)
+        assertTrue(result.alerts.any { it.type == ChargeGuardAlertType.CHARGE_LIMIT_REACHED })
+        assertTrue(result.alerts.any { it.type == ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED })
+    }
+
     @Test fun unavailableTemperatureAndDisabledSettingsNeverNotify() {
         val unavailable = ChargeGuardAlarmPolicy.evaluate(
             ChargeGuardConfiguration(highTemperatureEnabled = true), ChargeGuardAlarmState(),
