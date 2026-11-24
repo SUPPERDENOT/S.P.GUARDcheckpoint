@@ -627,7 +627,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text("Peringatan & Nada", fontWeight = FontWeight.Bold)
                         Text(
-                            ChargeGuardSettingsSummaryFormatter.format(chargeGuardConfig, chargeGuardAlertSound),
+                            ChargeGuardSettingsSummaryFormatter.format(chargeGuardConfig, chargeGuardAlertSound.title),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1, softWrap = false,
