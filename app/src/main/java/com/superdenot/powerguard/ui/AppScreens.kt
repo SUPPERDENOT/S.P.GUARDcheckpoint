@@ -966,7 +966,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     TextButton(onClick = {
                         vm.useAutomaticDesignCapacity()
                         showCapacityDialog = false
-                    }) { Text("Gunakan Automatic") }
+                    }) { Text("Gunakan Otomatis") }
                     TextButton(onClick = { showCapacityDialog = false }) { Text("Batal") }
                 }
             }
