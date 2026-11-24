@@ -32,7 +32,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -42,7 +41,6 @@ import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
 import com.superdenot.powerguard.domain.analytics.BatteryHealthSummaryMapper
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
-import com.superdenot.powerguard.data.repository.ChargeGuardSettings
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
@@ -462,11 +460,9 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
-    val context = LocalContext.current
-    var chargeGuardConfig by remember(context) { mutableStateOf(ChargeGuardSettings.read(context)) }
+    val chargeGuardConfig by vm.chargeGuardConfig.collectAsState()
     fun saveChargeGuard(next: ChargeGuardConfiguration) {
-        chargeGuardConfig = next.normalized()
-        ChargeGuardSettings.save(context, chargeGuardConfig)
+        vm.setChargeGuardConfiguration(next)
     }
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
