@@ -741,7 +741,8 @@
 ### Protected scope and verification
 - Room v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring channel, P0 lifecycle, `RECOVERY_HOLD`, and `applicationId` are not intentionally changed.
 - Unit tests added for sound preference defaults/persistence, invalid URI fallback, and channel ID stability/configuration changes.
-- Unit tests, Anti-Slop gate, Android build, and APK upload: pending CI on the resulting PR #11 head.
+- CI Run #600 on commit `b152498c7b6a93b383c30cdd312fb484a8852ba4`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload.
+- Debug APK artifact ID: `14921189893` (`android-debug-apk`); unit-test report artifact ID: `14922038659`.
 - Physical-device QA on itel P55: NOT RUN; required before merge.
 
 ---
