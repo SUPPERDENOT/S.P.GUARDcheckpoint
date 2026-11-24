@@ -147,7 +147,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                         percentageLabel = if (state.isLevelAvailable) "${state.level}%" else "—",
                         model = themePackConfig.gaugeModel,
                         animation = themePackConfig.chargingAnimation,
-                        isCharging = state.isChargingStatusAvailable && state.isCharging,
+                        isCharging = state.isChargingStatusAvailable && state.isCharging && !isCriticalThermal && !isWarm,
                         isCriticalThermal = isCriticalThermal,
                         isWarm = isWarm,
                         isVisibleOnScreen = true,
@@ -607,7 +607,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             ThemePickerDialogs(
                 config = themeConfig,
                 batteryLevel = previewBatteryState.level.takeIf { previewBatteryState.isLevelAvailable },
-                isCharging = previewBatteryState.isChargingStatusAvailable && previewBatteryState.isCharging,
+                isCharging = previewBatteryState.isChargingStatusAvailable && previewBatteryState.isCharging &&
+                    !(previewBatteryState.isTemperatureAvailable && previewBatteryState.tempCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS),
                 temperatureCelsius = previewBatteryState.tempCelsius,
                 isTemperatureAvailable = previewBatteryState.isTemperatureAvailable,
                 onSave = vm::setThemePackConfig
