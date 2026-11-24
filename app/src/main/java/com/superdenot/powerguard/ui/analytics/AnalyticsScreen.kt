@@ -101,8 +101,8 @@ import java.text.NumberFormat
 import kotlin.math.roundToLong
 import java.time.LocalDate
 
-internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
-    "$startLevel% \u2192 $endLevel%"
+internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int?): String =
+    if (endLevel == null) "$startLevel% \u2192 —" else "$startLevel% \u2192 $endLevel%"
 
 internal fun formatCurveSessionCount(visibleCount: Int, totalCount: Int): String =
     "Kurva Sesi ($visibleCount/$totalCount)"
@@ -352,7 +352,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                             color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% → —",
+                            text = formatSessionLevelRange(session.startLevel, endLevel),
                             modifier = Modifier.weight(0.29f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
