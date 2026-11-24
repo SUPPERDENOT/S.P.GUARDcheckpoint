@@ -8,5 +8,6 @@ class SessionLevelRangeFormatterTest {
     fun formatsStartAndEndBatteryLevelsWithSingleLineArrow() {
         assertEquals("38% → 38%", formatSessionLevelRange(38, 38))
         assertEquals("55% → 56%", formatSessionLevelRange(55, 56))
+        assertEquals("44% → 62%", formatSessionLevelRange(44, 62))
     }
 }
