@@ -16,7 +16,9 @@
 
 ### Verification
 - Added unit tests for explicit session-level arrow output, compact duration, current-axis outlier filtering, shared SOH snapshot mapping, daily weekday/summary data, generic anomaly suppression, alarm thresholds/hysteresis/cooldown, and fresh-install preference defaults.
-- Source diff review and CI: PENDING.
+- Final source diff review: PASS — 21 changed files; no Room schema/entity/migration, Gradle, manifest, package/version, sensor acquisition, sampling cadence, or calibration files changed. The service changes are limited to alert evaluation and notification dispatch after the existing active-sample state is built.
+- GitHub Actions PR CI Run #591: SUCCESS on head `507fe09fc85e8fa1075375ffeedc4ba6ba963f99`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all succeeded. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45390892432)
+- Debug APK artifact ID: `14917414475` (`android-debug-apk`); unit-test report artifact ID: `14919250772`.
 - Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #11 merge.
 - PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
 
