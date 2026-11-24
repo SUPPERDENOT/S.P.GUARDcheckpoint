@@ -17,6 +17,8 @@ import com.superdenot.powerguard.data.repository.BatteryRepository
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkCalculator
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
+import com.superdenot.powerguard.data.repository.ChargeGuardSettings
+import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
 import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
@@ -100,6 +102,8 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
 
     val designCapacitySetting: StateFlow<DesignCapacitySetting> = repository.designCapacitySettingFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesignCapacitySetting(null, false))
+    private val _chargeGuardConfig = MutableStateFlow(ChargeGuardSettings.read(application))
+    val chargeGuardConfig: StateFlow<ChargeGuardConfiguration> = _chargeGuardConfig.asStateFlow()
     val batteryMonitoringEnabled: StateFlow<Boolean> = repository.batteryMonitoringEnabledFlow
         .catch { error ->
             Log.e("PowerGuard", "Gagal mengamati preferensi Battery Monitoring; pemantauan dinonaktifkan", error)
@@ -159,6 +163,12 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun setAppForeground(isForeground: Boolean) {
         _appForeground.value = isForeground
         AutoStartCoordinator.setAppForeground(isForeground)
+    }
+
+    fun setChargeGuardConfiguration(configuration: ChargeGuardConfiguration) {
+        val normalized = configuration.normalized()
+        ChargeGuardSettings.save(getApplication(), normalized)
+        _chargeGuardConfig.value = normalized
     }
 
     fun startMonitorIfCharging() {
