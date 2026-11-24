@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.data
 
 import android.content.Context
+import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
 import com.superdenot.powerguard.ui.theme.BasicAccent
@@ -12,8 +13,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = PowerGuardTestApplication::class, manifest = Config.NONE)
 class ThemePreferencesTest {
     private lateinit var context: Context
 
@@ -44,6 +47,20 @@ class ThemePreferencesTest {
             ),
             ThemePreferences(context).read()
         )
+    }
+
+    @Test
+    fun persistsBasicAppearanceAccentAndGaugePreferences() {
+        val expected = ThemePackConfig.Basic(
+            appearanceMode = BasicAppearanceMode.DARK,
+            accent = BasicAccent.COBALT,
+            gaugeModel = BatteryGaugeModel.SEGMENTED,
+            chargingAnimation = ChargingArcAnimation.SEGMENTED_FLOW
+        )
+
+        ThemePreferences(context).save(expected)
+
+        assertEquals(expected, ThemePreferences(context).read())
     }
 
     @Test
