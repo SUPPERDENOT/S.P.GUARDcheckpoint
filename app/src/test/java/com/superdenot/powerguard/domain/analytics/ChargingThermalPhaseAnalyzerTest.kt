@@ -30,6 +30,13 @@ class ChargingThermalPhaseAnalyzerTest {
         assertEquals(ChargingPhaseIndicator.CV, ChargingThermalPhaseAnalyzer.analyze(samples).phase)
     }
 
+    @Test fun longGapsDoNotProduceAConfidentPhase() {
+        val samples = (0 until 8).map { index ->
+            sample(index * 5 * 60_000L, 36f, 1_900, 3_700 + index * 20)
+        }
+        assertEquals(ChargingPhaseIndicator.UNKNOWN, ChargingThermalPhaseAnalyzer.analyze(samples).phase)
+    }
+
     @Test fun insufficientOrAmbiguousSamplesDoNotGuessPhase() {
         assertEquals(
             ChargingPhaseIndicator.UNKNOWN,
