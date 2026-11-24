@@ -250,16 +250,6 @@ private fun HeroMetric(
     }
 }
 
-private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        Text(value, style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
-            maxLines = 1, softWrap = false)
-    }
-}
-
 @Composable
 fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val service by vm.liveState.collectAsState()
