@@ -23,25 +23,32 @@ object ChargeGuardAlertSoundPlayer {
     fun play(context: Context, setting: ChargeGuardAlertSoundSetting) {
         val appContext = context.applicationContext
         val normalized = setting.normalized()
-        if (normalized.selection != ChargeGuardAlertSoundSetting.SILENT) {
-            val systemDefault = Settings.System.DEFAULT_NOTIFICATION_URI
-            val notificationDefault = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val customUri = normalized.selection.takeUnless {
-                it == ChargeGuardAlertSoundSetting.DEFAULT || it.isBlank()
-            }?.let(Uri::parse)
-            val candidates = buildList {
-                customUri?.let(::add)
-                add(systemDefault)
-                notificationDefault?.let(::add)
-            }.distinct()
-            mainHandler.post { playFirstAvailable(appContext, candidates, customUri) }
+        val timings = normalized.vibrationTimings()
+        val systemDefault = Settings.System.DEFAULT_NOTIFICATION_URI
+        val notificationDefault = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val customUri = normalized.selection.takeUnless {
+            it == ChargeGuardAlertSoundSetting.DEFAULT ||
+                it == ChargeGuardAlertSoundSetting.SILENT || it.isBlank()
+        }?.let(Uri::parse)
+        val candidates = buildList {
+            customUri?.let(::add)
+            add(systemDefault)
+            notificationDefault?.let(::add)
+        }.distinct()
+        mainHandler.post {
+            if (normalized.selection == ChargeGuardAlertSoundSetting.SILENT) {
+                synchronized(lock) { stopActiveLocked() }
+            } else {
+                playFirstAvailable(appContext, candidates, customUri)
+            }
         }
 
-        val timings = normalized.vibrationTimings()
-        if (timings.isNotEmpty()) {
-            runCatching {
-                val vibrator = ContextCompat.getSystemService(appContext, Vibrator::class.java)
-                if (vibrator?.hasVibrator() == true) {
+        runCatching {
+            val vibrator = ContextCompat.getSystemService(appContext, Vibrator::class.java)
+            if (vibrator?.hasVibrator() == true) {
+                if (timings.isEmpty()) {
+                    vibrator.cancel()
+                } else {
                     val attributes = AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
