@@ -6,6 +6,8 @@ import com.superdenot.powerguard.domain.engine.ChargeGuardAlarmPolicy
 import com.superdenot.powerguard.domain.engine.ChargeGuardAlarmState
 import com.superdenot.powerguard.domain.engine.ChargeGuardAlert
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.domain.engine.ChargeGuardAlertType
+import com.superdenot.powerguard.domain.engine.ChargeGuardRepeatMode
 
 enum class ChargeGuardVibrationPattern(val title: String) {
     OFF("Off"),
@@ -72,6 +74,15 @@ object ChargeGuardSettings {
     private const val KEY_TEMPERATURE_ARMED = "temperature_alarm_armed"
     private const val KEY_LAST_TEMPERATURE_ALERT_AT = "last_temperature_alert_at"
     private const val KEY_STORED_TEMPERATURE_THRESHOLD = "stored_temperature_threshold_c"
+    private const val KEY_REPEAT_MODE = "alert_repeat_mode"
+    private const val KEY_CHARGE_REPEAT_SESSION_ID = "charge_repeat_session_id"
+    private const val KEY_CHARGE_REPEAT_TARGET = "charge_repeat_target"
+    private const val KEY_CHARGE_REPEAT_COUNT = "charge_repeat_count"
+    private const val KEY_CHARGE_REPEAT_LAST_AT = "charge_repeat_last_at"
+    private const val KEY_CHARGE_REPEAT_DISMISSED = "charge_repeat_dismissed"
+    private const val KEY_TEMPERATURE_REPEAT_COUNT = "temperature_repeat_count"
+    private const val KEY_TEMPERATURE_REPEAT_LAST_AT = "temperature_repeat_last_at"
+    private const val KEY_TEMPERATURE_REPEAT_DISMISSED = "temperature_repeat_dismissed"
     private const val KEY_ALERT_SOUND_SELECTION = "alert_sound_selection"
     private const val KEY_ALERT_SOUND_TITLE = "alert_sound_title"
     private const val KEY_ALERT_VIBRATE = "alert_vibrate"
@@ -89,7 +100,13 @@ object ChargeGuardSettings {
             chargeLimitEnabled = prefs.getBoolean(KEY_CHARGE_LIMIT_ENABLED, false),
             targetLevelPercent = prefs.getInt(KEY_CHARGE_TARGET_PERCENT, 85),
             highTemperatureEnabled = prefs.getBoolean(KEY_HIGH_TEMPERATURE_ENABLED, false),
-            highTemperatureThresholdCelsius = prefs.getInt(KEY_HIGH_TEMPERATURE_THRESHOLD, 40)
+            highTemperatureThresholdCelsius = prefs.getInt(KEY_HIGH_TEMPERATURE_THRESHOLD, 40),
+            repeatMode = runCatching {
+                ChargeGuardRepeatMode.valueOf(
+                    prefs.getString(KEY_REPEAT_MODE, ChargeGuardRepeatMode.ONCE.name)
+                        ?: ChargeGuardRepeatMode.ONCE.name
+                )
+            }.getOrDefault(ChargeGuardRepeatMode.ONCE)
         ).normalized()
     }
 
@@ -151,6 +168,7 @@ object ChargeGuardSettings {
             .putInt(KEY_CHARGE_TARGET_PERCENT, config.targetLevelPercent)
             .putBoolean(KEY_HIGH_TEMPERATURE_ENABLED, config.highTemperatureEnabled)
             .putInt(KEY_HIGH_TEMPERATURE_THRESHOLD, config.highTemperatureThresholdCelsius)
+            .putString(KEY_REPEAT_MODE, config.repeatMode.name)
         if (!config.highTemperatureEnabled ||
             previous.highTemperatureThresholdCelsius != config.highTemperatureThresholdCelsius
         ) {
@@ -180,7 +198,16 @@ object ChargeGuardSettings {
             lastChargeAlertTargetPercent = storedTarget,
             temperatureArmed = prefs.getBoolean(KEY_TEMPERATURE_ARMED, true),
             lastTemperatureAlertAtEpochMs = prefs.getLong(KEY_LAST_TEMPERATURE_ALERT_AT, 0L),
-            temperatureThresholdCelsius = storedThreshold
+            temperatureThresholdCelsius = storedThreshold,
+            chargeRepeatSessionId = prefs.getLong(KEY_CHARGE_REPEAT_SESSION_ID, Long.MIN_VALUE)
+                .takeIf { it != Long.MIN_VALUE },
+            chargeRepeatTargetPercent = prefs.getInt(KEY_CHARGE_REPEAT_TARGET, -1).takeIf { it >= 0 },
+            chargeRepeatCount = prefs.getInt(KEY_CHARGE_REPEAT_COUNT, 0).coerceIn(0, ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT),
+            chargeRepeatLastAtEpochMs = prefs.getLong(KEY_CHARGE_REPEAT_LAST_AT, 0L),
+            chargeRepeatDismissed = prefs.getBoolean(KEY_CHARGE_REPEAT_DISMISSED, false),
+            temperatureRepeatCount = prefs.getInt(KEY_TEMPERATURE_REPEAT_COUNT, 0).coerceIn(0, ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT),
+            temperatureRepeatLastAtEpochMs = prefs.getLong(KEY_TEMPERATURE_REPEAT_LAST_AT, 0L),
+            temperatureRepeatDismissed = prefs.getBoolean(KEY_TEMPERATURE_REPEAT_DISMISSED, false)
         )
         val result = ChargeGuardAlarmPolicy.evaluate(
             configuration = config,
@@ -200,8 +227,41 @@ object ChargeGuardSettings {
                 .putBoolean(KEY_TEMPERATURE_ARMED, result.state.temperatureArmed)
                 .putLong(KEY_LAST_TEMPERATURE_ALERT_AT, result.state.lastTemperatureAlertAtEpochMs)
                 .putInt(KEY_STORED_TEMPERATURE_THRESHOLD, result.state.temperatureThresholdCelsius ?: -1)
+                .putLong(KEY_CHARGE_REPEAT_SESSION_ID, result.state.chargeRepeatSessionId ?: Long.MIN_VALUE)
+                .putInt(KEY_CHARGE_REPEAT_TARGET, result.state.chargeRepeatTargetPercent ?: -1)
+                .putInt(KEY_CHARGE_REPEAT_COUNT, result.state.chargeRepeatCount)
+                .putLong(KEY_CHARGE_REPEAT_LAST_AT, result.state.chargeRepeatLastAtEpochMs)
+                .putBoolean(KEY_CHARGE_REPEAT_DISMISSED, result.state.chargeRepeatDismissed)
+                .putInt(KEY_TEMPERATURE_REPEAT_COUNT, result.state.temperatureRepeatCount)
+                .putLong(KEY_TEMPERATURE_REPEAT_LAST_AT, result.state.temperatureRepeatLastAtEpochMs)
+                .putBoolean(KEY_TEMPERATURE_REPEAT_DISMISSED, result.state.temperatureRepeatDismissed)
                 .apply()
         }
         result.alerts
+    }
+
+    fun dismissRepeats(context: Context, alertType: ChargeGuardAlertType) = synchronized(lock) {
+        val editor = preferences(context).edit()
+        when (alertType) {
+            ChargeGuardAlertType.CHARGE_LIMIT_REACHED ->
+                editor.putBoolean(KEY_CHARGE_REPEAT_DISMISSED, true)
+            ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED ->
+                editor.putBoolean(KEY_TEMPERATURE_REPEAT_DISMISSED, true)
+        }
+        editor.apply()
+    }
+
+    /** Called directly by the power-disconnected receiver; does not start or stop the monitor service. */
+    fun stopRepeats(context: Context) = synchronized(lock) {
+        preferences(context).edit()
+            .putLong(KEY_CHARGE_REPEAT_SESSION_ID, Long.MIN_VALUE)
+            .putInt(KEY_CHARGE_REPEAT_TARGET, -1)
+            .putInt(KEY_CHARGE_REPEAT_COUNT, 0)
+            .putLong(KEY_CHARGE_REPEAT_LAST_AT, 0L)
+            .putBoolean(KEY_CHARGE_REPEAT_DISMISSED, false)
+            .putInt(KEY_TEMPERATURE_REPEAT_COUNT, 0)
+            .putLong(KEY_TEMPERATURE_REPEAT_LAST_AT, 0L)
+            .putBoolean(KEY_TEMPERATURE_REPEAT_DISMISSED, false)
+            .apply()
     }
 }
