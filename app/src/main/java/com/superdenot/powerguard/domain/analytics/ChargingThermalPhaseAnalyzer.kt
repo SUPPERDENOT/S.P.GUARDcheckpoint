@@ -17,8 +17,8 @@ data class ChargingThermalSample(
 )
 
 enum class ChargingPhaseIndicator(val label: String) {
-    CC("Arus Penuh · indikasi CC"),
-    CV("Top-Off · indikasi CV"),
+    CC("Pola Arus Penuh · indikasi CC"),
+    CV("Pola Top-Off · indikasi CV"),
     UNKNOWN("Fase belum dapat dipastikan")
 }
 
