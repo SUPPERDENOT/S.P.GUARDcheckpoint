@@ -8,7 +8,7 @@ enum class StatusBarParameter(val label: String) {
     BATTERY_PERCENTAGE("Level baterai (%)"),
     RESOURCE_SOURCE("Status sumber daya"),
     /** Retained only to migrate the legacy preference value. */
-    CHARGING_STATUS("Charging status");
+    CHARGING_STATUS("Status pengisian");
 
     companion object {
         val selectableValues: List<StatusBarParameter> = listOf(
