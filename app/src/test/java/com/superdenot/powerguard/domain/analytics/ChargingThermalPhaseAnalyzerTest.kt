@@ -6,7 +6,7 @@ import org.junit.Test
 class ChargingThermalPhaseAnalyzerTest {
     @Test fun mapsSampleDurationIntoThermalZones() {
         val samples = buildList {
-            repeat(19) { index -> add(sample(index * 60_000L, 37f, 1_800, 3_700)) }
+            repeat(18) { index -> add(sample(index * 60_000L, 37f, 1_800, 3_700)) }
             repeat(4) { index -> add(sample((18 + index) * 60_000L, 39f, 1_800, 3_720)) }
             repeat(5) { index -> add(sample((22 + index) * 60_000L, 40f, 1_800, 3_740)) }
         }
