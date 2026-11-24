@@ -346,7 +346,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                             color = if (isActive) CyanFastCharge else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = formatSessionLevelRange(session.startLevel, endLevel),
+                            text = endLevel?.let { formatSessionLevelRange(session.startLevel, it) } ?: "${session.startLevel}% -> —",
                             modifier = Modifier.weight(0.18f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center
@@ -409,9 +409,13 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                             )
                             SessionDetailMiniBox(
                                 label = "Perubahan Baterai",
-                                value = (if (delta >= 0) "+" else "") + "${delta}%",
+                                value = delta?.let { deltaValue -> (if (deltaValue >= 0) "+$deltaValue%" else "$deltaValue%") } ?: "—",
                                 subValue = "Daya masuk ${String.format(Locale.US, "%.1f", session.totalMahDelivered)} mAh",
-                                accent = if (delta >= 0) EmeraldCharge else CrimsonAnomaly,
+                                accent = when {
+                                    delta == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    delta >= 0 -> EmeraldCharge
+                                    else -> CrimsonAnomaly
+                                },
                                 modifier = Modifier.weight(1f)
                             )
                         }

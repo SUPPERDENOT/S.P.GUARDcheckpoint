@@ -8,8 +8,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 data class SessionPresentation(
-    val endLevel: Int,
-    val deltaPercent: Int,
+    val endLevel: Int?,
+    val deltaPercent: Int?
     val durationSeconds: Long,
     val sourceLabel: String,
     val powerLabel: String,
@@ -19,14 +19,14 @@ data class SessionPresentation(
 
 object SessionPresentationMapper {
     fun map(session: ChargingSessionEntity, liveLevel: Int, nowEpochMs: Long): SessionPresentation {
-        val endLevel = session.endLevel ?: if (session.endTime == null) liveLevel else session.startLevel
+        val endLevel = session.endLevel ?: if (session.endTime == null) liveLevel else null
         val endTime = session.endTime ?: nowEpochMs
         val durationSeconds = ((endTime - session.startTime) / 1_000L).coerceAtLeast(0L)
         val temperatureAvailable = session.hasTemperatureData ||
             (session.maxTempCelsius.isFinite() && session.maxTempCelsius > 0f)
         return SessionPresentation(
             endLevel = endLevel,
-            deltaPercent = endLevel - session.startLevel,
+            deltaPercent = endLevel?.minus(session.startLevel),
             durationSeconds = durationSeconds,
             sourceLabel = session.chargerType.takeIf { it.isNotBlank() } ?: "Sumber —",
             // The entity has no persisted session-average voltage/power pair; never infer W from current alone.

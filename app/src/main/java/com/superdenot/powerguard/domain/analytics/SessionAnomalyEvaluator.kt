@@ -18,14 +18,14 @@ object SessionAnomalyEvaluator {
     const val HIGH_TEMPERATURE_CELSIUS = 40.0f
     const val ZERO_GAIN_MIN_DURATION_SECONDS = 120L
 
-    fun evaluate(session: ChargingSessionEntity, endLevel: Int, nowEpochMs: Long): List<SessionAnomaly> {
+    fun evaluate(session: ChargingSessionEntity, endLevel: Int?, nowEpochMs: Long): List<SessionAnomaly> {
         val endTime = session.endTime ?: nowEpochMs
         val durationSeconds = ((endTime - session.startTime) / 1_000L).coerceAtLeast(0L)
-        val deltaPercent = endLevel - session.startLevel
+        val deltaPercent = endLevel?.minus(session.startLevel)
         val mah = session.totalMahDelivered
         val result = mutableListOf<SessionAnomaly>()
 
-        if (mah.isFinite() && (
+        if (mah.isFinite() && deltaPercent != null && (
             (deltaPercent > 0 && mah / deltaPercent.toDouble() > MAH_PER_PERCENT_LIMIT) ||
                 (deltaPercent == 0 && mah > ZERO_GAIN_MAH_LIMIT)
         )) result += SessionAnomaly.CHARGE_SPIKE
@@ -35,7 +35,7 @@ object SessionAnomalyEvaluator {
             session.maxTempCelsius >= HIGH_TEMPERATURE_CELSIUS
         ) result += SessionAnomaly.HIGH_TEMPERATURE
 
-        if (durationSeconds >= ZERO_GAIN_MIN_DURATION_SECONDS && endLevel <= session.startLevel) {
+        if (durationSeconds >= ZERO_GAIN_MIN_DURATION_SECONDS && endLevel != null && endLevel <= session.startLevel) {
             result += SessionAnomaly.ZERO_PERCENT_GAIN
         }
 

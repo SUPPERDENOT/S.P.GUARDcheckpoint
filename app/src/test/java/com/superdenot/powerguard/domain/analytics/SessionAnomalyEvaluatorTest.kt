@@ -30,6 +30,10 @@ class SessionAnomalyEvaluatorTest {
         assertTrue(SessionAnomaly.ZERO_PERCENT_GAIN !in SessionAnomalyEvaluator.evaluate(session(durationMs = 119_000L, startLevel = 20, endLevel = 20), 20, 120_000L))
         assertTrue(SessionAnomaly.ZERO_PERCENT_GAIN in SessionAnomalyEvaluator.evaluate(session(startLevel = 20, endLevel = 20), 20, 121_000L))
     }
+    @Test fun missingEndLevelDoesNotBecomeAFalseZeroGainAnomaly() {
+        val unavailable = session().copy(endLevel = null)
+        assertTrue(SessionAnomalyEvaluator.evaluate(unavailable, null, 121_000L).isEmpty())
+    }
     @Test fun recoveryMarkerDoesNotChangeEngineAnomalyFlag() {
         val recovered = session(reason = SessionAnomalyEvaluator.RECOVERY_MARKER, isAnomaly = false)
         assertEquals(listOf(SessionAnomaly.RECOVERY), SessionAnomalyEvaluator.evaluate(recovered, 21, 121_000L))

@@ -15,12 +15,12 @@ object HistorySessionFilterMatcher {
         val presentation = SessionPresentationMapper.map(session, liveLevel, nowEpochMs)
         return when (filter) {
             HistorySessionFilter.MICRO -> !SessionMicroFilter.shouldHide(
-                presentation.durationSeconds, presentation.deltaPercent, session.totalMahDelivered
+                presentation.durationSeconds, presentation.deltaPercent ?: 0, session.totalMahDelivered
             )
             HistorySessionFilter.ALL -> true
             HistorySessionFilter.ANOMALY -> presentation.anomalies.isNotEmpty()
             HistorySessionFilter.LABELED -> !session.accessoryLabel.isNullOrBlank()
-            HistorySessionFilter.GAIN_10_PERCENT -> presentation.deltaPercent >= 10
+            HistorySessionFilter.GAIN_10_PERCENT -> presentation.deltaPercent?.let { it >= 10 } == true
         }
     }
 
