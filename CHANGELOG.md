@@ -1,3 +1,19 @@
+## 2026-11-24 — PR #8 follow-up: compact parameter cells and custom interval input
+
+### Changed
+- Reduced the six Status Bar parameter grid pills to 36dp high, with 8dp horizontal / 4dp vertical inner padding and 6dp horizontal / vertical gaps.
+- Replaced the custom interval OutlinedTextField with a centered, single-line BasicTextField inside a 56dp × 34dp Surface using an 8dp rounded shape and a thin outline/error border. No placeholder is shown inside the field.
+- Tightened the dialog title/content insets to 16dp and the content section spacing to 8dp.
+
+### Protected behavior
+- UI-only change in `AppScreens.kt`. Draft ownership, 1–60 second validation, preset selection, Simpan/Batal behavior, renderer, sensor acquisition, calibration default 1x, Room DB v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+
+### Verification
+- Source diff review: PASS — limited to the Status Bar settings dialog layout and this documentation/checklist.
+- Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on the resulting branch commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
 ## 2026-11-24 — PR #8 follow-up: compact Settings and Status Bar controls
 
 ### Changed
