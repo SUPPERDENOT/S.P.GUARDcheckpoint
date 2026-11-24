@@ -73,10 +73,19 @@ object ChargingThermalPhaseAnalyzer {
                 it.isCurrentAvailable && it.isVoltageAvailable &&
                 it.currentMa != Int.MIN_VALUE && it.voltageMv > 0
         }
-        if (valid.size < MIN_PHASE_SAMPLES) return ChargingPhaseIndicator.UNKNOWN
-        val split = valid.size / 2
-        val first = valid.take(split)
-        val last = valid.drop(split)
+        val latestContinuousSegment = mutableListOf<ChargingThermalSample>()
+        valid.forEach { sample ->
+            val previous = latestContinuousSegment.lastOrNull()
+            if (previous != null && sample.timestampMillis - previous.timestampMillis > MAX_SAMPLE_GAP_MILLIS) {
+                latestContinuousSegment.clear()
+            }
+            latestContinuousSegment += sample
+        }
+        val recent = latestContinuousSegment.takeLast(8)
+        if (recent.size < MIN_PHASE_SAMPLES) return ChargingPhaseIndicator.UNKNOWN
+        val split = recent.size / 2
+        val first = recent.take(split)
+        val last = recent.drop(split)
         val firstCurrent = median(first.map { abs(it.currentMa).toDouble() })
         val lastCurrent = median(last.map { abs(it.currentMa).toDouble() })
         val firstVoltage = median(first.map { it.voltageMv.toDouble() })
