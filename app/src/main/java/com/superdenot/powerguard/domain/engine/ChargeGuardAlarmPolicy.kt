@@ -1,5 +1,7 @@
 package com.superdenot.powerguard.domain.engine
 
+import java.util.Locale
+
 data class ChargeGuardConfiguration(
     val chargeLimitEnabled: Boolean = false,
     val targetLevelPercent: Int = 85,
@@ -83,7 +85,7 @@ object ChargeGuardAlarmPolicy {
                     alerts += ChargeGuardAlert(
                         ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED,
                         "Peringatan suhu baterai tinggi",
-                        "Suhu baterai mencapai ${temperatureCelsius.toInt()}°C (ambang ${config.highTemperatureThresholdCelsius}°C). Periksa kondisi perangkat dan pengisian.",
+                        "Suhu baterai mencapai ${String.format(Locale.US, "%.1f", temperatureCelsius)}°C (ambang ${config.highTemperatureThresholdCelsius}°C). Periksa kondisi perangkat dan pengisian.",
                         "CHARGE_GUARD_HIGH_TEMPERATURE"
                     )
                     next = next.copy(temperatureArmed = false, lastTemperatureAlertAtEpochMs = nowEpochMs)
