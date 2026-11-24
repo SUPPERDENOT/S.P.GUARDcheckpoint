@@ -404,7 +404,9 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     val health by vm.latestHealth.collectAsState()
-    val healthSummary = remember(health) { BatteryHealthSummaryMapper.fromStored(health) }
+    val healthSummary = remember(health) {
+        health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
+    }
     val capacity by vm.designCapacitySetting.collectAsState()
 
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
