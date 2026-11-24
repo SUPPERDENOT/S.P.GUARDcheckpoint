@@ -679,7 +679,9 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
             ) {
-                Column(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())
+                ) {
                     val previewBaseState = selectDashboardLiveState(
                         previewRunning, previewService, previewFallback, previewServiceAt,
                         previewFallbackAt, SystemClock.elapsedRealtime()
@@ -742,8 +744,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 440.dp)
-                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
