@@ -1,6 +1,8 @@
 package com.superdenot.powerguard.ui
 
 import android.os.SystemClock
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +17,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.PlatformTextStyle
@@ -24,19 +30,25 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
+import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
+import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
 import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
+import com.superdenot.powerguard.domain.model.StatusBarSettingsSummaryFormatter
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
+import com.superdenot.powerguard.service.LiveStatusBarRenderer
+import com.superdenot.powerguard.ui.components.ChargingThermalSummaryPanel
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -59,96 +71,115 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
 
-    Box(Modifier.fillMaxSize().padding(padding)) {
+    val gaugeStatus = when {
+        state.isTemperatureAvailable && state.tempCelsius >= 40f -> "Suhu Tinggi"
+        state.isChargingStatusAvailable && state.isCharging -> "Mengisi"
+        state.isLevelAvailable && state.level >= 100 -> "Penuh"
+        running -> "Aktif"
+        else -> "Siaga"
+    }
+    val gaugeColor = when (gaugeStatus) {
+        "Suhu Tinggi" -> CrimsonAnomaly
+        "Mengisi", "Penuh" -> EmeraldCharge
+        "Aktif" -> CyanFastCharge
+        else -> AmberThermal
+    }
+    val eta = state.chargingEtaMinutes
+        ?.takeIf { state.isCharging && state.isChargingEtaTracking && it >= 0L }
+        ?.let(ChargingEtaEstimator::formatEta)
+
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
         contentPadding = PaddingValues(
+            top = 8.dp,
             bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         ),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item {
-            Column(Modifier.padding(top = 8.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("RINGKASAN DAYA", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                Text("Kondisi baterai saat ini", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Pembacaan langsung dari sistem perangkat", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(18.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("LEVEL BATERAI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-                            Text(if (state.isLevelAvailable) "${state.level}%" else "—", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
+                        BatteryArcGauge(
+                            progress = if (state.isLevelAvailable) state.level.coerceIn(0, 100) / 100f else 0f,
+                            color = gaugeColor,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                if (state.isLevelAvailable) "${state.level}%" else "—",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
+                            Text("BATERAI", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.8.sp)
                         }
-                        StatusPill(
-                            if (!state.isChargingStatusAvailable) "STATUS TIDAK TERSEDIA" else if (state.isCharging) "MENGISI" else "TIDAK MENGISI",
-                            if (!state.isChargingStatusAvailable) MaterialTheme.colorScheme.onSurfaceVariant else if (state.isCharging) EmeraldCharge else AmberThermal
-                        )
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Text(
-                        if (state.isCharging) "Sumber: ${state.chargeSource}  •  Protokol / kemampuan sumber: ${state.chargingProtocol}" else "Perangkat sedang menggunakan daya baterai",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        MiniMetric("Arus baterai", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f))
-                        MiniMetric(
-                            "Pemantauan",
-                            when {
-                                running -> "Aktif"
-                                !monitoringEnabled -> "OFF"
-                                !state.isCharging -> "Siaga"
-                                !batteryOpt -> "Izin diperlukan"
-                                else -> "Menunggu sistem"
-                            },
-                            Modifier.weight(1f)
-                        )
-                    }
-                    state.anomalyAlert?.let {
-                        Surface(color = CrimsonAnomaly.copy(alpha = .10f), shape = RoundedCornerShape(10.dp)) {
-                            Text("Perlu diperiksa: $it", Modifier.padding(12.dp), color = CrimsonAnomaly, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(7.dp).background(gaugeColor, RoundedCornerShape(50)))
+                            Spacer(Modifier.width(6.dp))
+                            Text(gaugeStatus, style = MaterialTheme.typography.labelLarge,
+                                color = gaugeColor, fontWeight = FontWeight.Bold)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f))
+                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—", Modifier.weight(1f))
+                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—", Modifier.weight(1f))
+                        }
+                        eta?.let {
+                            Text("Estimasi penuh · $it", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        }
+                        state.anomalyAlert?.let {
+                            Text("Perlu diperiksa: $it", style = MaterialTheme.typography.labelSmall,
+                                color = CrimsonAnomaly, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeading("PARAMETER BATERAI", "Nilai pengukuran yang tersedia")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f))
-                    MiniMetric("Tegangan", if (state.isVoltageAvailable) "${state.voltageMv} mV" else "—", Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "—", Modifier.weight(1f))
-                    MiniMetric("Sesi", "${state.sessionDurationSec / 60} menit", Modifier.weight(1f))
-                }
-            }
-        }
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionHeading("KESEHATAN BATERAI", "Estimasi kapasitas dan acuan desain")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    SectionHeading("KESEHATAN BATERAI (SOH)", "Estimasi kapasitas dan acuan desain")
                     DiagnosticLine("Kapasitas terestimasi", health?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
-                    DiagnosticLine("Estimasi kesehatan", health?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
+                    DiagnosticLine("Estimasi SOH", health?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
                     DiagnosticLine("Kapasitas desain", capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia")
                     DiagnosticLine("Sumber", if (capacity.isManualOverride) "Manual" else "Otomatis")
                 }
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     SectionHeading("KESIAPAN SISTEM", "Izin dan pemantauan latar belakang")
                     ReadinessLine(
-                        "Battery Monitoring",
+                        "Pemantauan Baterai",
                         when {
                             running -> "AKTIF"
                             !monitoringEnabled -> "OFF"
@@ -164,13 +195,55 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                             else -> AmberThermal
                         }
                     )
-                    ReadinessLine("Optimasi baterai", if (batteryOpt) "PASS" else "BELUM", if (batteryOpt) EmeraldCharge else CrimsonAnomaly)
-                    ReadinessLine("Akses pengguna", if (usage) "PASS" else "BELUM", if (usage) EmeraldCharge else CrimsonAnomaly)
+                    ReadinessLine("Optimasi baterai", if (batteryOpt) "SIAP" else "BELUM", if (batteryOpt) EmeraldCharge else CrimsonAnomaly)
+                    ReadinessLine("Akses pengguna", if (usage) "SIAP" else "BELUM", if (usage) EmeraldCharge else CrimsonAnomaly)
                 }
             }
         }
-        item { Spacer(Modifier.height(12.dp)) }
     }
+}
+
+@Composable
+private fun BatteryArcGauge(progress: Float, color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val stroke = 7.dp.toPx()
+        val diameter = (size.minDimension - stroke).coerceAtLeast(1f)
+        val topLeft = androidx.compose.ui.geometry.Offset(
+            (size.width - diameter) / 2f,
+            (size.height - diameter) / 2f
+        )
+        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+        drawArc(
+            color = MaterialTheme.colorScheme.outlineVariant,
+            startAngle = 135f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(stroke, cap = StrokeCap.Round)
+        )
+        if (progress > 0f) {
+            drawArc(
+                color = color,
+                startAngle = 135f,
+                sweepAngle = 270f * progress.coerceIn(0f, 1f),
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(stroke, cap = StrokeCap.Round)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, softWrap = false)
     }
 }
 
