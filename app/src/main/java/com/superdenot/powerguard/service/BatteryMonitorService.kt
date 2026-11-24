@@ -3952,14 +3952,12 @@ class BatteryMonitorService : Service() {
             peakTemperatureCelsius
         )
         val expandedText = "$formattedLabel\n$alertMessage"
-        val largeIcon = NotificationVisualRenderer.getOrRenderAnomalyLargeIcon(applicationContext, visualSpec)
         return NotificationCompat.Builder(this, CHANNEL_ANOMALY)
             .setContentTitle("SUPERD GUARD • Peringatan Daya")
             .setContentText(formattedLabel)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
             .setSmallIcon(visualSpec.smallIconResId)
             .setColor(visualSpec.accentColor)
-            .setLargeIcon(largeIcon)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent)
