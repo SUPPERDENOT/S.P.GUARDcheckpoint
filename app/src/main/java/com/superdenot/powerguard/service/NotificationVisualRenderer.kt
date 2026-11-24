@@ -106,6 +106,7 @@ internal object NotificationVisualRenderer {
                 String.format(Locale.US, "%.1f W", state.powerWatt)
             } else "—"
             StatusBarParameter.BATTERY_PERCENTAGE -> "Level Baterai" to if (state.isLevelAvailable) "${state.level}%" else "—"
+            StatusBarParameter.RESOURCE_SOURCE -> "Sumber daya" to LiveStatusBarRenderer.formatResourceSource(state)
             StatusBarParameter.CHARGING_STATUS -> "Status" to when {
                 !state.isChargingStatusAvailable -> "—"
                 !state.isCharging -> "Tidak Mengisi"

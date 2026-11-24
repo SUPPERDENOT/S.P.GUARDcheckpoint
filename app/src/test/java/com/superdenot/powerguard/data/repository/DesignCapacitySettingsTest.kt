@@ -71,11 +71,11 @@ class DesignCapacitySettingsTest {
     }
 
     @Test
-    fun statusBarIndicatorDefaultsToDisabledBatteryPercentage() {
+    fun statusBarIndicatorDefaultsToDisabledBatterySidePower() {
         val setting = StatusBarIndicatorSettings.resolveSetting(null, null)
 
         assertFalse(setting.enabled)
-        assertEquals(StatusBarParameter.BATTERY_PERCENTAGE, setting.parameter)
+        assertEquals(StatusBarParameter.POWER, setting.parameter)
     }
 
     @Test
@@ -87,10 +87,10 @@ class DesignCapacitySettingsTest {
     }
 
     @Test
-    fun invalidStoredStatusBarParameterFallsBackToBatteryPercentage() {
+    fun invalidStoredStatusBarParameterFallsBackToBatterySidePower() {
         val setting = StatusBarIndicatorSettings.resolveSetting(true, "UNKNOWN")
 
         assertTrue(setting.enabled)
-        assertEquals(StatusBarParameter.BATTERY_PERCENTAGE, setting.parameter)
+        assertEquals(StatusBarParameter.POWER, setting.parameter)
     }
 }

@@ -1,3 +1,118 @@
+## 2026-11-24 — PR #8 follow-up: uniform 32dp Status Bar dialog pills
+
+- [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at `907a90a0f3c0668e3e3199688109bf386b1ad6cc`; PR #8 was OPEN / not merged.
+- [x] Display mode: PASS by source review — two equal-weight 32dp Surface pills, 6dp gap, 8dp corners, centered text with font padding disabled, matching selected container/border colors, and no check icon.
+- [x] Parameter grid: PASS by source review — six 32dp Surface pills in a 2 × 3 grid, 6dp gaps, 8dp corners, zero vertical padding, and centered text with font padding disabled.
+- [x] Current-scale calibration: PASS by source review — three equal-weight 32dp Surface pills, 6dp gap, matching selected styling, centered text, and no segmented control/check icon.
+- [x] Rotation interval: PASS by source review — one horizontal row with four equal-weight 32dp presets plus a 52dp × 32dp numeric BasicTextField; preset taps synchronize the input and custom 1–60 input updates the draft and active border.
+- [x] Keyboard and validation: PASS by source review — numeric keyboard with IME Done, no placeholder, existing 1–60 validation and Simpan gate retained.
+- [x] Protected scope: PASS by source review — only dialog layout/state presentation and documentation changed; draft/save semantics, renderer, sensor, calibration default 1x, Room v3, monitoring lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+- [x] Anti-Slop UI Audit Gate: PASS — Run #547 (`45323370940`).
+- [x] `testDebugUnitTest` and `assembleDebug`: PASS — Build and Unit Tests job completed successfully; Gradle reported `BUILD SUCCESSFUL`.
+- [x] APK and unit-test report uploads: PASS — debug APK artifact `14888163325`; unit-test report artifact `14888802071`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [!] Accessibility trade-off: 32dp visual control height is below the 48dp touch-target minimum in `DESIGN.md`; retained only because the task explicitly specifies 32dp. Confirm usability on device and consider larger hit regions if the layout permits.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
+## 2026-11-24 — PR #8 follow-up: compact parameter cells and custom interval input
+
+- [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at requested base `d81a016c55b5e5d2dcfa716c901d6d9d02f409b9`; PR #8 was OPEN / not merged.
+- [x] Parameter grid: PASS by source review — six option pills use `Modifier.height(36.dp)`, 8dp horizontal / 4dp vertical content padding, and 6dp horizontal / vertical cell gaps.
+- [x] Custom interval: PASS by source review — `BasicTextField` is centered, single-line, placeholder-free, and contained in a 56dp × 34dp `Surface` with 8dp rounded corners and validation-aware border color. Existing numeric filtering and 1–60 validation are retained.
+- [x] Dialog density: PASS by source review — title/content horizontal inset is 16dp and content section spacing is 8dp.
+- [x] Protected scope: PASS by source diff review — only `AppScreens.kt`, `CHANGELOG.md`, and this checklist are changed; draft/save behavior, renderer, sensor, calibration default 1x, Room v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` are untouched.
+- [x] Anti-Slop UI Audit Gate: PASS — GitHub Actions Run #542.
+- [x] `testDebugUnitTest`: PASS — GitHub Actions Run #542.
+- [x] `assembleDebug`: PASS — GitHub Actions Run #542.
+- [x] APK and unit-test report uploads: PASS — debug APK artifact `14886369907`; unit-test report artifact `14886509930`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
+## 2026-11-24 — PR #8 follow-up: compact Settings and Status Bar controls
+
+- [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at requested base `446996fed5200bd20179990ced292a5596f8392e`; PR #8 was OPEN / not merged.
+- [x] Settings action: PASS by source review — `Atur indikator` uses full-width `OutlinedButton` with Tune icon, matching the neighboring Settings OutlinedButtons.
+- [x] Parameter grid: PASS by source review — trailing check icon and reserved spacer removed; selected container, stronger border, and selected text weight/color remain; label receives the full cell width.
+- [x] Custom interval: PASS by source review — one horizontal row, concise left label, centered placeholder-free 72dp × 48dp numeric field, and existing 1–60 validation retained.
+- [x] Scope: PASS by diff review — only `AppScreens.kt`, `CHANGELOG.md`, and this checklist changed; draft/save behavior, renderer, sensor, calibration default 1x, Room v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` untouched.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for latest branch commit.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
+## 2026-11-24 — PR #8 follow-up: calibration draft and Auto-Start diagnostic UI removal
+
+- [x] Baseline and merge gate: PASS — branch `feat/crisp-statusbar-indicator`; PR #8 verified OPEN / not merged before changes.
+- [x] Calibration storage: PASS by source review — `BatteryCurrentScaleSettings` remains SharedPreferences; `BatteryMonitorEngine` synchronous read path and 1x fallback are unchanged.
+- [x] Draft lifecycle: PASS by source review — metric, display mode, rotation selection/interval, and calibration are local dialog state; only Simpan invokes the combined ViewModel save action. Batal and outside dismissal do not persist draft values.
+- [x] Persistence boundaries: PASS by source review — metric/mode/rotation/interval are written in one DataStore edit; current scale is written through the existing SharedPreferences setting. These are one UI save action, not an atomic cross-store transaction.
+- [x] Settings summary: PASS by source review — active scale (including default 1x) is displayed in the Status Bar Indicator card subtitle.
+- [x] Auto-Start diagnostic UI: PASS by source review — Settings export card and share action removed; `AutoStartDiagnosticLog` implementation and internal receiver/coordinator/service references are retained.
+- [x] Protected constraints: PASS by diff scope — Room v3, `BatteryMonitorService`, `RECOVERY_HOLD`, background recovery mechanism, `applicationId`, package, dependencies, SDK, and app version unchanged.
+- [x] Regression coverage: PASS by source review — combined DataStore configuration persistence test added; existing SharedPreferences default/persistence/fallback tests retained.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on latest branch commit.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
+## 2026-11-24 — PR #8 follow-up: compact Status Bar settings dialog
+
+- [x] Baseline: PASS — PR #8 was OPEN / not merged; branch head matched requested base `6640b05cee520fb79c8231ade79f611548c3c716` before edits.
+- [x] Parameter selection: PASS by source review — six parameters are arranged in a fixed 2 × 3 grid with concise labels, 8dp gaps, 48dp minimum target height, selected border/tone, check icon, and radio/checkbox semantics.
+- [x] Mode hierarchy: PASS by source review — full-width Material 3 `SingleChoiceSegmentedButtonRow` at the top of the dialog.
+- [x] Rotation interval: PASS by source review — four equal-weight preset chips share one row; custom numeric input is horizontal, labelled above the field, has no placeholder, and validates 1–60 seconds.
+- [x] Footer and draft behavior: PASS by source review — divider-separated Batal / Simpan actions; local draft state is applied only on Simpan, while Batal and outside dismissal discard it. Invalid custom interval disables Simpan in custom mode.
+- [x] Scope: PASS — no renderer, sensor, calibration, rotation cadence, service lifecycle, Room v3, package, dependency, SDK, or app-version changes.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for commit `bac5c77d8f4d9b6c698b0a8ab6d0968df087e04c`.
+- [ ] Physical-device QA at 360dp / 720p on itel P55: NOT RUN — required before merge.
+- [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
+
+## 2026-11-24 — PR #8 follow-up: resource-source glyph, custom rotation, accessory label cleanup
+
+- [x] Base/branch verification: PASS — `feat/crisp-statusbar-indicator` was identical to requested base `6d2c04727701c48a87cf9279fbbd1f0ce731e4f2` before edits.
+- [x] Renderer: PASS by source review — numeric/unit allocations 58% / 42%, 0.75dp target gap, unit width capped at 88% of the 24dp canvas; resource source has a separate one-line full-canvas path and retains the bounded bitmap cache.
+- [x] Resource-source provenance: PASS by source review — only `EXTRA_PLUGGED` metadata is mapped to AC / USB / WL / BAT; missing or unsupported metadata maps to an em dash.
+- [x] Settings: PASS by source review — single metric / custom rotation modes, six selectable metrics, minimum two selected rotation parameters, preset and custom 1–60 second interval, and DataStore persistence.
+- [x] Rotation timing: PASS by source review — selected metric derives deterministically from monotonic elapsed realtime in the existing notification refresh path; no timer, alarm, or service was added.
+- [x] Accessory labels: PASS by source review — DAO updates only `accessory_label`; group and reset-all actions leave session/sample rows untouched and are protected by confirmation dialogs.
+- [x] Protected constraints: PASS by diff scope — Room v3, default 1x current calibration, P0 lifecycle / RECOVERY_HOLD, `applicationId`, package, dependencies, SDK, and app version unchanged.
+- [x] Focused tests added for glyph ratios, one-line AC/USB/WL/BAT rendering, deterministic rotation, DataStore persistence, and DAO label clearing with session/sample retention.
+- [x] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: PASS — Run #528 (`45247445044`), commit `717bd714ff75e05b8551df8996c8326629daea71`.
+- [x] Debug APK artifact `14854875799`; unit-test report artifact `14855115433`.
+- [x] Follow-up renderer assertions cover all four resource-source codes; notification summary verifies the selectable resource-source metric and legacy charging-status compatibility.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
+- [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
+
+## 2026-11-23 — PR #8 follow-up: Status Bar glyph size and tight bounds
+
+- [x] Root-cause review: PASS — existing 48dp bitmap is intended for a system small-icon surface and uses fixed 22dp/11dp text plus FontMetrics baseline centering; the system-sized glyph therefore has excessive apparent whitespace after scaling.
+- [x] Bitmap target changed to 24dp; numeric and unit rows use bold sans-serif-condensed and are fitted within the full-bleed horizontal bound (95.8% maximum; 0.5dp side insets).
+- [x] Both baselines use Paint.getTextBounds; numeric visual top and unit visual bottom are anchored at 0.5dp; target inter-row gap is 1dp.
+- [x] Numeric renderer input is limited to four characters; adaptive rounding regression tests include negative decimal values and rounding across 10.
+- [x] Existing bitmap cache identity, bounded eviction, and synchronization retained.
+- [x] No sensor acquisition, current calibration, Room schema/data, `applicationId`, notification/service lifecycle, monitoring behavior, dependency, SDK, or app version change.
+- [x] Focused renderer unit tests / `testDebugUnitTest`: PASS — GitHub Actions Run #521, commit `01d8c8886d22211b9c25e5c457bf9358648babd8`.
+- [x] `assembleDebug`: PASS — GitHub Actions Run #521.
+- [x] Anti-Slop UI Audit Gate: PASS — GitHub Actions Run #521.
+- [x] Debug APK and unit-test report uploads: PASS — artifact IDs `14812579421` and `14813028690`.
+- [x] Documentation follow-up commit `e49986f63afe8d9e6c9bac0bcc0a803bcc42251f`: GitHub Actions Run #522 SUCCESS — both jobs and all steps passed; debug APK artifact `14813983055`, unit-test report artifact `14813488060`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before the user confirms physical-device QA on the latest APK.
+
+## 2026-11-23 — Stacked Status Bar Indicator and global current-scale calibration (PR #8)
+
+- [x] Base commit verified: Run #514 SUCCESS on `1427664eccc69bb3c0f701b9e0b238ffef20d63e`; feature branch points to this exact SHA.
+- [x] Status-bar renderer source updated to two-line value/unit layout with 62% / 35% vertical regions, bold typography, and no border.
+- [x] Adaptive precision and current unit switching (mA below 1 A, A at/above 1 A) covered by tests.
+- [x] Bitmap cache key includes metric type, value text, unit text, and density; hit, invalidation, bounded eviction, and concurrent requests covered by tests.
+- [x] Settings exposes exactly five requested metrics; fresh install defaults to W while legacy `CHARGING_STATUS` and unknown stored values fall back safely to W.
+- [x] Sensor calibration defaults to 1x and persists 1x / 1000x / 0.001x. The multiplier applies only to `CURRENT_NOW`; battery-side power uses calibrated current with Double intermediate. Voltage, temperature, level, and source-capability metadata remain unchanged.
+- [x] Calibration is injected into BatteryMonitorEngine instances used for service snapshots and repository/fallback reads; new Room session/sample writes consume the same calibrated LiveBatteryState. Historical Room v3 rows and schema are not changed.
+- [x] No service lifecycle, polling cadence, RECOVERY_HOLD, protocol Tier 2 classification, dependency, SDK, app version, package namespace, or `applicationId` change intended.
+- [x] GitHub Actions Run #515 (run ID `45160871480`) on implementation commit `baad432e0f990a56f281f51ffaacca0caafd8543`: SUCCESS — `testDebugUnitTest` and `assembleDebug` passed.
+- [x] Anti-Slop UI Audit Gate: SUCCESS in Run #515.
+- [x] Debug APK upload: SUCCESS in Run #515; artifact `android-debug-apk`, ID `14810242816`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before merge.
+- [ ] PR #8 merge: HOLD — do not merge before physical-device QA.
+
 ## 2026-11-23 — PR #7 Charging Curve header follow-up
 
 - Root-cause source review: PASS — the chart previously placed title and all legend items in a single non-wrapping Row; this could force the rightmost legend outside a 360dp viewport.

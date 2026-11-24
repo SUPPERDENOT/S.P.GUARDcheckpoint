@@ -1,3 +1,153 @@
+## 2026-11-24 — PR #8 follow-up: uniform 32dp Status Bar dialog pills
+
+### Changed
+- Replaced both Material 3 segmented-button rows (display mode and current-scale calibration) with equal-width 32dp bordered selection pills, 6dp spacing, centered labels, matching selected container/border styling, and no check glyphs.
+- Reduced all six parameter choices to 32dp-high, 8dp-rounded bordered pills. Labels are centered horizontally and vertically with zero inner padding and font padding disabled.
+- Combined the four rotation presets and the free numeric interval into one 32dp-high row: four equal-weight preset pills followed by a 52dp-wide BasicTextField. The field uses numeric input, IME Done, no placeholder, and remains synchronized with preset selection.
+- A manually edited valid 1–60 second value highlights the input border; tapping a preset restores the preset selection and updates the input value.
+
+### Protected behavior
+- UI-only change in `AppScreens.kt`. Local draft ownership, 1–60 validation, Simpan/Batal behavior, renderer, sensor acquisition, current calibration default 1x, Room DB v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+
+### Verification
+- Source review: PASS — both segmented rows are removed; all requested selection pills are 32dp high; interval presets and numeric input occupy one row.
+- GitHub Actions Run #547 (`45323370940`) on commit `cb80e97c359fe74d02362ffd52d0dd997c93e0be`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all passed.
+- Debug APK artifact ID: `14888163325` (`android-debug-apk`; expires 2026-12-08). Unit-test report artifact ID: `14888802071`.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- Accessibility note: the requested 32dp visual controls are below the 48dp touch-target minimum in `DESIGN.md`; this explicit compact-size requirement is retained and must be assessed during physical QA.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-24 — PR #8 follow-up: compact parameter cells and custom interval input
+
+### Changed
+- Reduced the six Status Bar parameter grid pills to 36dp high, with 8dp horizontal / 4dp vertical inner padding and 6dp horizontal / vertical gaps.
+- Replaced the custom interval OutlinedTextField with a centered, single-line BasicTextField inside a 56dp × 34dp Surface using an 8dp rounded shape and a thin outline/error border. No placeholder is shown inside the field.
+- Tightened the dialog title/content insets to 16dp and the content section spacing to 8dp.
+
+### Protected behavior
+- UI-only change in `AppScreens.kt`. Draft ownership, 1–60 second validation, preset selection, Simpan/Batal behavior, renderer, sensor acquisition, calibration default 1x, Room DB v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+
+### Verification
+- Source diff review: PASS — limited to the Status Bar settings dialog layout and this documentation/checklist.
+- GitHub Actions Run #542 on source commit `12182dc41536afcbaba758aa66f926f5eefdb50d`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload.
+- Debug APK artifact ID: `14886369907` (`android-debug-apk`; expires 2026-12-08). Unit-test report artifact ID: `14886509930`.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-24 — PR #8 follow-up: compact Settings and Status Bar controls
+
+### Changed
+- Replaced the full-width `Atur indikator` TextButton with a full-width Material 3 `OutlinedButton`, matching the neighboring Settings actions and adding a compact Tune icon.
+- Removed the check icon and its reserved trailing space from the 2 × 3 Status Bar parameter grid. Selected state continues to use the selected container tone, stronger border, and selected text weight/color, allowing labels to use the full cell width.
+- Reworked the custom interval row to place `Interval kustom (1–60 dtk)` on the left and a centered, placeholder-free 72dp × 48dp numeric field on the right.
+
+### Protected behavior
+- UI-only change in `AppScreens.kt`; draft, Simpan/Batal behavior, renderer, sensor acquisition, current calibration (default 1x), Room DB v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` remain unchanged.
+
+### Verification
+- Source diff review: PASS — only the requested Settings and popup UI composition plus this documentation/checklist were changed.
+- Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on the latest commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-24 — PR #8 follow-up: combine current calibration with Status Bar settings
+
+### Changed
+- Moved the three current-scale choices (1x, 1000x, 0.001x) into the Status Bar Indicator dialog. The selected scale is now included in the Settings card subtitle.
+- Added a single ViewModel save action for the dialog draft. Metric, display mode, rotation parameters, and interval are persisted together in one DataStore edit; current scale is then persisted through the existing `BatteryCurrentScaleSettings` SharedPreferences path.
+- Kept SharedPreferences as the synchronous source read by `BatteryMonitorEngine`; default and fallback remain 1x. The explanatory note states that calibration applies globally to `CURRENT_NOW` and derived battery-side power (`V × I`).
+- Batal and dialog dismissal discard all local draft values because no persistence setter is invoked until Simpan.
+- Removed the Settings-only “Diagnostik Auto Start” card and its log-export/share action. `AutoStartDiagnosticLog` and its internal receiver/coordinator/service call sites remain untouched.
+
+### Protected behavior
+- Room schema remains version 3; no database migration or historical data rewrite.
+- `BatteryMonitorService`, `RECOVERY_HOLD`, receiver/coordinator recovery behavior, and monitoring lifecycle were not changed.
+- `applicationId` remains `com.superdenot.superdguard`; package namespace, dependencies, SDK, app version, and build number are unchanged.
+
+### Verification
+- Source review: PASS — changes are limited to Settings UI, combined settings persistence entry points, and focused persistence regression coverage.
+- `BatteryCurrentScaleSettingsTest`: existing SharedPreferences tests retained; execution pending CI.
+- `StatusBarIndicatorSettingsTest`: added coverage for combined metric/mode/rotation/interval persistence; execution pending CI.
+- Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI on the latest branch commit.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-24 — PR #8 follow-up: compact Status Bar settings dialog
+
+### Changed
+- Replaced the six vertically wrapping parameter chips with a fixed 2-column × 3-row grid using concise labels: Daya (W), Arus (A/mA), Tegangan (V), Suhu (°C), Level (%), and Sumber (AC/USB).
+- Added a clear selected state for both single-metric and custom-rotation modes: contrasting outline, selected container tone, and a check icon. The grid uses 48dp minimum touch targets and selection semantics.
+- Replaced the mode chips with a full-width Material 3 single-choice segmented control.
+- Kept all four rotation presets in one equal-width row and placed the custom 1–60 second numeric field beside its label without a placeholder.
+- Replaced the floating Selesai action with a divider-separated footer containing Batal and Simpan. Dialog edits remain local until Simpan; Batal and outside dismissal discard the draft. Invalid custom intervals block saving while custom rotation is selected.
+
+### Protected behavior
+- UI-only change in Settings. Status-bar renderer, sensor acquisition, global current calibration (default 1x), rotation timing, BatteryMonitorService lifecycle / RECOVERY_HOLD, Room DB v3, and `applicationId` are unchanged.
+- No dependency, SDK, package, or app-version change.
+
+### Verification
+- Source diff review: PASS — only `AppScreens.kt` UI composition and this documentation are in scope.
+- Android CI (Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload): pending for commit `bac5c77d8f4d9b6c698b0a8ab6d0968df087e04c`.
+- Physical-device layout verification at 360dp / 720p on itel P55: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-24 — PR #8 follow-up: resource-source glyph, custom rotation, and accessory-label cleanup
+
+### Changed
+- Expanded the two-line numeric metric glyph allocation to 58% value / 42% unit, with a 0.75dp row gap and an 88% canvas-width ceiling for the unit glyph.
+- Restored the sixth selectable parameter, `Status sumber daya`. It uses only the `ACTION_BATTERY_CHANGED` `EXTRA_PLUGGED` metadata already read by BatteryMonitorEngine: AC, USB, WL, or BAT. If the extra is not exposed or the plug type is unsupported, the renderer displays an em dash rather than guessing.
+- Added a full-height, full-width one-line bitmap path for the resource-source code while retaining the bounded bitmap cache.
+- Added persistent Single metric / Custom rotation settings, a normalized list of at least two rotation parameters, and a 1–60 second interval. The selected metric is derived deterministically from SystemClock.elapsedRealtime() inside the existing notification update path; no alarm, timer, or additional service is created.
+- Added group-label clearing and reset-all label queries. Only charging_sessions.accessory_label is set to NULL; session rows and battery_samples remain intact. History now requires confirmation before either operation.
+
+### Protected behavior
+- Room remains schema version 3; no migration, entity, session/sample deletion, or historical-data rewrite was added.
+- Current calibration remains 1x by default. The CURRENT_NOW normalization path is unchanged.
+- BatteryMonitorService actor lifecycle, monitoring cadence, RECOVERY_HOLD persistence/recovery, and power-event startup policy are unchanged; rotation only selects the displayed metric within the existing notification refresh loop.
+- applicationId remains com.superdenot.superdguard. No dependency, SDK, package namespace, or app-version change.
+
+### Verification
+- Source changes and focused regression tests: implemented on `feat/crisp-statusbar-indicator`; CI pending.
+- GitHub Actions Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: pending for the latest test/documentation follow-up commit.
+- GitHub Actions Run #527 (run ID `45246964970`) on commit `2fa4ca65333c4bf7cb8b33e118e17625d069a41b`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all passed.
+- Debug APK artifact: `android-debug-apk`, ID `14853533390` (expires 2026-12-07); unit-test report artifact ID `14853163872`.
+- Follow-up test assertions cover full-line bitmap creation for AC / USB / WL / BAT and notification-text mapping for the selectable resource-source metric. GitHub Actions Run #528 (run ID `45247445044`) on commit `717bd714ff75e05b8551df8996c8326629daea71`: **SUCCESS** for Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload.
+- Debug APK artifact ID `14854875799` (`android-debug-apk`); unit-test report artifact ID `14855115433`.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-23 — PR #8 follow-up: larger, tighter Status Bar glyphs
+
+### Changed
+- Rebuilt the dedicated small-icon bitmap at the Android 24dp target size so System UI does not scale down a 48dp drawing and make both text rows appear undersized.
+- Replaced FontMetrics-based baseline centering with Paint.getTextBounds tight-glyph bounds. The numeric row is top-anchored at a 0.5dp inset; the unit row is bottom-anchored at a 0.5dp inset, with a 1dp target gap.
+- Switched to bold sans-serif-condensed glyphs and fitted each row against a 95.8% full-bleed width (0.5dp side insets) and its approximate 2:1 vertical allocation.
+- Limited numeric text accepted by the renderer to four characters. Negative decimal rounding is covered (for example, -2.48 → -2.5); values rounding across 10 become integers.
+
+### Verification
+- Source and test changes: implemented on `feat/crisp-statusbar-indicator`; sensor acquisition, current calibration, Room v3, `applicationId`, notification/service lifecycle, and monitoring behavior are untouched.
+- GitHub Actions Run #521 (run ID `45165118889`) on commit `01d8c8886d22211b9c25e5c457bf9358648babd8`: SUCCESS — `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, debug APK upload, and unit-test report upload all passed.
+- Latest debug APK artifact: `android-debug-apk`, ID `14812579421`; unit-test report artifact ID `14813028690`.
+- Documentation follow-up commit `e49986f63afe8d9e6c9bac0bcc0a803bcc42251f` was revalidated by GitHub Actions Run #522 (run ID `45165674846`): SUCCESS — both CI jobs and all steps passed. APK artifact ID `14813983055`; unit-test report artifact ID `14813488060`.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — must be repeated with the latest APK before merge.
+- PR #8 remains OPEN / HOLD MERGE.
+
+## 2026-11-23 — Stacked Status Bar Indicator and global current-scale calibration (PR #8)
+
+### Changed
+- Replaced the status-bar small-icon single-line glyph with a borderless two-line bitmap: bold numeric reading above its unit, using 62% / 35% vertical regions. Font size remains fixed; horizontal scaling handles wide readings.
+- Added adaptive precision (one decimal below absolute 10, rounded integer at 10 and above) and current-unit switching between mA and A.
+- Expanded the bounded bitmap cache key to include metric, value text, unit text, and display density; cache synchronization and bounded eviction remain.
+- Restricted Settings metric choices to battery-side power (W, default), current (A/mA), voltage (V), temperature (°C), and battery level (%). Legacy stored `CHARGING_STATUS` and unknown values resolve safely to W.
+- Added persistent 1x / 1000x / 0.001x current-scale calibration. The multiplier applies globally to raw `BatteryManager.CURRENT_NOW` before µA-to-mA normalization; battery-side power uses calibrated current with a Double intermediate. Voltage, temperature, level, source-capability metadata, and protocol Tier 2 evidence are not scaled.
+- Calibration defaults to 1x. Existing Room v3 records remain unchanged; new live samples and sessions receive calibrated current/power through the existing engine pipeline.
+
+### Verification
+- Branch base: `1427664eccc69bb3c0f701b9e0b238ffef20d63e`; branch: `feat/crisp-statusbar-indicator`.
+- GitHub Actions Run #515 (run ID `45160871480`) on implementation commit `baad432e0f990a56f281f51ffaacca0caafd8543`: SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload all passed.
+- Physical-device verification on itel P55 at 360dp / 720p: NOT RUN; required before merge.
+- PR #8 must remain OPEN / HOLD MERGE until physical-device QA is confirmed.
+
 ## 2026-11-23 — PR #7 follow-up: responsive Charging Curve header
 
 ### Changed

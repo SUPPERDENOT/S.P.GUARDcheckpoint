@@ -26,7 +26,9 @@ data class LiveBatteryState(
     /** Estimated minutes to full; null means insufficient or unavailable live samples. */
     val chargingEtaMinutes: Long? = null,
     /** True only while the Battery Monitoring session is collecting ETA samples. */
-    val isChargingEtaTracking: Boolean = false
+    val isChargingEtaTracking: Boolean = false,
+    /** True only when ACTION_BATTERY_CHANGED exposed EXTRA_PLUGGED metadata. */
+    val isChargeSourceAvailable: Boolean = false
 ) {
     companion object {
         const val PROTOCOL_NOT_CONNECTED = "Tidak Terhubung"

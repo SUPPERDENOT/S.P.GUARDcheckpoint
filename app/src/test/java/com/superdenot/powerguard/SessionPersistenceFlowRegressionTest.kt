@@ -415,4 +415,50 @@ class SessionPersistenceFlowRegressionTest {
         assertTrue(dao.getLabeledSessionsFlow().first().isEmpty())
     }
 
+    @Test
+    fun clearingAccessoryGroupAndResetAllPreservesSessionRowsAndSamples() = runBlocking {
+        val dao = database.batteryDao()
+        val firstId = dao.insertSession(
+            ChargingSessionEntity(startTime = 1_000L, startLevel = 40, chargerType = "AC Adapter")
+        )
+        val secondId = dao.insertSession(
+            ChargingSessionEntity(startTime = 2_000L, startLevel = 45, chargerType = "USB")
+        )
+        val thirdId = dao.insertSession(
+            ChargingSessionEntity(startTime = 3_000L, startLevel = 50, chargerType = "USB")
+        )
+
+        dao.updateAccessoryLabel(firstId, "Charger Bawaan")
+        dao.updateAccessoryLabel(secondId, "  charger bawaan  ")
+        dao.updateAccessoryLabel(thirdId, "Kabel Utama")
+        dao.insertSample(
+            BatterySampleEntity(
+                sessionId = firstId, timestamp = 4_000L, batteryLevel = 41,
+                currentMa = 1_000, voltageMv = 4_000, tempCelsius = 35f,
+                powerWatt = 4f, isScreenOn = false
+            )
+        )
+        dao.insertSample(
+            BatterySampleEntity(
+                sessionId = thirdId, timestamp = 5_000L, batteryLevel = 51,
+                currentMa = 1_200, voltageMv = 4_000, tempCelsius = 36f,
+                powerWatt = 4.8f, isScreenOn = false
+            )
+        )
+
+        assertEquals(2, dao.clearAccessoryLabelGroup(" CHARGER BAWAAN "))
+        assertEquals(null, dao.getSessionById(firstId)!!.accessoryLabel)
+        assertEquals(null, dao.getSessionById(secondId)!!.accessoryLabel)
+        assertEquals("Kabel Utama", dao.getSessionById(thirdId)!!.accessoryLabel)
+        assertEquals(3, dao.getAllSessionsFlow().first().size)
+        assertEquals(1, dao.getSamplesForSessionFlow(firstId).first().size)
+        assertEquals(1, dao.getSamplesForSessionFlow(thirdId).first().size)
+
+        assertEquals(1, dao.clearAllAccessoryLabels())
+        assertEquals(null, dao.getSessionById(thirdId)!!.accessoryLabel)
+        assertEquals(3, dao.getAllSessionsFlow().first().size)
+        assertEquals(1, dao.getSamplesForSessionFlow(firstId).first().size)
+        assertEquals(1, dao.getSamplesForSessionFlow(thirdId).first().size)
+    }
+
 }

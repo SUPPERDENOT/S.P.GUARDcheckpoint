@@ -6,51 +6,76 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import java.util.LinkedHashMap
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.roundToInt
 
-/**
- * Renders the selected metric for the dedicated Status Bar Indicator notification only.
- * The Monitoring Notification keeps its independent drawable from NotificationVisualRenderer.
- *
- * Dimensions and typography are density-scaled. SystemUI still controls the final status-bar
- * slot size and may alter how the small icon is presented.
- */
-internal object LiveStatusBarRenderer {
+internal data class StatusBarReading(val valueText: String, val unitText: String) {
+    val displayText: String get() = valueText + unitText
+}
 
-    fun format(state: com.superdenot.powerguard.domain.model.LiveBatteryState, parameter: StatusBarParameter): String {
-        return when (parameter) {
-            StatusBarParameter.TEMPERATURE -> if (state.isTemperatureAvailable) "${state.tempCelsius.roundToInt()}°" else "N/A"
-            StatusBarParameter.VOLTAGE -> if (state.isVoltageAvailable) String.format(Locale.US, "%.1fV", state.voltageMv / 1000f) else "N/A"
-            StatusBarParameter.CURRENT -> if (state.isCurrentAvailable) String.format(Locale.US, "%.1fA", state.currentMa / 1000f) else "N/A"
-            StatusBarParameter.POWER -> if (state.isPowerAvailable) "${state.powerWatt.roundToInt()}W" else "N/A"
-            StatusBarParameter.BATTERY_PERCENTAGE -> if (state.isLevelAvailable) "${state.level}%" else "N/A"
-            StatusBarParameter.CHARGING_STATUS -> if (!state.isChargingStatusAvailable) {
-                "N/A"
-            } else if (!state.isCharging) {
-                "DIS"
-            } else {
-                when (state.chargeSource) {
-                    "AC Adapter" -> "AC"
-                    "USB Port" -> "USB"
-                    "Wireless" -> "WLS"
-                    else -> "CHG"
-                }
+internal object LiveStatusBarRenderer {
+    fun format(state: LiveBatteryState, parameter: StatusBarParameter): StatusBarReading =
+        when (parameter) {
+            StatusBarParameter.POWER -> reading(state.isPowerAvailable, state.powerWatt.toDouble(), "W")
+            StatusBarParameter.CURRENT -> {
+                val ma = state.currentMa
+                if (abs(ma.toLong()) >= 1000L) reading(state.isCurrentAvailable, ma.toDouble() / 1000.0, "A")
+                else reading(state.isCurrentAvailable, ma.toDouble(), "mA")
             }
+            StatusBarParameter.VOLTAGE -> reading(state.isVoltageAvailable, state.voltageMv.toDouble() / 1000.0, "V")
+            StatusBarParameter.TEMPERATURE -> reading(state.isTemperatureAvailable, state.tempCelsius.toDouble(), "°C")
+            StatusBarParameter.BATTERY_PERCENTAGE ->
+                StatusBarReading(if (state.isLevelAvailable) formatAdaptive(state.level.toDouble()) else "—", "%")
+            StatusBarParameter.RESOURCE_SOURCE -> StatusBarReading(formatResourceSource(state), "")
+            StatusBarParameter.CHARGING_STATUS -> StatusBarReading("—", "")
+        }
+
+    internal fun formatResourceSource(state: LiveBatteryState): String {
+        if (!state.isChargeSourceAvailable) return "—"
+        if (!state.isPowerConnected) return "BAT"
+        return when (state.chargeSource) {
+            "AC Adapter" -> "AC"
+            "USB Port" -> "USB"
+            "Wireless" -> "WL"
+            else -> "—"
         }
     }
 
-    const val ICON_SIZE_DP = 48
-    const val MAX_CACHE_ENTRIES = 32
-    private const val HORIZONTAL_PADDING_DP = 3f
-    private const val TARGET_TEXT_WIDTH_DP = 40f
-    private const val BASE_TEXT_SIZE_DP = 28f
-    private const val MIN_TEXT_SIZE_DP = 10f
-    private const val MAX_TEXT_LENGTH = 8
+    private fun reading(available: Boolean, value: Double, unit: String): StatusBarReading =
+        if (available && value.isFinite()) StatusBarReading(formatAdaptive(value), unit)
+        else StatusBarReading("—", unit)
 
-    private data class CacheKey(val text: String, val densityBits: Int)
+    internal fun formatAdaptive(value: Double): String {
+        if (!value.isFinite()) return "—"
+        val roundedTenth = if (abs(value) < 10.0) (value * 10.0).roundToInt() / 10.0 else value
+        return if (abs(roundedTenth) < 10.0) String.format(Locale.US, "%.1f", roundedTenth)
+        else String.format(Locale.US, "%.0f", value)
+    }
+
+    const val ICON_SIZE_DP = 24
+    const val MAX_CACHE_ENTRIES = 32
+    const val MAX_VALUE_LENGTH = 4
+    private const val MAX_SOURCE_TEXT_LENGTH = 3
+    private const val MAX_UNIT_LENGTH = 4
+    private const val HORIZONTAL_INSET_DP = 0.5f
+    private const val VERTICAL_INSET_DP = 0.5f
+    internal const val ROW_GAP_DP = 0.75f
+    internal const val VALUE_HEIGHT_SHARE = 0.58f
+    internal const val UNIT_HEIGHT_SHARE = 0.42f
+    internal const val UNIT_MAX_WIDTH_RATIO = 0.88f
+    private val GLYPH_TYPEFACE = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+
+    private data class CacheKey(
+        val parameter: StatusBarParameter,
+        val valueText: String,
+        val unitText: String,
+        val densityBits: Int
+    )
 
     private val cacheLock = Any()
     private val bitmapCache = object : LinkedHashMap<CacheKey, Bitmap>(16, 0.75f, true) {
@@ -58,71 +83,82 @@ internal object LiveStatusBarRenderer {
             size > MAX_CACHE_ENTRIES
     }
 
-    /**
-     * Returns null for unavailable/blank input. Density is supplied by the Android display
-     * metrics so the bitmap's physical dimensions and text scale together on high-density screens.
-     */
-    fun render(displayText: String?, density: Float = 1f): Bitmap? {
-        val text = displayText?.trim()
-            ?.takeIf { it.isNotEmpty() && it.length <= MAX_TEXT_LENGTH && it.none { char -> char.code < 0x20 || char.code in 0x7f..0x9f } }
-            ?: return null
-        val safeDensity = density.takeIf { it.isFinite() && it > 0f } ?: 1f
-        val key = CacheKey(text, safeDensity.toBits())
-
+    fun render(parameter: StatusBarParameter, reading: StatusBarReading, density: Float = 1f): Bitmap? {
+        val isResourceSource = parameter == StatusBarParameter.RESOURCE_SOURCE
+        val value = reading.valueText.trim().takeIf {
+            it.isNotEmpty() &&
+                it.length <= (if (isResourceSource) MAX_SOURCE_TEXT_LENGTH else MAX_VALUE_LENGTH) &&
+                safe(it)
+        } ?: return null
+        val unit = reading.unitText.trim()
+        if (isResourceSource) {
+            if (unit.isNotEmpty()) return null
+        } else if (unit.isEmpty() || unit.length > MAX_UNIT_LENGTH || !safe(unit)) {
+            return null
+        }
+        val d = density.takeIf { it.isFinite() && it > 0f } ?: 1f
+        val key = CacheKey(parameter, value, unit, d.toBits())
         return synchronized(cacheLock) {
-            bitmapCache[key] ?: renderBitmap(text, safeDensity).also { bitmapCache[key] = it }
+            bitmapCache[key] ?: renderBitmap(parameter, value, unit, d).also { bitmapCache[key] = it }
         }
     }
 
-    private fun renderBitmap(text: String, density: Float): Bitmap {
-        val sizePx = (ICON_SIZE_DP * density).roundToInt().coerceAtLeast(1)
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ALPHA_8)
+    private fun safe(text: String) = text.none { it.code < 0x20 || it.code in 0x7f..0x9f }
+
+    private fun renderBitmap(parameter: StatusBarParameter, value: String, unit: String, density: Float): Bitmap {
+        val size = (ICON_SIZE_DP * density).roundToInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8)
         val canvas = Canvas(bitmap)
-        val horizontalPadding = HORIZONTAL_PADDING_DP * density
+        val horizontalInset = HORIZONTAL_INSET_DP * density
+        val verticalInset = VERTICAL_INSET_DP * density
+        val maxWidth = (size - 2f * horizontalInset).coerceAtLeast(1f)
+
+        if (parameter == StatusBarParameter.RESOURCE_SOURCE) {
+            val maxHeight = (size - 2f * verticalInset).coerceAtLeast(1f)
+            val paint = fittedPaint(value, maxHeight, maxWidth)
+            val bounds = textBounds(value, paint)
+            val baseline = size / 2f - (bounds.top + bounds.bottom) / 2f
+            canvas.drawText(value, size / 2f, baseline, paint)
+            return bitmap
+        }
+
+        val rowGap = ROW_GAP_DP * density
+        val contentHeight = (size - 2f * verticalInset - rowGap).coerceAtLeast(1f)
+        val valueMaxHeight = contentHeight * VALUE_HEIGHT_SHARE
+        val unitMaxHeight = contentHeight * UNIT_HEIGHT_SHARE
+        val unitMaxWidth = min(maxWidth, size * UNIT_MAX_WIDTH_RATIO)
+        val valuePaint = fittedPaint(value, valueMaxHeight, maxWidth)
+        val unitPaint = fittedPaint(unit, unitMaxHeight, unitMaxWidth)
+        val valueBounds = textBounds(value, valuePaint)
+        val unitBounds = textBounds(unit, unitPaint)
+        val valueBaseline = verticalInset - valueBounds.top
+        val unitBaseline = size - verticalInset - unitBounds.bottom
+        canvas.drawText(value, size / 2f, valueBaseline, valuePaint)
+        canvas.drawText(unit, size / 2f, unitBaseline, unitPaint)
+        return bitmap
+    }
+
+    private fun fittedPaint(text: String, maxHeight: Float, maxWidth: Float): Paint {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textSize = BASE_TEXT_SIZE_DP * density
+            typeface = GLYPH_TYPEFACE
+            textSize = 100f
         }
-
-        val maxTextWidth = sizePx - (horizontalPadding * 2f)
+        val bounds = textBounds(text, paint)
         val measuredWidth = paint.measureText(text)
-        if (measuredWidth > maxTextWidth && measuredWidth > 0f) {
-            paint.textSize = (paint.textSize * maxTextWidth / measuredWidth)
-                .coerceAtLeast(MIN_TEXT_SIZE_DP * density)
-        }
-
-        val bounds = Rect()
-        paint.getTextBounds(text, 0, text.length, bounds)
-        val verticalPadding = density
-        val availableHeight = sizePx - (verticalPadding * 2f)
-        if (bounds.height() > availableHeight && bounds.height() > 0) {
-            paint.textSize = (paint.textSize * availableHeight / bounds.height())
-                .coerceAtLeast(MIN_TEXT_SIZE_DP * density)
-        }
-
-        val baseline = (sizePx / 2f) - (paint.ascent() + paint.descent()) / 2f
-        // Normalize short labels (e.g. CHG/DIS and compact power) to a similar visual width.
-        // Long readings still shrink by font size first, preserving the full value.
-        val targetWidth = minOf(TARGET_TEXT_WIDTH_DP * density, maxTextWidth)
-        val finalWidth = paint.measureText(text)
-        val horizontalScale = if (finalWidth > 0f) {
-            (targetWidth / finalWidth).coerceIn(1f, 1.35f)
-        } else {
-            1f
-        }
-        canvas.save()
-        canvas.scale(horizontalScale, 1f, sizePx / 2f, baseline)
-        canvas.drawText(text, sizePx / 2f, baseline, paint)
-        canvas.restore()
-        return bitmap
+        val heightScale = if (bounds.height() > 0) maxHeight / bounds.height() else 1f
+        val widthScale = if (measuredWidth > 0f) maxWidth / measuredWidth else 1f
+        paint.textSize = 100f * min(heightScale, widthScale)
+        return paint
     }
+
+    private fun textBounds(text: String, paint: Paint): Rect =
+        Rect().also { paint.getTextBounds(text, 0, text.length, it) }
 
     internal fun clearCacheForTesting() {
         synchronized(cacheLock) { bitmapCache.clear() }
     }
 
-    internal fun cacheSizeForTesting(): Int =
-        synchronized(cacheLock) { bitmapCache.size }
+    internal fun cacheSizeForTesting(): Int = synchronized(cacheLock) { bitmapCache.size }
 }

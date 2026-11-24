@@ -176,6 +176,8 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
     val liveState by viewModel.liveState.collectAsState()
     val accessoryBenchmark by viewModel.accessoryBenchmark.collectAsState()
     var editingAccessorySession by remember { mutableStateOf<ChargingSessionEntity?>(null) }
+    var accessoryDeleteConfirmation by remember { mutableStateOf<String?>(null) }
+    var showResetAllAccessoryLabelsConfirmation by remember { mutableStateOf(false) }
     var expandedSessionId by remember { mutableStateOf<Long?>(null) }
     var isCurveExpanded by remember { mutableStateOf(false) }
     var hideMicroSessions by rememberSaveable { mutableStateOf(true) }
@@ -284,7 +286,13 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 .weight(1f)
         ) {
         if (!isCurveExpanded && accessoryBenchmark.groups.size >= 2) {
-            item { AccessoryBenchmarkCard(result = accessoryBenchmark) }
+            item {
+                AccessoryBenchmarkCard(
+                    result = accessoryBenchmark,
+                    onDeleteGroup = { accessoryDeleteConfirmation = it },
+                    onResetAll = { showResetAllAccessoryLabelsConfirmation = true }
+                )
+            }
         }
         if (sessions.isEmpty() || visibleSessions.isEmpty()) {
             item {
@@ -438,6 +446,36 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
             }
         )
     }
+
+    accessoryDeleteConfirmation?.let { label ->
+        AlertDialog(
+            onDismissRequest = { accessoryDeleteConfirmation = null },
+            title = { Text("Hapus grup aksesori?") },
+            text = { Text("Label \"$label\" akan dikosongkan dari semua sesi dalam grup. Riwayat sesi dan sampel tetap tersimpan.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearAccessoryLabelGroup(label)
+                    accessoryDeleteConfirmation = null
+                }) { Text("Hapus label") }
+            },
+            dismissButton = { TextButton(onClick = { accessoryDeleteConfirmation = null }) { Text("Batal") } }
+        )
+    }
+
+    if (showResetAllAccessoryLabelsConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showResetAllAccessoryLabelsConfirmation = false },
+            title = { Text("Reset semua label aksesori?") },
+            text = { Text("Semua label aksesori akan dikosongkan. Riwayat sesi dan sampel tidak dihapus.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearAllAccessoryLabels()
+                    showResetAllAccessoryLabelsConfirmation = false
+                }) { Text("Reset semua") }
+            },
+            dismissButton = { TextButton(onClick = { showResetAllAccessoryLabelsConfirmation = false }) { Text("Batal") } }
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -487,7 +525,11 @@ private fun AccessoryLabelDialog(
 }
 
 @Composable
-private fun AccessoryBenchmarkCard(result: AccessoryBenchmarkResult) {
+private fun AccessoryBenchmarkCard(
+    result: AccessoryBenchmarkResult,
+    onDeleteGroup: (String) -> Unit,
+    onResetAll: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -496,7 +538,12 @@ private fun AccessoryBenchmarkCard(result: AccessoryBenchmarkResult) {
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
-            Text("Perbandingan Aksesori", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Perbandingan Aksesori", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                TextButton(onClick = onResetAll, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
+                    Text("Reset Semua")
+                }
+            }
             Text(
                 "Rata-rata pengukuran sisi baterai dari sesi yang selesai. Daya dihitung dari sampel tersimpan, bukan input charger.",
                 style = MaterialTheme.typography.labelSmall,
@@ -522,6 +569,10 @@ private fun AccessoryBenchmarkCard(result: AccessoryBenchmarkResult) {
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        TextButton(
+                            onClick = { onDeleteGroup(group.label) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                        ) { Text("Hapus") }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),

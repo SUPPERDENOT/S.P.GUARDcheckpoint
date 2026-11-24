@@ -8,7 +8,7 @@ import android.os.BatteryManager
 import android.os.SystemClock
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 
-class BatteryMonitorEngine(private val context: Context) {
+class BatteryMonitorEngine(private val context: Context, private val currentScaleMultiplier: () -> Double = { 1.0 }) {
 
     private val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
     private var baselineElapsedRealtime: Long = SystemClock.elapsedRealtime()
@@ -108,11 +108,11 @@ class BatteryMonitorEngine(private val context: Context) {
 
         val rawCurrent = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
         val isCurrentAvailable = rawCurrent != Int.MIN_VALUE
-        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(rawCurrent, isPowerConnected)
+        val calibratedCurrentMa = BatteryCurrentNormalizer.normalize(rawCurrent, isPowerConnected, currentScaleMultiplier())
 
         val isPowerAvailable = isVoltageAvailable && isCurrentAvailable
         val powerWatt = if (isPowerAvailable) {
-            (voltageMv / 1000f) * (calibratedCurrentMa / 1000f)
+            BatteryCurrentNormalizer.batterySidePowerWatt(voltageMv, calibratedCurrentMa)
         } else 0f
 
         return LiveBatteryState(
@@ -135,7 +135,8 @@ class BatteryMonitorEngine(private val context: Context) {
             isVoltageAvailable = isVoltageAvailable,
             isTemperatureAvailable = isTemperatureAvailable,
             isPowerAvailable = isPowerAvailable,
-            isChargingStatusAvailable = isChargingStatusAvailable
+            isChargingStatusAvailable = isChargingStatusAvailable,
+            isChargeSourceAvailable = hasPluggedMetadata
         )
     }
 

@@ -1,10 +1,10 @@
 package com.superdenot.powerguard.ui
 
-import android.content.ClipData
-import android.content.Intent
 import android.os.SystemClock
-import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,20 +12,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.core.content.FileProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
 import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.model.StatusBarParameter
-import com.superdenot.powerguard.service.AutoStartDiagnosticLog
+import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
+import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
@@ -35,7 +41,6 @@ import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
-import kotlinx.coroutines.launch
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
@@ -376,17 +381,15 @@ fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermissionSetup: () -> Unit = {}) {
-    val context = LocalContext.current
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val error by vm.autoMonitoringError.collectAsState()
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
-    var statusBarParameterMenuExpanded by remember { mutableStateOf(false) }
+    val currentScale by vm.batteryCurrentScale.collectAsState()
+    var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
-    var isExportingDiagnosticLog by remember { mutableStateOf(false) }
-    val screenScope = rememberCoroutineScope()
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 4.dp),
         contentPadding = PaddingValues(
@@ -418,44 +421,32 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
+                        Column(
+                            Modifier.weight(1f).clickable { showStatusBarSettingsDialog = true },
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
                             Text(
-                                "Tampilkan satu parameter baterai pada ikon di status bar.",
+                                if (statusBarSetting.displayMode == com.superdenot.powerguard.domain.model.StatusBarDisplayMode.CUSTOM_ROTATION) {
+                                    "Rotasi kustom • ${statusBarSetting.rotationParameters.joinToString(" / ") { it.label }} • ${statusBarSetting.rotationIntervalSeconds} dtk • Skala ${currentScale.label}"
+                                } else {
+                                    "Satu metrik • ${statusBarSetting.parameter.label} • Skala ${currentScale.label}"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(
-                            checked = statusBarSetting.enabled,
-                            onCheckedChange = vm::setStatusBarIndicatorEnabled
-                        )
+                        Switch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled)
                     }
-                    Text("Parameter yang ditampilkan", style = MaterialTheme.typography.labelMedium)
-                    Box {
-                        OutlinedButton(
-                            enabled = statusBarSetting.enabled,
-                            onClick = { statusBarParameterMenuExpanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(statusBarSetting.parameter.label)
-                        }
-                        DropdownMenu(
-                            expanded = statusBarParameterMenuExpanded,
-                            onDismissRequest = { statusBarParameterMenuExpanded = false }
-                        ) {
-                            StatusBarParameter.values().forEach { parameter ->
-                                DropdownMenuItem(
-                                    text = { Text(parameter.label) },
-                                    onClick = {
-                                        vm.setStatusBarParameter(parameter)
-                                        statusBarParameterMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                    OutlinedButton(
+                        onClick = { showStatusBarSettingsDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Atur indikator")
                     }
                     Text(
                         "Perubahan diterapkan pada notifikasi pemantauan yang sedang aktif. Tampilan ikon dapat berbeda menurut versi Android dan perangkat.",
@@ -498,61 +489,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Diagnostik Auto Start", fontWeight = FontWeight.Bold)
-                    Text(
-                        "Simpan catatan teknis aktivasi monitoring ke file lokal untuk dianalisis. Tidak berisi data sensor atau konten pribadi.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedButton(
-                        enabled = !isExportingDiagnosticLog,
-                        onClick = {
-                            isExportingDiagnosticLog = true
-                            screenScope.launch {
-                                try {
-                                    val snapshot = AutoStartDiagnosticLog.createExportSnapshot(context)
-                                    val uri = FileProvider.getUriForFile(
-                                        context,
-                                        "${context.packageName}.fileprovider",
-                                        snapshot
-                                    )
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        clipData = ClipData.newUri(
-                                            context.contentResolver,
-                                            "Auto Start Diagnostic Log",
-                                            uri
-                                        )
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Bagikan diagnostic log"))
-                                } catch (error: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Gagal menyiapkan diagnostic log: ${error.javaClass.simpleName}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } finally {
-                                    isExportingDiagnosticLog = false
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Rounded.Share, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (isExportingDiagnosticLog) "Menyiapkan log..." else "Bagikan Diagnostic Log")
-                    }
-                }
-            }
-        }
-        item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Personalisasi", fontWeight = FontWeight.Bold)
@@ -570,6 +506,315 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
     if (comingSoon) ComingSoonDialog { comingSoon = false }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
+    if (showStatusBarSettingsDialog) {
+        var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
+        var draftParameter by remember { mutableStateOf(statusBarSetting.parameter) }
+        var draftRotationParameters by remember { mutableStateOf(statusBarSetting.rotationParameters.toSet()) }
+        var draftIntervalSeconds by remember { mutableIntStateOf(statusBarSetting.rotationIntervalSeconds) }
+        var draftIntervalInput by remember { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
+        var draftCurrentScale by remember { mutableStateOf(currentScale) }
+        var customIntervalEdited by remember {
+            mutableStateOf(statusBarSetting.rotationIntervalSeconds !in listOf(2, 3, 5, 10))
+        }
+
+        val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
+        val canSave = draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
+            (draftRotationParameters.size >= 2 && validCustomInterval)
+
+        Dialog(onDismissRequest = { showStatusBarSettingsDialog = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        "Indikator status bar",
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 440.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "Mode tampilan",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                StatusBarDisplayMode.SINGLE_METRIC to "Satu metrik",
+                                StatusBarDisplayMode.CUSTOM_ROTATION to "Rotasi kustom"
+                            ).forEach { (mode, label) ->
+                                val selected = draftMode == mode
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(32.dp)
+                                        .selectable(
+                                            selected = selected,
+                                            role = Role.RadioButton,
+                                            onClick = { draftMode = mode }
+                                        ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        if (selected) 1.5.dp else 1.dp,
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            ),
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Text(
+                            "Pilihan parameter",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        StatusBarParameterGrid(
+                            selectedParameters = if (draftMode == StatusBarDisplayMode.SINGLE_METRIC) {
+                                setOf(draftParameter)
+                            } else {
+                                draftRotationParameters
+                            },
+                            multiSelect = draftMode == StatusBarDisplayMode.CUSTOM_ROTATION,
+                            canDeselectSelected = draftRotationParameters.size > 2,
+                            onParameterClick = { parameter ->
+                                if (draftMode == StatusBarDisplayMode.SINGLE_METRIC) {
+                                    draftParameter = parameter
+                                } else {
+                                    val updated = draftRotationParameters.toMutableSet()
+                                    if (parameter in updated) {
+                                        if (updated.size > 2) updated.remove(parameter)
+                                    } else {
+                                        updated.add(parameter)
+                                    }
+                                    if (updated.size >= 2) draftRotationParameters = updated
+                                }
+                            }
+                        )
+
+                        Text(
+                            "Kalibrasi skala arus",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            BatteryCurrentScale.values().forEach { scale ->
+                                val selected = draftCurrentScale == scale
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(32.dp)
+                                        .selectable(
+                                            selected = selected,
+                                            role = Role.RadioButton,
+                                            onClick = { draftCurrentScale = scale }
+                                        ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        if (selected) 1.5.dp else 1.dp,
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            scale.label,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            ),
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Text(
+                            "Berlaku global untuk pembacaan CURRENT_NOW dan daya hasil V × I. Default: 1x.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+                            Text(
+                                "Interval rotasi (detik)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                listOf(2, 3, 5, 10).forEach { seconds ->
+                                    val selected = draftIntervalSeconds == seconds && !customIntervalEdited
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(32.dp)
+                                            .selectable(
+                                                selected = selected,
+                                                role = Role.RadioButton,
+                                                onClick = {
+                                                    draftIntervalSeconds = seconds
+                                                    draftIntervalInput = seconds.toString()
+                                                    customIntervalEdited = false
+                                                }
+                                            ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surface,
+                                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            if (selected) 1.5.dp else 1.dp,
+                                            if (selected) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "$seconds dtk",
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                                ),
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    }
+                                }
+                                val customBorderColor = when {
+                                    !validCustomInterval -> MaterialTheme.colorScheme.error
+                                    customIntervalEdited -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.outlineVariant
+                                }
+                                Surface(
+                                    modifier = Modifier.width(52.dp).height(32.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        if (customIntervalEdited && validCustomInterval) 1.5.dp else 1.dp,
+                                        customBorderColor
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        BasicTextField(
+                                            value = draftIntervalInput,
+                                            onValueChange = { input ->
+                                                draftIntervalInput = input.filter(Char::isDigit).take(2)
+                                                customIntervalEdited = true
+                                                draftIntervalInput.toIntOrNull()
+                                                    ?.takeIf { it in 1..60 }
+                                                    ?.let { draftIntervalSeconds = it }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                                            singleLine = true,
+                                            textStyle = MaterialTheme.typography.bodySmall.copy(
+                                                textAlign = TextAlign.Center,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            ),
+                                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                            keyboardOptions = KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = ImeAction.Done
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                            if (!validCustomInterval) {
+                                Text(
+                                    "Masukkan angka 1–60 untuk menyimpan interval.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { showStatusBarSettingsDialog = false }) {
+                            Text("Batal")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            enabled = canSave,
+                            onClick = {
+                                vm.saveStatusBarIndicatorSettings(
+                                    parameter = draftParameter,
+                                    displayMode = draftMode,
+                                    rotationParameters = draftRotationParameters.toList(),
+                                    rotationIntervalSeconds = draftIntervalSeconds,
+                                    currentScale = draftCurrentScale
+                                )
+                                showStatusBarSettingsDialog = false
+                            }
+                        ) {
+                            Text("Simpan")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (showCapacityDialog) {
         var inputText by remember(capacity.capacityMah) {
             mutableStateOf(capacity.capacityMah?.toString().orEmpty())
@@ -614,6 +859,80 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
 }
 
+
+@Composable
+private fun StatusBarParameterGrid(
+    selectedParameters: Set<StatusBarParameter>,
+    multiSelect: Boolean,
+    canDeselectSelected: Boolean,
+    onParameterClick: (StatusBarParameter) -> Unit
+) {
+    val rows = listOf(
+        listOf(StatusBarParameter.POWER, StatusBarParameter.CURRENT),
+        listOf(StatusBarParameter.VOLTAGE, StatusBarParameter.TEMPERATURE),
+        listOf(StatusBarParameter.BATTERY_PERCENTAGE, StatusBarParameter.RESOURCE_SOURCE)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                row.forEach { parameter ->
+                    val selected = parameter in selectedParameters
+                    val enabled = !multiSelect || !selected || canDeselectSelected
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp)
+                            .selectable(
+                                selected = selected,
+                                enabled = enabled,
+                                role = if (multiSelect) Role.Checkbox else Role.RadioButton,
+                                onClick = { onParameterClick(parameter) }
+                            ),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                        border = androidx.compose.foundation.BorderStroke(
+                            if (selected) 1.5.dp else 1.dp,
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = when (parameter) {
+                                StatusBarParameter.POWER -> "Daya (W)"
+                                StatusBarParameter.CURRENT -> "Arus (A/mA)"
+                                StatusBarParameter.VOLTAGE -> "Tegangan (V)"
+                                StatusBarParameter.TEMPERATURE -> "Suhu (°C)"
+                                StatusBarParameter.BATTERY_PERCENTAGE -> "Level (%)"
+                                StatusBarParameter.RESOURCE_SOURCE -> "Sumber (AC/USB)"
+                                StatusBarParameter.CHARGING_STATUS -> "Status"
+                            },
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                ),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun SectionHeading(title: String, subtitle: String) {

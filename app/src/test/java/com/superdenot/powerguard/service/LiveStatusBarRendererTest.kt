@@ -5,13 +5,7 @@ import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -20,103 +14,110 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = PowerGuardTestApplication::class, manifest = Config.NONE)
 class LiveStatusBarRendererTest {
-
     @After
-    fun tearDown() {
-        LiveStatusBarRenderer.clearCacheForTesting()
-    }
+    fun tearDown() = LiveStatusBarRenderer.clearCacheForTesting()
 
     @Test
-    fun render_producesAlphaOnlyBitmapWithExpectedDimensions() {
-        val bitmap = LiveStatusBarRenderer.render("33°")
-
+    fun renderCreatesFullSizeAlphaBitmapForSystemSmallIcon() {
+        val bitmap = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "W"))
         assertNotNull(bitmap)
         assertEquals(Bitmap.Config.ALPHA_8, bitmap!!.config)
-        assertEquals(LiveStatusBarRenderer.ICON_SIZE_DP, bitmap.width)
-        assertEquals(LiveStatusBarRenderer.ICON_SIZE_DP, bitmap.height)
+        assertEquals(24, bitmap.width)
+        assertEquals(24, bitmap.height)
         assertFalse(bitmap.isRecycled)
-
-        // Robolectric does not reliably expose Canvas glyph rasterization from ALPHA_8 via
-        // getPixel(). Actual glyph visibility is verified on a physical Android device.
     }
 
-
     @Test
-    fun render_scalesBitmapAndTextForDisplayDensityAndKeepsDensityInCacheKey() {
-        val baseline = LiveStatusBarRenderer.render("85%", 1f)
-        val highDensity = LiveStatusBarRenderer.render("85%", 3f)
-
-        assertNotNull(baseline)
-        assertNotNull(highDensity)
-        assertEquals(48, baseline!!.width)
-        assertEquals(144, highDensity!!.width)
-        assertEquals(144, highDensity.height)
-        assertNotSame(baseline, highDensity)
+    fun densityIsPartOfCacheKey() {
+        val a = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "W"), 1f)
+        val b = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "W"), 3f)
+        assertEquals(24, a!!.width)
+        assertEquals(72, b!!.width)
+        assertNotSame(a, b)
         assertEquals(2, LiveStatusBarRenderer.cacheSizeForTesting())
     }
 
     @Test
-    fun render_cachesIdenticalDisplayTextAndSeparatesDifferentValues() {
-        val first = LiveStatusBarRenderer.render("4.1V")
-        val repeated = LiveStatusBarRenderer.render(" 4.1V ")
-        val different = LiveStatusBarRenderer.render("4.2V")
-
-        assertSame(first, repeated)
-        assertNotNull(different)
-        assertNotSame(first, different)
-        assertEquals(2, LiveStatusBarRenderer.cacheSizeForTesting())
+    fun cacheKeyIncludesMetricValueUnitAndHitsIdenticalRequest() {
+        val a = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "W"))
+        val hit = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "W"))
+        val metric = LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("2.8", "W"))
+        val value = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.9", "W"))
+        val unit = LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "mW"))
+        assertSame(a, hit)
+        assertNotSame(a, metric)
+        assertNotSame(a, value)
+        assertNotSame(a, unit)
+        assertEquals(4, LiveStatusBarRenderer.cacheSizeForTesting())
     }
 
     @Test
-    fun render_acceptsZeroNegativeAndExtremeDisplayValues() {
-        assertNotNull(LiveStatusBarRenderer.render("0A"))
-        assertNotNull(LiveStatusBarRenderer.render("-950mA"))
-        assertNotNull(LiveStatusBarRenderer.render("99999W"))
-        assertEquals(3, LiveStatusBarRenderer.cacheSizeForTesting())
+    fun twoLineLayoutUsesRequestedValueUnitRatioAndUnitWidth() {
+        assertEquals(0.58f, LiveStatusBarRenderer.VALUE_HEIGHT_SHARE, 0.001f)
+        assertEquals(0.42f, LiveStatusBarRenderer.UNIT_HEIGHT_SHARE, 0.001f)
+        assertEquals(0.75f, LiveStatusBarRenderer.ROW_GAP_DP, 0.001f)
+        assertEquals(0.88f, LiveStatusBarRenderer.UNIT_MAX_WIDTH_RATIO, 0.001f)
     }
 
     @Test
-    fun render_returnsNullForUnavailableBlankControlOrOversizedInput() {
-        assertNull(LiveStatusBarRenderer.render(null))
-        assertNull(LiveStatusBarRenderer.render(""))
-        assertNull(LiveStatusBarRenderer.render("   "))
-        assertNull(LiveStatusBarRenderer.render("bad\nvalue"))
-        assertNull(LiveStatusBarRenderer.render("123456789"))
+    fun renderAcceptsValuesUpToFourCharacters() {
+        assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("0", "mA")))
+        assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-1.8", "A")))
+        assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-15", "mA")))
+        assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("9999", "W")))
+    }
+
+    @Test
+    fun renderRejectsBlankControlAndMoreThanFourNumericCharacters() {
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("", "W")))
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "")))
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("bad\nvalue", "W")))
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("12345", "W")))
         assertEquals(0, LiveStatusBarRenderer.cacheSizeForTesting())
     }
 
     @Test
-    fun render_cacheIsBoundedAndEvictionDoesNotRecycleIssuedBitmaps() {
-        val first = LiveStatusBarRenderer.render("0%")
-        repeat(LiveStatusBarRenderer.MAX_CACHE_ENTRIES + 8) { index ->
-            LiveStatusBarRenderer.render("V$index")
+    fun resourceSourceUsesFullBleedSingleLineWithoutUnit() {
+        listOf("AC", "USB", "WL", "BAT").forEach { sourceCode ->
+            val bitmap = LiveStatusBarRenderer.render(
+                StatusBarParameter.RESOURCE_SOURCE,
+                StatusBarReading(sourceCode, "")
+            )
+            assertNotNull("Expected a one-line bitmap for $sourceCode", bitmap)
+            assertEquals(24, bitmap!!.width)
+            assertEquals(24, bitmap.height)
         }
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.RESOURCE_SOURCE, StatusBarReading("USB", "W")))
+    }
 
+    @Test
+    fun cacheIsBoundedAndDoesNotRecycleEvictedBitmaps() {
+        val first = LiveStatusBarRenderer.render(StatusBarParameter.BATTERY_PERCENTAGE, StatusBarReading("0", "%"))
+        repeat(LiveStatusBarRenderer.MAX_CACHE_ENTRIES + 8) {
+            LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading(it.toString(), "W"))
+        }
         assertTrue(LiveStatusBarRenderer.cacheSizeForTesting() <= LiveStatusBarRenderer.MAX_CACHE_ENTRIES)
-        assertNotNull(first)
         assertFalse(first!!.isRecycled)
     }
 
     @Test
-    fun render_concurrentRequestsForSameTextReturnOneCachedBitmap() {
-        val workers = 12
-        val ready = java.util.concurrent.CountDownLatch(workers)
+    fun concurrentIdenticalRequestsShareOneBitmap() {
+        val count = 12
+        val ready = java.util.concurrent.CountDownLatch(count)
         val start = java.util.concurrent.CountDownLatch(1)
-        val executor = java.util.concurrent.Executors.newFixedThreadPool(workers)
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(count)
         try {
-            val futures = (0 until workers).map {
+            val futures = (0 until count).map {
                 executor.submit<Bitmap?> {
                     ready.countDown()
                     check(start.await(5, java.util.concurrent.TimeUnit.SECONDS))
-                    LiveStatusBarRenderer.render("85%")
+                    LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "W"))
                 }
             }
             assertTrue(ready.await(5, java.util.concurrent.TimeUnit.SECONDS))
             start.countDown()
             val results = futures.map { it.get(10, java.util.concurrent.TimeUnit.SECONDS) }
-            val first = results.first()
-            assertNotNull(first)
-            assertTrue(results.all { it === first })
+            assertTrue(results.all { it === results.first() })
             assertEquals(1, LiveStatusBarRenderer.cacheSizeForTesting())
         } finally {
             start.countDown()
@@ -125,71 +126,57 @@ class LiveStatusBarRendererTest {
     }
 
     @Test
-    fun format_usesLiveStateValuesAndPreservesValidZeroReadings() {
-        val state = LiveBatteryState(
-            level = 85,
-            currentMa = 0,
-            voltageMv = 4120,
-            powerWatt = 0f,
-            tempCelsius = 0f,
-            isCharging = true
-        )
-
-        assertEquals("0°", LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
-        assertEquals("4.1V", LiveStatusBarRenderer.format(state, StatusBarParameter.VOLTAGE))
-        assertEquals("0.0A", LiveStatusBarRenderer.format(state, StatusBarParameter.CURRENT))
-        assertEquals("0W", LiveStatusBarRenderer.format(state, StatusBarParameter.POWER))
-        assertEquals("85%", LiveStatusBarRenderer.format(state, StatusBarParameter.BATTERY_PERCENTAGE))
-        assertEquals("CHG", LiveStatusBarRenderer.format(state, StatusBarParameter.CHARGING_STATUS))
+    fun adaptivePrecisionKeepsNegativeDecimalsWithinFourCharacters() {
+        assertEquals("2.8", LiveStatusBarRenderer.formatAdaptive(2.8))
+        assertEquals("7.3", LiveStatusBarRenderer.formatAdaptive(7.34))
+        assertEquals("9.9", LiveStatusBarRenderer.formatAdaptive(9.9))
+        assertEquals("12", LiveStatusBarRenderer.formatAdaptive(12.4))
+        assertEquals("-15", LiveStatusBarRenderer.formatAdaptive(-15.2))
+        assertEquals("-1.8", LiveStatusBarRenderer.formatAdaptive(-1.8))
+        assertEquals("-2.5", LiveStatusBarRenderer.formatAdaptive(-2.48))
+        assertEquals("10", LiveStatusBarRenderer.formatAdaptive(9.96))
+        assertEquals("-10", LiveStatusBarRenderer.formatAdaptive(-9.96))
     }
 
     @Test
-    fun chargingStatusShowsDetectedSourceInsteadOfGenericChargingLabel() {
-        val charging = LiveBatteryState(isCharging = true, isChargingStatusAvailable = true)
-
-        assertEquals("AC", LiveStatusBarRenderer.format(charging.copy(chargeSource = "AC Adapter"), StatusBarParameter.CHARGING_STATUS))
-        assertEquals("USB", LiveStatusBarRenderer.format(charging.copy(chargeSource = "USB Port"), StatusBarParameter.CHARGING_STATUS))
-        assertEquals("WLS", LiveStatusBarRenderer.format(charging.copy(chargeSource = "Wireless"), StatusBarParameter.CHARGING_STATUS))
-        assertEquals("CHG", LiveStatusBarRenderer.format(charging.copy(chargeSource = "Unknown"), StatusBarParameter.CHARGING_STATUS))
-        assertEquals("DIS", LiveStatusBarRenderer.format(charging.copy(isCharging = false), StatusBarParameter.CHARGING_STATUS))
+    fun allSixMetricsAndAdaptiveBatteryLevelAreCorrect() {
+        val state = LiveBatteryState(
+            level = 85, currentMa = 2800, voltageMv = 4120, powerWatt = 2.8f,
+            tempCelsius = 2.8f, isCharging = true
+        )
+        assertEquals(StatusBarReading("2.8", "W"), LiveStatusBarRenderer.format(state, StatusBarParameter.POWER))
+        assertEquals(StatusBarReading("2.8", "A"), LiveStatusBarRenderer.format(state, StatusBarParameter.CURRENT))
+        assertEquals(StatusBarReading("4.1", "V"), LiveStatusBarRenderer.format(state, StatusBarParameter.VOLTAGE))
+        assertEquals(StatusBarReading("2.8", "°C"), LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
+        assertEquals(StatusBarReading("85", "%"), LiveStatusBarRenderer.format(state, StatusBarParameter.BATTERY_PERCENTAGE))
+        assertEquals(StatusBarReading("5.0", "%"), LiveStatusBarRenderer.format(state.copy(level = 5), StatusBarParameter.BATTERY_PERCENTAGE))
+        assertEquals(StatusBarReading("AC", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = true, isChargeSourceAvailable = true, chargeSource = "AC Adapter"), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("USB", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = true, isChargeSourceAvailable = true, chargeSource = "USB Port"), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("WL", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = true, isChargeSourceAvailable = true, chargeSource = "Wireless"), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("BAT", ""), LiveStatusBarRenderer.format(state.copy(isPowerConnected = false, isChargeSourceAvailable = true), StatusBarParameter.RESOURCE_SOURCE))
+        assertEquals(StatusBarReading("—", ""), LiveStatusBarRenderer.format(state.copy(isChargeSourceAvailable = false), StatusBarParameter.RESOURCE_SOURCE))
     }
 
     @Test
-    fun format_returnsNaOnlyWhenSelectedReadingIsUnavailable() {
-        val state = LiveBatteryState(
-            level = 85,
-            currentMa = 0,
-            voltageMv = 0,
-            powerWatt = 0f,
-            tempCelsius = 0f,
-            isCharging = false,
-            isCurrentAvailable = false,
-            isVoltageAvailable = false,
-            isPowerAvailable = false,
-            isLevelAvailable = false,
-            isTemperatureAvailable = false,
-            isChargingStatusAvailable = false
-        )
+    fun currentSwitchesBetweenMilliampAndAmp() {
+        val state = LiveBatteryState(currentMa = 850)
+        assertEquals(StatusBarReading("850", "mA"), LiveStatusBarRenderer.format(state, StatusBarParameter.CURRENT))
+        assertEquals(StatusBarReading("1.2", "A"), LiveStatusBarRenderer.format(state.copy(currentMa = 1200), StatusBarParameter.CURRENT))
+        assertEquals(StatusBarReading("-1.8", "A"), LiveStatusBarRenderer.format(state.copy(currentMa = -1800), StatusBarParameter.CURRENT))
+        assertEquals(StatusBarReading("12", "A"), LiveStatusBarRenderer.format(state.copy(currentMa = 12000), StatusBarParameter.CURRENT))
+    }
 
-        StatusBarParameter.values().forEach { parameter ->
-            assertEquals("N/A", LiveStatusBarRenderer.format(state, parameter))
+    @Test
+    fun unavailableMetricsAreNotPresentedAsZero() {
+        val state = LiveBatteryState(
+            isCurrentAvailable = false, isVoltageAvailable = false, isPowerAvailable = false,
+            isTemperatureAvailable = false, isLevelAvailable = false
+        )
+        StatusBarParameter.selectableValues.forEach {
+            val reading = LiveStatusBarRenderer.format(state, it)
+            assertEquals("—", reading.valueText)
+            if (it == StatusBarParameter.RESOURCE_SOURCE) assertTrue(reading.unitText.isEmpty())
+            else assertTrue(reading.unitText.isNotBlank())
         }
     }
-
-
-    @Test
-    fun chargingStatusIsUnavailableWhenStatusSensorIsNotExposedAndZeroReadingsRemainValid() {
-        val state = LiveBatteryState(
-            currentMa = 0,
-            tempCelsius = 0f,
-            isCharging = false,
-            isCurrentAvailable = true,
-            isTemperatureAvailable = true,
-            isChargingStatusAvailable = false
-        )
-        assertEquals("N/A", LiveStatusBarRenderer.format(state, StatusBarParameter.CHARGING_STATUS))
-        assertEquals("0.0A", LiveStatusBarRenderer.format(state, StatusBarParameter.CURRENT))
-        assertEquals("0°", LiveStatusBarRenderer.format(state, StatusBarParameter.TEMPERATURE))
-    }
-
 }

@@ -1,16 +1,31 @@
 package com.superdenot.powerguard.domain.model
 
-/** User-selectable live value rendered in the Android notification status-bar icon. */
 enum class StatusBarParameter(val label: String) {
-    TEMPERATURE("Temperature"),
-    VOLTAGE("Voltage"),
-    CURRENT("Current"),
-    POWER("Power"),
-    BATTERY_PERCENTAGE("Battery percentage"),
+    POWER("Daya sisi baterai (W)"),
+    CURRENT("Arus baterai (A / mA)"),
+    VOLTAGE("Tegangan baterai (V)"),
+    TEMPERATURE("Suhu baterai (°C)"),
+    BATTERY_PERCENTAGE("Level baterai (%)"),
+    RESOURCE_SOURCE("Status sumber daya"),
+    /** Retained only to migrate the legacy preference value. */
     CHARGING_STATUS("Charging status");
 
     companion object {
-        fun fromStoredValue(value: String?): StatusBarParameter =
-            values().firstOrNull { it.name == value } ?: BATTERY_PERCENTAGE
+        val selectableValues: List<StatusBarParameter> = listOf(
+            POWER, CURRENT, VOLTAGE, TEMPERATURE, BATTERY_PERCENTAGE, RESOURCE_SOURCE
+        )
+        fun fromStoredValue(value: String?): StatusBarParameter = when (value) {
+            "CHARGING_STATUS" -> RESOURCE_SOURCE
+            else -> selectableValues.firstOrNull { it.name == value } ?: POWER
+        }
+    }
+}
+
+enum class StatusBarDisplayMode(val label: String) {
+    SINGLE_METRIC("Satu metrik"),
+    CUSTOM_ROTATION("Rotasi kustom");
+    companion object {
+        fun fromStoredValue(value: String?): StatusBarDisplayMode =
+            values().firstOrNull { it.name == value } ?: SINGLE_METRIC
     }
 }
