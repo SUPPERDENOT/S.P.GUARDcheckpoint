@@ -17,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -511,6 +513,9 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         var draftIntervalSeconds by remember { mutableIntStateOf(statusBarSetting.rotationIntervalSeconds) }
         var draftIntervalInput by remember { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
         var draftCurrentScale by remember { mutableStateOf(currentScale) }
+        var customIntervalEdited by remember {
+            mutableStateOf(statusBarSetting.rotationIntervalSeconds !in listOf(2, 3, 5, 10))
+        }
 
         val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
         val canSave = draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
@@ -543,20 +548,50 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                            SegmentedButton(
-                                selected = draftMode == StatusBarDisplayMode.SINGLE_METRIC,
-                                onClick = { draftMode = StatusBarDisplayMode.SINGLE_METRIC },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                            ) {
-                                Text("Satu metrik", maxLines = 1, fontSize = 12.sp)
-                            }
-                            SegmentedButton(
-                                selected = draftMode == StatusBarDisplayMode.CUSTOM_ROTATION,
-                                onClick = { draftMode = StatusBarDisplayMode.CUSTOM_ROTATION },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                            ) {
-                                Text("Rotasi kustom", maxLines = 1, fontSize = 12.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                StatusBarDisplayMode.SINGLE_METRIC to "Satu metrik",
+                                StatusBarDisplayMode.CUSTOM_ROTATION to "Rotasi kustom"
+                            ).forEach { (mode, label) ->
+                                val selected = draftMode == mode
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(32.dp)
+                                        .selectable(
+                                            selected = selected,
+                                            role = Role.RadioButton,
+                                            onClick = { draftMode = mode }
+                                        ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        if (selected) 1.5.dp else 1.dp,
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            ),
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -593,17 +628,45 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                            BatteryCurrentScale.values().forEachIndexed { index, scale ->
-                                SegmentedButton(
-                                    selected = draftCurrentScale == scale,
-                                    onClick = { draftCurrentScale = scale },
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = BatteryCurrentScale.values().size
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            BatteryCurrentScale.values().forEach { scale ->
+                                val selected = draftCurrentScale == scale
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(32.dp)
+                                        .selectable(
+                                            selected = selected,
+                                            role = Role.RadioButton,
+                                            onClick = { draftCurrentScale = scale }
+                                        ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        if (selected) 1.5.dp else 1.dp,
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outlineVariant
                                     )
                                 ) {
-                                    Text(scale.label, maxLines = 1)
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            scale.label,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            ),
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -621,23 +684,25 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 listOf(2, 3, 5, 10).forEach { seconds ->
-                                    val selected = draftIntervalSeconds == seconds
+                                    val selected = draftIntervalSeconds == seconds && !customIntervalEdited
                                     Surface(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .heightIn(min = 40.dp)
+                                            .height(32.dp)
                                             .selectable(
                                                 selected = selected,
                                                 role = Role.RadioButton,
                                                 onClick = {
                                                     draftIntervalSeconds = seconds
                                                     draftIntervalInput = seconds.toString()
+                                                    customIntervalEdited = false
                                                 }
                                             ),
-                                        shape = MaterialTheme.shapes.small,
+                                        shape = RoundedCornerShape(8.dp),
                                         color = if (selected) MaterialTheme.colorScheme.primaryContainer
                                         else MaterialTheme.colorScheme.surface,
                                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -648,36 +713,35 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             else MaterialTheme.colorScheme.outlineVariant
                                         )
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
                                             Text(
                                                 "$seconds dtk",
-                                                style = MaterialTheme.typography.labelMedium,
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                                ),
                                                 fontSize = 11.sp,
-                                                maxLines = 1
+                                                maxLines = 1,
+                                                softWrap = false
                                             )
                                         }
                                     }
                                 }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Interval kustom (1–60 dtk)",
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                val customBorderColor = when {
+                                    !validCustomInterval -> MaterialTheme.colorScheme.error
+                                    customIntervalEdited -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.outlineVariant
+                                }
                                 Surface(
-                                    modifier = Modifier.width(56.dp).height(34.dp),
+                                    modifier = Modifier.width(52.dp).height(32.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     color = MaterialTheme.colorScheme.surface,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
                                     border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (validCustomInterval) MaterialTheme.colorScheme.outlineVariant
-                                        else MaterialTheme.colorScheme.error
+                                        if (customIntervalEdited && validCustomInterval) 1.5.dp else 1.dp,
+                                        customBorderColor
                                     )
                                 ) {
                                     Box(
@@ -688,18 +752,23 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             value = draftIntervalInput,
                                             onValueChange = { input ->
                                                 draftIntervalInput = input.filter(Char::isDigit).take(2)
+                                                customIntervalEdited = true
                                                 draftIntervalInput.toIntOrNull()
                                                     ?.takeIf { it in 1..60 }
                                                     ?.let { draftIntervalSeconds = it }
                                             },
-                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
                                             singleLine = true,
-                                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                            textStyle = MaterialTheme.typography.bodySmall.copy(
                                                 textAlign = TextAlign.Center,
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
                                             ),
                                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                            keyboardOptions = KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = ImeAction.Done
+                                            )
                                         )
                                     }
                                 }
@@ -815,7 +884,7 @@ private fun StatusBarParameterGrid(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp)
+                            .height(32.dp)
                             .selectable(
                                 selected = selected,
                                 enabled = enabled,
@@ -833,8 +902,12 @@ private fun StatusBarParameterGrid(
                             else MaterialTheme.colorScheme.outlineVariant
                         )
                     ) {
-                        Text(
-                            text = when (parameter) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = when (parameter) {
                                 StatusBarParameter.POWER -> "Daya (W)"
                                 StatusBarParameter.CURRENT -> "Arus (A/mA)"
                                 StatusBarParameter.VOLTAGE -> "Tegangan (V)"
@@ -843,15 +916,17 @@ private fun StatusBarParameterGrid(
                                 StatusBarParameter.RESOURCE_SOURCE -> "Sumber (AC/USB)"
                                 StatusBarParameter.CHARGING_STATUS -> "Status"
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontSize = 12.sp,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                            maxLines = 1,
-                            softWrap = false
-                        )
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                ),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     }
                 }
             }
