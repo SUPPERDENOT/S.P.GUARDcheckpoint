@@ -9,7 +9,7 @@
 - Exposed the persisted configuration through `PowerGuardViewModel.themePackConfig: StateFlow<ThemePackConfig>` and applied it at the application Compose root.
 - Added ARC, CAPSULE, SEGMENTED (20 × 5% segments with 3.5° gaps), and WAVE gauge renderers. Charging animations are composed only while the gauge is charging, visible, and not in warm/critical thermal states; STATIC never creates an infinite transition.
 - Added the two-layer Settings picker with package swatches, draft-only live gauge preview, model/animation choices, package-specific controls, and a sticky footer.
-- Follow-up source review: enforce the thermal animation gate inside the reusable gauge (including previews), draw the capsule's positive terminal marker, honor the disabled Midnight Violet dual-tint option, and reuse shared thermal thresholds in the preview. Midnight Violet dual tint differentiates electrical metrics from the temperature sub-card.
+- Follow-up source review: enforce the thermal animation gate inside the reusable gauge (including previews), draw the capsule's positive terminal marker, honor the disabled Midnight Violet dual-tint option, and reuse shared thermal thresholds in the preview. Capsule text contrast now follows fill luminance; idle gauges render without charging-motion overlays. Animation phase state is consumed in draw scopes rather than recomposing the gauge each frame. Midnight Violet dual tint differentiates electrical metrics from the temperature sub-card.
 
 ### Protected boundaries
 - No Room DB v3 entity, schema, or migration change.
@@ -18,7 +18,9 @@
 
 ### Verification status
 - Added unit tests for safe preference parsing/fallback and round-trip persistence, semantic color priority, 20-segment level boundaries, and the two-line Settings summary formatter.
-- Source diff review and GitHub Actions CI: PENDING.
+- Source diff review: PASS — 15 changed files; no Room schema/entity/migration, sensor acquisition/sampling, calibration, service lifecycle, manifest, Gradle, dependency, SDK, version, or applicationId files changed.
+- GitHub Actions Run #646 on final implementation HEAD `14261dba3660d1ee24a8a61dee16a02b6748fa71`: SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK artifact `14955470895`; unit-test report artifact `14955331593`.
+- Intermediate Run #644 failed Kotlin compilation during the draw-phase refactor (`State<Float>` phase handling); corrected before Run #645. Run #645 passed, and final implementation Run #646 passed.
 - Physical-device QA on itel P55 (360dp / 720p): NOT RUN. Verify SYSTEM theme reactivity, light/dark contrast, all four gauge models, thermal color priority, charging animation gating, dialog scrolling/footer, and Midnight Violet metric tints.
 - Compact 32dp choice pills and 36dp footer buttons are below DESIGN.md's 48dp minimum touch-target guidance; this explicit compact-design exception requires thumb-use review on itel P55.
 

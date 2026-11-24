@@ -9,14 +9,16 @@
 - [x] Added the two-layer Settings picker, draft live preview, sticky footer, and two-line summary.
 - [x] Centralized explicit color hex literals in `ui/theme/`; added an Anti-Slop audit guard for literals outside that package.
 - [x] Added unit tests for preference parser/fallback/round-trip, semantic color priority, segment boundaries, and summary formatting.
-- [x] Follow-up source review: thermal animation is gated in the reusable gauge, capsule terminal has a plus marker, dual-tint OFF removes both tints, and preview thresholds reuse the shared analyzer constants.
+- [x] Follow-up source review: thermal animation is gated in the reusable gauge, capsule terminal has a plus marker, dual-tint OFF removes both tints, preview thresholds reuse shared analyzer constants, idle gauges suppress charging overlays, capsule label contrast follows fill luminance, and animated phase reads occur in draw scopes.
 - [x] Corrected the Anti-Slop color-literal regex and verified its match behavior against `Color(0xFF112233)`; final CI rerun pending.
 - [x] No intended changes to Room DB v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring P0 channel/lifecycle, RECOVERY_HOLD, or applicationId.
-- [ ] Full diff review: NOT RUN.
-- [ ] `testDebugUnitTest`: NOT RUN.
-- [ ] `assembleDebug`: NOT RUN.
-- [ ] Anti-Slop UI Audit Gate: NOT RUN.
-- [ ] APK upload / artifact ID: PENDING CI.
+- [x] Full diff review: PASS — 15 changed files; protected Room, sensor, sampling, calibration, P0 lifecycle, RECOVERY_HOLD, and build configuration files are unchanged.
+- [x] `testDebugUnitTest`: SUCCESS — Run #646.
+- [x] `assembleDebug`: SUCCESS — Run #646.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #646; corrected color-literal regex was exercised by CI.
+- [x] Upload APK: SUCCESS — Run #646; debug APK Artifact ID `14955470895`.
+- [x] Upload unit-test reports: SUCCESS — Run #646; Artifact ID `14955331593`.
+- [x] Final implementation CI Run #646 HEAD: `14261dba3660d1ee24a8a61dee16a02b6748fa71`.
 - [ ] Physical-device QA on itel P55 360dp / 720p: NOT RUN.
 - [ ] PR #12 merge: HOLD until CI and physical-device QA are confirmed.
 
