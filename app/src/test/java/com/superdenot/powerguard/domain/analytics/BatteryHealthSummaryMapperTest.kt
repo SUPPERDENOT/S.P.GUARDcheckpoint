@@ -19,7 +19,7 @@ class BatteryHealthSummaryMapperTest {
 
     @Test fun rejectsInvalidStoredSnapshotValues() {
         val snapshot = BatteryHealthEntity(
-            timestamp = 1_000L, sessionId = 7L, estimatedCapacityMah = 900,
+            timestamp = 1_000L, sessionId = 7L, estimatedCapacityMah = 0,
             designCapacityMah = 5_000, healthPercentage = 85f
         )
         assertNull(BatteryHealthSummaryMapper.fromStored(snapshot))
