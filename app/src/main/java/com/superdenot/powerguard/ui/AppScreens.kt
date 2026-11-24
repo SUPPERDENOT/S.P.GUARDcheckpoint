@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
@@ -435,7 +436,12 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         }
                         Switch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled)
                     }
-                    TextButton(onClick = { showStatusBarSettingsDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { showStatusBarSettingsDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Atur indikator")
                     }
                     Text(
@@ -656,36 +662,25 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(
+                                Text(
+                                    "Interval kustom (1–60 dtk)",
                                     modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Text("Interval kustom", style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        "Rentang 1–60 detik",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Column(
-                                    horizontalAlignment = Alignment.Start,
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Text("Detik", style = MaterialTheme.typography.labelSmall)
-                                    OutlinedTextField(
-                                        value = draftIntervalInput,
-                                        onValueChange = { input ->
-                                            draftIntervalInput = input.filter(Char::isDigit).take(2)
-                                            draftIntervalInput.toIntOrNull()
-                                                ?.takeIf { it in 1..60 }
-                                                ?.let { draftIntervalSeconds = it }
-                                        },
-                                        modifier = Modifier.width(92.dp),
-                                        singleLine = true,
-                                        isError = !validCustomInterval,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                                    )
-                                }
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                OutlinedTextField(
+                                    value = draftIntervalInput,
+                                    onValueChange = { input ->
+                                        draftIntervalInput = input.filter(Char::isDigit).take(2)
+                                        draftIntervalInput.toIntOrNull()
+                                            ?.takeIf { it in 1..60 }
+                                            ?.let { draftIntervalSeconds = it }
+                                    },
+                                    modifier = Modifier.width(72.dp).height(48.dp),
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                                    isError = !validCustomInterval,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                )
                             }
                             if (!validCustomInterval) {
                                 Text(
@@ -816,41 +811,25 @@ private fun StatusBarParameterGrid(
                             else MaterialTheme.colorScheme.outlineVariant
                         )
                     ) {
-                        Row(
+                        Text(
+                            text = when (parameter) {
+                                StatusBarParameter.POWER -> "Daya (W)"
+                                StatusBarParameter.CURRENT -> "Arus (A/mA)"
+                                StatusBarParameter.VOLTAGE -> "Tegangan (V)"
+                                StatusBarParameter.TEMPERATURE -> "Suhu (°C)"
+                                StatusBarParameter.BATTERY_PERCENTAGE -> "Level (%)"
+                                StatusBarParameter.RESOURCE_SOURCE -> "Sumber (AC/USB)"
+                                StatusBarParameter.CHARGING_STATUS -> "Status"
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 8.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = when (parameter) {
-                                    StatusBarParameter.POWER -> "Daya (W)"
-                                    StatusBarParameter.CURRENT -> "Arus (A/mA)"
-                                    StatusBarParameter.VOLTAGE -> "Tegangan (V)"
-                                    StatusBarParameter.TEMPERATURE -> "Suhu (°C)"
-                                    StatusBarParameter.BATTERY_PERCENTAGE -> "Level (%)"
-                                    StatusBarParameter.RESOURCE_SOURCE -> "Sumber (AC/USB)"
-                                    StatusBarParameter.CHARGING_STATUS -> "Status"
-                                },
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontSize = 12.sp,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                            if (selected) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            } else {
-                                Spacer(Modifier.size(16.dp))
-                            }
-                        }
+                            style = MaterialTheme.typography.labelMedium,
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
                 }
             }
