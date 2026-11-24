@@ -26,6 +26,7 @@ private val Border = Color(0xFFD8D1C5)
 private val TerracottaAccent = Color(0xFFD96B2B)
 private val EmeraldAccent = Color(0xFF39765B)
 private val CobaltAccent = Color(0xFF315D9B)
+fun basicAccentSwatches(): List<Color> = listOf(TerracottaAccent, EmeraldAccent, CobaltAccent)
 private val DarkBackground = Color(0xFF171916)
 private val DarkSurface = Color(0xFF222720)
 private val DarkText = Color(0xFFF4F0E7)
@@ -33,7 +34,8 @@ private val DarkMuted = Color(0xFFB5B9B0)
 private val MidnightBackground = Color(0xFF0B091E)
 private val MidnightSurface = Color(0xFF151233)
 private val MidnightOutline = Color(0xFF2E2866)
-private val MidnightPrimary = Color(0xFF7C3AED)
+val MidnightVioletAccent = Color(0xFF7C3AED)
+private val MidnightPrimary = MidnightVioletAccent
 private val MidnightOnSurface = Color(0xFFF8FAFC)
 private val MidnightOnSurfaceVariant = Color(0xFFA5A1C2)
 private val MidnightColdMetric = Color(0xFF102B3A)
@@ -72,7 +74,7 @@ val LocalBatterySemanticColors = staticCompositionLocalOf {
 
 val LocalBatteryMetricTints = staticCompositionLocalOf { BatteryMetricTints() }
 
-private fun basicAccentColor(accent: BasicAccent): Color = when (accent) {
+fun basicAccentColor(accent: BasicAccent): Color = when (accent) {
     BasicAccent.TERRACOTTA -> TerracottaAccent
     BasicAccent.EMERALD -> EmeraldAccent
     BasicAccent.COBALT -> CobaltAccent
