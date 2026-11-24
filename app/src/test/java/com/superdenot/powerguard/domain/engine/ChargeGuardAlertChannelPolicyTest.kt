@@ -58,6 +58,20 @@ class ChargeGuardAlertChannelPolicyTest {
         )
     }
 
+
+    @Test fun missingExternalAudioFileFallsBackToNotificationDefault() {
+        assertEquals(
+            "content://settings/system/notification_sound_fallback",
+            ChargeGuardAlertSoundUriResolver.resolvePlayable(
+                selection = "content://media/external/audio/media/404",
+                defaultUri = "content://settings/system/notification_sound",
+                secondaryDefaultUri = "content://settings/system/notification_sound_fallback",
+                canOpenCustomUri = { throw java.io.FileNotFoundException("missing audio") },
+                canCreateRingtone = { it.endsWith("fallback") }
+            )
+        )
+    }
+
     @Test fun silentSelectionDoesNotUseAudioFallback() {
         assertEquals(
             null,
