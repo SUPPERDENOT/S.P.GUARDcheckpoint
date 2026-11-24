@@ -12,9 +12,9 @@ class SessionMicroFilterTest {
     }
 
     @Test
-    fun hidesZeroSocDeltaWithNegligibleCharge() {
-        assertTrue(SessionMicroFilter.shouldHide(600, 0, 0.5))
-        assertTrue(SessionMicroFilter.shouldHide(600, 0, 0.0))
+    fun doesNotHideLongZeroGainSessionsThatNeedAnomalyReview() {
+        assertFalse(SessionMicroFilter.shouldHide(600, 0, 0.5))
+        assertFalse(SessionMicroFilter.shouldHide(600, 0, 0.0))
         assertFalse(SessionMicroFilter.shouldHide(600, 0, 0.6))
     }
 

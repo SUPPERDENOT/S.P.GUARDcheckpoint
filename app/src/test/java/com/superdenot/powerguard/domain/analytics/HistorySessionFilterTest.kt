@@ -31,6 +31,13 @@ class HistorySessionFilterTest {
         assertTrue(HistorySessionFilterMatcher.matches(session(6, start = 20, end = 30), HistorySessionFilter.GAIN_10_PERCENT, 30, 301_000L))
         assertFalse(HistorySessionFilterMatcher.matches(session(7, start = 20, end = 29), HistorySessionFilter.GAIN_10_PERCENT, 29, 301_000L))
     }
+    @Test
+    fun microFilterKeepsLongZeroGainSessionVisibleForAnomalyBadge() {
+        val stagnant = session(11, durationMs = 600_000L, start = 50, end = 50, mah = 0.0)
+        assertTrue(HistorySessionFilterMatcher.matches(stagnant, HistorySessionFilter.MICRO, 50, 601_000L))
+        assertTrue(HistorySessionFilterMatcher.matches(stagnant, HistorySessionFilter.ANOMALY, 50, 601_000L))
+    }
+
     @Test fun filterPreservesInputOrder() {
         val values = listOf(session(8, anomaly = true), session(9), session(10, anomaly = true))
         assertEquals(listOf(8L, 10L), HistorySessionFilterMatcher.filter(values, HistorySessionFilter.ANOMALY, 25, 301_000L).map { it.id })

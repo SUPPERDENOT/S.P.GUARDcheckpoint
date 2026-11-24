@@ -60,7 +60,7 @@ class LiveStatusBarRendererTest {
     }
 
     @Test
-    fun renderAcceptsValuesUpToFourCharacters() {
+    fun renderAcceptsValuesUpToFiveCharacters() {
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("0", "mA")))
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-1.8", "A")))
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-15", "mA")))
