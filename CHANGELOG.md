@@ -6,7 +6,7 @@
 - Added pure session anomaly evaluation for mAh-per-percent spikes, zero-percent mAh spikes, available temperature at/above 40°C, sessions lasting at least 120 seconds without SoC gain, checkpoint recovery provenance, and previously recorded engine anomalies.
 - Added date grouping, compact metadata, accessory-label pills, soft anomaly badges, and a left anomaly accent.
 - Stored checkpoint-recovery provenance in existing anomalyReason metadata during Room checkpoint reconciliation; Room remains v3 and the isAnomaly flag / RECOVERY_HOLD state machine are unchanged.
-- Kept session-average power explicitly unavailable (— W): no session-average voltage/power pair is persisted, and current alone cannot establish watts.
+- Kept session-average power explicitly unavailable (— W): no session-average voltage/power pair is persisted, and current alone cannot establish watts. A closed session with a missing end-level remains unknown; the evaluator does not infer a zero-percent gain.
 - Retained the 24dp ALPHA_8 renderer and bounded cache; accepted five-character values and added a light 8% alpha-coverage boost.
 - Added a separate notification-icon refresh policy: 1,000ms for enabled custom rotation while interactive, 3,000ms otherwise. The existing 1,000ms monitoring/sampling loop is unchanged.
 

@@ -824,17 +824,21 @@ private fun SessionHistoryCard(
                 }
             }
 
-            session.anomalyReason?.let { reason ->
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = NotificationVisualRenderer.formatAnomalyReason(
-                        reason,
-                        session.maxTempCelsius.takeIf { it > 0f }
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CrimsonAnomaly
-                )
-            }
+            session.anomalyReason.orEmpty().split(',')
+                .filterNot { it.trim() == SessionAnomalyEvaluator.RECOVERY_MARKER }
+                .joinToString(", ")
+                .takeIf { it.isNotBlank() }
+                ?.let { visibleReason ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = NotificationVisualRenderer.formatAnomalyReason(
+                            visibleReason,
+                            session.maxTempCelsius.takeIf { it > 0f }
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CrimsonAnomaly
+                    )
+                }
         }
     }
 }

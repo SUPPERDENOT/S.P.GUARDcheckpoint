@@ -6,7 +6,7 @@
 - [x] History: five LazyRow filter chips, default < 1 mnt; large Switch row removed.
 - [x] Domain: anomaly evaluator, presentation mapper, date grouping, and deterministic filter matching implemented.
 - [x] Recovery provenance: written only during existing checkpoint reconciliation; Room v3 and isAnomaly / RECOVERY_HOLD state unchanged.
-- [x] Session metadata: source and temperature shown; power is — W because session-average voltage/power is not persisted.
+- [x] Session metadata: source and temperature shown; power is — W because session-average voltage/power is not persisted. Missing end-level remains unknown rather than being treated as zero gain.
 - [x] Renderer: condensed bold typeface and bounded bitmap cache retained; five-character values and 8% alpha boost added.
 - [x] Rotation policy: 1,000ms for enabled custom rotation while interactive; 3,000ms otherwise; sample loop unchanged.
 - [x] Focused unit tests added/updated for anomaly evaluation, filters, alpha boost, and refresh policy.
