@@ -43,6 +43,11 @@ object SessionAnomalyEvaluator {
             result += SessionAnomaly.RECOVERY
         }
         if (session.isAnomaly) result += SessionAnomaly.RECORDED
-        return result.distinct()
+        val distinct = result.distinct()
+        return if (distinct.any { it != SessionAnomaly.RECORDED }) {
+            distinct.filterNot { it == SessionAnomaly.RECORDED }
+        } else {
+            distinct
+        }
     }
 }
