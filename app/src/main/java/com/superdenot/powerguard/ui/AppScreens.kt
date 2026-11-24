@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
+import com.superdenot.powerguard.data.repository.StatusBarIndicatorSetting
 import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
 import com.superdenot.powerguard.domain.analytics.BatteryHealthEstimator
@@ -53,6 +54,7 @@ import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
@@ -343,7 +345,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp
                     )
-                    IconButton(onClick = { showPowerInfo = true }, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = { showPowerInfo = true }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Rounded.Info, contentDescription = "Informasi pengukuran daya baterai",
                             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     }
@@ -613,10 +615,28 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         previewRunning, previewService, previewFallback, previewServiceAt,
                         previewFallbackAt, SystemClock.elapsedRealtime()
                     )
+                    var previewElapsedRealtime by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+                    LaunchedEffect(draftMode, draftRotationParameters, draftIntervalSeconds) {
+                        if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+                            while (true) {
+                                previewElapsedRealtime = SystemClock.elapsedRealtime()
+                                delay(250L)
+                            }
+                        } else {
+                            previewElapsedRealtime = SystemClock.elapsedRealtime()
+                        }
+                    }
                     val previewParameters = StatusBarParameter.selectableValues.filter { it in draftRotationParameters }
-                    val previewParameter = if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
-                        previewParameters.firstOrNull() ?: draftParameter
-                    } else draftParameter
+                    val previewSetting = remember(draftMode, draftParameter, previewParameters, draftIntervalSeconds) {
+                        StatusBarIndicatorSetting(
+                            enabled = true,
+                            parameter = draftParameter,
+                            displayMode = draftMode,
+                            rotationParameters = previewParameters,
+                            rotationIntervalSeconds = draftIntervalSeconds
+                        )
+                    }
+                    val previewParameter = previewSetting.parameterAtElapsedRealtime(previewElapsedRealtime)
                     val scaleRatio = (draftCurrentScale.multiplier / currentScale.multiplier)
                         .takeIf { it.isFinite() && it > 0.0 } ?: 1.0
                     val previewReadingState = previewBaseState.copy(
