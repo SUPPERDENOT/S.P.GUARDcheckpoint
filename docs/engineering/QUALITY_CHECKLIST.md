@@ -10,7 +10,7 @@
 - [x] Compact summary formatter tests active thresholds/tone, inactive state, and normalization of unsupported thresholds.
 - [x] History formatter source retains `\\u2192`; History test verifies `44% → 54%` and excludes malformed apostrophe-`n` text.
 - [x] Reviewed protected boundaries: Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring, `RECOVERY_HOLD`, and applicationId unchanged.
-- [ ] GitHub Actions CI for final branch HEAD: PENDING.
+- [x] GitHub Actions CI Run #608 on branch HEAD `ba7110bfe41f8e77ac05c4e424ad91fc766a265c`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS. APK artifact `14933876095`; test report `14933741143`.
 - [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
 - [ ] PR #11 merge: HOLD until physical-device QA is confirmed.
 
