@@ -84,7 +84,6 @@ fun BatteryGaugeView(
                 progress = safeProgress,
                 percentageLabel = percentageLabel,
                 model = model,
-                animation = animation,
                 gaugeColor = gaugeColor
             )
         }
@@ -117,10 +116,16 @@ private fun StaticBatteryGauge(
     progress: Float,
     percentageLabel: String,
     model: BatteryGaugeModel,
-    animation: ChargingArcAnimation,
     gaugeColor: Color
 ) {
-    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, null)
+    BatteryGaugeRenderer(
+        progress,
+        percentageLabel,
+        model,
+        ChargingArcAnimation.STATIC,
+        gaugeColor,
+        null
+    )
 }
 
 @Composable
