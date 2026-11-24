@@ -1,3 +1,28 @@
+## 2026-11-25 — PR #12: two-layer theme packs and four battery gauge models
+
+### Added
+- Added the extensible `ThemePackConfig` sealed interface with Basic (SYSTEM/LIGHT/DARK and TERRACOTTA/EMERALD/COBALT accents) and Midnight Violet packages. SYSTEM mode resolves through Compose `isSystemInDarkTheme()`.
+- Added the Midnight Violet deep-indigo palette and optional cold/warm metric sub-card tints on the Ringkasan summary card.
+- Centralized explicit `Color(0xFF...)` definitions in `ui/theme/Theme.kt`; the UI audit now rejects explicit color literals elsewhere under app source.
+- Added `LocalBatterySemanticColors` with strict priority: critical thermal red, warm amber, charging green, then theme accent. Warm/high thresholds reuse the existing thermal analyzer constants (38°C / 40°C); no new sensor or diagnostic threshold was introduced.
+- Added dedicated `spg_theme_preferences` SharedPreferences persistence for theme package, Basic mode/accent, dual-tint option, gauge model, and charging animation. Unknown string keys fall back safely; no `Enum.valueOf()` parsing is used.
+- Exposed the persisted configuration through `PowerGuardViewModel.themePackConfig: StateFlow<ThemePackConfig>` and applied it at the application Compose root.
+- Added ARC, CAPSULE, SEGMENTED (20 × 5% segments with 3.5° gaps), and WAVE gauge renderers. Charging animations are composed only while the gauge is charging, visible, and not in warm/critical thermal states; STATIC never creates an infinite transition.
+- Added the two-layer Settings picker with package swatches, draft-only live gauge preview, model/animation choices, package-specific controls, and a sticky footer. Midnight Violet dual tint differentiates electrical metrics from the temperature sub-card.
+
+### Protected boundaries
+- No Room DB v3 entity, schema, or migration change.
+- No sensor acquisition, sensor interpretation, sampling cadence, charging calculation, calibration default 1x, foreground monitoring channel/P0 lifecycle, or RECOVERY_HOLD change intended.
+- `applicationId`, package namespace, SDK, dependencies, app version, and build number are unchanged.
+
+### Verification status
+- Added unit tests for safe preference parsing/fallback and round-trip persistence, semantic color priority, 20-segment level boundaries, and the two-line Settings summary formatter.
+- Source diff review and GitHub Actions CI: PENDING.
+- Physical-device QA on itel P55 (360dp / 720p): NOT RUN. Verify SYSTEM theme reactivity, light/dark contrast, all four gauge models, thermal color priority, charging animation gating, dialog scrolling/footer, and Midnight Violet metric tints.
+- Compact 32dp choice pills and 36dp footer buttons are below DESIGN.md's 48dp minimum touch-target guidance; this explicit compact-design exception requires thumb-use review on itel P55.
+
+---
+
 ## 2026-11-24 — PR #11 final polish: sticky Charge Guard popup and bounded alert repetition
 
 ### Changed
