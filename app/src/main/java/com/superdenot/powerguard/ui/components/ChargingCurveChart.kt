@@ -38,6 +38,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
+import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
+import com.superdenot.powerguard.domain.analytics.ChargingThermalSample
+import com.superdenot.powerguard.domain.analytics.ChargingThermalSummary
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
@@ -63,6 +66,13 @@ fun ChargingCurveChart(
     }
     val selectedIndex = selectedIndexState.intValue.coerceIn(0, (samples.lastIndex).coerceAtLeast(0))
     val selectedSample = samples.getOrNull(selectedIndex)
+    val thermalSummary = remember(samples) {
+        ChargingThermalPhaseAnalyzer.analyze(samples.map { sample ->
+            ChargingThermalSample(sample.timestamp, sample.tempCelsius, sample.isTemperatureAvailable,
+                sample.currentMa, sample.isCurrentAvailable, sample.voltageMv, sample.isVoltageAvailable,
+                sample.isChargingStatusAvailable, sample.isCharging)
+        })
+    }
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
     val focusLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
     val timeFormatter = remember {
@@ -77,7 +87,7 @@ fun ChargingCurveChart(
             .padding(start = 8.dp, top = 10.dp, end = 8.dp, bottom = 6.dp)
     ) {
         Text(
-            text = "Charging Curve Analyzer",
+            text = "Analisis Kurva Pengisian",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -285,6 +295,14 @@ fun ChargingCurveChart(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp)
                 )
+                Text(
+                    text = if (sample.isVoltageAvailable) {
+                        String.format(Locale.US, "Tegangan: %.2f V (%d mV)", sample.voltageMv / 1000.0, sample.voltageMv)
+                    } else "Tegangan: —",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
 
             val peakMa = currentSamples.maxOfOrNull { it.currentMa }
@@ -331,6 +349,40 @@ fun ChargingCurveChart(
                     softWrap = false
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            ChargingThermalSummaryPanel(thermalSummary)
+        }
+    }
+}
+
+@Composable
+internal fun ChargingThermalSummaryPanel(summary: ChargingThermalSummary) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("Distribusi zona suhu", style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold)
+            Text(
+                if (summary.hasTemperatureData) {
+                    "${summary.safeMinutes}m Aman · ${summary.warmMinutes}m Hangat · ${summary.highMinutes}m Tinggi"
+                } else "Data suhu sesi tidak tersedia",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(summary.phase.label, style = MaterialTheme.typography.labelMedium,
+                color = when (summary.phase) {
+                    com.superdenot.powerguard.domain.analytics.ChargingPhaseIndicator.CC -> EmeraldCharge
+                    com.superdenot.powerguard.domain.analytics.ChargingPhaseIndicator.CV -> AmberThermal
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                fontWeight = FontWeight.SemiBold)
+            Text("Indikasi pola dari sampel sisi baterai; bukan identifikasi protokol langsung.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
