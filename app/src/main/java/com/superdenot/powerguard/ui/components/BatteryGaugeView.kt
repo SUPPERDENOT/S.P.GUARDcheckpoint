@@ -7,7 +7,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
@@ -25,11 +24,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +65,7 @@ fun BatteryGaugeView(
     val safeProgress = progress.coerceIn(0f, 1f)
     Box(
         modifier = modifier.semantics {
+            contentDescription = "Level baterai $percentageLabel"
             progressBarRangeInfo = ProgressBarRangeInfo(safeProgress, 0f..1f)
         },
         contentAlignment = Alignment.Center
@@ -208,7 +210,13 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawArcGauge(
     val brush = if (animation == ChargingArcAnimation.ENERGY_SWEEP) {
         Brush.sweepGradient(listOf(color.copy(alpha = 0.35f), color, color.copy(alpha = 0.7f)))
     } else Brush.linearGradient(listOf(color, color))
-    drawArc(brush, 135f, sweep, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+    if (animation == ChargingArcAnimation.ENERGY_SWEEP) {
+        rotate(phase * 57.29578f, pivot = Offset(size.width / 2f, size.height / 2f)) {
+            drawArc(brush, 135f, sweep, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        }
+    } else {
+        drawArc(brush, 135f, sweep, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+    }
     when (animation) {
         ChargingArcAnimation.SEGMENTED_FLOW -> {
             val movingStart = 135f + ((phase / (2f * PI).toFloat()) * sweep)
@@ -264,7 +272,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
         when (animation) {
             ChargingArcAnimation.ENERGY_SWEEP -> {
                 val stripeY = top + innerInset + ((phase / (2f * PI).toFloat()) * bodyHeight)
-                drawRect(Color.White.copy(alpha = 0.22f), Offset(left, stripeY), Size(bodyWidth, 5.dp.toPx()))
+                if (stripeY in fillTop..(top + bodyHeight)) {
+                    drawRect(Color.White.copy(alpha = 0.22f), Offset(left, stripeY), Size(bodyWidth, 5.dp.toPx()))
+                }
             }
             ChargingArcAnimation.SEGMENTED_FLOW -> {
                 var y = top + bodyHeight - 8.dp.toPx()
@@ -273,9 +283,15 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                         Offset(left + bodyWidth - 3.dp.toPx(), y), 1.dp.toPx())
                     y -= 9.dp.toPx()
                 }
+                val movingY = top + bodyHeight - (phase / (2f * PI).toFloat()) * fillHeight
+                if (movingY in fillTop..(top + bodyHeight)) {
+                    drawLine(Color.White.copy(alpha = 0.9f), Offset(left + 3.dp.toPx(), movingY),
+                        Offset(left + bodyWidth - 3.dp.toPx(), movingY), 2.dp.toPx())
+                }
             }
             ChargingArcAnimation.COMET_HEAD -> {
-                drawCircle(Color.White.copy(alpha = 0.9f), 3.dp.toPx(), Offset(size.width / 2f, fillTop))
+                val cometX = size.width / 2f + sin(phase) * bodyWidth * 0.18f
+                drawCircle(Color.White.copy(alpha = 0.9f), 3.dp.toPx(), Offset(cometX, fillTop))
             }
             ChargingArcAnimation.STATIC -> Unit
         }
@@ -301,9 +317,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSegmentedGauge(
         drawArc(trackColor, start, segmentSweep, false, topLeft, arcSize,
             style = Stroke(stroke, cap = StrokeCap.Butt))
         if (index < litCount) {
-            val movingIndex = ((phase / (2f * PI).toFloat()) * 20f).toInt() % 20
+            val movingIndex = if (litCount == 0) -1 else
+                ((phase / (2f * PI).toFloat()) * litCount).toInt() % litCount
+            val sweepPosition = (index / 20f + phase / (2f * PI).toFloat()) % 1f
             val segmentColor = when (animation) {
-                ChargingArcAnimation.ENERGY_SWEEP -> color.copy(alpha = 0.62f + (index / 20f) * 0.38f)
+                ChargingArcAnimation.ENERGY_SWEEP -> color.copy(alpha = 0.55f + sweepPosition * 0.45f)
                 ChargingArcAnimation.SEGMENTED_FLOW -> if (index == movingIndex) Color.White else color
                 ChargingArcAnimation.COMET_HEAD -> color
                 ChargingArcAnimation.STATIC -> color
