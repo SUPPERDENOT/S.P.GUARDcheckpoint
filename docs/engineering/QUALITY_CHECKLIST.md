@@ -1,3 +1,29 @@
+## 2026-11-24 — PR #11 final polish: sticky popup, state-aware footer, and alert repetition
+
+- [x] Charge Guard dialog has a fixed compact header, weighted scrollable body, and sticky compact footer.
+- [x] Tone picker and draft Tes action share one row.
+- [x] Footer Batal is an outlined 36dp CircleShape button; Simpan uses the same size and is enabled only when the draft differs from persisted configuration/tone settings.
+- [x] Removed the outer Settings-card Tes action; retained the chevron and full-width two-line ellipsized summary.
+- [x] Added persisted repeat modes Sekali (default), Tiap 1 mnt, and Tiap 3 mnt; summary displays Ulang 1m / Ulang 3m when applicable.
+- [x] Added repeat policy with maximum five repeats per incident after the initial alert, independently tracked for charge-limit and temperature alerts.
+- [x] Added notification deleteIntent and non-exported lightweight dismissal receiver; dismissal suppresses further repeats for that active incident without changing service lifecycle.
+- [x] Charger disconnect receiver immediately clears active repeat state. Existing service evaluation also reconciles inactive conditions on samples.
+- [x] Temperature repeat remains active until temperature is strictly below threshold minus 2°C; exact hysteresis boundary does not re-arm.
+- [x] Added unit tests for repeat mode persistence, interval boundaries, five-repeat cap, dismiss suppression, unplug reset, hysteresis stop, and summary formatting.
+- [x] No Room DB v3, sensor acquisition/cadence, calibration default 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, or applicationId change intended.
+- [ ] Diff review: PENDING.
+- [ ] Anti-Slop UI Audit Gate: PENDING.
+- [ ] testDebugUnitTest: PENDING.
+- [ ] assembleDebug: PENDING.
+- [ ] Upload APK / latest Artifact ID: PENDING.
+- [ ] Physical-device QA on itel P55: NOT RUN; verify sticky footer reachability, 36dp/32dp touch usability, notification dismissal, repeat cadence, charger unplug, and temperature hysteresis.
+- [ ] PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
+
+### Accessibility trade-off
+- Footer buttons are 36dp and selection pills are 32dp per the requested compact design; DESIGN.md specifies 48dp minimum touch targets. This is a documented exception, not an accessibility PASS, and must be reviewed on device.
+
+---
+
 ## 2026-11-24 — PR #11 follow-up: audio fallback, custom vibration, and compact switches
 
 - [x] Replaced all four Settings/Charge Guard Material 3 Switch controls with reusable CompactSwitch (42×24dp track, 18dp thumb, animated movement, 36dp interaction height).
