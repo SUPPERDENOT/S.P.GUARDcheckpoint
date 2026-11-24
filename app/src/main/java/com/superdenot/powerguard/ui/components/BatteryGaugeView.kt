@@ -219,12 +219,15 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawArcGauge(
     }
     when (animation) {
         ChargingArcAnimation.SEGMENTED_FLOW -> {
-            val movingStart = 135f + ((phase / (2f * PI).toFloat()) * sweep)
-            drawArc(Color.White.copy(alpha = 0.75f), movingStart, 18f.coerceAtMost(sweep), false,
+            val movingSweep = 18f.coerceAtMost(sweep)
+            val phaseFraction = phase / (2f * PI).toFloat()
+            val movingStart = 135f + phaseFraction * (sweep - movingSweep).coerceAtLeast(0f)
+            drawArc(Color.White.copy(alpha = 0.75f), movingStart, movingSweep, false,
                 topLeft, arcSize, style = Stroke(stroke * 0.72f, cap = StrokeCap.Round))
         }
         ChargingArcAnimation.COMET_HEAD -> {
-            val angle = Math.toRadians((135f + sweep + (phase * 12f)).toDouble())
+            val phaseFraction = phase / (2f * PI).toFloat()
+            val angle = Math.toRadians((135f + sweep * phaseFraction).toDouble())
             val radius = diameter / 2f
             val center = Offset(size.width / 2f, size.height / 2f)
             drawCircle(
@@ -348,7 +351,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSegmentedGauge(
         }
     }
     if (animation == ChargingArcAnimation.COMET_HEAD && litCount > 0) {
-        val angle = Math.toRadians((135f + 270f * progress + phase * 12f).toDouble())
+        val phaseFraction = phase / (2f * PI).toFloat()
+        val angle = Math.toRadians((135f + 270f * progress * phaseFraction).toDouble())
         val radius = diameter / 2f
         drawCircle(Color.White, stroke * 0.7f,
             Offset(size.width / 2f + cos(angle).toFloat() * radius, size.height / 2f + sin(angle).toFloat() * radius))

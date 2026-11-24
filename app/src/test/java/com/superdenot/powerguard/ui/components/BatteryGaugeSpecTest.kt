@@ -58,6 +58,9 @@ class BatteryGaugeSpecTest {
         assertEquals(20, segmentedGaugeLitCount(100))
         assertEquals(0, segmentedGaugeLitCount(-20))
         assertEquals(20, segmentedGaugeLitCount(140))
+        (0..100).forEach { level ->
+            assertEquals("level=$level", level / 5, segmentedGaugeLitCount(level))
+        }
     }
 
     @Test
