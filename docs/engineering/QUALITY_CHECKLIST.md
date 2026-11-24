@@ -1,3 +1,14 @@
+## 2026-11-24 — PR #8 follow-up: compact parameter cells and custom interval input
+
+- [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at requested base `d81a016c55b5e5d2dcfa716c901d6d9d02f409b9`; PR #8 was OPEN / not merged.
+- [x] Parameter grid: PASS by source review — six option pills use `Modifier.height(36.dp)`, 8dp horizontal / 4dp vertical content padding, and 6dp horizontal / vertical cell gaps.
+- [x] Custom interval: PASS by source review — `BasicTextField` is centered, single-line, placeholder-free, and contained in a 56dp × 34dp `Surface` with 8dp rounded corners and validation-aware border color. Existing numeric filtering and 1–60 validation are retained.
+- [x] Dialog density: PASS by source review — title/content horizontal inset is 16dp and content section spacing is 8dp.
+- [x] Protected scope: PASS by source diff review — only `AppScreens.kt`, `CHANGELOG.md`, and this checklist are changed; draft/save behavior, renderer, sensor, calibration default 1x, Room v3, service lifecycle / `RECOVERY_HOLD`, and `applicationId` are untouched.
+- [ ] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload: NOT RUN — pending CI for the latest branch commit.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #8 merge.
+- [ ] PR #8 merge: HOLD — do not merge before latest APK physical QA.
+
 ## 2026-11-24 — PR #8 follow-up: compact Settings and Status Bar controls
 
 - [x] Baseline: PASS — branch `feat/crisp-statusbar-indicator` was verified at requested base `446996fed5200bd20179990ced292a5596f8392e`; PR #8 was OPEN / not merged.
