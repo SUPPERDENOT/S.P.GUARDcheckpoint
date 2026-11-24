@@ -11,6 +11,7 @@ class SessionLevelRangeFormatterTest {
         assertEquals("55% → 56%", formatSessionLevelRange(55, 56))
         assertEquals("44% → 54%", formatSessionLevelRange(44, 54))
         assertEquals("44% → 62%", formatSessionLevelRange(44, 62))
+        assertEquals("44% → —", formatSessionLevelRange(44, null))
         assertFalse(formatSessionLevelRange(44, 54).contains("'n"))
     }
 }
