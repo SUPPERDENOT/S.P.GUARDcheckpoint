@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -128,20 +129,23 @@ private fun BatteryGaugeRenderer(
     gaugeColor: Color,
     phase: Float
 ) {
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     when (model) {
         BatteryGaugeModel.ARC -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawArcGauge(progress, gaugeColor, MaterialTheme.colorScheme.outlineVariant, phase, animation)
+                    drawArcGauge(progress, gaugeColor, trackColor, phase, animation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
         }
         BatteryGaugeModel.CAPSULE -> {
-            val textColor = if (progress >= 0.48f) Color.White else MaterialTheme.colorScheme.onSurface
+            val textColor = if (progress >= 0.48f) Color.White else onSurfaceColor
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawCapsuleGauge(progress, gaugeColor, MaterialTheme.colorScheme.outlineVariant, phase, animation)
+                    drawCapsuleGauge(progress, gaugeColor, trackColor, phase, animation)
                 }
                 Text(
                     percentageLabel,
@@ -155,24 +159,19 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.SEGMENTED -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawSegmentedGauge(progress, gaugeColor, MaterialTheme.colorScheme.outlineVariant, phase, animation)
+                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase, animation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
         }
         BatteryGaugeModel.WAVE -> {
-            val isDark = MaterialTheme.colorScheme.background == MaterialTheme.colorScheme.background
-            val upperTextColor = if (MaterialTheme.colorScheme.onSurface == Color.White) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                InstrumentGraphite
-            }
+            val upperTextColor = if (isDark) onSurfaceColor else InstrumentGraphite
             WaveGauge(
                 progress = progress,
                 percentageLabel = percentageLabel,
                 gaugeColor = gaugeColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                borderColor = MaterialTheme.colorScheme.outlineVariant,
+                borderColor = trackColor,
                 phase = phase,
                 animation = animation,
                 upperTextColor = upperTextColor
@@ -359,28 +358,26 @@ private fun WaveGauge(
                 style = Stroke(1.5.dp.toPx()))
         }
         val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase
-        Text(
-            percentageLabel,
-            modifier = Modifier.fillMaxSize().drawWithContent {
+        Box(
+            Modifier.fillMaxSize().drawWithContent {
                 val path = waveTextClipPath(size.width, size.height, progress, wavePhase, above = true)
                 clipPath(path) { drawContent() }
             },
-            color = upperTextColor,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            percentageLabel,
-            modifier = Modifier.fillMaxSize().drawWithContent {
+            contentAlignment = Alignment.Center
+        ) {
+            Text(percentageLabel, color = upperTextColor, fontSize = 23.sp,
+                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        }
+        Box(
+            Modifier.fillMaxSize().drawWithContent {
                 val path = waveTextClipPath(size.width, size.height, progress, wavePhase, above = false)
                 clipPath(path) { drawContent() }
             },
-            color = Color.White,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
+            contentAlignment = Alignment.Center
+        ) {
+            Text(percentageLabel, color = Color.White, fontSize = 23.sp,
+                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        }
     }
 }
 
