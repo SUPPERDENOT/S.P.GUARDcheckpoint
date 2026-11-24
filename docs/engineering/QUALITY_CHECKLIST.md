@@ -12,8 +12,10 @@
 - [x] Alarm policy uses one alert per charge session/target, temperature hysteresis, and a 15-minute cooldown. Service integration is after the existing active-sample state construction; RECOVERY_HOLD early-return path is unchanged.
 - [x] Unit tests added for formatters, outlier scaling, SOH snapshot mapping, daily trend summary/labels, anomaly badge suppression, charge/temperature alarm policy, and SharedPreferences defaults/persistence.
 - [x] Room v3 schema and entities unchanged; sensor acquisition, sampling cadence, calibration default 1x, P0 lifecycle transitions, RECOVERY_HOLD, and applicationId unchanged by intended diff.
-- [x] Final diff review: PASS — 20 changed files; no Room entity/schema/migration, Gradle, manifest, package/version, sensor acquisition, sampling cadence, or calibration files changed. The service diff is limited to the post-sample alert evaluation and notification helpers.
-- [ ] PR CI: PENDING.
+- [x] Final diff review: PASS — 21 changed files; no Room entity/schema/migration, Gradle, manifest, package/version, sensor acquisition, sampling cadence, or calibration files changed. The service diff is limited to the post-sample alert evaluation and notification helpers.
+- [x] Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload: SUCCESS — PR CI Run #591 (`45390892432`).
+- [x] Debug APK artifact ID: `14917414475` (`android-debug-apk`); unit-test report artifact ID: `14919250772`.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
 - [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN; required before merge.
 - [ ] PR #11 merge: HOLD until CI SUCCESS and physical QA confirmation.
 
