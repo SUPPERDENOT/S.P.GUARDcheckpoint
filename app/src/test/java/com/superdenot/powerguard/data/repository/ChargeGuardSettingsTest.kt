@@ -3,8 +3,10 @@ package com.superdenot.powerguard.data.repository
 import android.content.Context
 import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.domain.engine.ChargeGuardConfiguration
+import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,6 +30,27 @@ class ChargeGuardSettingsTest {
         assertFalse(config.highTemperatureEnabled)
         assertEquals(85, config.targetLevelPercent)
         assertEquals(40, config.highTemperatureThresholdCelsius)
+    }
+
+    @Test fun alertSoundDefaultsToSystemNotificationToneWithVibrationEnabled() {
+        val setting = ChargeGuardSettings.readAlertSound(context)
+        assertEquals(ChargeGuardAlertSoundSetting.DEFAULT, setting.selection)
+        assertEquals("Nada Default", setting.title)
+        assertTrue(setting.vibrate)
+    }
+
+    @Test fun alertSoundUriTitleAndVibrationPersistIndependently() {
+        val expected = ChargeGuardAlertSoundSetting(
+            selection = "content://media/external/audio/media/123",
+            title = "Nada pilihan",
+            vibrate = false
+        )
+        ChargeGuardSettings.saveAlertSound(context, expected)
+        assertEquals(expected, ChargeGuardSettings.readAlertSound(context))
+        assertFalse(
+            context.getSharedPreferences("powerguard_sensor_calibration", Context.MODE_PRIVATE)
+                .contains("alert_sound_selection")
+        )
     }
 
     @Test fun independentChargeGuardSettingsPersistInTheirOwnPreferenceFile() {
