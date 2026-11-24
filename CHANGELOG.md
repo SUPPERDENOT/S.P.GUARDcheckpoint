@@ -1,3 +1,27 @@
+## 2026-11-24 — PR #11 (pending): data consistency, History polish, and Charge Guard alarms
+
+### Changed
+- Session level range now uses the explicit Kotlin Unicode escape `\\u2192`; History duration labels are compact single-line values (`3j 30m`, `48m 21d`). The generic `Anomali tercatat` badge is suppressed when a specific anomaly badge is available.
+- Selected History sessions use a soft selection fill and chart icon instead of an orange anomaly-like border. The expanded curve panel is placed above the History filter chips.
+- Current-curve axis scaling ignores readings outside ±25,000 mA for display-scale calculation only; raw samples and Room data are not changed.
+- Overview and Insights now map the same persisted SOH snapshot for identical estimated-capacity and SOH values.
+- Seven-day trend labels use distinct Indonesian three-letter weekdays; tapping a day shows its cycle, total incoming mAh with Indonesian thousands separators, peak temperature, and anomaly count.
+- The existing green/yellow/red thermal-duration ribbon is retained on Charging and curve sessions. The Status Bar Indicator dialog now applies IME padding while retaining its scrollable content.
+- Added Charge Guard settings in a dedicated SharedPreferences file. Charge-limit targets: 80/85/90/95/100%; temperature thresholds: 40/42/45°C. Both toggles default OFF. Notifications are one per charge session/temperature incident, with 2°C temperature hysteresis and a 15-minute cooldown. This is notification-only; it does not electrically stop charging.
+
+### Protected behavior
+- Room remains version 3; no Room entity, schema, migration, or historical data change.
+- Sensor acquisition and sampling cadence, calibration default 1x, P0 service lifecycle and RECOVERY_HOLD transitions remain unchanged. The service only evaluates alerts after the existing active sample path; RECOVERY_HOLD returns before this hook.
+- applicationId remains `com.superdenot.superdguard`. No package, dependency, SDK, version, or build configuration change.
+
+### Verification
+- Added unit tests for explicit session-level arrow output, compact duration, current-axis outlier filtering, shared SOH snapshot mapping, daily weekday/summary data, generic anomaly suppression, alarm thresholds/hysteresis/cooldown, and fresh-install preference defaults.
+- Source diff review and CI: PENDING.
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #11 merge.
+- PR #11 merge: HOLD until CI SUCCESS and physical-device QA confirmation.
+
+---
+
 ## 2026-11-24 — PR #10: visual presentation, diagnostic summaries, and live status-bar preview
 
 ### Changed
@@ -19,10 +43,10 @@
 ### Verification
 - Full diff review: PASS — 21 changed files reviewed against PR #10 base `4140b41313959087a1b97c4a823ff4f176376ed7`; no Room entity/schema/migration, BatteryMonitorService, sensor acquisition, sampling cadence, calibration default, or build-configuration files changed.
 - Added tests for thermal-zone durations and CC/CV-like pattern mapping (including long-gap Unknown behavior), seven-day trend aggregation/date labels, accessory ranking/average peak temperature, and compact Settings summary formatting.
-- GitHub Actions PR CI Run #573: SUCCESS on commit `8aad816e1f0f59c3a5041bda3c517ae3e2cf986b` — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all succeeded. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45360070719)
-- Earlier PR CI runs identified missing/duplicate imports; corrected before Run #573.
-- Debug APK artifact: `14904586066` (`android-debug-apk`); unit-test report artifact: `14904536043`.
-- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #10 merge. PR #10 remains OPEN and unmerged.
+- Final GitHub Actions PR CI Run #577: SUCCESS on commit `ecbe968b71a4efb402211634c8b673eb46c80e7f` — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all succeeded. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45360617867)
+- Debug APK artifact: `14904452445` (`android-debug-apk`); unit-test report artifact: `14903734041`.
+- Physical-device QA on itel P55 at 360dp / 720p: PASS — user confirmed the CI #577 APK on the target device.
+- PR #10 squash-merged into `main`; merge commit `18d771a9fca0d51703b01f3c81d8a00c350febc5`. Main CI Run #578 and Dynamic Run #14: SUCCESS.
 
 ---
 
