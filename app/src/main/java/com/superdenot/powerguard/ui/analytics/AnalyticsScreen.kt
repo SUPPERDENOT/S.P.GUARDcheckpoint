@@ -98,6 +98,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.text.NumberFormat
+import kotlin.math.roundToLong
 import java.time.LocalDate
 
 internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int): String =
@@ -762,7 +763,7 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
                             style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} siklus • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(rollup.totalMahCharged.toLong())} mAh",
+                            "Akumulasi Siklus: ${String.format(Locale.US, "%.2f", rollup.totalCycles)} siklus • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(rollup.totalMahCharged.roundToLong())} mAh",
                             style = MaterialTheme.typography.bodyMedium, color = EmeraldCharge)
                         Text(
                             "Suhu Maks: ${String.format(Locale.US, "%.1f", rollup.maxTempCelsius)}°C • Jumlah Anomali: ${rollup.anomalyCount}",
@@ -838,7 +839,7 @@ private fun SevenDayCycleMiniChart(points: List<DailyCycleTrendPoint>) {
                             style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         Text(
                             if (point.hasData) {
-                                "Siklus: ${String.format(Locale.US, "%.2f", point.totalCycles)} • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(point.totalMahCharged.toLong())} mAh"
+                                "Siklus: ${String.format(Locale.US, "%.2f", point.totalCycles)} • Total Masuk: +${NumberFormat.getIntegerInstance(Locale("id", "ID")).format(point.totalMahCharged.roundToLong())} mAh"
                             } else "Belum ada rollup untuk hari tersebut",
                             style = MaterialTheme.typography.bodySmall
                         )
