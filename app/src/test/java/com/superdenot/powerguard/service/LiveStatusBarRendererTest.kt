@@ -60,20 +60,30 @@ class LiveStatusBarRendererTest {
     }
 
     @Test
-    fun renderAcceptsValuesUpToFourCharacters() {
+    fun renderAcceptsValuesUpToFiveCharacters() {
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("0", "mA")))
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-1.8", "A")))
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.CURRENT, StatusBarReading("-15", "mA")))
         assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("9999", "W")))
+        assertNotNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("12345", "W")))
     }
 
     @Test
-    fun renderRejectsBlankControlAndMoreThanFourNumericCharacters() {
+    fun renderRejectsBlankControlAndMoreThanFiveNumericCharacters() {
         assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("", "W")))
         assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("2.8", "")))
         assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("bad\nvalue", "W")))
-        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("12345", "W")))
+        assertNull(LiveStatusBarRenderer.render(StatusBarParameter.POWER, StatusBarReading("123456", "W")))
         assertEquals(0, LiveStatusBarRenderer.cacheSizeForTesting())
+    }
+
+    @Test
+    fun alphaContrastBoostStrengthensPartialGlyphCoverage() {
+        assertEquals(0, LiveStatusBarRenderer.boostAlphaForTesting(0))
+        assertTrue(LiveStatusBarRenderer.boostAlphaForTesting(32) > 32)
+        assertTrue(LiveStatusBarRenderer.boostAlphaForTesting(128) > 128)
+        assertEquals(255, LiveStatusBarRenderer.boostAlphaForTesting(255))
+        assertEquals(0.08f, LiveStatusBarRenderer.ALPHA_CONTRAST_BOOST, 0.001f)
     }
 
     @Test

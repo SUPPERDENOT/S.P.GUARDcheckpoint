@@ -90,23 +90,21 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     topBar = {
-                        TopAppBar(
-                            expandedHeight = 48.dp,
-                            title = {
-                                androidx.compose.foundation.layout.Column {
-                                    Text(
-                                        "SUPERD POWER GUARD",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 15.sp,
-                                        letterSpacing = 0.45.sp
-                                    )
-                                }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.background,
-                                titleContentColor = MaterialTheme.colorScheme.onBackground
-                            )
-                        )
+                        Column(Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().statusBarsPadding().height(38.dp).padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("SUPERD POWER GUARD", modifier = Modifier.weight(1f),
+                                    fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, letterSpacing = 0.35.sp,
+                                    maxLines = 1, softWrap = false, color = MaterialTheme.colorScheme.onBackground)
+                                Text(labels[currentTab], style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        }
                     },
                     bottomBar = {
                         NavigationBar(

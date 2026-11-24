@@ -59,7 +59,7 @@ internal object LiveStatusBarRenderer {
 
     const val ICON_SIZE_DP = 24
     const val MAX_CACHE_ENTRIES = 32
-    const val MAX_VALUE_LENGTH = 4
+    const val MAX_VALUE_LENGTH = 5
     private const val MAX_SOURCE_TEXT_LENGTH = 3
     private const val MAX_UNIT_LENGTH = 4
     private const val HORIZONTAL_INSET_DP = 0.5f
@@ -119,6 +119,7 @@ internal object LiveStatusBarRenderer {
             val bounds = textBounds(value, paint)
             val baseline = size / 2f - (bounds.top + bounds.bottom) / 2f
             canvas.drawText(value, size / 2f, baseline, paint)
+            drawAlphaContrastBoost(canvas, value, size / 2f, baseline, paint)
             return bitmap
         }
 
@@ -135,7 +136,23 @@ internal object LiveStatusBarRenderer {
         val unitBaseline = size - verticalInset - unitBounds.bottom
         canvas.drawText(value, size / 2f, valueBaseline, valuePaint)
         canvas.drawText(unit, size / 2f, unitBaseline, unitPaint)
+        drawAlphaContrastBoost(canvas, value, size / 2f, valueBaseline, valuePaint)
+        drawAlphaContrastBoost(canvas, unit, size / 2f, unitBaseline, unitPaint)
         return bitmap
+    }
+
+    internal const val ALPHA_CONTRAST_BOOST = 0.08f
+    internal fun boostAlphaForTesting(alpha: Int): Int = boostAlpha(alpha)
+    private fun boostAlpha(alpha: Int): Int {
+        if (alpha <= 0) return 0
+        return (alpha + (255 - alpha) * ALPHA_CONTRAST_BOOST).roundToInt().coerceIn(1, 255)
+    }
+    private fun drawAlphaContrastBoost(canvas: Canvas, text: String, x: Float, baseline: Float, sourcePaint: Paint) {
+        // A second low-alpha SRC_OVER pass compounds edge coverage without reading ALPHA_8 pixels.
+        val boostPaint = Paint(sourcePaint).apply {
+            alpha = (255 * ALPHA_CONTRAST_BOOST).roundToInt()
+        }
+        canvas.drawText(text, x, baseline, boostPaint)
     }
 
     private fun fittedPaint(text: String, maxHeight: Float, maxWidth: Float): Paint {

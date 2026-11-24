@@ -187,22 +187,11 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
         contentPadding = PaddingValues(
+            top = 8.dp,
             bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("DIAGNOSTIK PENGISIAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-                Text(
-                    "Analisis Pengisian",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
-        }
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -318,13 +307,9 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         BatteryHealthEstimator.estimate(sessions, designCapacityMah)
     }
 
-    Column(Modifier.fillMaxSize().padding(padding)) {
-        Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 3.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("INSIGHTS", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-            Text("Pola penggunaan daya", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        }
+    Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             shape = RoundedCornerShape(16.dp)
@@ -370,11 +355,7 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    Column(Modifier.fillMaxSize().padding(padding)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("RIWAYAT", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-            Text("Sesi dan kurva pengisian", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        }
+    Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
         AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 0, visibleSubTabs = listOf(0))
     }
 }
@@ -391,16 +372,12 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     var comingSoon by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 4.dp),
+        modifier = Modifier.fillMaxSize().padding(padding).padding(start = 18.dp, end = 18.dp, top = 8.dp),
         contentPadding = PaddingValues(
             bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Text("PENGATURAN", color = CyanFastCharge, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Preferensi aplikasi", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

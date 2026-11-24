@@ -1,3 +1,30 @@
+## 2026-11-24 — PR #9: compact five-tab header, History anomaly filters, and crisp rotation
+
+### Changed
+- Added a 38dp brand/page header across all five primary tabs with status-bar inset handling, 16dp horizontal padding, and a 0.5dp divider. Removed redundant page subheaders from Charging, Insights, History, and Settings; normalized first content inset to 8dp.
+- Replaced the History micro-session Switch row with five horizontal filter chips: < 1 mnt (default), Semua, Anomali, Berlabel, and Kenaikan ≥10%.
+- Added pure session anomaly evaluation for mAh-per-percent spikes, zero-percent mAh spikes, available temperature at/above 40°C, sessions lasting at least 120 seconds without SoC gain, checkpoint recovery provenance, and previously recorded engine anomalies.
+- Added date grouping, compact metadata, accessory-label pills, soft anomaly badges, and a left anomaly accent.
+- Stored checkpoint-recovery provenance in existing anomalyReason metadata during Room checkpoint reconciliation; Room remains v3 and the isAnomaly flag / RECOVERY_HOLD state machine are unchanged.
+- Kept session-average power explicitly unavailable (— W): no session-average voltage/power pair is persisted, and current alone cannot establish watts. A closed session with a missing end-level remains unknown; the evaluator does not infer a zero-percent gain.
+- Retained the 24dp ALPHA_8 renderer and bounded cache; accepted five-character values and added a light 8% alpha-coverage boost.
+- Added a separate notification-icon refresh policy: 1,000ms for enabled custom rotation while interactive, 3,000ms otherwise. The existing 1,000ms monitoring/sampling loop is unchanged.
+
+### Protected behavior
+- Room remains version 3; no schema migration or historical rewrite.
+- Sensor acquisition, session calculations, P0 service lifecycle, and RECOVERY_HOLD state transitions remain unchanged.
+- Current calibration remains 1x by default; applicationId remains com.superdenot.superdguard.
+- No package, dependency, SDK, app-version, or build-number change.
+
+### Verification
+- Implementation and focused tests added on `feat/slim-header-history-and-crisp-rotation`.
+- Diff review: completed for the 19 changed files against the PR #9 base.
+- GitHub Actions CI: **SUCCESS** — Run #557 (`45339264157`) on head `9e123240245999c6a972b3e141a4af20a1177ff9`; Anti-Slop UI Audit Gate PASS, 258 unit tests PASS (0 failures), `assembleDebug` PASS, APK and test-report uploads PASS.
+- Debug APK artifact ID: **14895517683** (`android-debug-apk`).
+- Physical-device QA on itel P55 at 360dp / 720p: NOT RUN — required before PR #9 merge.
+
+---
+
 ## 2026-11-24 — PR #8 follow-up: uniform 32dp Status Bar dialog pills
 
 ### Changed
