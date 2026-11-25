@@ -54,6 +54,7 @@ import com.superdenot.powerguard.ui.theme.ThemeGaugeSummaryFormatter
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.hasThemeGaugeUnsavedChanges
+import com.superdenot.powerguard.ui.theme.themePreviewConfig
 import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.PowerSaveButton
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
@@ -182,7 +183,7 @@ fun ThemePickerDialogs(
                     ) {
                         Text("Pratinjau langsung", style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        PowerGuardTheme(config = draft) {
+                        PowerGuardTheme(config = themePreviewConfig(draft)) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -203,7 +204,8 @@ fun ThemePickerDialogs(
                                         isCriticalThermal = isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS,
                                         isWarm = isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS && temperatureCelsius < 40f,
                                         isVisibleOnScreen = true,
-                                        modifier = Modifier.size(82.dp)
+                                        modifier = Modifier.size(82.dp),
+                                        forceAnimate = true
                                     )
                                     Column(
                                         modifier = Modifier.weight(1f).widthIn(min = 0.dp),
