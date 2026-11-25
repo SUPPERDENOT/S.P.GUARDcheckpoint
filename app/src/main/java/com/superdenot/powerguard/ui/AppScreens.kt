@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
@@ -1042,6 +1043,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             selected = selected,
                                             role = Role.RadioButton,
                                             interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                             onClick = { draftMode = mode }
                                         ),
                                     shape = RoundedCornerShape(8.dp),
@@ -1120,6 +1122,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             selected = selected,
                                             role = Role.RadioButton,
                                             interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                             onClick = { draftCurrentScale = scale }
                                         ),
                                     shape = RoundedCornerShape(8.dp),
@@ -1176,6 +1179,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                                 selected = selected,
                                                 role = Role.RadioButton,
                                                 interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                                 onClick = {
                                                     draftIntervalSeconds = seconds
                                                     draftIntervalInput = seconds.toString()
@@ -1323,7 +1327,8 @@ private fun ChargeGuardChoicePill(label: String, selected: Boolean, onClick: () 
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
         modifier = modifier.height(32.dp).pressScale(interactionSource)
-            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource, onClick = onClick),
+            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource,
+                                            indication = LocalIndication.current, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
@@ -1368,6 +1373,7 @@ private fun StatusBarParameterGrid(
                                 enabled = enabled,
                                 role = if (multiSelect) Role.Checkbox else Role.RadioButton,
                                 interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                 onClick = { onParameterClick(parameter) }
                             ),
                         shape = RoundedCornerShape(8.dp),

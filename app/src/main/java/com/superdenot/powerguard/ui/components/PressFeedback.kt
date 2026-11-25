@@ -2,6 +2,7 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -9,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.graphicsLayer
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun Modifier.pressScale(interactionSource: MutableInteractionSource, pressedScale: Float = 0.97f): Modifier {
@@ -23,7 +24,7 @@ fun Modifier.pressScale(interactionSource: MutableInteractionSource, pressedScal
 }
 
 @Composable
-fun Modifier.pressScaleClickable(onClick: () -> Unit, pressedScale: Float = 0.98f): Modifier {
+fun Modifier.pressScaleClickable(pressedScale: Float = 0.98f, onClick: () -> Unit): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
-    return pressScale(interactionSource, pressedScale).clickable(interactionSource = interactionSource, onClick = onClick)
+    return pressScale(interactionSource, pressedScale).clickable(interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick)
 }

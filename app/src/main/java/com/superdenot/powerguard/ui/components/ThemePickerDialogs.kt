@@ -2,6 +2,7 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -312,7 +313,7 @@ private fun ThemePackageChoice(
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
         modifier = Modifier.fillMaxWidth().pressScale(interactionSource)
-            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource, onClick = onClick),
+            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
@@ -352,7 +353,7 @@ private fun <T> ChoiceRow(
             Surface(
                 modifier = Modifier.weight(1f).height(32.dp).pressScale(interactionSource)
                     .selectable(selected = value == selected, role = Role.RadioButton,
-                        interactionSource = interactionSource, onClick = { onSelected(value) }),
+                        interactionSource = interactionSource, indication = LocalIndication.current, onClick = { onSelected(value) }),
                 color = if (value == selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                 shape = CircleShape,
                 border = BorderStroke(1.dp, if (value == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
