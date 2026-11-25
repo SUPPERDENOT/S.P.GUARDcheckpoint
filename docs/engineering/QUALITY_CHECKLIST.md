@@ -13,7 +13,8 @@
 - [x] Capacity dirty-state compares the effective (capacityMah, isManualMode) pair; unchanged Automatic state remains clean.
 - [x] Regression tests added/updated for gauge motion, dual Wave layers, forceAnimate, outline width, live Basic accent preview, and capacity dirty-state. Existing Status Bar preset/dirty-state tests retained.
 - [x] Final full-diff self-crosscheck: PASS — 20/20 requested checks; 14 changed paths; no protected Room, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest, Gradle/dependency, or applicationId paths changed.
-- [ ] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload: pending CI on final documentation HEAD.
+- [x] Run #683 (`45625532677`) on source HEAD `e3f61d1290ccb87c42da833c21be0cf4a876d465`: SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload. APK Artifact ID `15027787319`; report Artifact ID `15028747474`.
+- [ ] Exact final test/documentation HEAD CI: pending; Run #683 predates the final Wave boundary assertion and documentation-only commits.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
