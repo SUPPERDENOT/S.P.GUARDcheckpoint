@@ -15,7 +15,7 @@
 - [x] Run #661 (45608819047): SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports.
 - [x] Debug APK Artifact ID 15018512787; unit-test report Artifact ID 15018722461.
 - [x] Run #659 compile failure was traced to the drawText import package and corrected in the follow-up source commit.
-- [ ] Final documentation-only commit CI verification: pending.
+- [x] Run #662 (45609359837) on final combined source/documentation HEAD: SUCCESS — all jobs passed; APK Artifact ID 15018364086; unit-test report Artifact ID 15019132838.
 
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD; no merge or auto-merge.

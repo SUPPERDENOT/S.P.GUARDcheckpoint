@@ -23,7 +23,8 @@
 - Run #659 (45608228926): Anti-Slop UI Audit Gate SUCCESS; Kotlin compile initially failed because drawText was imported from the wrong Compose package. Corrected to androidx.compose.ui.text.drawText.
 - Run #661 (45608819047), final source HEAD 48227f213e55ec41f530dcb9ba9e98545e4c3595: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports all passed.
 - Debug APK artifact ID 15018512787 (SHA256 dca36c1326bfb456529e21b6aaa1f8b14b685a5ad5ac761dff8e3a6841b31b7c); unit-test report artifact ID 15018722461.
-- Final documentation-only commit will receive a separate CI verification run after this entry is recorded.
+- Run #662 (45609359837), final combined source/documentation HEAD fb3298c554010026ca428c7b64805997041a963a: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports all passed.
+- Latest debug APK artifact ID 15018364086 (SHA256 276fe5f3f54d8f0eb22fd29e69c9202d9825ca80e961db15760ed37494d0e929); unit-test report artifact ID 15019132838.
 - Physical-device QA on itel P55: NOT RUN; required for Wave rendering, Basic Light contrast, ETA behavior, and dialog usability.
 - PR #12 remains OPEN; no merge or auto-merge.
 
