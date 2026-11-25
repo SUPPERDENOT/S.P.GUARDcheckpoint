@@ -19,8 +19,11 @@
 - History remains numeric in persistence; no schema or stored-session rewrite.
 
 ### Verification
-- Source diff review and focused tests: pending CI.
-- testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload: pending CI on this commit.
+- Source diff review: PASS — 22 files changed; no Room entity/DAO/database/migration, manifest, Gradle, applicationId, sensor normalization/sampling cadence, calibration default, or service lifecycle/startup paths changed. Engine/service edits are limited to reading and resolving the OS ETA.
+- Run #659 (45608228926): Anti-Slop UI Audit Gate SUCCESS; Kotlin compile initially failed because drawText was imported from the wrong Compose package. Corrected to androidx.compose.ui.text.drawText.
+- Run #661 (45608819047), final source HEAD 48227f213e55ec41f530dcb9ba9e98545e4c3595: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports all passed.
+- Debug APK artifact ID 15018512787 (SHA256 dca36c1326bfb456529e21b6aaa1f8b14b685a5ad5ac761dff8e3a6841b31b7c); unit-test report artifact ID 15018722461.
+- Final documentation-only commit will receive a separate CI verification run after this entry is recorded.
 - Physical-device QA on itel P55: NOT RUN; required for Wave rendering, Basic Light contrast, ETA behavior, and dialog usability.
 - PR #12 remains OPEN; no merge or auto-merge.
 

@@ -11,8 +11,12 @@
 - [x] Capacity dirty-state compares numeric value and manual/automatic mode; automatic action is compact and disabled when already automatic.
 - [x] Status Bar interval presets reflect the effective active interval; initial draft state follows the saved value.
 - [x] Added regression coverage for Wave, outline, History, theme contrast, ETA, capacity dirty-state, interval presets, and notification ETA.
-- [ ] Full diff review: pending.
-- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload: pending CI.
+- [x] Full diff review: PASS — 22 files; database/schema, manifest, Gradle, applicationId, existing sensor normalization/sampling cadence, calibration default, and service lifecycle/startup remain unchanged. Engine/service changes are isolated to OS ETA capture/resolution.
+- [x] Run #661 (45608819047): SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports.
+- [x] Debug APK Artifact ID 15018512787; unit-test report Artifact ID 15018722461.
+- [x] Run #659 compile failure was traced to the drawText import package and corrected in the follow-up source commit.
+- [ ] Final documentation-only commit CI verification: pending.
+
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD; no merge or auto-merge.
 
