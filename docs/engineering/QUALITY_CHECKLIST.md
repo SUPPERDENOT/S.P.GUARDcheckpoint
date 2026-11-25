@@ -1,3 +1,24 @@
+## 2026-11-25 — PR #12 final visual pass
+
+- [x] Busur uses a clockwise -225° to +45° C-arc, track, active gradient, and endpoint halo — source review.
+- [x] Kapsul has a distinct terminal with 2dp gap, glossy outline, vertical fill gradient, and bottom-to-top Sweep/Comet phase mapping — source review.
+- [x] Blok uses 24 radial blocks from -90° clockwise with a dimming trail behind Sweep/Comet heads — source review.
+- [x] Wave retains battery-level fill when idle or charging and renders two phase-offset waves, 0.82-alpha front fill, crest highlight, glass rim, and animated outer orbit — source review.
+- [x] `BatteryGaugeView.forceAnimate` defaults false; Theme & Gauge preview passes true; static selection and visibility/thermal gates remain respected.
+- [x] Percentage text outline token is 1.2dp; both Canvas text passes use one measured layout and the same origin.
+- [x] Theme preview passes the full Basic draft (appearance mode + accent) and gauge configuration into `PowerGuardTheme`.
+- [x] Charging information icons are adjacent to their headings; both explanatory dialogs use opaque `surfaceContainerHigh` surfaces with outline/elevation.
+- [x] Disabled Save text uses `onSurface`, matching Cancel; enabled Save remains primary/onPrimary.
+- [x] Status Bar interval presets are 32dp and aligned with the 32dp custom field; scroll body and sticky footer are separate, with imePadding retained.
+- [x] Capacity dirty-state compares the effective (capacityMah, isManualMode) pair; unchanged Automatic state remains clean.
+- [x] Regression tests added/updated for gauge motion, dual Wave layers, forceAnimate, outline width, live Basic accent preview, and capacity dirty-state. Existing Status Bar preset/dirty-state tests retained.
+- [ ] Final full-diff self-crosscheck: pending.
+- [ ] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload: pending CI on final documentation HEAD.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 combined hotfix
 
 - [x] Wave liquid fill follows battery level independently of charging animation eligibility; all four animation modes retain the fill.
