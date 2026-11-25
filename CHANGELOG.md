@@ -19,7 +19,8 @@
 
 ### Verification
 - Line-by-line self-crosscheck: PASS — 20/20 requirement checks; 14 changed paths in the delta from `551f258b11c981fece8ca45a4e8abed643496894`; no Room/database/migration, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest, Gradle/dependency, or applicationId path is in the diff.
-- Automated verification: final `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK upload are pending on the final documented HEAD.
+- Run #683 (`45625532677`) on source HEAD `e3f61d1290ccb87c42da833c21be0cf4a876d465`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload. APK Artifact ID `15027787319` (SHA256 `53472faa500bf568a390808189f444281782354e61c21ffa9b9569dfd7cd5f24`); unit-test report Artifact ID `15028747474`.
+- After Run #683, the Wave exact-boundary regression assertions and documentation were updated; production UI/source logic did not change. No workflow run was returned for the final test/documentation HEAD, so exact-HEAD CI verification remains pending.
 - Physical-device QA on itel P55: NOT RUN; required to validate animation direction, rendering, contrast, popup opacity, and narrow-screen dialog behavior.
 - PR #12 remains OPEN; no merge or auto-merge.
 
