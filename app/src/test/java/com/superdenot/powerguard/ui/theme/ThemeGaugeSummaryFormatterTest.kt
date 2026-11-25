@@ -45,7 +45,7 @@ class ThemeGaugeSummaryFormatterTest {
         )
         expected.forEach { (accent, summary) ->
             assertEquals(
-                summary to "Arc · Sweep",
+                summary to "Busur · Sweep",
                 ThemeGaugeSummaryFormatter.format(ThemePackConfig.MidnightViolet(
                     dualTintMetrics = false,
                     midnightAccent = accent

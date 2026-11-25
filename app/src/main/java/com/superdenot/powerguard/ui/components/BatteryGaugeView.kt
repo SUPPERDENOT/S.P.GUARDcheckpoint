@@ -405,8 +405,13 @@ private fun WaveGauge(
                     drawCircle(Color.White, 3.dp.toPx(), Offset(size.width / 2f, centerY))
                 }
             }
-            drawCircle(borderColor, diameter / 2f, Offset(size.width / 2f, size.height / 2f),
-                style = Stroke(1.5.dp.toPx()))
+            val borderStroke = 1.5.dp.toPx()
+            drawCircle(
+                borderColor,
+                (diameter / 2f - borderStroke / 2f).coerceAtLeast(0f),
+                Offset(size.width / 2f, size.height / 2f),
+                style = Stroke(borderStroke)
+            )
         }
         GaugePercentageBadge(percentageLabel, 21.sp)
     }
