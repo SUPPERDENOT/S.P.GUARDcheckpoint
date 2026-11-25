@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
@@ -199,13 +198,7 @@ private fun BatteryGaugeRenderer(
 
 @Composable
 private fun GaugeCenterLabel(label: String) {
-    Text(
-        label,
-        color = MaterialTheme.colorScheme.onSurface,
-        fontSize = 23.sp,
-        fontWeight = FontWeight.Bold,
-        maxLines = 1
-    )
+    GaugePercentageLabel(label, 23.sp)
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawArcGauge(
@@ -336,46 +329,48 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 Size(innerWidth, fillHeight)
             )
         }
-        when (animation) {
-            ChargingArcAnimation.ENERGY_SWEEP -> {
-                val stripeY = capsuleCometY(fillTop, innerBottom, phaseFraction)
-                val stripeHeight = 7.dp.toPx()
-                drawRect(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.72f), Color.Transparent),
-                        startY = stripeY - stripeHeight,
-                        endY = stripeY + stripeHeight
-                    ),
-                    Offset(innerLeft, stripeY - stripeHeight),
-                    Size(innerWidth, stripeHeight * 2f)
-                )
-            }
-            ChargingArcAnimation.SEGMENTED_FLOW -> {
-                var y = innerBottom - 8.dp.toPx()
-                while (y > fillTop) {
-                    drawLine(Color.White.copy(alpha = 0.32f), Offset(innerLeft + 2.dp.toPx(), y),
-                        Offset(innerLeft + innerWidth - 2.dp.toPx(), y), 1.dp.toPx())
-                    y -= 9.dp.toPx()
+        if (fillHeight > 0f) {
+            when (animation) {
+                ChargingArcAnimation.ENERGY_SWEEP -> {
+                    val stripeY = capsuleCometY(fillTop, innerBottom, phaseFraction)
+                    val stripeHeight = 7.dp.toPx()
+                    drawRect(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.72f), Color.Transparent),
+                            startY = stripeY - stripeHeight,
+                            endY = stripeY + stripeHeight
+                        ),
+                        Offset(innerLeft, stripeY - stripeHeight),
+                        Size(innerWidth, stripeHeight * 2f)
+                    )
                 }
-                val movingY = capsuleCometY(fillTop, innerBottom, phaseFraction)
-                drawLine(Color.White.copy(alpha = 0.88f), Offset(innerLeft + 2.dp.toPx(), movingY),
-                    Offset(innerLeft + innerWidth - 2.dp.toPx(), movingY), 1.8.dp.toPx())
+                ChargingArcAnimation.SEGMENTED_FLOW -> {
+                    var y = innerBottom - 8.dp.toPx()
+                    while (y > fillTop) {
+                        drawLine(Color.White.copy(alpha = 0.32f), Offset(innerLeft + 2.dp.toPx(), y),
+                            Offset(innerLeft + innerWidth - 2.dp.toPx(), y), 1.dp.toPx())
+                        y -= 9.dp.toPx()
+                    }
+                    val movingY = capsuleCometY(fillTop, innerBottom, phaseFraction)
+                    drawLine(Color.White.copy(alpha = 0.88f), Offset(innerLeft + 2.dp.toPx(), movingY),
+                        Offset(innerLeft + innerWidth - 2.dp.toPx(), movingY), 1.8.dp.toPx())
+                }
+                ChargingArcAnimation.COMET_HEAD -> {
+                    val cometY = capsuleCometY(fillTop, innerBottom, phaseFraction)
+                    val tailLength = (innerBottom - fillTop).coerceAtMost(22.dp.toPx())
+                    drawRect(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.92f), Color.White.copy(alpha = 0.36f), Color.Transparent),
+                            startY = cometY,
+                            endY = (cometY + tailLength).coerceAtLeast(cometY + 1f)
+                        ),
+                        Offset(innerLeft + innerWidth * 0.22f, cometY),
+                        Size(innerWidth * 0.56f, tailLength)
+                    )
+                    drawCircle(Color.White, 2.8.dp.toPx(), Offset(size.width / 2f, cometY))
+                }
+                ChargingArcAnimation.STATIC -> Unit
             }
-            ChargingArcAnimation.COMET_HEAD -> {
-                val cometY = capsuleCometY(fillTop, innerBottom, phaseFraction)
-                val tailLength = (innerBottom - fillTop).coerceAtMost(22.dp.toPx())
-                drawRect(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.92f), Color.White.copy(alpha = 0.36f), Color.Transparent),
-                        startY = cometY,
-                        endY = (cometY + tailLength).coerceAtLeast(cometY + 1f)
-                    ),
-                    Offset(innerLeft + innerWidth * 0.22f, cometY),
-                    Size(innerWidth * 0.56f, tailLength)
-                )
-                drawCircle(Color.White, 2.8.dp.toPx(), Offset(size.width / 2f, cometY))
-            }
-            ChargingArcAnimation.STATIC -> Unit
         }
     }
     drawPath(
@@ -501,7 +496,7 @@ private fun WaveGauge(
                         colors = listOf(
                             gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA),
                             gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA),
-                            gaugeColor.copy(alpha = 0.92f)
+                            gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA)
                         ),
                         startY = fillTop.coerceAtLeast(0f),
                         endY = size.height
@@ -582,7 +577,8 @@ private fun waveY(
     verticalOffset: Float = 0f
 ): Float {
     val normalized = if (width <= 0f) 0f else x / width
-    val amplitude = height * 0.045f * amplitudeScale
+    val damping = sin(progress.coerceIn(0f, 1f) * PI).toFloat()
+    val amplitude = height * 0.055f * damping * amplitudeScale
     val baseline = height * (1f - progress.coerceIn(0f, 1f))
     return baseline + verticalOffset + amplitude * sin(normalized * (2f * PI).toFloat() * 1.25f + phase)
 }
