@@ -83,7 +83,7 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun waveLiquidLevelTracksBatteryFractionForChargingAndIdleAcrossEveryAnimation() {
+    fun waveLiquidLevelTracksBatteryFractionForChargingIdleAndExactBoundariesAcrossEveryAnimation() {
         listOf(false, true).forEach { isCharging ->
             ChargingArcAnimation.values().forEach { animation ->
                 assertEquals("charging=$isCharging animation=$animation", 0.69f,
