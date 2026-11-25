@@ -24,7 +24,7 @@ class ThemeGaugeSummaryFormatterTest {
     @Test
     fun formatsMidnightVioletDualTintState() {
         assertEquals(
-            "Midnight Violet · Ungu · Dua warna" to "Kapsul · Statis",
+            "Midnight · Ungu · Dua warna" to "Kapsul · Statis",
             ThemeGaugeSummaryFormatter.format(
                 ThemePackConfig.MidnightViolet(
                     dualTintMetrics = true,
@@ -38,10 +38,10 @@ class ThemeGaugeSummaryFormatterTest {
     @Test
     fun formatsMidnightAccentInThemeSummary() {
         val expected = mapOf(
-            MidnightAccent.VIOLET to "Midnight Violet · Ungu · Satu warna",
-            MidnightAccent.PINK to "Midnight Violet · Pink · Satu warna",
-            MidnightAccent.CYAN to "Midnight Violet · Cyan · Satu warna",
-            MidnightAccent.GREEN to "Midnight Violet · Green · Satu warna"
+            MidnightAccent.VIOLET to "Midnight · Ungu · Satu warna",
+            MidnightAccent.PINK to "Midnight · Pink · Satu warna",
+            MidnightAccent.CYAN to "Midnight · Cyan · Satu warna",
+            MidnightAccent.GREEN to "Midnight · Green · Satu warna"
         )
         expected.forEach { (accent, summary) ->
             assertEquals(

@@ -2,7 +2,7 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +55,8 @@ import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
 import com.superdenot.powerguard.ui.theme.midnightAccentSwatches
+import com.superdenot.powerguard.ui.components.pressScale
+import com.superdenot.powerguard.ui.components.pressScaleClickable
 
 @Composable
 fun ThemePickerDialogs(
@@ -72,7 +74,7 @@ fun ThemePickerDialogs(
     val (themeSummary, gaugeSummary) = ThemeGaugeSummaryFormatter.format(config)
 
     Card(
-        modifier = modifier.fillMaxWidth().clickable {
+        modifier = modifier.fillMaxWidth().pressScaleClickable {
             draft = config
             showPackagePicker = true
         },
@@ -129,8 +131,8 @@ fun ThemePickerDialogs(
                         }
                     )
                     ThemePackageChoice(
-                        title = "Midnight Violet",
-                        description = "Gelap deep-indigo dengan opsi sub-kartu metrik dua warna.",
+                        title = "Midnight",
+                        description = "Tema gelap dengan empat pilihan aksen dan opsi sub-kartu metrik dua warna.",
                         swatches = midnightAccentSwatches(),
                         selected = draft is ThemePackConfig.MidnightViolet,
                         onClick = {
@@ -307,8 +309,10 @@ private fun ThemePackageChoice(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        modifier = Modifier.fillMaxWidth().selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        modifier = Modifier.fillMaxWidth().pressScale(interactionSource)
+            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource, onClick = onClick),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
@@ -344,12 +348,11 @@ private fun <T> ChoiceRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         values.forEach { value ->
+            val interactionSource = remember(value) { MutableInteractionSource() }
             Surface(
-                modifier = Modifier.weight(1f).height(32.dp).selectable(
-                    selected = value == selected,
-                    role = Role.RadioButton,
-                    onClick = { onSelected(value) }
-                ),
+                modifier = Modifier.weight(1f).height(32.dp).pressScale(interactionSource)
+                    .selectable(selected = value == selected, role = Role.RadioButton,
+                        interactionSource = interactionSource, onClick = { onSelected(value) }),
                 color = if (value == selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                 shape = CircleShape,
                 border = BorderStroke(1.dp, if (value == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)

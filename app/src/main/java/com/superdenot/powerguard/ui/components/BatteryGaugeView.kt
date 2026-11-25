@@ -393,7 +393,8 @@ private fun WaveGauge(
                     )
                     drawPath(rearWave, gaugeColor.copy(alpha = 0.38f))
                 }
-                val liquid = waveFillPath(size.width, size.height, progress, wavePhase)
+                val idleWaveAmplitude = if (animation == ChargingArcAnimation.STATIC) 2.5.dp.toPx() else null
+                val liquid = waveFillPath(size.width, size.height, progress, wavePhase, amplitudeOverride = idleWaveAmplitude)
                 drawPath(liquid, gaugeColor)
                 if (animation == ChargingArcAnimation.SEGMENTED_FLOW) {
                     val levelY = size.height * (1f - progress)
@@ -427,7 +428,7 @@ private fun GaugePercentageBadge(label: String, fontSize: androidx.compose.ui.un
     ) {
         Text(
             label,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             fontSize = fontSize,
             fontWeight = FontWeight.Bold,
             maxLines = 1
@@ -442,11 +443,12 @@ private fun waveY(
     progress: Float,
     phase: Float,
     amplitudeScale: Float = 1f,
-    verticalOffset: Float = 0f
+    verticalOffset: Float = 0f,
+    amplitudeOverride: Float? = null
 ): Float {
     val normalized = if (width <= 0f) 0f else x / width
     val damping = sin(progress.coerceIn(0f, 1f) * PI).toFloat()
-    val amplitude = height * 0.055f * damping * amplitudeScale
+    val amplitude = amplitudeOverride ?: (height * 0.055f * damping * amplitudeScale)
     val baseline = height * (1f - progress.coerceIn(0f, 1f))
     return baseline + verticalOffset + amplitude * sin(normalized * (2f * PI).toFloat() * 1.25f + phase)
 }
@@ -457,12 +459,13 @@ private fun waveFillPath(
     progress: Float,
     phase: Float,
     amplitudeScale: Float = 1f,
-    verticalOffset: Float = 0f
+    verticalOffset: Float = 0f,
+    amplitudeOverride: Float? = null
 ): Path = Path().apply {
-    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudeScale, verticalOffset))
+    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudeScale, verticalOffset, amplitudeOverride))
     for (step in 1..48) {
         val x = width * step / 48f
-        lineTo(x, waveY(x, width, height, progress, phase, amplitudeScale, verticalOffset))
+        lineTo(x, waveY(x, width, height, progress, phase, amplitudeScale, verticalOffset, amplitudeOverride))
     }
     lineTo(width, height)
     lineTo(0f, height)

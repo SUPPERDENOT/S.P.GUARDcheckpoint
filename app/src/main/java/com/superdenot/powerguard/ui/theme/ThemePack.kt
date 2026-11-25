@@ -62,7 +62,7 @@ object ThemeGaugeSummaryFormatter {
             is ThemePackConfig.Basic ->
                 "Basic · ${config.appearanceMode.label} · ${config.accent.label}"
             is ThemePackConfig.MidnightViolet ->
-                "Midnight Violet · ${config.midnightAccent.label} · ${if (config.dualTintMetrics) "Dua warna" else "Satu warna"}"
+                "Midnight · ${config.midnightAccent.label} · ${if (config.dualTintMetrics) "Dua warna" else "Satu warna"}"
         }
         val gaugeLine = "${config.gaugeModel.label} · ${config.chargingAnimation.label}"
         return themeLine to gaugeLine

@@ -15,6 +15,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -58,6 +59,9 @@ import com.superdenot.powerguard.domain.engine.ChargeGuardSettingsSummaryFormatt
 import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import com.superdenot.powerguard.data.repository.ChargeGuardVibrationPattern
 import com.superdenot.powerguard.ui.components.CompactSwitch
+import com.superdenot.powerguard.ui.components.pressScale
+import com.superdenot.powerguard.ui.components.pressScaleClickable
+import com.superdenot.powerguard.ui.dashboard.DesignCapacityDialog
 import com.superdenot.powerguard.ui.components.BatteryGaugeView
 import com.superdenot.powerguard.ui.components.ThemePickerDialogs
 import com.superdenot.powerguard.ui.components.resolveBatteryGaugeColor
@@ -568,7 +572,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(
-                            Modifier.weight(1f).clickable { showStatusBarSettingsDialog = true },
+                            Modifier.weight(1f).pressScaleClickable { showStatusBarSettingsDialog = true },
                             verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
@@ -648,7 +652,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = ::openChargeGuardDialog),
+                modifier = Modifier.fillMaxWidth().pressScaleClickable(onClick = ::openChargeGuardDialog),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -772,7 +776,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Surface(
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).clickable {
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).pressScaleClickable {
                                     val existingUri = when (draftChargeGuardSound.selection) {
                                         ChargeGuardAlertSoundSetting.DEFAULT -> Settings.System.DEFAULT_NOTIFICATION_URI
                                         ChargeGuardAlertSoundSetting.SILENT -> null
@@ -835,7 +839,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Surface(
-                                    modifier = Modifier.weight(1f).height(44.dp).clickable {
+                                    modifier = Modifier.weight(1f).height(44.dp).pressScaleClickable {
                                         val now = SystemClock.elapsedRealtime()
                                         val existing = draftChargeGuardSound.customVibrationTimings
                                         if (pulseCount < 6) {
@@ -931,8 +935,15 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
 
         val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
-        val canSave = draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
-            (draftRotationParameters.size >= 2 && validCustomInterval)
+        val hasUnsavedChanges = draftParameter != statusBarSetting.parameter ||
+            draftMode != statusBarSetting.displayMode ||
+            draftRotationParameters != statusBarSetting.rotationParameters.toSet() ||
+            draftIntervalSeconds != statusBarSetting.rotationIntervalSeconds ||
+            draftCurrentScale != currentScale
+        val canSave = hasUnsavedChanges && (
+            draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
+                (draftRotationParameters.size >= 2 && validCustomInterval)
+            )
 
         Dialog(onDismissRequest = { showStatusBarSettingsDialog = false }) {
             Surface(
@@ -1023,13 +1034,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 StatusBarDisplayMode.CUSTOM_ROTATION to "Rotasi kustom"
                             ).forEach { (mode, label) ->
                                 val selected = draftMode == mode
+                                val interactionSource = remember(mode) { MutableInteractionSource() }
                                 Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(32.dp)
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                        .pressScale(interactionSource)
                                         .selectable(
                                             selected = selected,
                                             role = Role.RadioButton,
+                                            interactionSource = interactionSource,
                                             onClick = { draftMode = mode }
                                         ),
                                     shape = RoundedCornerShape(8.dp),
@@ -1100,13 +1112,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         ) {
                             BatteryCurrentScale.values().forEach { scale ->
                                 val selected = draftCurrentScale == scale
+                                val interactionSource = remember(scale) { MutableInteractionSource() }
                                 Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(32.dp)
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                        .pressScale(interactionSource)
                                         .selectable(
                                             selected = selected,
                                             role = Role.RadioButton,
+                                            interactionSource = interactionSource,
                                             onClick = { draftCurrentScale = scale }
                                         ),
                                     shape = RoundedCornerShape(8.dp),
@@ -1155,13 +1168,14 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             ) {
                                 listOf(2, 3, 5, 10).forEach { seconds ->
                                     val selected = draftIntervalSeconds == seconds && !customIntervalEdited
+                                    val interactionSource = remember(seconds) { MutableInteractionSource() }
                                     Surface(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(32.dp)
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                            .pressScale(interactionSource)
                                             .selectable(
                                                 selected = selected,
                                                 role = Role.RadioButton,
+                                                interactionSource = interactionSource,
                                                 onClick = {
                                                     draftIntervalSeconds = seconds
                                                     draftIntervalInput = seconds.toString()
@@ -1287,44 +1301,17 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
 
     if (showCapacityDialog) {
-        var inputText by remember(capacity.capacityMah) {
-            mutableStateOf(capacity.capacityMah?.toString().orEmpty())
-        }
-        AlertDialog(
-            onDismissRequest = { showCapacityDialog = false },
-            title = { Text("Kapasitas Desain Baterai") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it.filter(Char::isDigit) },
-                        label = { Text("Kapasitas (mAh)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
+        DesignCapacityDialog(
+            capacityMah = capacity.capacityMah,
+            isManualOverride = capacity.isManualOverride,
+            onDismiss = { showCapacityDialog = false },
+            onSaveManual = {
+                vm.updateDesignCapacity(it)
+                showCapacityDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
-                    onClick = {
-                        inputText.toIntOrNull()?.let(vm::updateDesignCapacity)
-                        showCapacityDialog = false
-                    }
-                ) { Text("Simpan") }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = {
-                        vm.useAutomaticDesignCapacity()
-                        showCapacityDialog = false
-                    }) { Text("Gunakan Otomatis") }
-                    TextButton(onClick = { showCapacityDialog = false }) { Text("Batal") }
-                }
+            onUseAutomatic = {
+                vm.useAutomaticDesignCapacity()
+                showCapacityDialog = false
             }
         )
     }
@@ -1333,8 +1320,10 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
 
 @Composable
 private fun ChargeGuardChoicePill(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        modifier = modifier.height(32.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        modifier = modifier.height(32.dp).pressScale(interactionSource)
+            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
@@ -1370,14 +1359,15 @@ private fun StatusBarParameterGrid(
                 row.forEach { parameter ->
                     val selected = parameter in selectedParameters
                     val enabled = !multiSelect || !selected || canDeselectSelected
+                    val interactionSource = remember(parameter) { MutableInteractionSource() }
                     Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(32.dp)
+                        modifier = Modifier.weight(1f).height(32.dp)
+                            .pressScale(interactionSource)
                             .selectable(
                                 selected = selected,
                                 enabled = enabled,
                                 role = if (multiSelect) Role.Checkbox else Role.RadioButton,
+                                interactionSource = interactionSource,
                                 onClick = { onParameterClick(parameter) }
                             ),
                         shape = RoundedCornerShape(8.dp),
@@ -1466,7 +1456,7 @@ private fun ExpandPanel(id: String, title: String, subtitle: String, expanded: S
     val open = id in expanded
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Row(Modifier.fillMaxWidth().clickable(onClick = onToggle), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().pressScaleClickable(onClick = onToggle), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(title, fontWeight = FontWeight.Bold)
                     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

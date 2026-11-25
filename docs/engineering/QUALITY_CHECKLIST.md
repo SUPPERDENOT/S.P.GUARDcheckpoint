@@ -1,3 +1,23 @@
+## 2026-11-25 — PR #12 final polish
+
+- [x] Midnight display name and all four accent summary labels use Midnight; internal config and persisted keys are unchanged.
+- [x] Midnight VIOLET/PINK/CYAN/GREEN use the requested per-accent background, surface, outlineVariant, and primary tokens; all explicit color literals remain in ui/theme/.
+- [x] Theme picker exposes the four matching accent swatches.
+- [x] Wave idle contour uses a static 2.5dp amplitude override, including endpoint battery levels; charging animation path remains separate.
+- [x] Wave and Capsule percentage badges use 8dp × 3dp padding.
+- [x] Info popup header/footer compacted and close action follows active theme.
+- [x] Dashboard and Settings capacity dialogs share compact layout; Save requires valid changed value/mode, Automatic action is available only for a manual override.
+- [x] Status Bar Indicator Save is disabled until a valid draft differs from persisted settings.
+- [x] Custom clickable surfaces and choice pills use animated press scale; Material 3 buttons retain default ripple/pressed feedback; no indication=null introduced.
+- [x] Session range formatter uses Unicode U+2192; unit test asserts exactly one arrow and rejects the malformed 'n sequence.
+- [ ] testDebugUnitTest: NOT RUN — await CI.
+- [ ] assembleDebug: NOT RUN — await CI.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — await CI.
+- [ ] APK and unit-test report artifacts: NOT RUN — await CI.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+
+---
+
 ## 2026-11-25 — PR #12 polish: Midnight accents and gauge readability
 
 - [x] Added MidnightAccent with safe ungu/pink/cyan/green parsing and Violet fallback.

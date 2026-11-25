@@ -32,13 +32,31 @@ private val DarkBackground = Color(0xFF171916)
 private val DarkSurface = Color(0xFF222720)
 private val DarkText = Color(0xFFF4F0E7)
 private val DarkMuted = Color(0xFFB5B9B0)
-private val MidnightBackground = Color(0xFF0B091E)
-private val MidnightSurface = Color(0xFF151233)
-private val MidnightOutline = Color(0xFF2E2866)
+private data class MidnightPalette(val background: Color, val surface: Color, val outline: Color, val primary: Color)
+
+private val MidnightVioletBackground = Color(0xFF0B091E)
+private val MidnightVioletSurface = Color(0xFF151233)
+private val MidnightVioletOutline = Color(0xFF2E2866)
 val MidnightVioletAccent = Color(0xFF7C3AED)
-val MidnightPinkAccent = Color(0xFFE879A9)
-val MidnightCyanAccent = Color(0xFF67C6D5)
-val MidnightGreenAccent = Color(0xFF78B98A)
+private val MidnightPinkBackground = Color(0xFF160A14)
+private val MidnightPinkSurface = Color(0xFF241120)
+private val MidnightPinkOutline = Color(0xFF4A1D3E)
+val MidnightPinkAccent = Color(0xFFEC4899)
+private val MidnightCyanBackground = Color(0xFF071318)
+private val MidnightCyanSurface = Color(0xFF0E2129)
+private val MidnightCyanOutline = Color(0xFF1B4352)
+val MidnightCyanAccent = Color(0xFF06B6D4)
+private val MidnightGreenBackground = Color(0xFF07140F)
+private val MidnightGreenSurface = Color(0xFF0E221B)
+private val MidnightGreenOutline = Color(0xFF1B4536)
+val MidnightGreenAccent = Color(0xFF10B981)
+
+private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (accent) {
+    MidnightAccent.VIOLET -> MidnightPalette(MidnightVioletBackground, MidnightVioletSurface, MidnightVioletOutline, MidnightVioletAccent)
+    MidnightAccent.PINK -> MidnightPalette(MidnightPinkBackground, MidnightPinkSurface, MidnightPinkOutline, MidnightPinkAccent)
+    MidnightAccent.CYAN -> MidnightPalette(MidnightCyanBackground, MidnightCyanSurface, MidnightCyanOutline, MidnightCyanAccent)
+    MidnightAccent.GREEN -> MidnightPalette(MidnightGreenBackground, MidnightGreenSurface, MidnightGreenOutline, MidnightGreenAccent)
+}
 private val MidnightOnSurface = Color(0xFFF8FAFC)
 private val MidnightOnSurfaceVariant = Color(0xFFA5A1C2)
 private val MidnightColdMetric = Color(0xFF102B3A)
@@ -157,24 +175,24 @@ fun PowerGuardTheme(
             }
         }
         is ThemePackConfig.MidnightViolet -> {
-            val accent = midnightAccentColor(config.midnightAccent)
+            val palette = midnightPalette(config.midnightAccent)
             darkColorScheme(
-            primary = accent,
-            onPrimary = if (accent.luminance() > 0.175f) MidnightBackground else Color.White,
-            primaryContainer = accent.copy(alpha = 0.24f),
-            onPrimaryContainer = MidnightOnSurface,
-            secondary = EmeraldCharge,
-            onSecondary = Color.White,
-            tertiary = AmberThermal,
-            error = CrimsonAnomaly,
-            background = MidnightBackground,
-            onBackground = MidnightOnSurface,
-            surface = MidnightSurface,
-            onSurface = MidnightOnSurface,
-            surfaceVariant = MidnightSurface,
-            onSurfaceVariant = MidnightOnSurfaceVariant,
-            outline = MidnightOutline,
-            outlineVariant = MidnightOutline
+                primary = palette.primary,
+                onPrimary = if (palette.primary.luminance() > 0.175f) palette.background else Color.White,
+                primaryContainer = palette.primary.copy(alpha = 0.24f),
+                onPrimaryContainer = MidnightOnSurface,
+                secondary = EmeraldCharge,
+                onSecondary = Color.White,
+                tertiary = AmberThermal,
+                error = CrimsonAnomaly,
+                background = palette.background,
+                onBackground = MidnightOnSurface,
+                surface = palette.surface,
+                onSurface = MidnightOnSurface,
+                surfaceVariant = palette.surface,
+                onSurfaceVariant = MidnightOnSurfaceVariant,
+                outline = palette.outline,
+                outlineVariant = palette.outline
             )
         }
     }

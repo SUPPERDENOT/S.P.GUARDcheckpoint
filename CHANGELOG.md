@@ -1,3 +1,24 @@
+## 2026-11-25 — PR #12 final polish: Midnight, Wave, dialogs, and touch feedback
+
+### Changed
+- Renamed the Midnight package display label and summary prefix to Midnight while preserving existing internal configuration and preference keys.
+- Added accent-specific Midnight canvas, surface, outline, and primary tokens for Ungu, Pink, Cyan, and Green using the exact approved hex values; all color literals remain in ui/theme/.
+- Kept the four accent swatches in the theme package picker and bound them to the updated accent tokens.
+- Wave now retains a subtle 2.5dp sinusoidal idle contour, including at 0% and 100%; charging continues to use its existing animated wave behavior. Wave and Capsule percentage badges use 8dp horizontal and 3dp vertical padding.
+- Replaced the Info popup with a compact themed dialog and 36dp outlined close action. Unified the Dashboard and Settings design-capacity dialogs, with compact automatic-mode action, aligned 36dp Cancel/Save buttons, validation, and a Save gate that requires a valid changed value or mode.
+- Status Bar Indicator Save now requires a valid unsaved draft. Added subtle animated press scaling to custom clickable cards and selectable pills; Material 3 buttons retain their built-in pressed/ripple feedback.
+- History session range formatter already used Unicode U+2192; strengthened its regression test to assert exactly one arrow. The formatter is shared by every session row.
+
+### Protected boundaries
+- No Room DB v3, sensor acquisition/sampling, default calibration 1x, foreground monitoring channel P0 or service lifecycle, RECOVERY_HOLD, package/namespace, applicationId, SDK, dependencies, app version, or build number changes.
+
+### Verification
+- Source implementation and diff review: pending.
+- testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK artifact upload, and unit-test report upload: pending CI on the resulting branch HEAD.
+- Physical-device visual/touch QA on itel P55: NOT RUN; 32dp choice controls and 36dp dialog actions remain below the project's 48dp touch-target guidance and require real-device review.
+
+---
+
 ## 2026-11-25 — PR #12 polish: Midnight accent variants, gauge legibility, and Indonesian copy
 
 ### Changed

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -49,6 +51,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -533,49 +536,17 @@ fun DashboardScreen(
     }
 
     if (showCapacityDialog) {
-        var inputText by remember { mutableStateOf(designCapacity.capacityMah?.toString().orEmpty()) }
-        AlertDialog(
-            onDismissRequest = { showCapacityDialog = false },
-            title = { Text("Kapasitas Desain Baterai") },
-            text = {
-                Column {
-                    Text(
-                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual akan dipakai sampai Anda kembali ke Otomatis.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("Kapasitas (mAh)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
+        DesignCapacityDialog(
+            capacityMah = designCapacity.capacityMah,
+            isManualOverride = designCapacity.isManualOverride,
+            onDismiss = { showCapacityDialog = false },
+            onSaveManual = {
+                viewModel.updateDesignCapacity(it)
+                showCapacityDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
-                    onClick = {
-                        inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
-                        showCapacityDialog = false
-                    }
-                ) {
-                    Text("Simpan")
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = {
-                        viewModel.useAutomaticDesignCapacity()
-                        showCapacityDialog = false
-                    }) {
-                        Text("Gunakan Otomatis")
-                    }
-                    TextButton(onClick = { showCapacityDialog = false }) {
-                        Text("Batal")
-                    }
-                }
+            onUseAutomatic = {
+                viewModel.useAutomaticDesignCapacity()
+                showCapacityDialog = false
             }
         )
     }
@@ -586,37 +557,79 @@ fun DashboardScreen(
 }
 
 @Composable
+fun DesignCapacityDialog(
+    capacityMah: Int?,
+    isManualOverride: Boolean,
+    onDismiss: () -> Unit,
+    onSaveManual: (Int) -> Unit,
+    onUseAutomatic: () -> Unit
+) {
+    var inputText by remember(capacityMah, isManualOverride) { mutableStateOf(capacityMah?.toString().orEmpty()) }
+    val parsedCapacity = inputText.toIntOrNull()
+    val validCapacity = parsedCapacity?.let { it in 1000..20000 } == true
+    val hasChanges = validCapacity && (parsedCapacity != capacityMah || !isManualOverride)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Kapasitas Desain Baterai", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = inputText, onValueChange = { inputText = it.filter(Char::isDigit) },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Kapasitas (mAh)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true, isError = inputText.isNotEmpty() && !validCapacity
+                )
+                TextButton(enabled = isManualOverride, onClick = onUseAutomatic,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) { Text("Gunakan Otomatis") }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.height(36.dp), shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)) { Text("Batal") }
+                    Button(onClick = { parsedCapacity?.let(onSaveManual) }, enabled = hasChanges,
+                        modifier = Modifier.height(36.dp), shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)) { Text("Simpan") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
     val scrollState = rememberScrollState()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 680.dp),
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.Info,
-                    contentDescription = null,
-                    tint = CyanFastCharge,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "SUPERD POWER GUARD — Info",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).heightIn(max = 680.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.Info, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("SUPERD POWER GUARD — Info", fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .verticalScroll(scrollState).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(11.dp)
+                ) {
                 InfoSectionItem(
                     title = "1. Tentang Aplikasi",
                     content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.superdguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
@@ -657,17 +670,18 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                     title = "10. Status Versi",
                     content = "Versi dan version code diambil langsung dari konfigurasi build aplikasi: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}). Aplikasi masih dalam tahap pengembangan dan validasi lintas perangkat. Keberhasilan build dan unit test tidak berarti seluruh fitur telah diuji atau dijamin bekerja pada semua model ponsel."
                 )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)
-            ) {
-                Text("Tutup", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.End) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.height(36.dp),
+                        shape = CircleShape, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)) {
+                        Text("Tutup")
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -677,9 +691,9 @@ private fun InfoSectionItem(title: String, content: String) {
             text = title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = CyanFastCharge
+            color = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = content,
             style = MaterialTheme.typography.bodySmall,
