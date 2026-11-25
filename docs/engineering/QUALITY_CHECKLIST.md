@@ -9,7 +9,13 @@
 - [x] Updated Status Bar Indicator dialog button shape/size and Indonesian History/SOH copy.
 - [x] Added unit tests for Midnight accent parsing, invalid-key fallback, persistence round-trips, and summary formatting.
 - [x] Protected boundaries reviewed: Room DB v3, sensor/sampling, calibration 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, and applicationId remain outside the intended diff.
-- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload: awaiting CI for the updated branch HEAD.
+- [x] GitHub Actions Run #650 on implementation HEAD `0c2d87d0e473db59e1d66a6b9cd3ccb7d904e1b1`: all jobs SUCCESS.
+- [x] `testDebugUnitTest`: SUCCESS — Run #650.
+- [x] `assembleDebug`: SUCCESS — Run #650.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #650.
+- [x] Upload APK: SUCCESS — artifact ID `14989161654`.
+- [x] Upload unit-test reports: SUCCESS — artifact ID `14988424665`.
+- [x] Source diff review: PASS — 11 changed files; protected DB, sensor, sampling, calibration, service lifecycle, manifest, and build-configuration paths are unchanged.
 - [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
 - [ ] PR #12 merge: HOLD; no merge or auto-merge.
 
