@@ -157,9 +157,9 @@ fun PowerSaveButton(
         ),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (enabled) MaterialTheme.colorScheme.primary else Color.Transparent,
-            contentColor = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            contentColor = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             disabledContainerColor = Color.Transparent,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            disabledContentColor = MaterialTheme.colorScheme.onSurface
         ),
         contentPadding = contentPadding,
         interactionSource = interactionSource,
