@@ -6,24 +6,25 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.geometry.CornerRadius
@@ -35,10 +36,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.superdenot.powerguard.ui.theme.InstrumentGraphite
 import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
 import kotlin.math.PI
 import kotlin.math.cos
@@ -139,7 +138,7 @@ private fun BatteryGaugeRenderer(
 ) {
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
     when (model) {
         BatteryGaugeModel.ARC -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -150,20 +149,11 @@ private fun BatteryGaugeRenderer(
             }
         }
         BatteryGaugeModel.CAPSULE -> {
-            val textColor = if (progress >= 0.56f) {
-                if (gaugeColor.luminance() < 0.18f) Color.White else InstrumentGraphite
-            } else onSurfaceColor
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawCapsuleGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, animation)
+                    drawCapsuleGauge(progress, gaugeColor, trackColor, outlineColor, phase?.value ?: 0f, animation)
                 }
-                Text(
-                    percentageLabel,
-                    color = textColor,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
+                GaugePercentageBadge(percentageLabel, 15.sp)
             }
         }
         BatteryGaugeModel.SEGMENTED -> {
@@ -175,16 +165,14 @@ private fun BatteryGaugeRenderer(
             }
         }
         BatteryGaugeModel.WAVE -> {
-            val upperTextColor = if (isDark) onSurfaceColor else InstrumentGraphite
             WaveGauge(
                 progress = progress,
                 percentageLabel = percentageLabel,
                 gaugeColor = gaugeColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                borderColor = trackColor,
+                borderColor = outlineColor,
                 phase = phase,
-                animation = animation,
-                upperTextColor = upperTextColor
+                animation = animation
             )
         }
     }
@@ -252,6 +240,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
     progress: Float,
     color: Color,
     trackColor: Color,
+    outlineColor: Color,
     phase: Float,
     animation: ChargingArcAnimation
 ) {
@@ -270,24 +259,31 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
         Size(terminalWidth, terminalHeight),
         CornerRadius(terminalHeight / 2f)
     )
+    drawRoundRect(
+        outlineColor,
+        Offset((size.width - terminalWidth) / 2f, top - terminalHeight),
+        Size(terminalWidth, terminalHeight),
+        CornerRadius(terminalHeight / 2f),
+        style = Stroke(1.5.dp.toPx())
+    )
     val terminalCenter = Offset(size.width / 2f, top - terminalHeight / 2f)
     val plusHalfWidth = 2.dp.toPx()
     val plusHalfHeight = 1.5.dp.toPx()
     drawLine(
-        color,
+        outlineColor,
         Offset(terminalCenter.x - plusHalfWidth, terminalCenter.y),
         Offset(terminalCenter.x + plusHalfWidth, terminalCenter.y),
         strokeWidth = 1.dp.toPx(),
         cap = StrokeCap.Round
     )
     drawLine(
-        color,
+        outlineColor,
         Offset(terminalCenter.x, terminalCenter.y - plusHalfHeight),
         Offset(terminalCenter.x, terminalCenter.y + plusHalfHeight),
         strokeWidth = 1.dp.toPx(),
         cap = StrokeCap.Round
     )
-    drawPath(body, trackColor, style = Stroke(2.dp.toPx()))
+    drawPath(body, trackColor)
     val innerInset = 2.dp.toPx()
     val fillHeight = (bodyHeight - innerInset * 2f) * progress
     val fillTop = top + bodyHeight - innerInset - fillHeight
@@ -324,6 +320,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
             ChargingArcAnimation.STATIC -> Unit
         }
     }
+    drawPath(body, outlineColor, style = Stroke(2.dp.toPx()))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSegmentedGauge(
@@ -375,8 +372,7 @@ private fun WaveGauge(
     trackColor: Color,
     borderColor: Color,
     phase: State<Float>?,
-    animation: ChargingArcAnimation,
-    upperTextColor: Color
+    animation: ChargingArcAnimation
 ) {
     Box(Modifier.fillMaxSize().clip(CircleShape), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -386,9 +382,18 @@ private fun WaveGauge(
             val circle = Path().apply {
                 addOval(androidx.compose.ui.geometry.Rect(left, top, left + diameter, top + diameter))
             }
+            drawCircle(trackColor, diameter / 2f, Offset(size.width / 2f, size.height / 2f))
             clipPath(circle) {
-                drawRect(trackColor)
                 val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f
+                if (animation != ChargingArcAnimation.STATIC) {
+                    val damping = sin(progress * PI).toFloat()
+                    val rearWave = waveFillPath(
+                        size.width, size.height, progress, wavePhase + 1.15f,
+                        amplitudeScale = 0.68f,
+                        verticalOffset = -size.height * 0.014f * damping
+                    )
+                    drawPath(rearWave, gaugeColor.copy(alpha = 0.38f))
+                }
                 val liquid = waveFillPath(size.width, size.height, progress, wavePhase)
                 drawPath(liquid, gaugeColor)
                 if (animation == ChargingArcAnimation.SEGMENTED_FLOW) {
@@ -404,72 +409,58 @@ private fun WaveGauge(
             drawCircle(borderColor, diameter / 2f, Offset(size.width / 2f, size.height / 2f),
                 style = Stroke(1.5.dp.toPx()))
         }
-        val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f
-        Box(
-            Modifier.fillMaxSize().drawWithContent {
-                val path = waveTextClipPath(size.width, size.height, progress, wavePhase, above = true)
-                clipPath(path) { this@drawWithContent.drawContent() }
-            },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(percentageLabel, color = upperTextColor, fontSize = 23.sp,
-                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        }
-        Box(
-            Modifier.fillMaxSize().drawWithContent {
-                val path = waveTextClipPath(size.width, size.height, progress, wavePhase, above = false)
-                clipPath(path) { this@drawWithContent.drawContent() }
-            },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(percentageLabel, color = Color.White, fontSize = 23.sp,
-                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        }
+        GaugePercentageBadge(percentageLabel, 21.sp)
     }
 }
 
-private fun waveY(x: Float, width: Float, height: Float, progress: Float, phase: Float): Float {
-    val normalized = if (width <= 0f) 0f else x / width
-    val amplitude = height * 0.055f * sin(progress * PI).toFloat()
-    val baseline = height * (1f - progress)
-    return baseline + amplitude * sin(normalized * (2f * PI).toFloat() * 1.25f + phase)
+@Composable
+private fun GaugePercentageBadge(label: String, fontSize: androidx.compose.ui.unit.TextUnit) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.95f))
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+            fontSize = fontSize,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
+    }
 }
 
-private fun waveFillPath(width: Float, height: Float, progress: Float, phase: Float): Path =
-    Path().apply {
-        moveTo(0f, waveY(0f, width, height, progress, phase))
-        for (step in 1..48) {
-            val x = width * step / 48f
-            lineTo(x, waveY(x, width, height, progress, phase))
-        }
-        lineTo(width, height)
-        lineTo(0f, height)
-        close()
-    }
-
-private fun waveTextClipPath(
+private fun waveY(
+    x: Float,
     width: Float,
     height: Float,
     progress: Float,
     phase: Float,
-    above: Boolean
+    amplitudeScale: Float = 1f,
+    verticalOffset: Float = 0f
+): Float {
+    val normalized = if (width <= 0f) 0f else x / width
+    val damping = sin(progress.coerceIn(0f, 1f) * PI).toFloat()
+    val amplitude = height * 0.055f * damping * amplitudeScale
+    val baseline = height * (1f - progress.coerceIn(0f, 1f))
+    return baseline + verticalOffset + amplitude * sin(normalized * (2f * PI).toFloat() * 1.25f + phase)
+}
+
+private fun waveFillPath(
+    width: Float,
+    height: Float,
+    progress: Float,
+    phase: Float,
+    amplitudeScale: Float = 1f,
+    verticalOffset: Float = 0f
 ): Path = Path().apply {
-    if (above) {
-        moveTo(0f, 0f)
-        lineTo(width, 0f)
-        lineTo(width, waveY(width, width, height, progress, phase))
-        for (step in 48 downTo 0) {
-            val x = width * step / 48f
-            lineTo(x, waveY(x, width, height, progress, phase))
-        }
-    } else {
-        moveTo(0f, waveY(0f, width, height, progress, phase))
-        for (step in 1..48) {
-            val x = width * step / 48f
-            lineTo(x, waveY(x, width, height, progress, phase))
-        }
-        lineTo(width, height)
-        lineTo(0f, height)
+    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudeScale, verticalOffset))
+    for (step in 1..48) {
+        val x = width * step / 48f
+        lineTo(x, waveY(x, width, height, progress, phase, amplitudeScale, verticalOffset))
     }
+    lineTo(width, height)
+    lineTo(0f, height)
     close()
 }

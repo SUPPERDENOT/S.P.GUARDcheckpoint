@@ -432,7 +432,7 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                 }
                 Text(
-                    if (healthSummary != null) "Snapshot SOH tersimpan • Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
+                    if (healthSummary != null) "Taksiran SOH tersimpan · Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis"})"
                     else "Belum ada snapshot SOH yang valid. Estimasi akan tersedia setelah sesi pengisian memenuhi kriteria.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1256,12 +1256,17 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = { showStatusBarSettingsDialog = false }) {
-                            Text("Batal")
-                        }
-                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = { showStatusBarSettingsDialog = false },
+                            modifier = Modifier.height(36.dp),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) { Text("Batal") }
                         Button(
                             enabled = canSave,
+                            modifier = Modifier.height(36.dp),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            contentPadding = PaddingValues(horizontal = 12.dp),
                             onClick = {
                                 vm.saveStatusBarIndicatorSettings(
                                     parameter = draftParameter,

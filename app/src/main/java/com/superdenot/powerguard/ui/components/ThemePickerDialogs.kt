@@ -49,11 +49,13 @@ import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.ui.theme.BasicAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
+import com.superdenot.powerguard.ui.theme.MidnightAccent
 import com.superdenot.powerguard.ui.theme.MidnightVioletAccent
 import com.superdenot.powerguard.ui.theme.ThemeGaugeSummaryFormatter
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
+import com.superdenot.powerguard.ui.theme.midnightAccentSwatches
 
 @Composable
 fun ThemePickerDialogs(
@@ -130,7 +132,7 @@ fun ThemePickerDialogs(
                     ThemePackageChoice(
                         title = "Midnight Violet",
                         description = "Gelap deep-indigo dengan opsi sub-kartu metrik dua warna.",
-                        swatches = listOf(MidnightVioletAccent),
+                        swatches = midnightAccentSwatches(),
                         selected = draft is ThemePackConfig.MidnightViolet,
                         onClick = {
                             draft = when (val current = draft) {
@@ -250,6 +252,11 @@ fun ThemePickerDialogs(
                                 }
                             }
                             is ThemePackConfig.MidnightViolet -> {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Text("Warna tema", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                ChoiceRow(MidnightAccent.values().toList(), current.midnightAccent, { it.label }) { selected ->
+                                    draft = current.copy(midnightAccent = selected)
+                                }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {

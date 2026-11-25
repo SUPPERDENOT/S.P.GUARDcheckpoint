@@ -6,6 +6,7 @@ import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
 import com.superdenot.powerguard.ui.theme.BasicAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
+import com.superdenot.powerguard.ui.theme.MidnightAccent
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
 
 class ThemePreferences(context: Context) {
@@ -18,6 +19,7 @@ class ThemePreferences(context: Context) {
         return when (preferences.getString(KEY_THEME_PACK, PACK_BASIC)) {
             PACK_MIDNIGHT_VIOLET -> ThemePackConfig.MidnightViolet(
                 dualTintMetrics = preferences.getBoolean(KEY_DUAL_TINT, true),
+                midnightAccent = MidnightAccent.fromKey(preferences.getString(KEY_MIDNIGHT_ACCENT, null)),
                 gaugeModel = gauge,
                 chargingAnimation = animation
             )
@@ -42,6 +44,7 @@ class ThemePreferences(context: Context) {
             is ThemePackConfig.MidnightViolet -> editor
                 .putString(KEY_THEME_PACK, PACK_MIDNIGHT_VIOLET)
                 .putBoolean(KEY_DUAL_TINT, config.dualTintMetrics)
+                .putString(KEY_MIDNIGHT_ACCENT, config.midnightAccent.key)
         }
         editor.apply()
     }
@@ -54,6 +57,7 @@ class ThemePreferences(context: Context) {
         const val KEY_APPEARANCE_MODE = "appearance_mode"
         const val KEY_BASIC_ACCENT = "basic_accent"
         const val KEY_DUAL_TINT = "dual_tint_metrics"
+        const val KEY_MIDNIGHT_ACCENT = "midnight_accent"
         const val KEY_GAUGE_MODEL = "battery_gauge_model"
         const val KEY_CHARGING_ANIMATION = "charging_arc_animation"
     }

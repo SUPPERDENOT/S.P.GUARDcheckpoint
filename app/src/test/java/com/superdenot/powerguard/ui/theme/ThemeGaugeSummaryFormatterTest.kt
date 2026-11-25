@@ -2,6 +2,7 @@ package com.superdenot.powerguard.ui.theme
 
 import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
+import com.superdenot.powerguard.ui.theme.MidnightAccent
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -24,7 +25,7 @@ class ThemeGaugeSummaryFormatterTest {
     @Test
     fun formatsMidnightVioletDualTintState() {
         assertEquals(
-            "Midnight Violet · Dua warna" to "Kapsul · Statis",
+            "Midnight Violet · Ungu · Dua warna" to "Kapsul · Statis",
             ThemeGaugeSummaryFormatter.format(
                 ThemePackConfig.MidnightViolet(
                     dualTintMetrics = true,
@@ -33,5 +34,24 @@ class ThemeGaugeSummaryFormatterTest {
                 )
             )
         )
+    }
+
+    @Test
+    fun formatsMidnightAccentInThemeSummary() {
+        val expected = mapOf(
+            MidnightAccent.VIOLET to "Midnight Violet · Ungu · Satu warna",
+            MidnightAccent.PINK to "Midnight Violet · Pink · Satu warna",
+            MidnightAccent.CYAN to "Midnight Violet · Cyan · Satu warna",
+            MidnightAccent.GREEN to "Midnight Violet · Green · Satu warna"
+        )
+        expected.forEach { (accent, summary) ->
+            assertEquals(
+                summary to "Arc · Sweep",
+                ThemeGaugeSummaryFormatter.format(ThemePackConfig.MidnightViolet(
+                    dualTintMetrics = false,
+                    midnightAccent = accent
+                ))
+            )
+        }
     }
 }

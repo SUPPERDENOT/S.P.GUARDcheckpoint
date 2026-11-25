@@ -1,3 +1,22 @@
+## 2026-11-25 — PR #12 polish: Midnight accents and gauge readability
+
+- [x] Added MidnightAccent with safe ungu/pink/cyan/green parsing and Violet fallback.
+- [x] Persisted/restored the Midnight accent in the existing theme SharedPreferences; legacy records without the key resolve to Violet.
+- [x] Added four 32dp accent choices to the Midnight dialog; draft preview and Save flow use the same ThemePackConfig.
+- [x] Centralized the Pink, Cyan, and Green hex literals in ui/theme/Theme.kt.
+- [x] Wave gauge now has a high-contrast 1.5dp outline, two charging wave layers, edge-damped amplitude, and a percentage badge.
+- [x] Capsule gauge now has a stronger frame/terminal and a percentage badge.
+- [x] Updated Status Bar Indicator dialog button shape/size and Indonesian History/SOH copy.
+- [x] Added unit tests for Midnight accent parsing, invalid-key fallback, persistence round-trips, and summary formatting.
+- [x] Protected boundaries reviewed: Room DB v3, sensor/sampling, calibration 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, and applicationId remain outside the intended diff.
+- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload: awaiting CI for the updated branch HEAD.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #12 merge: HOLD; no merge or auto-merge.
+
+### Accessibility note
+- The requested 32dp accent pills and 36dp dialog buttons are smaller than the 48dp touch-target guidance in DESIGN.md. CI cannot verify thumb usability; retain physical review as a release gate.
+
+---
 ## 2026-11-25 — PR #12: theme packs and animated battery gauges
 
 - [x] Created `feat/theme-system-and-battery-gauges` directly from verified `main` HEAD `229081788c01ebbe1b20d9a0b4c9ce2dac2d122d`.

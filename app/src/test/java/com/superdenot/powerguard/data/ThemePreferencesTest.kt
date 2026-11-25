@@ -6,6 +6,7 @@ import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
 import com.superdenot.powerguard.ui.theme.BasicAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
+import com.superdenot.powerguard.ui.theme.MidnightAccent
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -74,6 +75,25 @@ class ThemePreferencesTest {
         ThemePreferences(context).save(expected)
 
         assertEquals(expected, ThemePreferences(context).read())
+    }
+
+    @Test
+    fun midnightAccentParserSupportsAllKeysAndFallsBackToViolet() {
+        assertEquals(MidnightAccent.VIOLET, MidnightAccent.fromKey("ungu"))
+        assertEquals(MidnightAccent.PINK, MidnightAccent.fromKey("pink"))
+        assertEquals(MidnightAccent.CYAN, MidnightAccent.fromKey("cyan"))
+        assertEquals(MidnightAccent.GREEN, MidnightAccent.fromKey("green"))
+        assertEquals(MidnightAccent.VIOLET, MidnightAccent.fromKey(null))
+        assertEquals(MidnightAccent.VIOLET, MidnightAccent.fromKey("future-accent"))
+    }
+
+    @Test
+    fun persistsEveryNonDefaultMidnightAccent() {
+        listOf(MidnightAccent.PINK, MidnightAccent.CYAN, MidnightAccent.GREEN).forEach { accent ->
+            val expected = ThemePackConfig.MidnightViolet(midnightAccent = accent)
+            ThemePreferences(context).save(expected)
+            assertEquals(expected, ThemePreferences(context).read())
+        }
     }
 
     @Test

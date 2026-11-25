@@ -246,7 +246,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 Column(Modifier.weight(1f)) {
                     Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "${visibleSessions.size} dari ${sessions.size} sesi • ${selectedHistoryFilter.label}",
+                        "Menampilkan ${visibleSessions.size} dari ${sessions.size} sesi (terbaru)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

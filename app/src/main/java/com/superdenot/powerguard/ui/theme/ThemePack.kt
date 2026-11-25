@@ -25,6 +25,18 @@ enum class BasicAccent(val key: String, val label: String) {
     }
 }
 
+enum class MidnightAccent(val key: String, val label: String) {
+    VIOLET("ungu", "Ungu"),
+    PINK("pink", "Pink"),
+    CYAN("cyan", "Cyan"),
+    GREEN("green", "Green");
+
+    companion object {
+        fun fromKey(raw: String?): MidnightAccent =
+            values().firstOrNull { it.key == raw } ?: VIOLET
+    }
+}
+
 sealed interface ThemePackConfig {
     val gaugeModel: BatteryGaugeModel
     val chargingAnimation: ChargingArcAnimation
@@ -38,6 +50,7 @@ sealed interface ThemePackConfig {
 
     data class MidnightViolet(
         val dualTintMetrics: Boolean = true,
+        val midnightAccent: MidnightAccent = MidnightAccent.VIOLET,
         override val gaugeModel: BatteryGaugeModel = BatteryGaugeModel.ARC,
         override val chargingAnimation: ChargingArcAnimation = ChargingArcAnimation.ENERGY_SWEEP
     ) : ThemePackConfig
@@ -49,7 +62,7 @@ object ThemeGaugeSummaryFormatter {
             is ThemePackConfig.Basic ->
                 "Basic · ${config.appearanceMode.label} · ${config.accent.label}"
             is ThemePackConfig.MidnightViolet ->
-                "Midnight Violet · ${if (config.dualTintMetrics) "Dua warna" else "Satu warna"}"
+                "Midnight Violet · ${config.midnightAccent.label} · ${if (config.dualTintMetrics) "Dua warna" else "Satu warna"}"
         }
         val gaugeLine = "${config.gaugeModel.label} · ${config.chargingAnimation.label}"
         return themeLine to gaugeLine

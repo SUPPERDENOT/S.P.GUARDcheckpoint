@@ -35,7 +35,9 @@ private val MidnightBackground = Color(0xFF0B091E)
 private val MidnightSurface = Color(0xFF151233)
 private val MidnightOutline = Color(0xFF2E2866)
 val MidnightVioletAccent = Color(0xFF7C3AED)
-private val MidnightPrimary = MidnightVioletAccent
+val MidnightPinkAccent = Color(0xFFE879A9)
+val MidnightCyanAccent = Color(0xFF67C6D5)
+val MidnightGreenAccent = Color(0xFF78B98A)
 private val MidnightOnSurface = Color(0xFFF8FAFC)
 private val MidnightOnSurfaceVariant = Color(0xFFA5A1C2)
 private val MidnightColdMetric = Color(0xFF102B3A)
@@ -79,6 +81,17 @@ fun basicAccentColor(accent: BasicAccent): Color = when (accent) {
     BasicAccent.EMERALD -> EmeraldAccent
     BasicAccent.COBALT -> CobaltAccent
 }
+
+fun midnightAccentColor(accent: MidnightAccent): Color = when (accent) {
+    MidnightAccent.VIOLET -> MidnightVioletAccent
+    MidnightAccent.PINK -> MidnightPinkAccent
+    MidnightAccent.CYAN -> MidnightCyanAccent
+    MidnightAccent.GREEN -> MidnightGreenAccent
+}
+
+fun midnightAccentSwatches(): List<Color> = listOf(
+    MidnightVioletAccent, MidnightPinkAccent, MidnightCyanAccent, MidnightGreenAccent
+)
 
 @Composable
 fun PowerGuardTheme(
@@ -142,9 +155,13 @@ fun PowerGuardTheme(
                 )
             }
         }
-        is ThemePackConfig.MidnightViolet -> darkColorScheme(
-            primary = MidnightPrimary,
-            onPrimary = Color.White,
+        is ThemePackConfig.MidnightViolet -> {
+            val accent = midnightAccentColor(config.midnightAccent)
+            darkColorScheme(
+            primary = accent,
+            onPrimary = if (accent.luminance() > 0.175f) MidnightBackground else Color.White,
+            primaryContainer = accent.copy(alpha = 0.24f),
+            onPrimaryContainer = MidnightOnSurface,
             secondary = EmeraldCharge,
             onSecondary = Color.White,
             tertiary = AmberThermal,
@@ -157,7 +174,8 @@ fun PowerGuardTheme(
             onSurfaceVariant = MidnightOnSurfaceVariant,
             outline = MidnightOutline,
             outlineVariant = MidnightOutline
-        )
+            )
+        }
     }
 
     val metricTints = when (config) {

@@ -1,3 +1,26 @@
+## 2026-11-25 — PR #12 polish: Midnight accent variants, gauge legibility, and Indonesian copy
+
+### Changed
+- Added Midnight Violet accent choices Ungu (default), Pink, Cyan, and Green. The selected accent is part of ThemePackConfig.MidnightViolet, safely parsed from its persisted key, restored through the existing theme SharedPreferences, applied to Material 3 primary colors, and included in the Settings summary.
+- Added four uniform 32dp Warna tema choices to the Midnight configuration dialog. The selected draft accent is reflected by the existing live preview and is persisted only by Simpan.
+- Improved Wave gauge legibility with a visible 1.5dp high-contrast circular outline, a readable surface track, two subtly offset charging-wave layers, amplitude damping near 0% and 100%, and a translucent percentage badge that keeps the value intact across the waterline.
+- Improved Capsule gauge readability with a stronger body/terminal outline, a visible positive terminal, a filled track body, and a surface-backed percentage badge.
+- Changed the Status Bar Indicator dialog's Batal action to a 36dp outlined circular button.
+- History now states Menampilkan X dari Y sesi (terbaru); the DAO orders sessions by startTime DESC, and the filter chips remain visible separately.
+- SOH copy now uses Taksiran SOH tersimpan · Kapasitas desain ... mAh (otomatis/manual) without mixed Snapshot or otomatis/default wording.
+
+### Protected boundaries
+- No Room DB v3, sensor acquisition/sampling, calibration default 1x, foreground monitoring channel/P0 lifecycle, RECOVERY_HOLD, or applicationId change.
+- New accent color literals are centralized in ui/theme/; no new explicit color literal was added to screen/component files.
+- Existing SharedPreferences file and keys remain backward-compatible; a missing/unknown Midnight accent falls back to Violet.
+
+### Verification
+- Added tests for all MidnightAccent keys, null/unknown fallback, Pink/Cyan/Green persistence round trips, and all four Midnight summary labels.
+- Source diff review and CI status are recorded after the branch update.
+- Physical-device QA on itel P55: NOT RUN; verify all four accent previews and saved values, Wave/Capsule contrast at low/mid/full levels, and 36dp footer usability before merge.
+- Compact 32dp accent pills and 36dp dialog buttons remain below the 48dp touch-target guidance in DESIGN.md; retain as explicit physical-usability review items.
+
+---
 ## 2026-11-25 — PR #12: two-layer theme packs and four battery gauge models
 
 ### Added
