@@ -307,11 +307,13 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     DiagnosticLine("Sumber daya", if (state.isCharging) state.chargeSource else "Tidak terhubung")
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 "Protokol / kemampuan sumber",
+                                modifier = Modifier.weight(1f, fill = false),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -348,12 +350,15 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         "PEMBACAAN BATERAI • SISI BATERAI",
+                        modifier = Modifier.weight(1f, fill = false),
                         color = CyanFastCharge,
+                        maxLines = 2,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp
