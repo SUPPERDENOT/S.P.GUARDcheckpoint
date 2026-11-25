@@ -1180,7 +1180,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                     val selected = draftIntervalSeconds == seconds && !customIntervalEdited
                                     val interactionSource = remember(seconds) { MutableInteractionSource() }
                                     Surface(
-                                        modifier = Modifier.weight(1f).height(32.dp)
+                                        modifier = Modifier.weight(1f).height(36.dp)
                                             .pressScale(interactionSource)
                                             .selectable(
                                                 selected = selected,
@@ -1193,7 +1193,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                                     customIntervalEdited = false
                                                 }
                                             ),
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = androidx.compose.foundation.shape.CircleShape,
                                         color = if (selected) MaterialTheme.colorScheme.primaryContainer
                                         else MaterialTheme.colorScheme.surface,
                                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -1377,7 +1377,7 @@ private fun StatusBarParameterGrid(
                                             indication = LocalIndication.current,
                                 onClick = { onParameterClick(parameter) }
                             ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         color = if (selected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surface,
                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
