@@ -14,6 +14,10 @@ class ChargingEtaSanityCheckTest {
     @Test fun keepsSaneOsEtaBelowNinetyPercent() {
         assertEquals(24L, ChargingEtaSanityCheck.resolveMinutes(24L*60_000L,79,5_000,1_000,true,63L))
     }
+    @Test fun doesNotTrustShortOsEtaWhenBatteryLevelIsUnavailable() {
+        assertEquals(42L, ChargingEtaSanityCheck.resolveMinutes(3L*60_000L,-1,5_000,1_000,true,42L))
+        assertEquals(24L, ChargingEtaSanityCheck.resolveMinutes(24L*60_000L,-1,5_000,1_000,true,42L))
+    }
     @Test fun usesEstimatorWhenOsEtaOrCurrentFallbackIsUnavailable() {
         assertEquals(42L, ChargingEtaSanityCheck.resolveMinutes(null,79,5_000,1_000,true,42L))
         assertEquals(42L, ChargingEtaSanityCheck.resolveMinutes(3L*60_000L,79,5_000,0,true,42L))

@@ -2110,7 +2110,7 @@ class BatteryMonitorService : Service() {
                             )
                             etaMinutes = ChargingEtaSanityCheck.resolveMinutes(
                                 osEtaMillis = effectiveSensor.osChargingEtaMillis,
-                                level = effectiveSensor.level,
+                                level = effectiveSensor.level.takeIf { effectiveSensor.isLevelAvailable } ?: -1,
                                 designCapacityMah = chargingEtaDesignCapacityMah ?: 0,
                                 activeCurrentMa = effectiveSensor.currentMa.takeIf { effectiveSensor.isCurrentAvailable } ?: 0,
                                 isCharging = effectiveSensor.isCharging && effectiveSensor.isPowerConnected,

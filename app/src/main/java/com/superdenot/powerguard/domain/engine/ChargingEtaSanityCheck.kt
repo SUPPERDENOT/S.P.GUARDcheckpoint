@@ -12,13 +12,15 @@ internal object ChargingEtaSanityCheck {
         isCharging: Boolean,
         estimatorFallbackMinutes: Long?
     ): Long? {
-        if (!isCharging || level !in 0..99) return null
+        if (!isCharging) return null
+        val hasValidLevel = level in 0..99
         val validOsEta = osEtaMillis?.takeIf { it > 0L }
         val implausiblyLow = validOsEta != null &&
-            validOsEta < MIN_OS_ETA_MILLIS && level < OS_LOW_ETA_LEVEL_LIMIT
+            validOsEta < MIN_OS_ETA_MILLIS && (!hasValidLevel || level < OS_LOW_ETA_LEVEL_LIMIT)
         if (validOsEta != null && !implausiblyLow) {
             return ceil(validOsEta / MILLIS_PER_MINUTE).toLong().coerceAtLeast(1L)
         }
+        if (!hasValidLevel) return estimatorFallbackMinutes?.takeIf { it > 0L }
         if (implausiblyLow) {
             estimateFromRemainingCapacity(level, designCapacityMah, activeCurrentMa)?.let { return it }
         }
