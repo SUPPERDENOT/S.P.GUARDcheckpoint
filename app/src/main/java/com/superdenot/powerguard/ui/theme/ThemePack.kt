@@ -56,6 +56,21 @@ sealed interface ThemePackConfig {
     ) : ThemePackConfig
 }
 
+fun themePreviewConfig(config: ThemePackConfig): ThemePackConfig = when (config) {
+    is ThemePackConfig.Basic -> ThemePackConfig.Basic(
+        appearanceMode = config.appearanceMode,
+        accent = config.accent,
+        gaugeModel = config.gaugeModel,
+        chargingAnimation = config.chargingAnimation
+    )
+    is ThemePackConfig.MidnightViolet -> ThemePackConfig.MidnightViolet(
+        dualTintMetrics = config.dualTintMetrics,
+        midnightAccent = config.midnightAccent,
+        gaugeModel = config.gaugeModel,
+        chargingAnimation = config.chargingAnimation
+    )
+}
+
 fun hasThemeGaugeUnsavedChanges(draft: ThemePackConfig, saved: ThemePackConfig): Boolean = draft != saved
 
 object ThemeGaugeSummaryFormatter {
