@@ -11,6 +11,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -306,12 +307,11 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     DiagnosticLine("Sumber daya", if (state.isCharging) state.chargeSource else "Tidak terhubung")
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 "Protokol / kemampuan sumber",
-                                modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -347,10 +347,12 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
                         "PEMBACAAN BATERAI • SISI BATERAI",
-                        modifier = Modifier.weight(1f),
                         color = CyanFastCharge,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -398,12 +400,35 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         )
     }
     if (showPowerInfo) {
-        AlertDialog(
-            onDismissRequest = { showPowerInfo = false },
-            title = { Text("Pengukuran daya baterai") },
-            text = { Text("Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.") },
-            confirmButton = { PowerActionButton(onClick = { showPowerInfo = false }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Mengerti") } }
-        )
+        Dialog(onDismissRequest = { showPowerInfo = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 380.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Pengukuran daya baterai", style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        PowerActionButton(
+                            onClick = { showPowerInfo = false },
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS
+                        ) { Text("Mengerti") }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1005,7 +1030,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         LiveStatusBarRenderer.render(previewParameter, reading, previewDensity)
                     }
                     Column(
-                        Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())
+                        Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())
                     ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
@@ -1186,7 +1211,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                     val selected = isStatusBarIntervalPresetSelected(seconds, draftIntervalSeconds)
                                     val interactionSource = remember(seconds) { MutableInteractionSource() }
                                     Surface(
-                                        modifier = Modifier.weight(1f).height(36.dp)
+                                        modifier = Modifier.weight(1f).height(32.dp)
                                             .pressScale(interactionSource)
                                             .selectable(
                                                 selected = selected,
