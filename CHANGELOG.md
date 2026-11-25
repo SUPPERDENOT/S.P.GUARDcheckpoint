@@ -1,3 +1,30 @@
+## 2026-11-25 — PR #12 final visual pass: four gauge models, live accent preview, solid info dialogs
+
+### Changed
+- Reworked the four Canvas gauge renderers: Busur is a clockwise C-arc from -225° through +45° with a gradient fill and soft endpoint halo; Kapsul has a separated terminal, glossy frame, vertical liquid gradient, and bottom-to-top Sweep/Comet motion; Blok uses 24 full-circle segments starting at -90° with clockwise sweep/comet tail shading; Wave uses two offset sinusoidal liquid layers, a bright 0.82-alpha front fill, crest highlight, glass rim reflections, and an animated outer orbit.
+- Added `forceAnimate` (default false) to `BatteryGaugeView`; the live Theme & Gauge preview opts in so animation can be inspected while unplugged. Static animation selection and thermal/visibility guards remain respected.
+- Reduced Canvas percentage outline from 1.8dp to 1.2dp while preserving the shared measured text layout and exact draw origin.
+- Theme preview now receives an explicit copy of the full draft configuration, including Basic appearance mode and accent, so Terracotta / Emerald / Cobalt changes are reflected immediately.
+- Moved both Charging information icons directly beside their headings. Protocol and battery-side explanatory popups now use opaque elevated surfaces with outline borders.
+- Disabled Save uses the same onSurface text treatment as Cancel; enabled Save remains primary/onPrimary. Status Bar dialog keeps its footer outside the scrolling body, aligns 32dp interval presets with the custom interval field, and retains imePadding.
+- Capacity dialog derives draft manual mode from actual edits, so opening Automatic at its existing capacity does not silently mark the form dirty or convert it to Manual.
+
+### Tests
+- Added regression tests for 24-block geometry and clockwise ordering, Capsule bottom-to-top phase mapping, Wave fill while charging/idle, dual-wave layer separation and front alpha, forced preview animation, 1.2dp outline, live Basic draft preview propagation, and Automatic/Manual capacity dirty-state.
+- Existing Status Bar tests continue to cover preset recognition and dirty-state changes across mode, parameters, scale, and interval.
+
+### Protected boundaries
+- No Room DB v3/schema/migration, existing sensor acquisition or sampling, calibration default 1x, foreground monitoring channel/P0 lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes intended.
+- Changes are limited to Compose Canvas rendering, theme preview state, UI dialogs, and focused unit tests.
+
+### Verification
+- Line-by-line self-crosscheck: source review pending final diff inspection; CI pending.
+- Unit tests / assembleDebug / Anti-Slop UI Audit Gate / APK upload: NOT RUN for this final visual pass at the time of this entry.
+- Physical-device QA on itel P55: NOT RUN; required to validate animation direction, rendering, contrast, popup opacity, and narrow-screen dialog behavior.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 combined hotfix: Wave, Canvas percentage text, History arrow, Basic Light, ETA, and dialog state
 
 ### Changed
