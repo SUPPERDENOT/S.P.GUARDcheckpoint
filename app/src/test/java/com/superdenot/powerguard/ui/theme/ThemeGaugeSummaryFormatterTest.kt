@@ -57,6 +57,24 @@ class ThemeGaugeSummaryFormatterTest {
     }
 
     @Test
+    fun liveBasicPreviewCarriesDraftAppearanceAndAccentIntoThemeWrapperConfig() {
+        val draft = ThemePackConfig.Basic(
+            appearanceMode = BasicAppearanceMode.LIGHT,
+            accent = BasicAccent.COBALT,
+            gaugeModel = BatteryGaugeModel.WAVE,
+            chargingAnimation = ChargingArcAnimation.COMET_HEAD
+        )
+
+        val preview = themePreviewConfig(draft) as ThemePackConfig.Basic
+
+        assertEquals(BasicAppearanceMode.LIGHT, preview.appearanceMode)
+        assertEquals(BasicAccent.COBALT, preview.accent)
+        assertEquals(BatteryGaugeModel.WAVE, preview.gaugeModel)
+        assertEquals(ChargingArcAnimation.COMET_HEAD, preview.chargingAnimation)
+        assertEquals(basicAccentColor(BasicAccent.COBALT), basicAccentColor(preview.accent))
+    }
+
+    @Test
     fun themeGaugeDirtyStateTracksEveryPersistedConfigurationOption() {
         val saved = ThemePackConfig.MidnightViolet()
         assertFalse(hasThemeGaugeUnsavedChanges(saved, saved.copy()))
