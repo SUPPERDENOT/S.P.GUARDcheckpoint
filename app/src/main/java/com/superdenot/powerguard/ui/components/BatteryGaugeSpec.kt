@@ -2,6 +2,8 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.ui.graphics.Color
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
+import kotlin.math.roundToInt
+import kotlin.math.min
 
 enum class BatteryGaugeModel(val key: String, val label: String) {
     ARC("arc", "Busur"),
@@ -27,12 +29,50 @@ enum class ChargingArcAnimation(val key: String, val label: String) {
     }
 }
 
-fun segmentedGaugeLitCount(levelPercent: Int): Int =
-    (levelPercent.coerceIn(0, 100) / 5).coerceIn(0, 20)
+const val SEGMENTED_GAUGE_BLOCK_COUNT = 24
+const val SEGMENTED_GAUGE_STEP_DEGREES = 360f / SEGMENTED_GAUGE_BLOCK_COUNT
 
-/** Animation eligibility and style never change the measured Wave liquid fraction. */
+fun segmentedGaugeLitCount(levelPercent: Int): Int =
+    ((levelPercent.coerceIn(0, 100) / 100f) * SEGMENTED_GAUGE_BLOCK_COUNT)
+        .roundToInt().coerceIn(0, SEGMENTED_GAUGE_BLOCK_COUNT)
+
+fun segmentedGaugeStartAngle(index: Int): Float =
+    -90f + index.coerceIn(0, SEGMENTED_GAUGE_BLOCK_COUNT - 1) * SEGMENTED_GAUGE_STEP_DEGREES
+
+fun gaugeAnimationPhaseFraction(phase: Float): Float =
+    (phase / (2f * Math.PI.toFloat())).coerceIn(0f, 1f)
+
+fun capsuleCometY(topY: Float, bottomY: Float, phaseFraction: Float): Float =
+    bottomY - (bottomY - topY) * phaseFraction.coerceIn(0f, 1f)
+
+/** Returns the brightness of an active block; distance is measured backward from a clockwise head. */
+fun segmentedGaugeTrailAlpha(index: Int, headIndex: Int, activeCount: Int): Float {
+    if (activeCount <= 0) return 0f
+    val safeCount = activeCount.coerceIn(1, SEGMENTED_GAUGE_BLOCK_COUNT)
+    val distanceBehindHead = (headIndex - index + safeCount) % safeCount
+    val trailLength = min(5, safeCount)
+    return if (distanceBehindHead == 0) 1f
+    else if (distanceBehindHead <= trailLength) {
+        0.42f + 0.58f * (1f - distanceBehindHead.toFloat() / (trailLength + 1f))
+    } else 0.82f
+}
+
+data class WaveLayerSpec(
+    val phaseOffset: Float,
+    val amplitudeScale: Float,
+    val alpha: Float
+)
+
+const val WAVE_FRONT_FILL_ALPHA = 0.82f
+
+fun waveGaugeLayerSpecs(phase: Float): List<WaveLayerSpec> = listOf(
+    WaveLayerSpec(phaseOffset = phase + 1.15f, amplitudeScale = 0.68f, alpha = 0.28f),
+    WaveLayerSpec(phaseOffset = phase, amplitudeScale = 1f, alpha = WAVE_FRONT_FILL_ALPHA)
+)
+
+/** Charging state and animation style never change the measured Wave liquid fraction. */
 @Suppress("UNUSED_PARAMETER")
-fun waveLiquidFillLevel(progress: Float, animateEffects: Boolean, animation: ChargingArcAnimation): Float =
+fun waveLiquidFillLevel(progress: Float, isCharging: Boolean, animation: ChargingArcAnimation): Float =
     progress.coerceIn(0f, 1f)
 
 fun resolveBatteryGaugeColor(
@@ -52,8 +92,9 @@ fun shouldAnimateBatteryGauge(
     isVisibleOnScreen: Boolean,
     isCriticalThermal: Boolean,
     isWarm: Boolean,
-    animation: ChargingArcAnimation
-): Boolean = isCharging &&
+    animation: ChargingArcAnimation,
+    forceAnimate: Boolean = false
+): Boolean = (isCharging || forceAnimate) &&
     isVisibleOnScreen &&
     !isCriticalThermal &&
     !isWarm &&
