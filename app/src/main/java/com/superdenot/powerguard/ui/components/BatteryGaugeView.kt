@@ -475,10 +475,11 @@ private fun WaveGauge(
 
             drawCircle(trackColor, diameter / 2f, center)
             clipPath(circle) {
+                val rearWaveOffset = -size.height * 0.012f * sin(liquidProgress * PI).toFloat()
                 val rearWave = waveFillPath(
                     size.width, size.height, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
                     amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
-                    verticalOffset = -size.height * 0.012f
+                    verticalOffset = rearWaveOffset
                 )
                 drawPath(rearWave, gaugeColor.copy(alpha = WAVE_REAR_FILL_ALPHA))
 
