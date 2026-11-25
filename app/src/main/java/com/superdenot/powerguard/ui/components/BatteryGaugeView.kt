@@ -475,19 +475,16 @@ private fun WaveGauge(
 
             drawCircle(trackColor, diameter / 2f, center)
             clipPath(circle) {
-                val layers = waveGaugeLayerSpecs(wavePhase)
-                val rearLayer = layers[0]
-                val frontLayer = layers[1]
                 val rearWave = waveFillPath(
-                    size.width, size.height, liquidProgress, rearLayer.phaseOffset,
-                    amplitudeScale = rearLayer.amplitudeScale,
+                    size.width, size.height, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
+                    amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
                     verticalOffset = -size.height * 0.012f
                 )
-                drawPath(rearWave, gaugeColor.copy(alpha = rearLayer.alpha))
+                drawPath(rearWave, gaugeColor.copy(alpha = WAVE_REAR_FILL_ALPHA))
 
                 val frontWave = waveFillPath(
-                    size.width, size.height, liquidProgress, frontLayer.phaseOffset,
-                    amplitudeScale = frontLayer.amplitudeScale
+                    size.width, size.height, liquidProgress, wavePhase,
+                    amplitudeScale = 1f
                 )
                 val fillTop = size.height * (1f - liquidProgress)
                 drawPath(
@@ -503,8 +500,8 @@ private fun WaveGauge(
                     )
                 )
                 val crest = waveCrestPath(
-                    size.width, size.height, liquidProgress, frontLayer.phaseOffset,
-                    amplitudeScale = frontLayer.amplitudeScale
+                    size.width, size.height, liquidProgress, wavePhase,
+                    amplitudeScale = 1f
                 )
                 drawPath(crest, Color.White.copy(alpha = 0.9f), style = Stroke(1.25.dp.toPx(), cap = StrokeCap.Round))
                 drawArc(
