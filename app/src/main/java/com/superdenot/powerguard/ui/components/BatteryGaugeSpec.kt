@@ -57,18 +57,10 @@ fun segmentedGaugeTrailAlpha(index: Int, headIndex: Int, activeCount: Int): Floa
     } else 0.82f
 }
 
-data class WaveLayerSpec(
-    val phaseOffset: Float,
-    val amplitudeScale: Float,
-    val alpha: Float
-)
-
+const val WAVE_REAR_PHASE_OFFSET = 1.15f
+const val WAVE_REAR_AMPLITUDE_SCALE = 0.68f
+const val WAVE_REAR_FILL_ALPHA = 0.28f
 const val WAVE_FRONT_FILL_ALPHA = 0.82f
-
-fun waveGaugeLayerSpecs(phase: Float): List<WaveLayerSpec> = listOf(
-    WaveLayerSpec(phaseOffset = phase + 1.15f, amplitudeScale = 0.68f, alpha = 0.28f),
-    WaveLayerSpec(phaseOffset = phase, amplitudeScale = 1f, alpha = WAVE_FRONT_FILL_ALPHA)
-)
 
 /** Charging state and animation style never change the measured Wave liquid fraction. */
 @Suppress("UNUSED_PARAMETER")
