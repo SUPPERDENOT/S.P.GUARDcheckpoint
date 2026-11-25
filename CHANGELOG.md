@@ -22,9 +22,10 @@
 - No dependency, SDK, app version, or build-number changes intended.
 
 ### Verification
-- Source diff review: pending.
-- `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK/unit-test report upload: pending CI on the resulting branch HEAD.
+- Source diff review: PASS — 15 files changed in this polish; only the requested UI/theme helpers, focused unit tests, and documentation changed. Room DB v3, sensor/sampling, calibration, foreground service/channel lifecycle, RECOVERY_HOLD, manifest, Gradle, SDK, dependency, version, and applicationId paths are untouched.
+- GitHub Actions Run #655 on implementation HEAD `c5ec37d6474b47b28748b877ee4c04bc6af3ee6c`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15002199739`; unit-test report Artifact ID `15003148539`. [Workflow run](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45573801106).
 - Physical-device QA on itel P55: NOT RUN. The requested 36dp actions remain below the 48dp touch-target guidance in DESIGN.md and require thumb-use review.
+- PR #12 remains OPEN; no merge or auto-merge was performed.
 
 ---
 
@@ -44,7 +45,7 @@
 
 ### Verification
 - Source implementation and diff review: PASS — verified on baseline HEAD `e98c503d6eea46117a255be7734318d18055b1c1`.
-- testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK artifact upload, and unit-test report upload: pending CI on the resulting branch HEAD.
+- Baseline GitHub Actions Run #653 on `e98c503d6eea46117a255be7734318d18055b1c1`: SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK Artifact ID `15000545345`, and unit-test report Artifact ID `15000465571`.
 - Physical-device visual/touch QA on itel P55: NOT RUN; 32dp choice controls and 36dp dialog actions remain below the project's 48dp touch-target guidance and require real-device review.
 
 ---

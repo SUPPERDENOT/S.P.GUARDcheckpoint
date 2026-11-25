@@ -14,12 +14,13 @@
 - [x] Added capacity dirty-state and automatic/manual eligibility tests.
 - [x] Added Status Bar Indicator dirty-state tests for mode, metrics, scale, and interval.
 - [x] Added Theme & Gauge dirty-state tests for gauge model, animation, accent, and dual-tint.
-- [ ] Source diff review: pending final branch review.
-- [ ] testDebugUnitTest: NOT RUN — await CI on final branch HEAD.
-- [ ] assembleDebug: NOT RUN — await CI on final branch HEAD.
-- [ ] Anti-Slop UI Audit Gate: NOT RUN — await CI on final branch HEAD.
-- [ ] APK and unit-test report artifacts: NOT RUN — await CI on final branch HEAD.
+- [x] Source diff review: PASS — 15 files changed in this polish; protected database, sensor, calibration, service, manifest, and build-configuration paths are unchanged.
+- [x] `testDebugUnitTest`: SUCCESS — Run #655.
+- [x] `assembleDebug`: SUCCESS — Run #655.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #655.
+- [x] Debug APK Artifact ID `15002199739` and unit-test report Artifact ID `15003148539` uploaded — Run #655.
 - [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
 ---
 
