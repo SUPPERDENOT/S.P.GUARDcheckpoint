@@ -1,3 +1,33 @@
+## 2026-11-25 — PR #12 final polish: outlined gauge text, uniform controls, and dirty-state
+
+### Changed
+- Removed the opaque percentage badge surfaces from Wave and Capsule. Both now render a white ExtraBold percentage over a 3.5dp rounded black text outline using the centralized `GaugePercentageOutline` theme token.
+- Separated the Capsule terminal cap from the body with a visible 2dp gap and removed the cramped positive (+) mark.
+- Added the shared `powerButtonClickEffect`: 0.94 spring-bounce press scale and a 0.24 primary-accent outline flash, driven by the same `MutableInteractionSource` as the control.
+- Standardized dialog action buttons and interactive choice pills to 36dp CircleShape. Save remains an OutlinedButton when unchanged (transparent fill, muted border/text) and becomes primary/onPrimary when the valid draft is dirty.
+- Theme & Gauge dirty-state uses full `ThemePackConfig` equality, including gauge model, animation, accent/package mode, and Midnight dual-tint. Its footer is right-aligned with 10dp spacing and no equal-width button weights.
+- Capacity Save is enabled only for a valid value different from the saved capacity; the automatic-mode action is enabled only for a manual override. The capacity dialog now has a scrollable body, sticky footer, and IME inset handling.
+- Status Bar Indicator dirty-state compares the effective draft/saved mode, metric set, current scale, and interval. Its custom interval input has a 56dp minimum width and 32dp circular field; the dialog uses a scrollable body, sticky footer, and IME inset handling.
+- Compactened the Info popup header/footer; its information icon continues to use the active theme primary. Standardized the Analysis tab's Hitung Sekarang action.
+- History range formatting already uses U+2192; the existing regression test asserts one arrow and rejects the malformed `'n` sequence.
+
+### Tests
+- Added unit coverage for capacity dirty-state and automatic/manual action eligibility.
+- Added unit coverage for Status Bar Indicator dirty-state across mode, metric set, scale, and interval.
+- Expanded Theme & Gauge dirty-state coverage across model, animation, accent, and dual-tint settings.
+- Retained the existing History range formatter regression test for the exact arrow output.
+
+### Protected boundaries
+- No Room DB v3, sensor acquisition/sampling, calibration default 1x, foreground monitoring channel P0 or service lifecycle, RECOVERY_HOLD, or applicationId changes intended.
+- No dependency, SDK, app version, or build-number changes intended.
+
+### Verification
+- Source diff review: pending.
+- `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK/unit-test report upload: pending CI on the resulting branch HEAD.
+- Physical-device QA on itel P55: NOT RUN. The requested 36dp actions remain below the 48dp touch-target guidance in DESIGN.md and require thumb-use review.
+
+---
+
 ## 2026-11-25 — PR #12 final polish: Midnight, Wave, dialogs, and touch feedback
 
 ### Changed
@@ -13,7 +43,7 @@
 - No Room DB v3, sensor acquisition/sampling, default calibration 1x, foreground monitoring channel P0 or service lifecycle, RECOVERY_HOLD, package/namespace, applicationId, SDK, dependencies, app version, or build number changes.
 
 ### Verification
-- Source implementation and diff review: pending.
+- Source implementation and diff review: PASS — verified on baseline HEAD `e98c503d6eea46117a255be7734318d18055b1c1`.
 - testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, APK artifact upload, and unit-test report upload: pending CI on the resulting branch HEAD.
 - Physical-device visual/touch QA on itel P55: NOT RUN; 32dp choice controls and 36dp dialog actions remain below the project's 48dp touch-target guidance and require real-device review.
 

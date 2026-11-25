@@ -1,5 +1,20 @@
 package com.superdenot.powerguard.domain.model
 
+fun hasStatusBarIndicatorUnsavedChanges(
+    draftMode: StatusBarDisplayMode,
+    savedMode: StatusBarDisplayMode,
+    draftMetrics: Set<StatusBarParameter>,
+    savedMetrics: Set<StatusBarParameter>,
+    draftScale: BatteryCurrentScale,
+    savedScale: BatteryCurrentScale,
+    draftInterval: Int,
+    savedInterval: Int
+): Boolean =
+    draftMode != savedMode ||
+        draftMetrics != savedMetrics ||
+        draftScale != savedScale ||
+        draftInterval != savedInterval
+
 object StatusBarSettingsSummaryFormatter {
     fun format(
         displayMode: StatusBarDisplayMode,

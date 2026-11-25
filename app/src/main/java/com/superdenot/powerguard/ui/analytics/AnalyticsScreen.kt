@@ -51,6 +51,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import com.superdenot.powerguard.ui.components.PowerActionButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
@@ -735,11 +736,9 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
             ) {
                 Text("Laporan Siklus Harian", style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 10.dp))
-                OutlinedButton(
+                PowerActionButton(
                     onClick = { viewModel.triggerManualRollup() },
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
                 ) {
                     Text("Hitung Sekarang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                         maxLines = 1, softWrap = false)

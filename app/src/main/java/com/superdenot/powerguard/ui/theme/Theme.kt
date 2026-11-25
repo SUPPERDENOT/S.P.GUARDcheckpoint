@@ -20,6 +20,7 @@ val SlateCard = Color(0xFFE9E3D8)
 val InstrumentGraphite = Color(0xFF252923)
 val StatusReadyGreen = Color(0xFF22C55E)
 val StatusErrorRed = Color(0xFFEF4444)
+val GaugePercentageOutline = Color(0xE0000000)
 
 private val Paper = Color(0xFFFFFCF6)
 private val SecondaryText = Color(0xFF62665F)

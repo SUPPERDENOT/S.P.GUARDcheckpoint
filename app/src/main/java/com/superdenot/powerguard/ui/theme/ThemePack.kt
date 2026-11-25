@@ -56,6 +56,8 @@ sealed interface ThemePackConfig {
     ) : ThemePackConfig
 }
 
+fun hasThemeGaugeUnsavedChanges(draft: ThemePackConfig, saved: ThemePackConfig): Boolean = draft != saved
+
 object ThemeGaugeSummaryFormatter {
     fun format(config: ThemePackConfig): Pair<String, String> {
         val themeLine = when (config) {

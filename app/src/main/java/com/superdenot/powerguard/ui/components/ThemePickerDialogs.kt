@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -22,12 +23,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -54,6 +53,9 @@ import com.superdenot.powerguard.ui.theme.MidnightAccent
 import com.superdenot.powerguard.ui.theme.ThemeGaugeSummaryFormatter
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
+import com.superdenot.powerguard.ui.theme.hasThemeGaugeUnsavedChanges
+import com.superdenot.powerguard.ui.components.PowerActionButton
+import com.superdenot.powerguard.ui.components.PowerSaveButton
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
 import com.superdenot.powerguard.ui.theme.midnightAccentSwatches
 import com.superdenot.powerguard.ui.components.pressScale
@@ -107,7 +109,7 @@ fun ThemePickerDialogs(
     if (showPackagePicker) {
         Dialog(onDismissRequest = { showPackagePicker = false }) {
             Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
@@ -148,10 +150,9 @@ fun ThemePickerDialogs(
                             showConfiguration = true
                         }
                     )
-                    OutlinedButton(
+                    PowerActionButton(
                         onClick = { showPackagePicker = false },
-                        modifier = Modifier.fillMaxWidth().height(36.dp),
-                        shape = CircleShape
+                        modifier = Modifier.fillMaxWidth()
                     ) { Text("Batal") }
                 }
             }
@@ -159,10 +160,10 @@ fun ThemePickerDialogs(
     }
 
     if (showConfiguration) {
-        val hasUnsavedChanges = draft != config
+        val hasUnsavedChanges = hasThemeGaugeUnsavedChanges(draft, config)
         Dialog(onDismissRequest = { showConfiguration = false }) {
             Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
@@ -278,22 +279,16 @@ fun ThemePickerDialogs(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
-                            onClick = { showConfiguration = false },
-                            modifier = Modifier.weight(1f).height(36.dp),
-                            shape = CircleShape
-                        ) { Text("Batal") }
-                        Button(
+                        PowerActionButton(onClick = { showConfiguration = false }) { Text("Batal") }
+                        PowerSaveButton(
                             onClick = {
                                 onSave(draft)
                                 showConfiguration = false
                             },
-                            enabled = hasUnsavedChanges,
-                            modifier = Modifier.weight(1f).height(36.dp),
-                            shape = CircleShape
+                            enabled = hasUnsavedChanges
                         ) { Text("Simpan") }
                     }
                 }
@@ -351,7 +346,7 @@ private fun <T> ChoiceRow(
         values.forEach { value ->
             val interactionSource = remember(value) { MutableInteractionSource() }
             Surface(
-                modifier = Modifier.weight(1f).height(32.dp).pressScale(interactionSource)
+                modifier = Modifier.weight(1f).height(36.dp).pressScale(interactionSource)
                     .selectable(selected = value == selected, role = Role.RadioButton,
                         interactionSource = interactionSource, indication = LocalIndication.current, onClick = { onSelected(value) }),
                 color = if (value == selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,

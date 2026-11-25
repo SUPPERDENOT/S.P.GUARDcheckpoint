@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -51,6 +52,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.superdenot.powerguard.ui.components.PowerActionButton
+import com.superdenot.powerguard.ui.components.PowerSaveButton
+import com.superdenot.powerguard.ui.dashboard.hasDesignCapacityDraftChanges
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -567,36 +571,58 @@ fun DesignCapacityDialog(
     var inputText by remember(capacityMah, isManualOverride) { mutableStateOf(capacityMah?.toString().orEmpty()) }
     val parsedCapacity = inputText.toIntOrNull()
     val validCapacity = parsedCapacity?.let { it in 1000..20000 } == true
-    val hasChanges = validCapacity && (parsedCapacity != capacityMah || !isManualOverride)
+    val hasChanges = hasDesignCapacityDraftChanges(parsedCapacity, capacityMah)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Kapasitas Desain Baterai", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                 Text(
-                    "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Kapasitas Desain Baterai",
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
-                OutlinedTextField(
-                    value = inputText, onValueChange = { inputText = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Kapasitas (mAh)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true, isError = inputText.isNotEmpty() && !validCapacity
-                )
-                TextButton(enabled = isManualOverride, onClick = onUseAutomatic,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) { Text("Gunakan Otomatis") }
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it.filter(Char::isDigit) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Kapasitas (mAh)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        isError = inputText.isNotEmpty() && !validCapacity
+                    )
+                    PowerActionButton(
+                        onClick = onUseAutomatic,
+                        enabled = canUseAutomaticDesignCapacity(isManualOverride),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
+                    ) { Text("Gunakan Otomatis") }
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.height(36.dp), shape = CircleShape,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)) { Text("Batal") }
-                    Button(onClick = { parsedCapacity?.let(onSaveManual) }, enabled = hasChanges,
-                        modifier = Modifier.height(36.dp), shape = CircleShape,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)) { Text("Simpan") }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PowerActionButton(onClick = onDismiss) { Text("Batal") }
+                    PowerSaveButton(
+                        onClick = { parsedCapacity?.let(onSaveManual) },
+                        enabled = hasChanges
+                    ) { Text("Simpan") }
                 }
             }
         }
@@ -608,14 +634,14 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
     val scrollState = rememberScrollState()
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).heightIn(max = 680.dp),
+            modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).heightIn(max = 680.dp).imePadding(),
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
             Column(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(Icons.Rounded.Info, contentDescription = null,
@@ -672,10 +698,12 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                 )
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.End) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.height(36.dp),
-                        shape = CircleShape, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)) {
+                    PowerActionButton(
+                        onClick = onDismiss,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                    ) {
                         Text("Tutup")
                     }
                 }

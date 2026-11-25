@@ -1,3 +1,28 @@
+## 2026-11-25 — PR #12 final polish: outlined gauge text and uniform interaction system
+
+- [x] Wave and Capsule percentage badges have no backing Surface/pill; the percentage is white ExtraBold text with a 3.5dp rounded black outline token centralized in ui/theme/.
+- [x] Capsule terminal cap is separated from the body by a visible gap; the positive (+) mark is removed.
+- [x] Shared `powerButtonClickEffect` uses a shared MutableInteractionSource, 0.94 spring bounce, and 0.24 primary-accent flash.
+- [x] Dialog action buttons and interactive choice pills use 36dp CircleShape; Save is outlined/muted when unchanged and primary/onPrimary when enabled.
+- [x] Theme & Gauge dirty-state compares the full config; footer is right-aligned with 10dp spacing and no equal-width weights.
+- [x] Capacity Save requires a valid value different from the saved value; Use Automatic is enabled only for a manual override.
+- [x] Status Bar Indicator dirty-state compares effective mode, metrics, scale, and interval; custom interval input has 56dp minimum width and 32dp CircleShape.
+- [x] Capacity and Status Bar dialogs keep the footer outside the scrollable body and apply imePadding().
+- [x] Info popup header/footer compacted; header information icon follows MaterialTheme primary.
+- [x] Analysis Hitung Sekarang uses the shared 36dp circular action button.
+- [x] Existing SessionLevelRangeFormatterTest asserts U+2192 exactly once and rejects the malformed 'n sequence.
+- [x] Added capacity dirty-state and automatic/manual eligibility tests.
+- [x] Added Status Bar Indicator dirty-state tests for mode, metrics, scale, and interval.
+- [x] Added Theme & Gauge dirty-state tests for gauge model, animation, accent, and dual-tint.
+- [ ] Source diff review: pending final branch review.
+- [ ] testDebugUnitTest: NOT RUN — await CI on final branch HEAD.
+- [ ] assembleDebug: NOT RUN — await CI on final branch HEAD.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — await CI on final branch HEAD.
+- [ ] APK and unit-test report artifacts: NOT RUN — await CI on final branch HEAD.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+
+---
+
 ## 2026-11-25 — PR #12 final polish
 
 - [x] Midnight display name and all four accent summary labels use Midnight; internal config and persisted keys are unchanged.
@@ -10,10 +35,10 @@
 - [x] Status Bar Indicator Save is disabled until a valid draft differs from persisted settings.
 - [x] Custom clickable surfaces and choice pills use animated press scale; Material 3 buttons retain default ripple/pressed feedback; no indication=null introduced.
 - [x] Session range formatter uses Unicode U+2192; unit test asserts exactly one arrow and rejects the malformed 'n sequence.
-- [ ] testDebugUnitTest: NOT RUN — await CI.
-- [ ] assembleDebug: NOT RUN — await CI.
-- [ ] Anti-Slop UI Audit Gate: NOT RUN — await CI.
-- [ ] APK and unit-test report artifacts: NOT RUN — await CI.
+- [x] testDebugUnitTest: SUCCESS — baseline Run #653.
+- [x] assembleDebug: SUCCESS — baseline Run #653.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — baseline Run #653.
+- [x] APK Artifact ID `15000545345` and unit-test report Artifact ID `15000465571` uploaded — baseline Run #653.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 
 ---

@@ -6,14 +6,12 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -24,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -35,8 +34,10 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
 import kotlin.math.PI
@@ -152,7 +153,7 @@ private fun BatteryGaugeRenderer(
                 Canvas(Modifier.fillMaxSize()) {
                     drawCapsuleGauge(progress, gaugeColor, trackColor, outlineColor, phase?.value ?: 0f, animation)
                 }
-                GaugePercentageBadge(percentageLabel, 15.sp)
+                GaugePercentageLabel(percentageLabel, 15.sp)
             }
         }
         BatteryGaugeModel.SEGMENTED -> {
@@ -252,35 +253,20 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
     }
     val terminalWidth = bodyWidth * 0.36f
     val terminalHeight = 6.dp.toPx()
+    val terminalGap = 2.dp.toPx()
+    val terminalTop = top - terminalHeight - terminalGap
     drawRoundRect(
         trackColor,
-        Offset((size.width - terminalWidth) / 2f, top - terminalHeight),
+        Offset((size.width - terminalWidth) / 2f, terminalTop),
         Size(terminalWidth, terminalHeight),
         CornerRadius(terminalHeight / 2f)
     )
     drawRoundRect(
         outlineColor,
-        Offset((size.width - terminalWidth) / 2f, top - terminalHeight),
+        Offset((size.width - terminalWidth) / 2f, terminalTop),
         Size(terminalWidth, terminalHeight),
         CornerRadius(terminalHeight / 2f),
         style = Stroke(1.5.dp.toPx())
-    )
-    val terminalCenter = Offset(size.width / 2f, top - terminalHeight / 2f)
-    val plusHalfWidth = 2.dp.toPx()
-    val plusHalfHeight = 1.5.dp.toPx()
-    drawLine(
-        outlineColor,
-        Offset(terminalCenter.x - plusHalfWidth, terminalCenter.y),
-        Offset(terminalCenter.x + plusHalfWidth, terminalCenter.y),
-        strokeWidth = 1.dp.toPx(),
-        cap = StrokeCap.Round
-    )
-    drawLine(
-        outlineColor,
-        Offset(terminalCenter.x, terminalCenter.y - plusHalfHeight),
-        Offset(terminalCenter.x, terminalCenter.y + plusHalfHeight),
-        strokeWidth = 1.dp.toPx(),
-        cap = StrokeCap.Round
     )
     drawPath(body, trackColor)
     val innerInset = 2.dp.toPx()
@@ -414,23 +400,29 @@ private fun WaveGauge(
                 style = Stroke(borderStroke)
             )
         }
-        GaugePercentageBadge(percentageLabel, 21.sp)
+        GaugePercentageLabel(percentageLabel, 21.sp)
     }
 }
 
 @Composable
-private fun GaugePercentageBadge(label: String, fontSize: androidx.compose.ui.unit.TextUnit) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.95f))
-    ) {
+private fun GaugePercentageLabel(label: String, fontSize: androidx.compose.ui.unit.TextUnit) {
+    val outlineWidth = with(LocalDensity.current) { 3.5.dp.toPx() }
+    Box(contentAlignment = Alignment.Center) {
         Text(
-            label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            text = label,
+            style = TextStyle(
+                fontSize = fontSize,
+                fontWeight = FontWeight.ExtraBold,
+                drawStyle = Stroke(width = outlineWidth, join = StrokeJoin.Round)
+            ),
+            color = com.superdenot.powerguard.ui.theme.GaugePercentageOutline,
+            maxLines = 1
+        )
+        Text(
+            text = label,
             fontSize = fontSize,
-            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            fontWeight = FontWeight.ExtraBold,
             maxLines = 1
         )
     }

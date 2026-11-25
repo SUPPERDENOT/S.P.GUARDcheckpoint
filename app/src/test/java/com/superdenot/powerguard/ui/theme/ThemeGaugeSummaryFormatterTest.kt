@@ -3,6 +3,8 @@ package com.superdenot.powerguard.ui.theme
 import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemeGaugeSummaryFormatterTest {
@@ -52,5 +54,17 @@ class ThemeGaugeSummaryFormatterTest {
                 ))
             )
         }
+    }
+
+    @Test
+    fun themeGaugeDirtyStateTracksEveryPersistedConfigurationOption() {
+        val saved = ThemePackConfig.MidnightViolet()
+        assertFalse(hasThemeGaugeUnsavedChanges(saved, saved.copy()))
+        assertTrue(hasThemeGaugeUnsavedChanges(saved.copy(gaugeModel = BatteryGaugeModel.WAVE), saved))
+        assertTrue(hasThemeGaugeUnsavedChanges(saved.copy(chargingAnimation = ChargingArcAnimation.STATIC), saved))
+        assertTrue(hasThemeGaugeUnsavedChanges(saved.copy(midnightAccent = MidnightAccent.PINK), saved))
+        assertTrue(hasThemeGaugeUnsavedChanges(saved.copy(dualTintMetrics = false), saved))
+        val basic = ThemePackConfig.Basic()
+        assertTrue(hasThemeGaugeUnsavedChanges(basic.copy(accent = BasicAccent.COBALT), basic))
     }
 }
