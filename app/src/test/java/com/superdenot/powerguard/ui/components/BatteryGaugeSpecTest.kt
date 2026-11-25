@@ -92,6 +92,12 @@ class BatteryGaugeSpecTest {
         }
         assertEquals(0f, waveLiquidFillLevel(-0.2f, false, ChargingArcAnimation.STATIC), 0f)
         assertEquals(1f, waveLiquidFillLevel(1.2f, true, ChargingArcAnimation.COMET_HEAD), 0f)
+        listOf(false, true).forEach { isCharging ->
+            ChargingArcAnimation.values().forEach { animation ->
+                assertEquals(0f, waveLiquidFillLevel(0f, isCharging, animation), 0f)
+                assertEquals(1f, waveLiquidFillLevel(1f, isCharging, animation), 0f)
+            }
+        }
     }
 
     @Test
