@@ -50,7 +50,6 @@ import com.superdenot.powerguard.ui.theme.BasicAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
 import com.superdenot.powerguard.ui.theme.MidnightAccent
-import com.superdenot.powerguard.ui.theme.MidnightVioletAccent
 import com.superdenot.powerguard.ui.theme.ThemeGaugeSummaryFormatter
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme

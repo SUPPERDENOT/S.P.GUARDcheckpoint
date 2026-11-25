@@ -2,7 +2,6 @@ package com.superdenot.powerguard.ui.theme
 
 import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
-import com.superdenot.powerguard.ui.theme.MidnightAccent
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

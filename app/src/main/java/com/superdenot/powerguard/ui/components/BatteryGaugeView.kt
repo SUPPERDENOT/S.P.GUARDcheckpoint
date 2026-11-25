@@ -137,7 +137,6 @@ private fun BatteryGaugeRenderer(
     phase: State<Float>?
 ) {
     val trackColor = MaterialTheme.colorScheme.outlineVariant
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
     when (model) {
         BatteryGaugeModel.ARC -> {
