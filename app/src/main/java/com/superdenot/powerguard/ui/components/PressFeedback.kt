@@ -153,7 +153,7 @@ fun PowerSaveButton(
         border = BorderStroke(
             1.dp,
             if (enabled) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+            else MaterialTheme.colorScheme.outlineVariant
         ),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (enabled) MaterialTheme.colorScheme.primary else Color.Transparent,
