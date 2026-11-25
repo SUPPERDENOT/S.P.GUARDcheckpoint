@@ -1,3 +1,26 @@
+## 2026-11-25 — PR #12 follow-up: smoother button feedback and thinner gauge outline
+
+### Changed
+- Refined `powerButtonClickEffect`: press scale is 0.95 with `Spring.DampingRatioMediumBouncy` and `Spring.StiffnessMediumLow`; accent glow peaks at 0.20 using a 150ms press tween and 180ms release tween.
+- Centralized the motion and close-delay tokens in `PressFeedback.kt`. Dialog-closing Save, Cancel, and close actions wait 90ms before invoking their callback so the press/glow feedback is not immediately removed with the dialog.
+- Routed the named Settings actions through the shared action-button wrapper and applied the same interaction effect to Dashboard action buttons, Analytics actions, theme-package cards, and option pills. Existing action layouts are retained where they were already custom-sized.
+- Reduced the Wave/Capsule percentage text outline from 3.5dp to 1.8dp with `StrokeJoin.Round`. The outline and white fill remain in the same centered Box and use the same label/font metrics; only the stroke width changes.
+
+### Tests
+- Added `InteractionVisualTokensTest` to lock the requested scale, glow peak, press/release durations, 90ms close delay, and 1.8dp gauge outline token.
+
+### Protected boundaries
+- No Room DB v3, sensor acquisition/sampling, calibration default 1x, foreground monitoring channel P0 or service lifecycle, RECOVERY_HOLD, or applicationId changes.
+- No dependency, SDK, app version, build-number, or Gradle configuration changes.
+
+### Verification
+- Source diff review: pending.
+- `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload: pending CI on this follow-up commit.
+- Physical-device QA on itel P55: NOT RUN; verify animation feel and 1.8dp text contrast at 360dp / 720p before merge.
+- PR #12 remains OPEN; no merge or auto-merge was performed.
+
+---
+
 ## 2026-11-25 — PR #12 final polish: outlined gauge text, uniform controls, and dirty-state
 
 ### Changed

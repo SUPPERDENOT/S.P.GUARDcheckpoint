@@ -152,6 +152,7 @@ fun ThemePickerDialogs(
                     )
                     PowerActionButton(
                         onClick = { showPackagePicker = false },
+                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Batal") }
                 }
@@ -282,8 +283,9 @@ fun ThemePickerDialogs(
                         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        PowerActionButton(onClick = { showConfiguration = false }) { Text("Batal") }
+                        PowerActionButton(onClick = { showConfiguration = false }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Batal") }
                         PowerSaveButton(
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             onClick = {
                                 onSave(draft)
                                 showConfiguration = false

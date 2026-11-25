@@ -3,6 +3,7 @@ package com.superdenot.powerguard.ui.dashboard
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.PowerSaveButton
+import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
+import com.superdenot.powerguard.ui.components.powerButtonClickEffect
 import com.superdenot.powerguard.ui.dashboard.hasDesignCapacityDraftChanges
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
@@ -377,7 +380,12 @@ fun DashboardScreen(
                             )
                         }
 
-                        IconButton(onClick = { showCapacityDialog = true }) {
+                        val capacityEditInteractionSource = remember { MutableInteractionSource() }
+                        IconButton(
+                            onClick = { showCapacityDialog = true },
+                            interactionSource = capacityEditInteractionSource,
+                            modifier = Modifier.powerButtonClickEffect(capacityEditInteractionSource)
+                        ) {
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
                                 contentDescription = "Ubah Kapasitas Desain",
@@ -444,6 +452,7 @@ fun DashboardScreen(
                         }
 
                         if (!isBatteryOptIgnored) {
+                            val batteryOptimizationInteractionSource = remember { MutableInteractionSource() }
                             OutlinedButton(
                                 onClick = {
                                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -452,9 +461,11 @@ fun DashboardScreen(
                                     runCatching { context.startActivity(intent) }
                                 },
                                 shape = RoundedCornerShape(12.dp),
+                                interactionSource = batteryOptimizationInteractionSource,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(46.dp)
+                                    .powerButtonClickEffect(batteryOptimizationInteractionSource)
                             ) {
                                 Text("Izinkan Abaikan Optimasi Baterai untuk Auto-start")
                             }
@@ -467,14 +478,17 @@ fun DashboardScreen(
                         }
 
                         if (!hasUsagePerm) {
+                            val usageAccessInteractionSource = remember { MutableInteractionSource() }
                             OutlinedButton(
                                 onClick = {
                                     runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
                                 },
                                 shape = RoundedCornerShape(12.dp),
+                                interactionSource = usageAccessInteractionSource,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(46.dp)
+                                    .powerButtonClickEffect(usageAccessInteractionSource)
                             ) {
                                 Text("Aktifkan Akses Penggunaan Aplikasi")
                             }
@@ -512,6 +526,7 @@ fun DashboardScreen(
                             )
                         }
 
+                        val readMoreInteractionSource = remember { MutableInteractionSource() }
                         Button(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -520,7 +535,8 @@ fun DashboardScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                            modifier = Modifier.height(38.dp)
+                            modifier = Modifier.height(38.dp).powerButtonClickEffect(readMoreInteractionSource),
+                            interactionSource = readMoreInteractionSource
                         ) {
                             Text("READ MORE", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
@@ -618,8 +634,9 @@ fun DesignCapacityDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    PowerActionButton(onClick = onDismiss) { Text("Batal") }
+                    PowerActionButton(onClick = onDismiss, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Batal") }
                     PowerSaveButton(
+                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                         onClick = { parsedCapacity?.let(onSaveManual) },
                         enabled = hasChanges
                     ) { Text("Simpan") }
@@ -702,6 +719,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                     horizontalArrangement = Arrangement.End) {
                     PowerActionButton(
                         onClick = onDismiss,
+                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                     ) {
                         Text("Tutup")

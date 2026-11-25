@@ -11,12 +11,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.superdenot.powerguard.domain.model.ProtocolExplanationCatalog
+import com.superdenot.powerguard.ui.components.PowerActionButton
+import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
 
 @Composable
 fun ProtocolInfoDialog(
@@ -54,7 +55,7 @@ fun ProtocolInfoDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Mengerti") }
+            PowerActionButton(onClick = onDismiss, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Mengerti") }
         }
     )
 }

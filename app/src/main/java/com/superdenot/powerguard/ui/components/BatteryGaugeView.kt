@@ -44,6 +44,8 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+internal const val GAUGE_PERCENTAGE_OUTLINE_WIDTH_DP = 1.8f
+
 @Composable
 fun BatteryGaugeView(
     progress: Float,
@@ -406,7 +408,7 @@ private fun WaveGauge(
 
 @Composable
 private fun GaugePercentageLabel(label: String, fontSize: androidx.compose.ui.unit.TextUnit) {
-    val outlineWidth = with(LocalDensity.current) { 3.5.dp.toPx() }
+    val outlineWidth = with(LocalDensity.current) { GAUGE_PERCENTAGE_OUTLINE_WIDTH_DP.dp.toPx() }
     Box(contentAlignment = Alignment.Center) {
         Text(
             text = label,

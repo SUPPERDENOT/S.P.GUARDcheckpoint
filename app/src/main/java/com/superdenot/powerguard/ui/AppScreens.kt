@@ -63,6 +63,7 @@ import com.superdenot.powerguard.ui.components.CompactSwitch
 import com.superdenot.powerguard.ui.components.pressScale
 import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.PowerSaveButton
+import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
 import com.superdenot.powerguard.ui.components.pressScaleClickable
 import com.superdenot.powerguard.ui.dashboard.DesignCapacityDialog
 import com.superdenot.powerguard.ui.components.BatteryGaugeView
@@ -399,7 +400,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             onDismissRequest = { showPowerInfo = false },
             title = { Text("Pengukuran daya baterai") },
             text = { Text("Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.") },
-            confirmButton = { TextButton(onClick = { showPowerInfo = false }) { Text("Mengerti") } }
+            confirmButton = { PowerActionButton(onClick = { showPowerInfo = false }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Mengerti") } }
         )
     }
 }
@@ -635,7 +636,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedButton(onClick = { showCapacityDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                    PowerActionButton(onClick = { showCapacityDialog = true }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Edit, null)
                         Text("  Ubah Kapasitas Desain")
                     }
@@ -647,7 +648,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Persiapan Izin", fontWeight = FontWeight.Bold)
                     Text("Periksa dan atur akses Android yang mendukung pemantauan serta analisis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
+                    PowerActionButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Settings, null)
                         Text("  Buka Pengaturan Awal")
                     }
@@ -900,9 +901,11 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     ) {
                         PowerActionButton(
                             onClick = { showChargeGuardDialog = false },
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) { Text("Batal") }
                         PowerSaveButton(
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             onClick = {
                                 vm.setChargeGuardConfiguration(draftChargeGuardConfig)
                                 vm.setChargeGuardAlertSound(draftChargeGuardSound)
@@ -1284,9 +1287,11 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                     ) {
                         PowerActionButton(
                             onClick = { showStatusBarSettingsDialog = false },
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) { Text("Batal") }
                         PowerSaveButton(
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             enabled = canSave,
                             onClick = {
                                 vm.saveStatusBarIndicatorSettings(

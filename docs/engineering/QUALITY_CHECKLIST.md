@@ -1,3 +1,21 @@
+## 2026-11-25 — PR #12 follow-up: smoother button feedback and thinner gauge outline
+
+- [x] `powerButtonClickEffect` uses 0.95 press scale with MediumBouncy / MediumLow spring.
+- [x] Accent glow peaks at 0.20 and uses 150ms press / 180ms release tweens.
+- [x] Shared action wrappers support a 90ms delay before closing-dialog callbacks; Save, Batal, Tutup, and equivalent confirmation actions use it.
+- [x] Atur indikator, Ubah Kapasitas Desain, Buka Pengaturan Awal, Tes, Hitung Sekarang, Dashboard actions, Analytics actions, theme-package cards, and option pills use the shared interaction effect.
+- [x] Wave and Capsule percentage outline is 1.8dp with StrokeJoin.Round; both text layers retain the same centered alignment.
+- [x] Added `InteractionVisualTokensTest` for scale, glow alpha/timing, close delay, and gauge outline width.
+- [ ] Source diff review: pending.
+- [ ] `testDebugUnitTest`: NOT RUN — await CI on this follow-up HEAD.
+- [ ] `assembleDebug`: NOT RUN — await CI on this follow-up HEAD.
+- [ ] Anti-Slop UI Audit Gate: NOT RUN — await CI on this follow-up HEAD.
+- [ ] APK and unit-test report artifacts: NOT RUN — await CI on this follow-up HEAD.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 final polish: outlined gauge text and uniform interaction system
 
 - [x] Wave and Capsule percentage badges have no backing Surface/pill; the percentage is white ExtraBold text with a 3.5dp rounded black outline token centralized in ui/theme/.
