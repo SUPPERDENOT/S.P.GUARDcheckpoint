@@ -588,7 +588,13 @@ fun DesignCapacityDialog(
     var inputText by remember(capacityMah, isManualOverride) { mutableStateOf(capacityMah?.toString().orEmpty()) }
     val parsedCapacity = inputText.toIntOrNull()
     val validCapacity = parsedCapacity?.let { it in 1000..20000 } == true
-    val hasChanges = hasDesignCapacityDraftChanges(parsedCapacity, capacityMah, savedIsManualMode = isManualOverride)
+    val draftIsManualMode = isManualOverride || (parsedCapacity != capacityMah)
+    val hasChanges = hasDesignCapacityDraftChanges(
+        parsedInput = parsedCapacity,
+        savedCapacityMah = capacityMah,
+        savedIsManualMode = isManualOverride,
+        draftIsManualMode = draftIsManualMode
+    )
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
