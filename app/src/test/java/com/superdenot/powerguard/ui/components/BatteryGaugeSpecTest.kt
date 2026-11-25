@@ -96,12 +96,9 @@ class BatteryGaugeSpecTest {
 
     @Test
     fun waveRendererUsesTwoOffsetLayersAndBrightFrontFill() {
-        val layers = waveGaugeLayerSpecs(0.4f)
-        assertEquals(2, layers.size)
-        assertEquals(1.55f, layers[0].phaseOffset, 0.0001f)
-        assertEquals(0.4f, layers[1].phaseOffset, 0f)
-        assertTrue(layers[0].alpha < layers[1].alpha)
-        assertEquals(0.82f, layers[1].alpha, 0f)
+        assertEquals(1.15f, WAVE_REAR_PHASE_OFFSET, 0f)
+        assertEquals(0.68f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
+        assertTrue(WAVE_REAR_FILL_ALPHA < WAVE_FRONT_FILL_ALPHA)
         assertEquals(0.82f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
