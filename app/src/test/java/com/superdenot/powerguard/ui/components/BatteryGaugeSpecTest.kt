@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.roundToInt
 
 class BatteryGaugeSpecTest {
     private val palette = BatterySemanticColors(
@@ -49,30 +50,93 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun segmentedGaugeUsesTwentyFivePercentStepsAcrossZeroToOneHundred() {
+    fun segmentedGaugeUsesTwentyFourClockwiseBlocksAcrossZeroToOneHundred() {
+        assertEquals(24, SEGMENTED_GAUGE_BLOCK_COUNT)
         assertEquals(0, segmentedGaugeLitCount(0))
-        assertEquals(0, segmentedGaugeLitCount(4))
         assertEquals(1, segmentedGaugeLitCount(5))
-        assertEquals(10, segmentedGaugeLitCount(50))
-        assertEquals(19, segmentedGaugeLitCount(99))
-        assertEquals(20, segmentedGaugeLitCount(100))
+        assertEquals(12, segmentedGaugeLitCount(50))
+        assertEquals(24, segmentedGaugeLitCount(99))
+        assertEquals(24, segmentedGaugeLitCount(100))
         assertEquals(0, segmentedGaugeLitCount(-20))
-        assertEquals(20, segmentedGaugeLitCount(140))
+        assertEquals(24, segmentedGaugeLitCount(140))
         (0..100).forEach { level ->
-            assertEquals("level=$level", level / 5, segmentedGaugeLitCount(level))
+            assertEquals("level=$level", (level * 24 / 100f).roundToInt(), segmentedGaugeLitCount(level))
         }
     }
 
     @Test
+    fun capsuleSweepAndCometMoveFromBottomToTop() {
+        val top = 10f
+        val bottom = 90f
+        assertEquals(bottom, capsuleCometY(top, bottom, 0f), 0f)
+        assertEquals(50f, capsuleCometY(top, bottom, 0.5f), 0f)
+        assertEquals(top, capsuleCometY(top, bottom, 1f), 0f)
+    }
+
+    @Test
+    fun segmentedBlocksStartAtTwelveAndAdvanceClockwise() {
+        assertEquals(-90f, segmentedGaugeStartAngle(0), 0f)
+        assertEquals(-75f, segmentedGaugeStartAngle(1), 0f)
+        assertEquals(255f, segmentedGaugeStartAngle(23), 0f)
+        assertTrue(segmentedGaugeTrailAlpha(3, headIndex = 3, activeCount = 8) >
+            segmentedGaugeTrailAlpha(2, headIndex = 3, activeCount = 8))
+    }
+
+    @Test
     fun waveLiquidLevelTracksBatteryFractionForChargingAndIdleAcrossEveryAnimation() {
-        listOf(false, true).forEach { animateEffects ->
+        listOf(false, true).forEach { isCharging ->
             ChargingArcAnimation.values().forEach { animation ->
-                assertEquals("animate=$animateEffects animation=$animation", 0.69f,
-                    waveLiquidFillLevel(0.69f, animateEffects, animation), 0f)
+                assertEquals("charging=$isCharging animation=$animation", 0.69f,
+                    waveLiquidFillLevel(0.69f, isCharging, animation), 0f)
             }
         }
         assertEquals(0f, waveLiquidFillLevel(-0.2f, false, ChargingArcAnimation.STATIC), 0f)
         assertEquals(1f, waveLiquidFillLevel(1.2f, true, ChargingArcAnimation.COMET_HEAD), 0f)
+    }
+
+    @Test
+    fun waveRendererUsesTwoOffsetLayersAndBrightFrontFill() {
+        val layers = waveGaugeLayerSpecs(0.4f)
+        assertEquals(2, layers.size)
+        assertEquals(1.55f, layers[0].phaseOffset, 0.0001f)
+        assertEquals(0.4f, layers[1].phaseOffset, 0f)
+        assertTrue(layers[0].alpha < layers[1].alpha)
+        assertEquals(0.82f, layers[1].alpha, 0f)
+        assertEquals(0.82f, WAVE_FRONT_FILL_ALPHA, 0f)
+    }
+
+    @Test
+    fun forceAnimateEnablesPreviewWithoutChargingButStillHonorsVisibilityAndStaticMode() {
+        assertTrue(
+            shouldAnimateBatteryGauge(
+                isCharging = false,
+                isVisibleOnScreen = true,
+                isCriticalThermal = false,
+                isWarm = false,
+                animation = ChargingArcAnimation.ENERGY_SWEEP,
+                forceAnimate = true
+            )
+        )
+        assertFalse(
+            shouldAnimateBatteryGauge(
+                isCharging = false,
+                isVisibleOnScreen = true,
+                isCriticalThermal = false,
+                isWarm = false,
+                animation = ChargingArcAnimation.STATIC,
+                forceAnimate = true
+            )
+        )
+        assertFalse(
+            shouldAnimateBatteryGauge(
+                isCharging = false,
+                isVisibleOnScreen = false,
+                isCriticalThermal = false,
+                isWarm = false,
+                animation = ChargingArcAnimation.COMET_HEAD,
+                forceAnimate = true
+            )
+        )
     }
 
     @Test
