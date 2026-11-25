@@ -12,7 +12,7 @@
 - [x] Status Bar interval presets are 32dp and aligned with the 32dp custom field; scroll body and sticky footer are separate, with imePadding retained.
 - [x] Capacity dirty-state compares the effective (capacityMah, isManualMode) pair; unchanged Automatic state remains clean.
 - [x] Regression tests added/updated for gauge motion, dual Wave layers, forceAnimate, outline width, live Basic accent preview, and capacity dirty-state. Existing Status Bar preset/dirty-state tests retained.
-- [ ] Final full-diff self-crosscheck: pending.
+- [x] Final full-diff self-crosscheck: PASS — 20/20 requested checks; 14 changed paths; no protected Room, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest, Gradle/dependency, or applicationId paths changed.
 - [ ] `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload: pending CI on final documentation HEAD.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
