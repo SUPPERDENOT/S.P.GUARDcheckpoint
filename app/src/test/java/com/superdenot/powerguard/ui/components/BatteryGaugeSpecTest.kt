@@ -64,6 +64,18 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
+    fun waveLiquidLevelTracksBatteryFractionForChargingAndIdleAcrossEveryAnimation() {
+        listOf(false, true).forEach { animateEffects ->
+            ChargingArcAnimation.values().forEach { animation ->
+                assertEquals("animate=$animateEffects animation=$animation", 0.69f,
+                    waveLiquidFillLevel(0.69f, animateEffects, animation), 0f)
+            }
+        }
+        assertEquals(0f, waveLiquidFillLevel(-0.2f, false, ChargingArcAnimation.STATIC), 0f)
+        assertEquals(1f, waveLiquidFillLevel(1.2f, true, ChargingArcAnimation.COMET_HEAD), 0f)
+    }
+
+    @Test
     fun chargingAnimationOnlyRunsWhenVisibleAndThermallyNormal() {
         assertTrue(
             shouldAnimateBatteryGauge(

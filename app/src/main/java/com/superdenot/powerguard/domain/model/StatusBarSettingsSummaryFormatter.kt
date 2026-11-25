@@ -1,5 +1,13 @@
 package com.superdenot.powerguard.domain.model
 
+private val STATUS_BAR_ROTATION_PRESETS = setOf(2, 3, 5, 10)
+
+fun isStatusBarIntervalPresetSelected(presetSeconds: Int, activeIntervalSeconds: Int): Boolean =
+    presetSeconds in STATUS_BAR_ROTATION_PRESETS && presetSeconds == activeIntervalSeconds
+
+fun isCustomStatusBarInterval(activeIntervalSeconds: Int): Boolean =
+    activeIntervalSeconds !in STATUS_BAR_ROTATION_PRESETS
+
 fun hasStatusBarIndicatorUnsavedChanges(
     draftMode: StatusBarDisplayMode,
     savedMode: StatusBarDisplayMode,

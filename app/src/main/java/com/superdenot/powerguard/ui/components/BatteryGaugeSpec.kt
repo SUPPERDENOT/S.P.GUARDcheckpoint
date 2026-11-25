@@ -30,6 +30,11 @@ enum class ChargingArcAnimation(val key: String, val label: String) {
 fun segmentedGaugeLitCount(levelPercent: Int): Int =
     (levelPercent.coerceIn(0, 100) / 5).coerceIn(0, 20)
 
+/** Animation eligibility and style never change the measured Wave liquid fraction. */
+@Suppress("UNUSED_PARAMETER")
+fun waveLiquidFillLevel(progress: Float, animateEffects: Boolean, animation: ChargingArcAnimation): Float =
+    progress.coerceIn(0f, 1f)
+
 fun resolveBatteryGaugeColor(
     semanticColors: BatterySemanticColors,
     isCriticalThermal: Boolean,

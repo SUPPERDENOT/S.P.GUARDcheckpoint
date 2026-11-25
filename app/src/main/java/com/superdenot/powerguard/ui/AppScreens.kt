@@ -74,6 +74,8 @@ import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.domain.model.StatusBarSettingsSummaryFormatter
 import com.superdenot.powerguard.domain.model.hasStatusBarIndicatorUnsavedChanges
+import com.superdenot.powerguard.domain.model.isCustomStatusBarInterval
+import com.superdenot.powerguard.domain.model.isStatusBarIntervalPresetSelected
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
@@ -922,12 +924,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
         var draftParameter by remember { mutableStateOf(statusBarSetting.parameter) }
         var draftRotationParameters by remember { mutableStateOf(statusBarSetting.rotationParameters.toSet()) }
-        var draftIntervalSeconds by remember { mutableIntStateOf(statusBarSetting.rotationIntervalSeconds) }
-        var draftIntervalInput by remember { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
-        var draftCurrentScale by remember { mutableStateOf(currentScale) }
-        var customIntervalEdited by remember {
-            mutableStateOf(statusBarSetting.rotationIntervalSeconds !in listOf(2, 3, 5, 10))
+        var draftIntervalSeconds by remember(statusBarSetting.rotationIntervalSeconds) {
+            mutableIntStateOf(statusBarSetting.rotationIntervalSeconds)
         }
+        var draftIntervalInput by remember(statusBarSetting.rotationIntervalSeconds) {
+            mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString())
+        }
+        var draftCurrentScale by remember { mutableStateOf(currentScale) }
 
         val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
         val draftMetrics = if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
@@ -1180,7 +1183,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 listOf(2, 3, 5, 10).forEach { seconds ->
-                                    val selected = draftIntervalSeconds == seconds && !customIntervalEdited
+                                    val selected = isStatusBarIntervalPresetSelected(seconds, draftIntervalSeconds)
                                     val interactionSource = remember(seconds) { MutableInteractionSource() }
                                     Surface(
                                         modifier = Modifier.weight(1f).height(36.dp)
@@ -1193,7 +1196,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                                 onClick = {
                                                     draftIntervalSeconds = seconds
                                                     draftIntervalInput = seconds.toString()
-                                                    customIntervalEdited = false
                                                 }
                                             ),
                                         shape = androidx.compose.foundation.shape.CircleShape,
@@ -1225,7 +1227,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 }
                                 val customBorderColor = when {
                                     !validCustomInterval -> MaterialTheme.colorScheme.error
-                                    customIntervalEdited -> MaterialTheme.colorScheme.primary
+                                    isCustomStatusBarInterval(draftIntervalSeconds) -> MaterialTheme.colorScheme.primary
                                     else -> MaterialTheme.colorScheme.outlineVariant
                                 }
                                 Surface(
@@ -1234,7 +1236,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                     color = MaterialTheme.colorScheme.surface,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
                                     border = androidx.compose.foundation.BorderStroke(
-                                        if (customIntervalEdited && validCustomInterval) 1.5.dp else 1.dp,
+                                        if (isCustomStatusBarInterval(draftIntervalSeconds) && validCustomInterval) 1.5.dp else 1.dp,
                                         customBorderColor
                                     )
                                 ) {
@@ -1246,7 +1248,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             value = draftIntervalInput,
                                             onValueChange = { input ->
                                                 draftIntervalInput = input.filter(Char::isDigit).take(2)
-                                                customIntervalEdited = true
                                                 draftIntervalInput.toIntOrNull()
                                                     ?.takeIf { it in 1..60 }
                                                     ?.let { draftIntervalSeconds = it }

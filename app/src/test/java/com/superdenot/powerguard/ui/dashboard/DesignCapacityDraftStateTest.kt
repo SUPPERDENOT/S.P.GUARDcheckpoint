@@ -5,27 +5,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DesignCapacityDraftStateTest {
-    @Test
-    fun unchangedCapacityDoesNotEnableSave() {
-        assertFalse(hasDesignCapacityDraftChanges(parsedInput = 5000, savedCapacityMah = 5000))
+    @Test fun unchangedManualCapacityDoesNotEnableSave() {
+        assertFalse(hasDesignCapacityDraftChanges(5500, 5500, savedIsManualMode = true))
     }
-
-    @Test
-    fun changedValidCapacityEnablesSave() {
-        assertTrue(hasDesignCapacityDraftChanges(parsedInput = 5100, savedCapacityMah = 5000))
-        assertTrue(hasDesignCapacityDraftChanges(parsedInput = 5000, savedCapacityMah = null))
+    @Test fun changedManualCapacityEnablesSave() {
+        assertTrue(hasDesignCapacityDraftChanges(5000, 5500, savedIsManualMode = true))
     }
-
-    @Test
-    fun invalidOrMissingCapacityNeverEnablesSave() {
-        assertFalse(hasDesignCapacityDraftChanges(parsedInput = null, savedCapacityMah = 5000))
-        assertFalse(hasDesignCapacityDraftChanges(parsedInput = 999, savedCapacityMah = 5000))
-        assertFalse(hasDesignCapacityDraftChanges(parsedInput = 20001, savedCapacityMah = 5000))
+    @Test fun switchingAutomaticToManualIsDirtyEvenWhenNumberMatches() {
+        assertTrue(hasDesignCapacityDraftChanges(5000, 5000, savedIsManualMode = false))
     }
-
-    @Test
-    fun automaticActionIsEnabledOnlyForManualOverride() {
-        assertTrue(canUseAutomaticDesignCapacity(isManualOverride = true))
-        assertFalse(canUseAutomaticDesignCapacity(isManualOverride = false))
+    @Test fun invalidOrMissingCapacityNeverEnablesSave() {
+        assertFalse(hasDesignCapacityDraftChanges(null, 5000, savedIsManualMode = true))
+        assertFalse(hasDesignCapacityDraftChanges(999, 5000, savedIsManualMode = true))
+        assertFalse(hasDesignCapacityDraftChanges(20001, 5000, savedIsManualMode = true))
+    }
+    @Test fun automaticActionIsEnabledOnlyForManualOverride() {
+        assertTrue(canUseAutomaticDesignCapacity(true))
+        assertFalse(canUseAutomaticDesignCapacity(false))
     }
 }

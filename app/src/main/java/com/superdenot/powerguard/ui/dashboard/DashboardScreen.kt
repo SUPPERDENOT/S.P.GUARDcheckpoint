@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -587,7 +588,7 @@ fun DesignCapacityDialog(
     var inputText by remember(capacityMah, isManualOverride) { mutableStateOf(capacityMah?.toString().orEmpty()) }
     val parsedCapacity = inputText.toIntOrNull()
     val validCapacity = parsedCapacity?.let { it in 1000..20000 } == true
-    val hasChanges = hasDesignCapacityDraftChanges(parsedCapacity, capacityMah)
+    val hasChanges = hasDesignCapacityDraftChanges(parsedCapacity, capacityMah, savedIsManualMode = isManualOverride)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
@@ -625,6 +626,7 @@ fun DesignCapacityDialog(
                     PowerActionButton(
                         onClick = onUseAutomatic,
                         enabled = canUseAutomaticDesignCapacity(isManualOverride),
+                        modifier = Modifier.wrapContentWidth(),
                         contentPadding = PaddingValues(horizontal = 12.dp)
                     ) { Text("Gunakan Otomatis") }
                 }

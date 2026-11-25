@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.os.Build
 import android.os.SystemClock
 import com.superdenot.powerguard.domain.model.LiveBatteryState
 
@@ -46,6 +47,9 @@ class BatteryMonitorEngine(private val context: Context, private val currentScal
         val isChargingStatusAvailable = status in BatteryManager.BATTERY_STATUS_CHARGING..BatteryManager.BATTERY_STATUS_FULL
         val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL
+        val osChargingEtaMillis = if (isCharging && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            runCatching { batteryManager.computeChargeTimeRemaining() }.getOrNull()?.takeIf { it > 0L }
+        } else null
 
         val plugged = intentStatus?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
         val isPowerConnected = plugged != 0
@@ -136,7 +140,8 @@ class BatteryMonitorEngine(private val context: Context, private val currentScal
             isTemperatureAvailable = isTemperatureAvailable,
             isPowerAvailable = isPowerAvailable,
             isChargingStatusAvailable = isChargingStatusAvailable,
-            isChargeSourceAvailable = hasPluggedMetadata
+            isChargeSourceAvailable = hasPluggedMetadata,
+            osChargingEtaMillis = osChargingEtaMillis
         )
     }
 

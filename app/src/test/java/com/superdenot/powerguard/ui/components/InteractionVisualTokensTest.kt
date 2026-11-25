@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.components
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InteractionVisualTokensTest {
@@ -14,7 +15,8 @@ class InteractionVisualTokensTest {
     }
 
     @Test
-    fun gaugePercentageOutlineUsesThinStroke() {
+    fun gaugePercentageOutlineUsesThinDarkStrokeForCanvasText() {
         assertEquals(1.8f, GAUGE_PERCENTAGE_OUTLINE_WIDTH_DP, 0f)
+        assertTrue(com.superdenot.powerguard.ui.theme.GaugePercentageOutline.alpha >= 0.9f)
     }
 }

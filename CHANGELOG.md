@@ -1,3 +1,31 @@
+## 2026-11-25 — PR #12 combined hotfix: Wave, Canvas percentage text, History arrow, Basic Light, ETA, and dialog state
+
+### Changed
+- Wave liquid fill follows the clamped battery fraction independently of animation eligibility; idle rendering keeps a subtle static contour with no artificial endpoint fill.
+- Wave/Capsule percentage text uses one TextMeasurer layout and two Canvas drawText passes at the exact same origin: dark 1.8dp rounded outline, then pure-white ExtraBold fill.
+- Theme & Gauge preview bounds the model label to remaining row width and ellipsizes it.
+- History session percentages use the shared numeric formatter with U+2192; regression coverage rejects straight and curly apostrophe-n variants.
+- Basic Light keeps the approved Warm Ivory / Paper / Mineral palette and uses stronger neutral outline tokens for surface/sub-card separation.
+- BatteryMonitorEngine captures positive OS ETA values through computeChargeTimeRemaining() on API 28+. A single service resolver rejects OS estimates below 10 minutes when level is below 90%, replacing them with remaining design capacity divided by active battery-side current. Existing EMA remains fallback when OS/current evidence is unavailable. Overview, Charging, and foreground notification use the same resolved LiveBatteryState ETA.
+- Capacity dirty-state compares (capacityMah, isManualMode); Gunakan Otomatis remains compact and disabled in automatic mode.
+- Status Bar preset selection derives from the effective interval value; initial draft state is keyed to the saved setting and dirty-state compares effective values.
+
+### Tests
+- Added Wave fill, Basic Light contrast, ETA sanity, interval preset, and foreground notification ETA regression tests.
+- Expanded percentage outline, History arrow, and capacity value/mode dirty-state tests.
+
+### Protected boundaries
+- No Room DB v3/schema/migration, existing voltage/current/temperature sensor reads or normalization, sampling cadence, calibration default 1x, foreground monitoring channel/P0 lifecycle, RECOVERY_HOLD, applicationId, package, SDK, dependencies, app version, or build-number changes intended. The new OS ETA read is separate from existing sensor readings.
+- History remains numeric in persistence; no schema or stored-session rewrite.
+
+### Verification
+- Source diff review and focused tests: pending CI.
+- testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload: pending CI on this commit.
+- Physical-device QA on itel P55: NOT RUN; required for Wave rendering, Basic Light contrast, ETA behavior, and dialog usability.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 follow-up: smoother button feedback and thinner gauge outline
 
 ### Changed

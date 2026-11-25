@@ -19,6 +19,16 @@ class StatusBarIndicatorDraftStateTest {
     )
 
     @Test
+    fun presetSelectionReflectsTheEffectiveIntervalValue() {
+        listOf(2, 3, 5, 10).forEach { preset ->
+            assertTrue(isStatusBarIntervalPresetSelected(preset, preset))
+            assertFalse(isCustomStatusBarInterval(preset))
+        }
+        assertFalse(isStatusBarIntervalPresetSelected(2, 3))
+        assertTrue(isCustomStatusBarInterval(7))
+    }
+
+    @Test
     fun identicalDraftIsNotDirty() {
         assertFalse(unchanged())
     }

@@ -205,7 +205,10 @@ fun ThemePickerDialogs(
                                         isVisibleOnScreen = true,
                                         modifier = Modifier.size(82.dp)
                                     )
-                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Column(
+                                        modifier = Modifier.weight(1f).widthIn(min = 0.dp),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
                                         Text(
                                             when {
                                                 isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS -> "Kritis termal"
@@ -219,7 +222,10 @@ fun ThemePickerDialogs(
                                         Text(
                                             "Model: ${draft.gaugeModel.label}",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }

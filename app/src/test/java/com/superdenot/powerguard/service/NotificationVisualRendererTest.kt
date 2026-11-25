@@ -87,6 +87,16 @@ class NotificationVisualRendererTest {
     }
 
     @Test
+    fun resolvedEtaIsSharedByForegroundNotificationTitleAndExpandedBody() {
+        val state = LiveBatteryState(level = 79, isCharging = true,
+            isChargingEtaTracking = true, chargingEtaMinutes = 63L)
+        assertEquals("Mengisi Daya • 79% • ±63 mnt",
+            NotificationVisualRenderer.resolveMonitorContentTitle(state))
+        assertTrue(NotificationVisualRenderer.formatMonitorExpandedText(state)
+            .endsWith("Estimasi penuh: 63 menit"))
+    }
+
+    @Test
     fun statusBarParameterNotificationTextFormatsAllSixSelections() {
         val state = LiveBatteryState(
             level = 33,

@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,7 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawText
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.geometry.CornerRadius
@@ -35,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
@@ -73,7 +77,10 @@ fun BatteryGaugeView(
         },
         contentAlignment = Alignment.Center
     ) {
-        if (shouldAnimateBatteryGauge(isCharging, isVisibleOnScreen, isCriticalThermal, isWarm, animation)) {
+        val animateEffects = shouldAnimateBatteryGauge(
+            isCharging, isVisibleOnScreen, isCriticalThermal, isWarm, animation
+        )
+        if (animateEffects) {
             AnimatedBatteryGauge(
                 progress = safeProgress,
                 percentageLabel = percentageLabel,
@@ -86,6 +93,7 @@ fun BatteryGaugeView(
                 progress = safeProgress,
                 percentageLabel = percentageLabel,
                 model = model,
+                animation = animation,
                 gaugeColor = gaugeColor
             )
         }
@@ -110,7 +118,7 @@ private fun AnimatedBatteryGauge(
         ),
         label = "battery-gauge-phase"
     )
-    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, phase)
+    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, phase, animateEffects = true)
 }
 
 @Composable
@@ -118,16 +126,10 @@ private fun StaticBatteryGauge(
     progress: Float,
     percentageLabel: String,
     model: BatteryGaugeModel,
+    animation: ChargingArcAnimation,
     gaugeColor: Color
 ) {
-    BatteryGaugeRenderer(
-        progress,
-        percentageLabel,
-        model,
-        ChargingArcAnimation.STATIC,
-        gaugeColor,
-        null
-    )
+    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, null, animateEffects = false)
 }
 
 @Composable
@@ -137,15 +139,17 @@ private fun BatteryGaugeRenderer(
     model: BatteryGaugeModel,
     animation: ChargingArcAnimation,
     gaugeColor: Color,
-    phase: State<Float>?
+    phase: State<Float>?,
+    animateEffects: Boolean
 ) {
+    val renderAnimation = if (animateEffects) animation else ChargingArcAnimation.STATIC
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
     when (model) {
         BatteryGaugeModel.ARC -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawArcGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, animation)
+                    drawArcGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, renderAnimation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
@@ -153,7 +157,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.CAPSULE -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawCapsuleGauge(progress, gaugeColor, trackColor, outlineColor, phase?.value ?: 0f, animation)
+                    drawCapsuleGauge(progress, gaugeColor, trackColor, outlineColor, phase?.value ?: 0f, renderAnimation)
                 }
                 GaugePercentageLabel(percentageLabel, 15.sp)
             }
@@ -161,7 +165,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.SEGMENTED -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, animation)
+                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, renderAnimation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
@@ -174,7 +178,8 @@ private fun BatteryGaugeRenderer(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 borderColor = outlineColor,
                 phase = phase,
-                animation = animation
+                animation = animation,
+                animateEffects = animateEffects
             )
         }
     }
@@ -359,7 +364,8 @@ private fun WaveGauge(
     trackColor: Color,
     borderColor: Color,
     phase: State<Float>?,
-    animation: ChargingArcAnimation
+    animation: ChargingArcAnimation,
+    animateEffects: Boolean
 ) {
     Box(Modifier.fillMaxSize().clip(CircleShape), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -371,8 +377,8 @@ private fun WaveGauge(
             }
             drawCircle(trackColor, diameter / 2f, Offset(size.width / 2f, size.height / 2f))
             clipPath(circle) {
-                val wavePhase = if (animation == ChargingArcAnimation.STATIC) 0f else phase?.value ?: 0f
-                if (animation != ChargingArcAnimation.STATIC) {
+                val wavePhase = if (animateEffects) phase?.value ?: 0f else 0f
+                if (animateEffects && animation != ChargingArcAnimation.STATIC) {
                     val damping = sin(progress * PI).toFloat()
                     val rearWave = waveFillPath(
                         size.width, size.height, progress, wavePhase + 1.15f,
@@ -381,15 +387,16 @@ private fun WaveGauge(
                     )
                     drawPath(rearWave, gaugeColor.copy(alpha = 0.38f))
                 }
-                val idleWaveAmplitude = if (animation == ChargingArcAnimation.STATIC) 2.5.dp.toPx() else null
-                val liquid = waveFillPath(size.width, size.height, progress, wavePhase, amplitudeOverride = idleWaveAmplitude)
+                val liquidProgress = waveLiquidFillLevel(progress, animateEffects, animation)
+                val idleWaveAmplitude = if (!animateEffects) 2.5.dp.toPx() * sin(liquidProgress * PI).toFloat() else null
+                val liquid = waveFillPath(size.width, size.height, liquidProgress, wavePhase, amplitudeOverride = idleWaveAmplitude)
                 drawPath(liquid, gaugeColor)
-                if (animation == ChargingArcAnimation.SEGMENTED_FLOW) {
+                if (animateEffects && animation == ChargingArcAnimation.SEGMENTED_FLOW) {
                     val levelY = size.height * (1f - progress)
                     drawLine(Color.White.copy(alpha = 0.24f), Offset(0f, levelY + 7.dp.toPx()),
                         Offset(size.width, levelY + 7.dp.toPx()), 1.dp.toPx())
                 }
-                if (animation == ChargingArcAnimation.COMET_HEAD) {
+                if (animateEffects && animation == ChargingArcAnimation.COMET_HEAD) {
                     val centerY = waveY(size.width / 2f, size.width, size.height, progress, wavePhase)
                     drawCircle(Color.White, 3.dp.toPx(), Offset(size.width / 2f, centerY))
                 }
@@ -408,25 +415,20 @@ private fun WaveGauge(
 
 @Composable
 private fun GaugePercentageLabel(label: String, fontSize: androidx.compose.ui.unit.TextUnit) {
+    val textMeasurer = rememberTextMeasurer()
     val outlineWidth = with(LocalDensity.current) { GAUGE_PERCENTAGE_OUTLINE_WIDTH_DP.dp.toPx() }
-    Box(contentAlignment = Alignment.Center) {
-        Text(
-            text = label,
-            style = TextStyle(
-                fontSize = fontSize,
-                fontWeight = FontWeight.ExtraBold,
-                drawStyle = Stroke(width = outlineWidth, join = StrokeJoin.Round)
-            ),
-            color = com.superdenot.powerguard.ui.theme.GaugePercentageOutline,
-            maxLines = 1
+    val textStyle = remember(fontSize) { TextStyle(fontSize = fontSize, fontWeight = FontWeight.ExtraBold) }
+    val layout = remember(textMeasurer, label, textStyle) {
+        textMeasurer.measure(text = label, style = textStyle, softWrap = false, maxLines = 1)
+    }
+    Canvas(Modifier.fillMaxSize()) {
+        val origin = Offset(
+            x = (size.width - layout.size.width) / 2f,
+            y = (size.height - layout.size.height) / 2f
         )
-        Text(
-            text = label,
-            fontSize = fontSize,
-            color = Color.White,
-            fontWeight = FontWeight.ExtraBold,
-            maxLines = 1
-        )
+        drawText(layout, topLeft = origin, color = com.superdenot.powerguard.ui.theme.GaugePercentageOutline,
+            drawStyle = Stroke(width = outlineWidth, join = StrokeJoin.Round))
+        drawText(layout, topLeft = origin, color = Color.White, drawStyle = Fill)
     }
 }
 

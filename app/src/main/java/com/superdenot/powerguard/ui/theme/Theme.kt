@@ -20,11 +20,14 @@ val SlateCard = Color(0xFFE9E3D8)
 val InstrumentGraphite = Color(0xFF252923)
 val StatusReadyGreen = Color(0xFF22C55E)
 val StatusErrorRed = Color(0xFFEF4444)
-val GaugePercentageOutline = Color(0xE0000000)
+val GaugePercentageOutline = Color(0xF0000000)
 
 private val Paper = Color(0xFFFFFCF6)
 private val SecondaryText = Color(0xFF62665F)
-private val Border = Color(0xFFD8D1C5)
+internal val BasicLightOutline = Color(0xFF928B80)
+internal val BasicLightOutlineVariant = Color(0xFF8F887D)
+internal val BasicLightOnSurfaceVariant = SecondaryText
+internal val BasicLightSubSurface = SlateCard
 private val TerracottaAccent = Color(0xFFD96B2B)
 private val EmeraldAccent = Color(0xFF39765B)
 private val CobaltAccent = Color(0xFF315D9B)
@@ -168,10 +171,10 @@ fun PowerGuardTheme(
                     onBackground = InstrumentGraphite,
                     surface = Paper,
                     onSurface = InstrumentGraphite,
-                    surfaceVariant = SlateCard,
-                    onSurfaceVariant = SecondaryText,
-                    outline = Border,
-                    outlineVariant = Border.copy(alpha = 0.7f)
+                    surfaceVariant = BasicLightSubSurface,
+                    onSurfaceVariant = BasicLightOnSurfaceVariant,
+                    outline = BasicLightOutline,
+                    outlineVariant = BasicLightOutlineVariant
                 )
             }
         }

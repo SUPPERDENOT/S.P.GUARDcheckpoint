@@ -1,3 +1,23 @@
+## 2026-11-25 — PR #12 combined hotfix
+
+- [x] Wave liquid fill follows battery level independently of charging animation eligibility; all four animation modes retain the fill.
+- [x] Wave/Capsule percentage uses one measured TextLayoutResult and identical Canvas coordinates for 1.8dp dark rounded outline and pure-white ExtraBold fill.
+- [x] Theme & Gauge preview model label is width-bounded and ellipsized.
+- [x] History uses the shared numeric range formatter with U+2192; straight/curly apostrophe-n regressions are covered.
+- [x] Basic Light preserves DESIGN.md Warm Ivory / Paper / Mineral colors and strengthens outline contrast.
+- [x] OS ETA is captured only when API 28+ exposes a positive value; implausibly low estimates below 90% are sanity-checked against remaining design capacity and active current.
+- [x] Overview, Charging, and foreground notification consume the same resolved ETA field.
+- [x] The only new platform reading is BatteryManager's OS ETA API; existing voltage/current/temperature reads, normalization, and sampling cadence are unchanged.
+- [x] Capacity dirty-state compares numeric value and manual/automatic mode; automatic action is compact and disabled when already automatic.
+- [x] Status Bar interval presets reflect the effective active interval; initial draft state follows the saved value.
+- [x] Added regression coverage for Wave, outline, History, theme contrast, ETA, capacity dirty-state, interval presets, and notification ETA.
+- [ ] Full diff review: pending.
+- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload: pending CI.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD; no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 follow-up: smoother button feedback and thinner gauge outline
 
 - [x] `powerButtonClickEffect` uses 0.95 press scale with MediumBouncy / MediumLow spring.
