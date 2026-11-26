@@ -52,6 +52,9 @@ fun capsuleCometY(topY: Float, bottomY: Float, phaseFraction: Float): Float =
 fun capsuleCometBeamTailBottom(cometY: Float, bottomY: Float, maxLength: Float): Float =
     (cometY + maxLength.coerceAtLeast(0f)).coerceAtMost(bottomY)
 
+fun capsuleGlossEnabled(animation: ChargingArcAnimation): Boolean =
+    animation != ChargingArcAnimation.STATIC
+
 /** Returns the brightness of an active block; distance is measured backward from a clockwise head. */
 fun segmentedGaugeTrailAlpha(index: Int, headIndex: Int, activeCount: Int): Float {
     if (activeCount <= 0) return 0f
