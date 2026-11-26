@@ -494,7 +494,7 @@ private fun WaveGauge(
     gaugeColor: Color,
     trackColor: Color,
     borderColor: Color,
-    phase: State<Float>?,
+    phase: State<Float>,
     animation: ChargingArcAnimation,
     animateEffects: Boolean,
     isCharging: Boolean
