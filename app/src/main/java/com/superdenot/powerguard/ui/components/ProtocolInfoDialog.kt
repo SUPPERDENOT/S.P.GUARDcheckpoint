@@ -104,8 +104,9 @@ fun ProtocolInfoDialog(
             ) {
                 Column(
                     Modifier.fillMaxWidth().padding(
-                        horizontal = INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP.dp,
+                        start = INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP.dp,
                         top = INFO_DIALOG_HEADER_TOP_PADDING_DP.dp,
+                        end = INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP.dp,
                         bottom = INFO_DIALOG_HEADER_BOTTOM_PADDING_DP.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(INFO_DIALOG_HEADER_GAP_DP.dp)
@@ -138,8 +139,9 @@ fun ProtocolInfoDialog(
                 }
                 androidx.compose.foundation.layout.Row(
                     Modifier.fillMaxWidth().padding(
-                        horizontal = INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP.dp,
+                        start = INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP.dp,
                         top = INFO_DIALOG_FOOTER_TOP_PADDING_DP.dp,
+                        end = INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP.dp,
                         bottom = INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP.dp
                     ),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
