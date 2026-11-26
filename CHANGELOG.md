@@ -16,7 +16,10 @@
 
 ### Verification
 - Source-level self-crosscheck: PASS — all gauge call sites checked; no thermal or visibility arguments remain in the gauge animation path; no `Color.White` remains in the Wave renderer region; thermal classification and alarm policy are kept separate from gauge motion.
-- Automated CI on the final documentation HEAD: pending.
+- Run #748 (workflow ID 45781234776) on intermediate HEAD 8cb7de75e6835d79d8fb49eac9874a063419ec18: Anti-Slop SUCCESS; build stopped at Kotlin compilation because Compose `Modifier.padding` does not support the combined `horizontal + top + bottom` overload. Corrected to the explicit `start/end/top/bottom` overload.
+- Run #749 (workflow ID 45781438385) on HEAD 78c4354489d56daae488f7cb7aec09bfcaf5acc6: Kotlin compilation and `assembleDebug` SUCCESS; 378 unit tests completed with one stale assertion expecting rear Wave alpha < front alpha. Updated the test to assert the new 0.88/0.88 spec.
+- Run #750 (workflow ID 45781843043) on source/test HEAD cc738b57501f24c18c41309d72269f327edc69e5: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. APK Artifact ID 15099070703 (SHA256 5d62c6e9c7e512013b5915cd8421f6ed85a8c07dd986d25a16a1070c90e8a5fb); test-report Artifact ID 15098971337.
+- Exact documentation-head CI after this changelog/checklist closeout: pending; final delivery report records the exact final HEAD run and latest artifact.
 - Physical-device QA on itel P55: NOT RUN.
 - PR #12 remains OPEN; no merge or auto-merge.
 
