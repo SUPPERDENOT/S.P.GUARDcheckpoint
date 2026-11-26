@@ -201,9 +201,6 @@ fun ThemePickerDialogs(
                                         model = draft.gaugeModel,
                                         animation = draft.chargingAnimation,
                                         isCharging = isCharging,
-                                        isCriticalThermal = isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS,
-                                        isWarm = isTemperatureAvailable && temperatureCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS && temperatureCelsius < 40f,
-                                        isVisibleOnScreen = true,
                                         modifier = Modifier.size(82.dp),
                                         forceAnimate = true
                                     )
