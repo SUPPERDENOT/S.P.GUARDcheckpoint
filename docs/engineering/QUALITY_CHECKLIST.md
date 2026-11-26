@@ -1,3 +1,21 @@
+## 2026-11-26 — PR #12 precision pass
+
+- [x] Capsule outer frame uses the 1.8dp theme-aware outline; cap remains separate with a 2dp gap.
+- [x] Capsule inner geometry uses the outer radius minus (stroke + 1.5dp), with a 4dp minimum radius; track, fill, shimmer, and beam share one inner rounded-rect clip.
+- [x] Wave amplitude is 6.5dp, frequency is 1.6 cycles, rear phase is 115°, and the front meniscus is 2dp.
+- [x] Wave Sweep uses a rising light ribbon and crest pulse; Segmen uses seven rising bubbles with double ripple rings; Comet uses a 100° tail and 3dp orbit stroke.
+- [x] Statis disables moving effects in Busur, Kapsul, Blok, and Wave; Wave retains a fixed sinusoidal curve.
+- [x] Frame-clock fallback uses LaunchedEffect + withFrameNanos only when platform animators are disabled and animation is eligible.
+- [x] Both Charging info badges use an 18dp theme-colored circle, 12dp icon, 24dp minimum click area, and 3dp title gap.
+- [x] Both info popups resolve their container and border from the active Material 3 ColorScheme; light/dark token tests added.
+- [x] Regression tests added/updated for Capsule geometry, Wave profiles/amplitude, four-model Statis behavior, frame-clock fallback, popup colors, and badge geometry.
+- [ ] Full line-by-line diff self-crosscheck against the exact final branch HEAD: pending final verification.
+- [ ] Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, and Upload APK on exact final HEAD: pending CI.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 final polish
 
 - [x] Blok segment order starts at 90° (6 o'clock) and advances clockwise; 50% spans bottom → left → top. Sweep/Segmen/Comet head coordinates share the same positive-angle origin — source review and regression tests added.
