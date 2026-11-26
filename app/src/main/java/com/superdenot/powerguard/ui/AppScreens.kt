@@ -81,6 +81,9 @@ import com.superdenot.powerguard.domain.model.isCustomStatusBarInterval
 import com.superdenot.powerguard.domain.model.isStatusBarIntervalPresetSelected
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
+import com.superdenot.powerguard.ui.components.InfoBadge
+import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
+import com.superdenot.powerguard.ui.components.infoDialogSurfaceColors
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
@@ -313,7 +316,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(INFO_BADGE_GAP_DP.dp)
                         ) {
                             Text(
                                 CHARGING_SOURCE_CAPABILITY_LABEL,
@@ -321,20 +324,10 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .clickable(role = Role.Button, onClick = { showProtocolInfo = true }),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Info,
-                                    contentDescription = "Penjelasan kemampuan sumber pengisian",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                            InfoBadge(
+                                contentDescription = "Penjelasan kemampuan sumber pengisian",
+                                onClick = { showProtocolInfo = true }
+                            )
                         }
                         Text(
                             state.chargingProtocol,
@@ -359,7 +352,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(INFO_BADGE_GAP_DP.dp)
                 ) {
                     Text(
                         "PEMBACAAN BATERAI • SISI BATERAI",
@@ -370,16 +363,10 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp
                     )
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .clickable(role = Role.Button, onClick = { showPowerInfo = true }),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.Info, contentDescription = "Informasi pengukuran daya baterai",
-                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                    }
+                    InfoBadge(
+                        contentDescription = "Informasi pengukuran daya baterai",
+                        onClick = { showPowerInfo = true }
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
@@ -418,13 +405,14 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         )
     }
     if (showPowerInfo) {
+        val surfaceColors = infoDialogSurfaceColors(MaterialTheme.colorScheme)
         Dialog(onDismissRequest = { showPowerInfo = false }) {
             Surface(
                 modifier = Modifier.fillMaxWidth().widthIn(max = 380.dp),
                 shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = surfaceColors.containerColor,
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                border = BorderStroke(1.dp, surfaceColors.borderColor),
                 tonalElevation = 6.dp,
                 shadowElevation = 8.dp
             ) {
