@@ -59,4 +59,18 @@ class InfoDialogVisualTokensTest {
         assertEquals(48f, INFO_BADGE_TOUCH_TARGET_DP, 0f)
         assertEquals(4f, INFO_BADGE_GAP_DP, 0f)
     }
+
+    @Test
+    fun infoDialogHeaderScrollAndFooterUseSlimLayoutTokens() {
+        assertEquals(18f, INFO_DIALOG_HEADER_TITLE_SP, 0f)
+        assertEquals(2f, INFO_DIALOG_HEADER_GAP_DP, 0f)
+        assertEquals(16f, INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP, 0f)
+        assertEquals(14f, INFO_DIALOG_HEADER_TOP_PADDING_DP, 0f)
+        assertEquals(10f, INFO_DIALOG_HEADER_BOTTOM_PADDING_DP, 0f)
+        assertEquals(8f, INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP, 0f)
+        assertEquals(16f, INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP, 0f)
+        assertEquals(8f, INFO_DIALOG_FOOTER_TOP_PADDING_DP, 0f)
+        assertEquals(12f, INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP, 0f)
+        assertEquals(36f, INFO_DIALOG_BUTTON_HEIGHT_DP, 0f)
+    }
 }
