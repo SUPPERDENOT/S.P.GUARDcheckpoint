@@ -166,9 +166,6 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                         model = themePackConfig.gaugeModel,
                         animation = themePackConfig.chargingAnimation,
                         isCharging = state.isChargingStatusAvailable && state.isCharging,
-                        isCriticalThermal = isCriticalThermal,
-                        isWarm = isWarm,
-                        isVisibleOnScreen = isActive,
                         modifier = Modifier.size(112.dp)
                     )
                     Column(
@@ -647,8 +644,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             ThemePickerDialogs(
                 config = themeConfig,
                 batteryLevel = previewBatteryState.level.takeIf { previewBatteryState.isLevelAvailable },
-                isCharging = previewBatteryState.isChargingStatusAvailable && previewBatteryState.isCharging &&
-                    !(previewBatteryState.isTemperatureAvailable && previewBatteryState.tempCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS),
+                isCharging = previewBatteryState.isChargingStatusAvailable && previewBatteryState.isCharging,
                 temperatureCelsius = previewBatteryState.tempCelsius,
                 isTemperatureAvailable = previewBatteryState.isTemperatureAvailable,
                 onSave = vm::setThemePackConfig
@@ -783,7 +779,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
-                            listOf(40, 42, 45, 50).forEach { threshold ->
+                            ChargeGuardConfiguration.HIGH_TEMPERATURE_PRESETS.forEach { threshold ->
                                 ChargeGuardChoicePill(
                                     "$threshold°C",
                                     draftChargeGuardConfig.highTemperatureThresholdCelsius == threshold,
