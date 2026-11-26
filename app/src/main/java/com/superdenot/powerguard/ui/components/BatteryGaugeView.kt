@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -532,11 +531,10 @@ private fun WaveGauge(
     val cometBleed = WAVE_COMET_STYLE.glowRadiusDp.dp
 
     // The drawing surface extends beyond the gauge bounds so the outer comet glow is not clipped.
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Canvas(
             Modifier
                 .requiredSize(maxWidth + cometBleed * 2f, maxHeight + cometBleed * 2f)
-                .offset(x = -cometBleed, y = -cometBleed)
         ) {
             val bleedPx = WAVE_COMET_STYLE.glowRadiusDp.dp.toPx()
             val diameter = (size.minDimension - bleedPx * 2f).coerceAtLeast(1f)
