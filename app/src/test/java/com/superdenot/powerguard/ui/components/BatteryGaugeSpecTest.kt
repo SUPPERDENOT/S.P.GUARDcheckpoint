@@ -2,6 +2,7 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.ui.graphics.Color
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
+import com.superdenot.powerguard.ui.CHARGING_SOURCE_CAPABILITY_LABEL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -74,12 +75,65 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun segmentedBlocksStartAtTwelveAndAdvanceClockwise() {
-        assertEquals(-90f, segmentedGaugeStartAngle(0), 0f)
-        assertEquals(-75f, segmentedGaugeStartAngle(1), 0f)
-        assertEquals(255f, segmentedGaugeStartAngle(23), 0f)
+    fun segmentedBlocksStartAtSixAndAdvanceClockwiseUpTheLeftSide() {
+        assertEquals(90f, segmentedGaugeStartAngle(0), 0f)
+        assertEquals(105f, segmentedGaugeStartAngle(1), 0f)
+        assertEquals(180f, segmentedGaugeStartAngle(6), 0f)
+        assertEquals(270f, segmentedGaugeStartAngle(12), 0f)
+        assertEquals(435f, segmentedGaugeStartAngle(23), 0f)
+        assertEquals(12, segmentedGaugeLitCount(50))
+        assertEquals(16, segmentedGaugeLitCount(65))
         assertTrue(segmentedGaugeTrailAlpha(3, headIndex = 3, activeCount = 8) >
             segmentedGaugeTrailAlpha(2, headIndex = 3, activeCount = 8))
+    }
+
+    @Test
+    fun capsuleCometUsesAnUpwardVerticalBeamThatStaysInsideTheLiquidColumn() {
+        val top = 12f
+        val bottom = 92f
+        val beamLength = 28f
+        val atBottom = capsuleCometY(top, bottom, 0f)
+        val midway = capsuleCometY(top, bottom, 0.5f)
+        val atTop = capsuleCometY(top, bottom, 1f)
+        assertEquals(bottom, atBottom, 0f)
+        assertEquals(52f, midway, 0f)
+        assertEquals(top, atTop, 0f)
+        assertEquals(bottom, capsuleCometBeamTailBottom(atBottom, bottom, beamLength), 0f)
+        assertEquals(80f, capsuleCometBeamTailBottom(midway, bottom, beamLength), 0f)
+        assertEquals(40f, capsuleCometBeamTailBottom(atTop, bottom, beamLength), 0f)
+    }
+
+    @Test
+    fun waveAnimationModesHaveDistinctVisualFeatures() {
+        val sweep = waveAnimationFeatures(ChargingArcAnimation.ENERGY_SWEEP)
+        val strata = waveAnimationFeatures(ChargingArcAnimation.SEGMENTED_FLOW)
+        val comet = waveAnimationFeatures(ChargingArcAnimation.COMET_HEAD)
+        val static = waveAnimationFeatures(ChargingArcAnimation.STATIC)
+
+        assertTrue(sweep.animatedSurface)
+        assertTrue(sweep.diagonalSweep)
+        assertFalse(sweep.horizontalStrata)
+        assertFalse(sweep.outerComet)
+
+        assertTrue(strata.animatedSurface)
+        assertFalse(strata.diagonalSweep)
+        assertTrue(strata.horizontalStrata)
+        assertFalse(strata.outerComet)
+
+        assertTrue(comet.animatedSurface)
+        assertFalse(comet.diagonalSweep)
+        assertFalse(comet.horizontalStrata)
+        assertTrue(comet.outerComet)
+
+        assertFalse(static.animatedSurface)
+        assertFalse(static.diagonalSweep)
+        assertFalse(static.horizontalStrata)
+        assertFalse(static.outerComet)
+    }
+
+    @Test
+    fun chargingScreenUsesConciseSourceCapabilityLabel() {
+        assertEquals("Kemampuan sumber", CHARGING_SOURCE_CAPABILITY_LABEL)
     }
 
     @Test
