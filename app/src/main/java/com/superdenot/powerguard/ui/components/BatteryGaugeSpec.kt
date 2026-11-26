@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.components
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
 import kotlin.math.roundToInt
 import kotlin.math.min
@@ -92,14 +93,39 @@ fun capsuleInnerGeometry(
 
 const val WAVE_AMPLITUDE_DP = 6.5f
 const val WAVE_CYCLES = 1.6f
-const val WAVE_REAR_PHASE_OFFSET_DEGREES = 115f
-const val WAVE_REAR_PHASE_OFFSET = 2.0071286f
+const val WAVE_REAR_PHASE_OFFSET_DEGREES = 135f
+const val WAVE_REAR_PHASE_OFFSET = 2.3561945f
+const val WAVE_REAR_DIRECTION = -1f
 const val WAVE_REAR_AMPLITUDE_SCALE = 0.76f
-const val WAVE_REAR_FILL_ALPHA = 0.30f
+const val WAVE_REAR_FILL_ALPHA = 0.88f
 const val WAVE_FRONT_FILL_ALPHA = 0.88f
-const val WAVE_MENISCUS_STROKE_DP = 2f
+const val WAVE_FRONT_HIGHLIGHT_BLEND = 0.32f
+const val WAVE_FRONT_SHADOW_BLEND = 0.22f
+const val WAVE_MENISCUS_HIGHLIGHT_BLEND = 0.35f
+const val WAVE_MENISCUS_ALPHA = 0.75f
+const val WAVE_MENISCUS_STROKE_DP = 1.2f
 const val WAVE_BUBBLE_COUNT = 7
 const val WAVE_COMET_TAIL_DEGREES = 100f
+
+data class WaveLayerColors(
+    val rear: Color,
+    val frontHighlight: Color,
+    val frontBase: Color,
+    val frontShadow: Color,
+    val meniscus: Color
+)
+
+fun waveLayerColors(accentColor: Color): WaveLayerColors = WaveLayerColors(
+    rear = lerp(accentColor, Color.Black, 0.42f).copy(alpha = WAVE_REAR_FILL_ALPHA),
+    frontHighlight = lerp(accentColor, Color.White, WAVE_FRONT_HIGHLIGHT_BLEND),
+    frontBase = accentColor,
+    frontShadow = lerp(accentColor, Color.Black, WAVE_FRONT_SHADOW_BLEND),
+    meniscus = lerp(accentColor, Color.White, WAVE_MENISCUS_HIGHLIGHT_BLEND)
+        .copy(alpha = WAVE_MENISCUS_ALPHA)
+)
+
+fun waveRearPhase(frontPhase: Float): Float =
+    frontPhase * WAVE_REAR_DIRECTION + WAVE_REAR_PHASE_OFFSET
 
 data class WaveAnimationFeatures(
     val animatedSurface: Boolean,
@@ -148,13 +174,7 @@ fun resolveBatteryGaugeColor(
 
 fun shouldAnimateBatteryGauge(
     isCharging: Boolean,
-    isVisibleOnScreen: Boolean,
-    isCriticalThermal: Boolean,
-    isWarm: Boolean,
-    animation: ChargingArcAnimation,
+    animationStyle: ChargingArcAnimation,
     forceAnimate: Boolean = false
 ): Boolean = (isCharging || forceAnimate) &&
-    isVisibleOnScreen &&
-    !isCriticalThermal &&
-    !isWarm &&
-    animation != ChargingArcAnimation.STATIC
+    animationStyle != ChargingArcAnimation.STATIC
