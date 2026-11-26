@@ -10,7 +10,7 @@
 - [x] Regression tests cover theme accent during charging/idle, Wave alpha/amplitude/phase/front opacity, and shared popup surface/layout tokens.
 - [x] Protected-boundary diff review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
 - [x] Source/test HEAD Run #756 (`45792227374`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15102908042`; unit-test report Artifact ID `15104150240`.
-- [ ] Exact documentation-head CI after this checklist/changelog closeout: pending; final delivery report records the exact HEAD run and latest APK artifact.
+- [x] Documentation HEAD Run #757 (`45792754724`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15104100894`; unit-test report Artifact ID `15103241922`. The final documentation-only closeout is followed by an exact-HEAD CI run recorded in the delivery report.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
