@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
@@ -37,6 +38,7 @@ import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
 
 internal const val INFO_BADGE_DIAMETER_DP = 16f
 internal const val INFO_BADGE_ICON_DIAMETER_DP = 11f
+internal const val INFO_BADGE_TOUCH_TARGET_DP = 48f
 internal const val INFO_BADGE_GAP_DP = 4f
 
 @Composable
@@ -46,18 +48,27 @@ internal fun InfoBadge(
 ) {
     Box(
         modifier = Modifier
-            .size(INFO_BADGE_DIAMETER_DP.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+            .defaultMinSize(
+                minWidth = INFO_BADGE_TOUCH_TARGET_DP.dp,
+                minHeight = INFO_BADGE_TOUCH_TARGET_DP.dp
+            )
             .clickable(role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.CenterStart
     ) {
-        Icon(
-            Icons.Outlined.Info,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(INFO_BADGE_ICON_DIAMETER_DP.dp)
-        )
+        Box(
+            modifier = Modifier
+                .size(INFO_BADGE_DIAMETER_DP.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(INFO_BADGE_ICON_DIAMETER_DP.dp)
+            )
+        }
     }
 }
 
