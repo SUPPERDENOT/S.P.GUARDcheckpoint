@@ -75,6 +75,28 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
+    fun capsuleInnerContourIsConcentricAndKeepsUniformOuterStroke() {
+        assertEquals(1.8f, CAPSULE_OUTER_STROKE_DP, 0f)
+        assertEquals(1.5f, CAPSULE_INNER_GAP_DP, 0f)
+        val geometry = capsuleInnerGeometry(
+            outerCornerRadiusPx = 24f,
+            strokeWidthPx = 1.8f,
+            innerGapPx = 1.5f,
+            minimumCornerRadiusPx = 4f
+        )
+        assertEquals(3.3f, geometry.insetPx, 0.0001f)
+        assertEquals(20.7f, geometry.cornerRadiusPx, 0.0001f)
+
+        val constrained = capsuleInnerGeometry(
+            outerCornerRadiusPx = 3f,
+            strokeWidthPx = 1.8f,
+            innerGapPx = 1.5f,
+            minimumCornerRadiusPx = 4f
+        )
+        assertEquals(4f, constrained.cornerRadiusPx, 0f)
+    }
+
+    @Test
     fun segmentedBlocksStartAtSixAndAdvanceClockwiseUpTheLeftSide() {
         assertEquals(90f, SEGMENTED_GAUGE_START_ANGLE_DEGREES, 0f)
         assertEquals(90f, segmentedGaugeStartAngle(0), 0f)
@@ -107,29 +129,64 @@ class BatteryGaugeSpecTest {
     @Test
     fun waveAnimationModesHaveDistinctVisualFeatures() {
         val sweep = waveAnimationFeatures(ChargingArcAnimation.ENERGY_SWEEP)
-        val strata = waveAnimationFeatures(ChargingArcAnimation.SEGMENTED_FLOW)
+        val bubbles = waveAnimationFeatures(ChargingArcAnimation.SEGMENTED_FLOW)
         val comet = waveAnimationFeatures(ChargingArcAnimation.COMET_HEAD)
         val static = waveAnimationFeatures(ChargingArcAnimation.STATIC)
 
         assertTrue(sweep.animatedSurface)
-        assertTrue(sweep.diagonalSweep)
-        assertFalse(sweep.horizontalStrata)
+        assertTrue(sweep.upwardSweep)
+        assertFalse(sweep.risingBubbles)
         assertFalse(sweep.outerComet)
 
-        assertTrue(strata.animatedSurface)
-        assertFalse(strata.diagonalSweep)
-        assertTrue(strata.horizontalStrata)
-        assertFalse(strata.outerComet)
+        assertTrue(bubbles.animatedSurface)
+        assertFalse(bubbles.upwardSweep)
+        assertTrue(bubbles.risingBubbles)
+        assertFalse(bubbles.outerComet)
 
         assertTrue(comet.animatedSurface)
-        assertFalse(comet.diagonalSweep)
-        assertFalse(comet.horizontalStrata)
+        assertFalse(comet.upwardSweep)
+        assertFalse(comet.risingBubbles)
         assertTrue(comet.outerComet)
 
         assertFalse(static.animatedSurface)
-        assertFalse(static.diagonalSweep)
-        assertFalse(static.horizontalStrata)
+        assertFalse(static.upwardSweep)
+        assertFalse(static.risingBubbles)
         assertFalse(static.outerComet)
+    }
+
+    @Test
+    fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
+        assertEquals(6.5f, WAVE_AMPLITUDE_DP, 0f)
+        assertEquals(1.6f, WAVE_CYCLES, 0f)
+        assertEquals(115f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.0071286f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        assertEquals(2f, WAVE_MENISCUS_STROKE_DP, 0f)
+        assertEquals(7, WAVE_BUBBLE_COUNT)
+        assertEquals(100f, WAVE_COMET_TAIL_DEGREES, 0f)
+        assertTrue(WAVE_REAR_FILL_ALPHA < WAVE_FRONT_FILL_ALPHA)
+    }
+
+    @Test
+    fun staticModeDisablesAnimationForEveryGaugeModel() {
+        BatteryGaugeModel.values().forEach { model ->
+            assertFalse(
+                "Statis must disable effects for ${model.label}",
+                shouldAnimateBatteryGauge(
+                    isCharging = true,
+                    isVisibleOnScreen = true,
+                    isCriticalThermal = false,
+                    isWarm = false,
+                    animation = ChargingArcAnimation.STATIC
+                )
+            )
+        }
+    }
+
+    @Test
+    fun frameClockFallbackOnlyRunsWhenPlatformAnimatorsAreDisabledAndEffectsAreRequested() {
+        assertTrue(shouldUseGaugeFrameClockFallback(animatorsEnabled = false, animateEffects = true))
+        assertFalse(shouldUseGaugeFrameClockFallback(animatorsEnabled = true, animateEffects = true))
+        assertFalse(shouldUseGaugeFrameClockFallback(animatorsEnabled = false, animateEffects = false))
     }
 
     @Test
