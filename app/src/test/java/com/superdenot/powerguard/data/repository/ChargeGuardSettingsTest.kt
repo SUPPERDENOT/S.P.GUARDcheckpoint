@@ -30,7 +30,15 @@ class ChargeGuardSettingsTest {
         assertFalse(config.chargeLimitEnabled)
         assertFalse(config.highTemperatureEnabled)
         assertEquals(85, config.targetLevelPercent)
-        assertEquals(40, config.highTemperatureThresholdCelsius)
+        assertEquals(45, config.highTemperatureThresholdCelsius)
+    }
+
+    @Test fun legacyFortyDegreePreferenceNormalizesToFortyFiveWithoutRewritingPreference() {
+        val prefs = context.getSharedPreferences("powerguard_charge_guard", Context.MODE_PRIVATE)
+        prefs.edit().putInt("high_temperature_threshold_c", 40).commit()
+
+        assertEquals(45, ChargeGuardSettings.read(context).highTemperatureThresholdCelsius)
+        assertEquals(40, prefs.getInt("high_temperature_threshold_c", -1))
     }
 
     @Test fun fiftyDegreeTemperatureThresholdPersistsThroughChargeGuardSettings() {
