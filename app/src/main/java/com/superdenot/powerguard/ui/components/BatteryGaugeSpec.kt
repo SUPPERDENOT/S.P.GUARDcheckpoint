@@ -160,6 +160,11 @@ fun advanceGaugePhase(
 fun waveLiquidFillLevel(progress: Float, isCharging: Boolean, animation: ChargingArcAnimation): Float =
     progress.coerceIn(0f, 1f)
 
+fun resolveBatteryGaugeAccent(
+    semanticColors: BatterySemanticColors,
+    isCharging: Boolean
+): Color = if (isCharging) semanticColors.charging else semanticColors.normal
+
 fun resolveBatteryGaugeColor(
     semanticColors: BatterySemanticColors,
     isCriticalThermal: Boolean,
@@ -168,8 +173,7 @@ fun resolveBatteryGaugeColor(
 ): Color = when {
     isCriticalThermal -> semanticColors.criticalThermal
     isWarm -> semanticColors.warm
-    isCharging -> semanticColors.charging
-    else -> semanticColors.normal
+    else -> resolveBatteryGaugeAccent(semanticColors, isCharging)
 }
 
 fun shouldAnimateBatteryGauge(
