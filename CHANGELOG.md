@@ -16,8 +16,11 @@
 ### Protected boundaries
 - No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, SDK, Gradle dependencies, app version, or build number changes intended.
 
-### Verification status
-- Source-level self-crosscheck and exact-HEAD CI: pending final diff review and GitHub Actions run.
+### Verification
+- Line-by-line source/test review against base HEAD 5684d5047c51cb9f2cfb0a7f4f98d46ee564bdac: PASS — nine changed paths; no Room/database, sensor/sampling, calibration, foreground service/lifecycle, RECOVERY_HOLD, Manifest/applicationId, Gradle/dependency, SDK, or version/build-number paths changed.
+- Run #726 on intermediate source/docs HEAD 326c568b1abdfa9d632bbea76bd87362906fe36b: Anti-Slop SUCCESS; Build and Unit Tests FAILED at compile because WaveGauge retained a nullable phase parameter after the renderer moved to non-null State. Corrected in the next source commit.
+- Run #727 (workflow ID 45766872823) on source/test HEAD ee39dae4183115ee1d23d1fc967438d05b578fa2: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports. APK Artifact ID 15092277556 (SHA256 ff9843640300635bc2ffdfca101b3957974847fcb5403f28a3d6612c87e3efa6); unit-test report Artifact ID 15092262518 (SHA256 b9c1730c2e7063ad1c90737be76039c3842488229694ce4fee859f00cdbddaf4).
+- Exact documentation-head CI after this changelog/checklist closeout: pending; final result and latest artifact are recorded in the delivery report.
 - Physical-device QA on itel P55: NOT RUN.
 - PR #12 remains OPEN; no merge or auto-merge.
 
