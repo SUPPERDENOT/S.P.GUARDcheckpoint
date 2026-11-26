@@ -50,7 +50,7 @@ class BatteryGaugeSpecTest {
             Color.Blue,
             resolveBatteryGaugeColor(palette, isCriticalThermal = false, isWarm = false, isCharging = false)
         )
-        assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette, isCharging = true))
+        assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette.normal, isCharging = true))
         assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette.normal, isCharging = false))
     }
 
