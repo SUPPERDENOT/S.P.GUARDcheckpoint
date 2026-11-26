@@ -12,7 +12,10 @@
 - [x] Info popup scroll region has 8dp vertical breathing room; footer uses 16dp horizontal / 8dp top / 12dp bottom padding and 36dp Mengerti button.
 - [x] Unit tests cover thermal-independent animation, Statis exclusion, counter-phase dual-wave tint/alpha/meniscus, temperature preset ordering/default/legacy handling, and popup slim-layout tokens.
 - [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
-- [ ] Final exact-HEAD GitHub Actions: pending.
+- [x] Run #748 (45781234776) on intermediate HEAD 8cb7de75e6835d79d8fb49eac9874a063419ec18: Anti-Slop SUCCESS; compile failed because the new header/footer padding used an unsupported named-argument combination. Fixed with start/end/top/bottom.
+- [x] Run #749 (45781438385) on HEAD 78c4354489d56daae488f7cb7aec09bfcaf5acc6: Kotlin compile and assembleDebug SUCCESS; 378 unit tests had one stale rear/front alpha assertion. Corrected to assert both layers at 0.88.
+- [x] Run #750 (45781843043) on source/test HEAD cc738b57501f24c18c41309d72269f327edc69e5: SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, APK upload, and test report upload. APK Artifact ID 15099070703; test report Artifact ID 15098971337.
+- [ ] Final exact documentation-head GitHub Actions after this checklist/changelog closeout: pending; exact run and latest APK Artifact ID are recorded in the delivery report.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
