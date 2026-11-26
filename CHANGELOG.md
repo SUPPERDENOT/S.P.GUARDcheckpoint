@@ -1,3 +1,28 @@
+## 2026-11-26 — PR #12 precision fix: delta-frame gauge, themed popup containers, flat info badges
+
+### Changed
+- Replaced the rememberInfiniteTransition / ValueAnimator.areAnimatorsEnabled() path and conditional fallback with one rememberGaugePhase loop driven by LaunchedEffect and withFrameNanos. Phase is accumulated from a bounded 0–64ms frame delta over a 2,400ms cycle and normalized to 0..1; disabled animation resets phase to zero. Canvas draw scopes read the phase state directly and convert the normalized phase to radians for the existing gauge geometry.
+- Kept Theme & Gauge's live preview forceAnimate = true; Statis remains excluded by the existing animation eligibility rule. The active Overview gauge now receives the charging state directly from the selected live dashboard state; thermal and visibility gates remain centralized in the gauge eligibility rule. The separate legacy ui/dashboard/DashboardScreen.kt contains no gauge call and is not routed by MainActivity, so it was intentionally left untouched.
+- Added explicit five-level Material 3 surface-container palettes for Basic Terracotta/Emerald/Cobalt in Light and Dark modes and Midnight Violet/Pink/Cyan/Green. Each set is tinted to its theme rather than inheriting the neutral Material 3 defaults.
+- Protocol info dialog now uses surfaceContainerHigh, zero tonal elevation, and a 1dp outlineVariant border.
+- Flattened both Charging info badges to a 16dp primary-tinted circle with an 11dp outlined info icon and 4dp heading gap. The badge is a flat Box composition with no Surface elevation or shadow modifier.
+
+### Tests
+- Added deterministic delta-phase accumulation, wrap/bounded-delta, and disabled-reset tests without Android animator dependencies.
+- Expanded preview and charging-mode tests to cover Sweep, Segmen, and Comet while preserving Statis, thermal, and visibility gating.
+- Added palette coverage for all Basic and Midnight accents and both Basic appearance modes; verifies five distinct container levels and rejects the default dark neutral #2B2930.
+- Updated compact badge token assertions to 16dp / 11dp / 4dp.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, SDK, Gradle dependencies, app version, or build number changes intended.
+
+### Verification status
+- Source-level self-crosscheck and exact-HEAD CI: pending final diff review and GitHub Actions run.
+- Physical-device QA on itel P55: NOT RUN.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 precision pass: Capsule contour, Wave motion, and Charging info badges
 
 ### Changed
