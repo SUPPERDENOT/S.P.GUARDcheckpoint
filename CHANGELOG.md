@@ -14,7 +14,9 @@
 - No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring channel/P0 lifecycle, RECOVERY_HOLD, applicationId, package, SDK, Gradle dependencies, app version, or build number changes.
 
 ### Verification
-- Source implementation and documentation updated on the approved feature branch; exact-HEAD CI and debug APK artifact are pending.
+- Line-by-line diff review: PASS — six changed paths; no Room/database/migration, sensor/sampling, calibration, foreground service/lifecycle, RECOVERY_HOLD, Manifest/applicationId, Gradle/dependency, SDK, or version/build-number paths changed.
+- Run #690 (workflow ID 45734904830) on source/test HEAD 8c150d546cbc3d83c4254250cc0729d52af3fe20: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, APK upload, and unit-test report upload. Debug APK Artifact ID 15078965622 (SHA256 04280b125ad8247fbdcee70c879e2b60fc6c039068ccade0526501f33d1799f2); unit-test report Artifact ID 15078163363.
+- This changelog/checklist evidence update is documentation-only. CI for the resulting exact documentation HEAD is tracked in the final delivery report to avoid another documentation commit after the final verification.
 - Physical-device QA on itel P55: NOT RUN.
 - PR #12 remains OPEN; no merge or auto-merge.
 
