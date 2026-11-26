@@ -170,7 +170,8 @@ class BatteryGaugeSpecTest {
         assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
         assertEquals(100f, WAVE_COMET_TAIL_DEGREES, 0f)
-        assertTrue(WAVE_REAR_FILL_ALPHA < WAVE_FRONT_FILL_ALPHA)
+        assertEquals(0.88f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.88f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
     @Test
