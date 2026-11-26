@@ -20,7 +20,12 @@
 - [x] Theme summary, preview config, and package-switch preservation tests cover all six packages.
 - [ ] FAIL — Nordic Frost / Teal has `onPrimary=#FFFFFF` over `primary=#0D9488`, contrast 3.74:1; below 4.5:1 for normal-size button text. Exact user-specified tokens are retained pending design decision.
 - [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
-- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending PR #15 CI.
+- [x] Full branch diff crosscheck: PASS — exactly nine changed paths; no protected service, sensor, database, application identity, or Gradle build paths changed.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #772.
+- [x] `:app:testDebugUnitTest`: SUCCESS — Run #772 on source/test HEAD `2755785cc7d144f05ed637b451cf1c462c1a5655`.
+- [x] `:app:assembleDebug`: SUCCESS — same Run #772.
+- [x] Upload APK: SUCCESS — Artifact ID `15160093846`; unit-test report Artifact ID `15160478149`.
+- [ ] Final documentation-closeout HEAD CI: pending at this checklist commit time; final exact-HEAD result is recorded in PR #15 delivery report.
 - [ ] Physical-device visual QA at 360dp / 720p: NOT RUN.
 
 ---
