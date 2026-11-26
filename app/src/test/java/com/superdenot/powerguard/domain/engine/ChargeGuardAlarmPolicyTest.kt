@@ -7,6 +7,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChargeGuardAlarmPolicyTest {
+    @Test fun temperaturePresetsAreOrderedAndDefaultToFortyFiveDegrees() {
+        assertEquals(listOf(42, 45, 48, 50), ChargeGuardConfiguration.HIGH_TEMPERATURE_PRESETS)
+        assertEquals(45, ChargeGuardConfiguration().highTemperatureThresholdCelsius)
+    }
+
+    @Test fun fortyEightDegreePresetAlertsAtFortyEightAndRearmsBelowFortySix() {
+        val config = ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 48)
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 1L, true, 70, true, 48f, true, 4_000_000L)
+        assertEquals(ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED, first.alerts.single().type)
+        val atFortySix = ChargeGuardAlarmPolicy.evaluate(config, first.state, 1L, true, 70, true, 46f, true, 4_001_000L)
+        assertFalse(atFortySix.state.temperatureArmed)
+        val belowFortySix = ChargeGuardAlarmPolicy.evaluate(config, atFortySix.state, 1L, true, 70, true, 45.9f, true, 4_002_000L)
+        assertTrue(belowFortySix.state.temperatureArmed)
+    }
+
     @Test fun chargeLimitNotifiesOncePerSessionAndTarget() {
         val config = ChargeGuardConfiguration(chargeLimitEnabled = true, targetLevelPercent = 85)
         val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 10L, true, 85, true, 35f, true, 2_000_000L)
@@ -26,8 +41,8 @@ class ChargeGuardAlarmPolicyTest {
     }
 
     @Test fun highTemperatureNotifiesOnceUntilTemperatureReturnsBelowHysteresis() {
-        val config = ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 40)
-        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 1L, true, 70, true, 40f, true, 2_000_000L)
+        val config = ChargeGuardConfiguration(highTemperatureEnabled = true, highTemperatureThresholdCelsius = 42)
+        val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 1L, true, 70, true, 42f, true, 2_000_000L)
         assertEquals(ChargeGuardAlertType.HIGH_TEMPERATURE_REACHED, first.alerts.single().type)
         val sustained = ChargeGuardAlarmPolicy.evaluate(config, first.state, 1L, true, 71, true, 44f, true, 2_100_000L)
         assertTrue(sustained.alerts.isEmpty())
@@ -138,7 +153,7 @@ class ChargeGuardAlarmPolicyTest {
             repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
         )
         var result = ChargeGuardAlarmPolicy.evaluate(
-            config, ChargeGuardAlarmState(), 13L, true, 80, true, 41f, true, 5_000L
+            config, ChargeGuardAlarmState(), 13L, true, 80, true, 42.5f, true, 5_000L
         )
         assertEquals(1, result.alerts.size)
         repeat(ChargeGuardConfiguration.MAX_REPEATS_PER_INCIDENT) { index ->
