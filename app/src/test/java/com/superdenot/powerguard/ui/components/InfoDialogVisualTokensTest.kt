@@ -122,7 +122,7 @@ class InfoDialogVisualTokensTest {
                 scheme.surfaceContainerHigh,
                 scheme.surfaceContainerHighest
             )
-            assertEquals("$accent", 4, colors.toSet().size)
+            assertEquals("$accent", 5, colors.toSet().size)
             assertNotEquals("$accent", Color(0xFF2B2930), scheme.surfaceContainerHigh)
         }
     }

@@ -144,29 +144,32 @@ internal fun midnightSurfaceContainerPalette(accent: MidnightAccent): SurfaceCon
     )
 }
 
-internal fun midnightColorScheme(accent: MidnightAccent) = darkColorScheme(
-    surfaceContainerLowest = midnightPalette(accent).lowest,
-    surfaceContainerLow = midnightPalette(accent).low,
-    surfaceContainer = midnightPalette(accent).container,
-    surfaceContainerHigh = midnightPalette(accent).high,
-    surfaceContainerHighest = midnightPalette(accent).highest,
-    primary = midnightPalette(accent).primary,
-    onPrimary = midnightPalette(accent).onPrimary,
-    primaryContainer = midnightPalette(accent).primary.copy(alpha = 0.24f),
-    onPrimaryContainer = MidnightOnSurface,
-    secondary = EmeraldCharge,
-    onSecondary = Color.White,
-    tertiary = AmberThermal,
-    error = CrimsonAnomaly,
-    background = midnightPalette(accent).background,
-    onBackground = MidnightOnSurface,
-    surface = midnightPalette(accent).surface,
-    onSurface = MidnightOnSurface,
-    surfaceVariant = midnightPalette(accent).surface,
-    onSurfaceVariant = MidnightOnSurfaceVariant,
-    outline = midnightPalette(accent).outlineVariant,
-    outlineVariant = midnightPalette(accent).outlineVariant
-)
+internal fun midnightColorScheme(accent: MidnightAccent) : androidx.compose.material3.ColorScheme {
+    val palette = midnightPalette(accent)
+    return darkColorScheme(
+        surfaceContainerLowest = palette.lowest,
+        surfaceContainerLow = palette.low,
+        surfaceContainer = palette.container,
+        surfaceContainerHigh = palette.high,
+        surfaceContainerHighest = palette.highest,
+        primary = palette.primary,
+        onPrimary = palette.onPrimary,
+        primaryContainer = palette.primary.copy(alpha = 0.24f),
+        onPrimaryContainer = MidnightOnSurface,
+        secondary = EmeraldCharge,
+        onSecondary = Color.White,
+        tertiary = AmberThermal,
+        error = CrimsonAnomaly,
+        background = palette.background,
+        onBackground = MidnightOnSurface,
+        surface = palette.surface,
+        onSurface = MidnightOnSurface,
+        surfaceVariant = palette.surface,
+        onSurfaceVariant = MidnightOnSurfaceVariant,
+        outline = palette.outlineVariant,
+        outlineVariant = palette.outlineVariant
+    )
+}
 private val BasicDarkSurfaceVariant = Color(0xFF2B3029)
 private val BasicDarkOutline = Color(0xFF62665F)
 private val BasicDarkOutlineVariant = Color(0xFF454B42)
