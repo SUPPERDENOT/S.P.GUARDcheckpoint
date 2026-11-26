@@ -17,6 +17,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -92,6 +94,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
 import kotlinx.coroutines.delay
+
+internal const val CHARGING_SOURCE_CAPABILITY_LABEL = "Kemampuan sumber"
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
@@ -312,20 +316,23 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                "Protokol / kemampuan sumber",
+                                CHARGING_SOURCE_CAPABILITY_LABEL,
                                 modifier = Modifier.weight(1f, fill = false),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            IconButton(
-                                onClick = { showProtocolInfo = true },
-                                modifier = Modifier.size(48.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .clickable(role = Role.Button, onClick = { showProtocolInfo = true }),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Rounded.Info,
-                                    contentDescription = "Penjelasan protokol pengisian",
+                                    contentDescription = "Penjelasan kemampuan sumber pengisian",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(19.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -363,7 +370,13 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp
                     )
-                    IconButton(onClick = { showPowerInfo = true }, modifier = Modifier.size(48.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .clickable(role = Role.Button, onClick = { showPowerInfo = true }),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(Icons.Rounded.Info, contentDescription = "Informasi pengukuran daya baterai",
                             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     }
