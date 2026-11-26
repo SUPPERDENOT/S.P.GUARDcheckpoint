@@ -83,7 +83,6 @@ import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.components.InfoBadge
 import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
-import com.superdenot.powerguard.ui.components.infoDialogSurfaceColors
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
@@ -405,15 +404,14 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         )
     }
     if (showPowerInfo) {
-        val surfaceColors = infoDialogSurfaceColors(MaterialTheme.colorScheme)
         Dialog(onDismissRequest = { showPowerInfo = false }) {
             Surface(
                 modifier = Modifier.fillMaxWidth().widthIn(max = 380.dp),
                 shape = RoundedCornerShape(20.dp),
-                color = surfaceColors.containerColor,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                border = BorderStroke(1.dp, surfaceColors.borderColor),
-                tonalElevation = 6.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                tonalElevation = 0.dp,
                 shadowElevation = 8.dp
             ) {
                 Column(
