@@ -8,6 +8,7 @@ import com.superdenot.powerguard.ui.CHARGING_SOURCE_CAPABILITY_LABEL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import kotlin.math.roundToInt
 
