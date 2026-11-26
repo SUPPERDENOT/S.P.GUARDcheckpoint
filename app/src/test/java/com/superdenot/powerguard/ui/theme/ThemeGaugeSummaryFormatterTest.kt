@@ -74,10 +74,10 @@ class ThemeGaugeSummaryFormatterTest {
         val configs = listOf(
             ThemePackConfig.Basic(BasicAppearanceMode.LIGHT, BasicAccent.COBALT, BatteryGaugeModel.WAVE, ChargingArcAnimation.COMET_HEAD),
             ThemePackConfig.MidnightViolet(false, MidnightAccent.PINK, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.STATIC),
-            ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE, BatteryGaugeModel.BLOCK, ChargingArcAnimation.SEGMENTED_FLOW),
+            ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.SEGMENTED_FLOW),
             ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME, BatteryGaugeModel.WAVE, ChargingArcAnimation.COMET_HEAD),
             ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.STATIC),
-            ThemePackConfig.Monochrome(MonochromeVariant.LIGHT_PAPER, BatteryGaugeModel.BLOCK, ChargingArcAnimation.ENERGY_SWEEP)
+            ThemePackConfig.Monochrome(MonochromeVariant.LIGHT_PAPER, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.ENERGY_SWEEP)
         )
         configs.forEach { config ->
             assertEquals(config, themePreviewConfig(config))

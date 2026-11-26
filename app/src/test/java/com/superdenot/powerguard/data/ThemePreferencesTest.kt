@@ -84,10 +84,10 @@ class ThemePreferencesTest {
         val configs = listOf(
             ThemePackConfig.AmoledPure(AmoledPureAccent.AMBER_GOLD, BatteryGaugeModel.ARC, ChargingArcAnimation.ENERGY_SWEEP),
             ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.STATIC),
-            ThemePackConfig.EvCockpit(EvCockpitAccent.ELECTRIC_SKY, BatteryGaugeModel.BLOCK, ChargingArcAnimation.SEGMENTED_FLOW),
+            ThemePackConfig.EvCockpit(EvCockpitAccent.ELECTRIC_SKY, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.SEGMENTED_FLOW),
             ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME, BatteryGaugeModel.WAVE, ChargingArcAnimation.COMET_HEAD),
             ThemePackConfig.NordicFrost(NordicFrostAccent.COBALT_STEEL, BatteryGaugeModel.ARC, ChargingArcAnimation.STATIC),
-            ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL, BatteryGaugeModel.BLOCK, ChargingArcAnimation.ENERGY_SWEEP),
+            ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.ENERGY_SWEEP),
             ThemePackConfig.Monochrome(MonochromeVariant.DARK_CHARCOAL, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.COMET_HEAD),
             ThemePackConfig.Monochrome(MonochromeVariant.LIGHT_PAPER, BatteryGaugeModel.WAVE, ChargingArcAnimation.SEGMENTED_FLOW)
         )
