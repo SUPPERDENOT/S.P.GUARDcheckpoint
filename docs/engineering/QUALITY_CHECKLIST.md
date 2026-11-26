@@ -1,3 +1,20 @@
+## 2026-11-26 — PR #12 hotfix: theme accent, translucent Wave, shared info popups
+
+- [x] `BatteryGaugeView` resolves its main color from `MaterialTheme.colorScheme.primary`; charging state does not select semantic charging green.
+- [x] Overview and Theme & Gauge live preview continue to use the same gauge renderer; preview keeps `forceAnimate = true`.
+- [x] Thermal/charging semantic colors remain separate from the main gauge accent and can still be used by diagnostic/status labels.
+- [x] Wave rear layer uses active accent alpha 0.40, amplitude scale 1.12, and phase `-phase × 1.15 + 120°`.
+- [x] Wave front layer uses an accent-derived vertical gradient at alpha 0.92; the meniscus uses the 35%-lightened accent at alpha 0.75 and 1.2dp stroke.
+- [x] Both `Kemampuan sumber` and `Pengukuran daya baterai` call the same `InfoDialogSurface` wrapper and therefore share `surfaceContainerHigh`, 20dp radius, 1dp outline border, and zero tonal elevation.
+- [x] Shared popup header/body/footer use the requested typography, weights, scroll padding, divider, and 36dp `Mengerti` button.
+- [x] Regression tests cover theme accent during charging/idle, Wave alpha/amplitude/phase/front opacity, and shared popup surface/layout tokens.
+- [x] Protected-boundary diff review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [ ] Exact final HEAD GitHub Actions: pending — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and Upload APK must all report SUCCESS.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 hotfix: gauge thermal gate, dual-wave tint, temperature presets, slim info popup
 
 - [x] Gauge animation eligibility is exactly `(isCharging || forceAnimate) && animationStyle != STATIC`; thermal and on-screen visibility gates are removed from the eligibility helper.

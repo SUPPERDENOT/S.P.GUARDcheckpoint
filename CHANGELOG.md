@@ -1,3 +1,26 @@
+## 2026-11-26 — PR #12 hotfix: theme-following gauge accent, translucent Wave rear layer, shared info popup surface
+
+### Changed
+- The primary gauge color now resolves from `MaterialTheme.colorScheme.primary` for all four models (Busur, Kapsul, Blok, Wave), regardless of charging state. Charging state continues to control animation eligibility; semantic green/thermal colors remain available to status/diagnostic labels and do not override the gauge fill. Overview and Theme & Gauge live preview use the same `BatteryGaugeView` color path.
+- Wave rear liquid now uses the active accent at 0.40 alpha, 1.12× base amplitude, and phase `-phase × 1.15 + 120°`. The front liquid uses a vertical accent-derived gradient at 0.92 alpha. The 1.2dp meniscus uses `lerp(accentColor, Color.White, 0.35f)` at 0.75 alpha.
+- Both Charging information popups (`Kemampuan sumber` and `Pengukuran daya baterai`) now use the same `InfoDialogSurface` wrapper: solid `surfaceContainerHigh`, 20dp rounded shape, 1dp `outlineVariant` border, and zero tonal elevation. Shared layout uses the 18sp/titleMedium/SemiBold header, 2dp title/subtitle gap, 16/14/8dp header padding, a weighted vertical scroll body with 16/4/12dp padding, a 0.4-alpha divider, and the 36dp `Mengerti` button with 16/8/12dp footer padding.
+
+### Tests
+- Added regression assertions that charging and idle gauge accent resolution both preserve the theme accent rather than selecting semantic charging green.
+- Updated Wave tests for rear alpha 0.40, amplitude scale 1.12, phase direction multiplier -1.15, 120° offset, front alpha 0.92, and the accent meniscus.
+- Added shared info-popup surface-token assertions and updated header/body/footer spacing assertions.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Source-level self-crosscheck: PASS — both popup entry points call the same shared Surface wrapper; all gauge color paths use the Material 3 primary accent; Wave constants and color composition match the requested values.
+- Unit tests / Android build / Anti-Slop UI Audit Gate / APK upload: pending exact final HEAD CI.
+- Physical-device QA on itel P55: NOT RUN.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 hotfix: thermal-independent gauge animation, accent dual-wave, 48°C preset, slim info popup
 
 ### Changed

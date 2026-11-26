@@ -81,6 +81,7 @@ import com.superdenot.powerguard.domain.model.isCustomStatusBarInterval
 import com.superdenot.powerguard.domain.model.isStatusBarIntervalPresetSelected
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
+import com.superdenot.powerguard.ui.components.InfoDialogSurface
 import com.superdenot.powerguard.ui.components.InfoBadge
 import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
