@@ -367,13 +367,15 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 Offset(innerLeft, fillTop),
                 Size(innerWidth, fillHeight)
             )
-            drawRect(
-                Brush.horizontalGradient(
-                    listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.White.copy(alpha = 0.16f))
-                ),
-                Offset(innerLeft, fillTop),
-                Size(innerWidth, fillHeight)
-            )
+            if (animation != ChargingArcAnimation.STATIC) {
+                drawRect(
+                    Brush.horizontalGradient(
+                        listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.White.copy(alpha = 0.16f))
+                    ),
+                    Offset(innerLeft, fillTop),
+                    Size(innerWidth, fillHeight)
+                )
+            }
             when (animation) {
                 ChargingArcAnimation.ENERGY_SWEEP -> {
                     val stripeY = capsuleCometY(fillTop, innerBottom, phaseFraction)
@@ -448,12 +450,13 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 ChargingArcAnimation.STATIC -> Unit
             }
         }
-        // A fixed glass reflection is part of the capsule material, not an animated effect.
-        drawArc(
-            Color.White.copy(alpha = 0.18f), -125f, 70f, false,
-            Offset(innerLeft, innerTop), Size(innerWidth, innerHeight),
-            style = Stroke(1.dp.toPx(), cap = StrokeCap.Round)
-        )
+        if (animation != ChargingArcAnimation.STATIC) {
+            drawArc(
+                Color.White.copy(alpha = 0.18f), -125f, 70f, false,
+                Offset(innerLeft, innerTop), Size(innerWidth, innerHeight),
+                style = Stroke(1.dp.toPx(), cap = StrokeCap.Round)
+            )
+        }
     }
     drawPath(body, outlineColor, style = Stroke(CAPSULE_OUTER_STROKE_DP.dp.toPx()))
 }
