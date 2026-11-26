@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.ui.components
 
+import android.animation.ValueAnimator
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -13,8 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +29,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -39,6 +44,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
@@ -116,8 +122,9 @@ private fun AnimatedBatteryGauge(
     gaugeColor: Color,
     isCharging: Boolean
 ) {
+    val animatorsEnabled = ValueAnimator.areAnimatorsEnabled()
     val transition = rememberInfiniteTransition(label = "battery-gauge-charging")
-    val phase = transition.animateFloat(
+    val transitionPhase = transition.animateFloat(
         initialValue = 0f,
         targetValue = (2f * PI).toFloat(),
         animationSpec = infiniteRepeatable(
@@ -126,7 +133,22 @@ private fun AnimatedBatteryGauge(
         ),
         label = "battery-gauge-phase"
     )
-    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, phase, animateEffects = true, isCharging = isCharging)
+    val fallbackPhase = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(animatorsEnabled) {
+        if (shouldUseGaugeFrameClockFallback(animatorsEnabled, animateEffects = true)) {
+            val cycleNanos = 1_800_000_000L
+            while (isActive) {
+                val frameNanos = withFrameNanos { it }
+                fallbackPhase.floatValue =
+                    ((frameNanos % cycleNanos).toDouble() / cycleNanos * (2.0 * PI)).toFloat()
+            }
+        }
+    }
+    val phase: State<Float> = if (animatorsEnabled) transitionPhase else fallbackPhase
+    BatteryGaugeRenderer(
+        progress, percentageLabel, model, animation, gaugeColor, phase,
+        animateEffects = true, isCharging = isCharging
+    )
 }
 
 @Composable
@@ -155,6 +177,9 @@ private fun BatteryGaugeRenderer(
     val renderAnimation = if (animateEffects) animation else ChargingArcAnimation.STATIC
     val trackColor = MaterialTheme.colorScheme.outlineVariant
     val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val capsuleOutlineColor = MaterialTheme.colorScheme.outline.let { outline ->
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) outline.copy(alpha = 0.85f) else outline
+    }
     when (model) {
         BatteryGaugeModel.ARC -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -167,7 +192,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.CAPSULE -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawCapsuleGauge(progress, gaugeColor, trackColor, outlineColor, phase?.value ?: 0f, renderAnimation)
+                    drawCapsuleGauge(progress, gaugeColor, trackColor, capsuleOutlineColor, phase?.value ?: 0f, renderAnimation)
                 }
                 GaugePercentageLabel(percentageLabel, 15.sp)
             }
@@ -281,8 +306,10 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
     val left = (size.width - bodyWidth) / 2f
     val top = size.height * 0.15f
     val bottom = top + bodyHeight
+    val right = left + bodyWidth
+    val outerCornerRadius = bodyWidth * 0.22f
     val body = Path().apply {
-        addRoundRect(RoundRect(left, top, left + bodyWidth, bottom, CornerRadius(bodyWidth * 0.22f)))
+        addRoundRect(RoundRect(left, top, right, bottom, CornerRadius(outerCornerRadius)))
     }
     val terminalWidth = bodyWidth * 0.36f
     val terminalHeight = 6.dp.toPx()
@@ -296,23 +323,40 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
         CornerRadius(terminalHeight / 2f)
     )
     drawRoundRect(
-        outlineColor.copy(alpha = 0.8f),
+        outlineColor,
         Offset(terminalLeft, terminalTop),
         Size(terminalWidth, terminalHeight),
         CornerRadius(terminalHeight / 2f),
-        style = Stroke(1.2.dp.toPx())
+        style = Stroke(CAPSULE_OUTER_STROKE_DP.dp.toPx())
     )
-    drawPath(body, trackColor.copy(alpha = 0.78f))
-    val innerInset = 3.dp.toPx()
-    val innerLeft = left + innerInset
-    val innerWidth = bodyWidth - innerInset * 2f
-    val innerTop = top + innerInset
-    val innerBottom = bottom - innerInset
-    val fillHeight = (innerBottom - innerTop) * progress.coerceIn(0f, 1f)
+
+    val innerGeometry = capsuleInnerGeometry(
+        outerCornerRadiusPx = outerCornerRadius,
+        strokeWidthPx = CAPSULE_OUTER_STROKE_DP.dp.toPx(),
+        innerGapPx = CAPSULE_INNER_GAP_DP.dp.toPx(),
+        minimumCornerRadiusPx = CAPSULE_MIN_INNER_CORNER_RADIUS_DP.dp.toPx()
+    )
+    val innerLeft = left + innerGeometry.insetPx
+    val innerTop = top + innerGeometry.insetPx
+    val innerRight = right - innerGeometry.insetPx
+    val innerBottom = bottom - innerGeometry.insetPx
+    val innerWidth = (innerRight - innerLeft).coerceAtLeast(0f)
+    val innerHeight = (innerBottom - innerTop).coerceAtLeast(0f)
+    val innerRoundedRectPath = Path().apply {
+        addRoundRect(
+            RoundRect(
+                innerLeft, innerTop, innerRight, innerBottom,
+                CornerRadius(innerGeometry.cornerRadiusPx)
+            )
+        )
+    }
+    val fillHeight = innerHeight * progress.coerceIn(0f, 1f)
     val fillTop = innerBottom - fillHeight
     val phaseFraction = gaugeAnimationPhaseFraction(phase)
 
-    clipPath(body) {
+    // Track, liquid, and every liquid effect share the exact same concentric inner clip.
+    clipPath(innerRoundedRectPath) {
+        drawPath(innerRoundedRectPath, trackColor.copy(alpha = 0.78f))
         if (fillHeight > 0f) {
             drawRect(
                 Brush.verticalGradient(
@@ -324,12 +368,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 Size(innerWidth, fillHeight)
             )
             drawRect(
-                Brush.horizontalGradient(listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.White.copy(alpha = 0.16f))),
+                Brush.horizontalGradient(
+                    listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.White.copy(alpha = 0.16f))
+                ),
                 Offset(innerLeft, fillTop),
                 Size(innerWidth, fillHeight)
             )
-        }
-        if (fillHeight > 0f) {
             when (animation) {
                 ChargingArcAnimation.ENERGY_SWEEP -> {
                     val stripeY = capsuleCometY(fillTop, innerBottom, phaseFraction)
@@ -347,13 +391,21 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 ChargingArcAnimation.SEGMENTED_FLOW -> {
                     var y = innerBottom - 8.dp.toPx()
                     while (y > fillTop) {
-                        drawLine(Color.White.copy(alpha = 0.32f), Offset(innerLeft + 2.dp.toPx(), y),
-                            Offset(innerLeft + innerWidth - 2.dp.toPx(), y), 1.dp.toPx())
+                        drawLine(
+                            Color.White.copy(alpha = 0.32f),
+                            Offset(innerLeft + 2.dp.toPx(), y),
+                            Offset(innerLeft + innerWidth - 2.dp.toPx(), y),
+                            1.dp.toPx()
+                        )
                         y -= 9.dp.toPx()
                     }
                     val movingY = capsuleCometY(fillTop, innerBottom, phaseFraction)
-                    drawLine(Color.White.copy(alpha = 0.88f), Offset(innerLeft + 2.dp.toPx(), movingY),
-                        Offset(innerLeft + innerWidth - 2.dp.toPx(), movingY), 1.8.dp.toPx())
+                    drawLine(
+                        Color.White.copy(alpha = 0.88f),
+                        Offset(innerLeft + 2.dp.toPx(), movingY),
+                        Offset(innerLeft + innerWidth - 2.dp.toPx(), movingY),
+                        1.8.dp.toPx()
+                    )
                 }
                 ChargingArcAnimation.COMET_HEAD -> {
                     val cometY = capsuleCometY(fillTop, innerBottom, phaseFraction)
@@ -380,35 +432,30 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                         Offset(centerX - coreWidth / 2f, cometY),
                         Size(coreWidth, beamHeight)
                     )
-                    // The rising beam meets the liquid meniscus with a concentrated flash.
-                    drawLine(color.copy(alpha = 0.72f),
+                    drawLine(
+                        color.copy(alpha = 0.72f),
                         Offset(innerLeft + 2.dp.toPx(), fillTop),
                         Offset(innerLeft + innerWidth - 2.dp.toPx(), fillTop),
-                        strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
-                    drawLine(Color.White.copy(alpha = 0.96f),
+                        strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round
+                    )
+                    drawLine(
+                        Color.White.copy(alpha = 0.96f),
                         Offset(innerLeft + 3.dp.toPx(), fillTop),
                         Offset(innerLeft + innerWidth - 3.dp.toPx(), fillTop),
-                        strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round)
+                        strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round
+                    )
                 }
                 ChargingArcAnimation.STATIC -> Unit
             }
         }
+        // A fixed glass reflection is part of the capsule material, not an animated effect.
+        drawArc(
+            Color.White.copy(alpha = 0.18f), -125f, 70f, false,
+            Offset(innerLeft, innerTop), Size(innerWidth, innerHeight),
+            style = Stroke(1.dp.toPx(), cap = StrokeCap.Round)
+        )
     }
-    drawPath(
-        body,
-        Brush.linearGradient(
-            listOf(Color.White.copy(alpha = 0.78f), outlineColor, Color.White.copy(alpha = 0.28f), outlineColor),
-            start = Offset(left, top),
-            end = Offset(left + bodyWidth, bottom)
-        ),
-        style = Stroke(2.dp.toPx())
-    )
-    drawArc(
-        Color.White.copy(alpha = 0.22f),
-        -125f, 70f, false,
-        Offset(left, top), Size(bodyWidth, bodyHeight),
-        style = Stroke(1.dp.toPx(), cap = StrokeCap.Round)
-    )
+    drawPath(body, outlineColor, style = Stroke(CAPSULE_OUTER_STROKE_DP.dp.toPx()))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSegmentedGauge(
@@ -483,6 +530,7 @@ private fun WaveGauge(
     isCharging: Boolean
 ) {
     val features = waveAnimationFeatures(animation)
+    val waveAmplitudePx = with(LocalDensity.current) { WAVE_AMPLITUDE_DP.dp.toPx() }
     Box(Modifier.fillMaxSize().clip(CircleShape), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val diameter = size.minDimension
@@ -504,96 +552,132 @@ private fun WaveGauge(
                 val rearWaveOffset = -size.height * 0.012f * sin(liquidProgress * PI).toFloat()
                 val rearWave = waveFillPath(
                     size.width, size.height, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
-                    amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE, verticalOffset = rearWaveOffset
+                    amplitudePx = waveAmplitudePx,
+                    amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
+                    verticalOffset = rearWaveOffset
                 )
                 drawPath(rearWave, gaugeColor.copy(alpha = WAVE_REAR_FILL_ALPHA))
 
-                val frontWave = waveFillPath(size.width, size.height, liquidProgress, wavePhase)
+                val frontWave = waveFillPath(
+                    size.width, size.height, liquidProgress, wavePhase,
+                    amplitudePx = waveAmplitudePx
+                )
                 drawPath(
                     frontWave,
                     Brush.verticalGradient(
                         colors = listOf(
+                            gaugeColor.copy(alpha = 0.66f),
                             gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA),
-                            gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA),
-                            gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA)
+                            gaugeColor.copy(alpha = 0.84f)
                         ),
                         startY = fillTop.coerceAtLeast(0f),
                         endY = size.height
                     )
                 )
-                val crest = waveCrestPath(size.width, size.height, liquidProgress, wavePhase)
-                drawPath(crest, Color.White.copy(alpha = 0.9f),
-                    style = Stroke(1.25.dp.toPx(), cap = StrokeCap.Round))
 
-                // Sweep: a diagonal light blade travels from lower-left to upper-right.
-                // Segmen: horizontal luminous strata rise through the liquid column.
-                if (animateEffects && liquidProgress > 0f &&
-                    (features.diagonalSweep || features.horizontalStrata)
-                ) {
+                // Sweep: a soft light ribbon rises from the bottom of the liquid to its crest.
+                // Segmen: seven softly glowing energy bubbles rise toward the wave surface.
+                if (animateEffects && liquidProgress > 0f && (features.upwardSweep || features.risingBubbles)) {
                     clipPath(frontWave) {
-                        if (features.diagonalSweep) {
-                            val sweepCenterX = -diameter * 0.25f + diameter * 1.5f * phaseFraction
-                            val start = Offset(sweepCenterX - diameter * 0.18f, fillTop + diameter * 0.28f)
-                            val end = Offset(sweepCenterX + diameter * 0.18f, fillTop - diameter * 0.12f)
-                            drawLine(
-                                brush = Brush.linearGradient(
+                        if (features.upwardSweep) {
+                            val availableHeight = (size.height - fillTop).coerceAtLeast(0f)
+                            val sweepCenterY = size.height - availableHeight * phaseFraction
+                            val bandHalfHeight = 10.dp.toPx()
+                            drawRect(
+                                brush = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.White.copy(alpha = 0.88f),
-                                        gaugeColor.copy(alpha = 0.72f),
+                                        Color.White.copy(alpha = 0.24f),
+                                        Color.White.copy(alpha = 0.62f),
+                                        Color.White.copy(alpha = 0.24f),
                                         Color.Transparent
                                     ),
-                                    start = start,
-                                    end = end
+                                    startY = sweepCenterY - bandHalfHeight,
+                                    endY = sweepCenterY + bandHalfHeight
                                 ),
-                                start = start,
-                                end = end,
-                                strokeWidth = 7.dp.toPx(),
-                                cap = StrokeCap.Round
+                                topLeft = Offset(left, sweepCenterY - bandHalfHeight),
+                                size = Size(diameter, bandHalfHeight * 2f)
                             )
                         }
-                        if (features.horizontalStrata) {
-                            val availableHeight = (size.height - fillTop).coerceAtLeast(0f)
-                            val spacing = 11.dp.toPx()
-                            if (availableHeight > 0f) {
-                                val lineCount = (availableHeight / spacing).toInt() + 2
-                                repeat(lineCount) { index ->
-                                    val y = size.height -
-                                        ((phaseFraction * availableHeight + index * spacing) % availableHeight)
-                                    if (y >= fillTop && y <= size.height) {
-                                        drawLine(gaugeColor.copy(alpha = 0.52f),
-                                            Offset(left + diameter * 0.16f, y),
-                                            Offset(left + diameter * 0.84f, y),
-                                            strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
-                                        drawLine(Color.White.copy(alpha = 0.82f),
-                                            Offset(left + diameter * 0.18f, y),
-                                            Offset(left + diameter * 0.82f, y),
-                                            strokeWidth = 1.1.dp.toPx(), cap = StrokeCap.Round)
-                                    }
-                                }
+                        if (features.risingBubbles) {
+                            repeat(WAVE_BUBBLE_COUNT) { index ->
+                                val stagger = (phaseFraction + index * 0.173f) % 1f
+                                val lane = index % 4
+                                val laneX = 0.20f + lane * 0.20f
+                                val x = left + diameter * (laneX + sin(index * 1.7f) * 0.025f)
+                                val availableHeight = (size.height - fillTop).coerceAtLeast(0f)
+                                val y = size.height - availableHeight * stagger
+                                val radius = (1.35f + (index % 3) * 0.42f).dp.toPx()
+                                val bubbleCenter = Offset(x, y)
+                                drawCircle(
+                                    Brush.radialGradient(
+                                        listOf(Color.White.copy(alpha = 0.54f), gaugeColor.copy(alpha = 0.24f), Color.Transparent),
+                                        center = bubbleCenter,
+                                        radius = radius * 2.5f
+                                    ),
+                                    radius = radius * 2.5f,
+                                    center = bubbleCenter
+                                )
+                                drawCircle(
+                                    Color.White.copy(alpha = 0.76f),
+                                    radius = radius * 0.58f,
+                                    center = bubbleCenter
+                                )
+                                drawCircle(
+                                    gaugeColor.copy(alpha = 0.42f),
+                                    radius = radius * 1.45f,
+                                    center = bubbleCenter,
+                                    style = Stroke(0.8.dp.toPx())
+                                )
+                                drawCircle(
+                                    Color.White.copy(alpha = 0.22f),
+                                    radius = radius * 2.05f,
+                                    center = bubbleCenter,
+                                    style = Stroke(0.65.dp.toPx())
+                                )
                             }
                         }
                     }
                 }
 
-                // Fixed glass reflection only; animated sweep is reserved for Sweep mode.
-                drawArc(Color.White.copy(alpha = 0.16f), 28f, 58f, false,
-                    circleTopLeft, circleSize, style = Stroke(1.2.dp.toPx(), cap = StrokeCap.Round))
+                val crest = waveCrestPath(
+                    size.width, size.height, liquidProgress, wavePhase,
+                    amplitudePx = waveAmplitudePx
+                )
+                val crestPulse = if (animateEffects && animation == ChargingArcAnimation.ENERGY_SWEEP) {
+                    (0.68f + 0.28f * ((sin(wavePhase * 2f) + 1f) / 2f)).coerceIn(0f, 1f)
+                } else {
+                    0.9f
+                }
+                drawPath(
+                    crest,
+                    Color.White.copy(alpha = crestPulse),
+                    style = Stroke(WAVE_MENISCUS_STROKE_DP.dp.toPx(), cap = StrokeCap.Round)
+                )
+
+                drawArc(
+                    Color.White.copy(alpha = 0.16f), 28f, 58f, false,
+                    circleTopLeft, circleSize,
+                    style = Stroke(1.2.dp.toPx(), cap = StrokeCap.Round)
+                )
             }
 
-            // Comet: a crisp 90-degree energy tail orbits the outer glass ring.
+            // Comet: a 100-degree fading energy tail orbits the outer glass ring.
             if (animateEffects && features.outerComet) {
                 val orbitStart = -90f + phaseFraction * 360f
-                val orbitSweep = 90f
                 drawArc(
                     Brush.sweepGradient(
-                        listOf(Color.Transparent, gaugeColor.copy(alpha = 0.56f),
-                            Color.White.copy(alpha = 0.98f), Color.Transparent)
+                        listOf(
+                            Color.Transparent,
+                            gaugeColor.copy(alpha = 0.52f),
+                            Color.White.copy(alpha = 0.98f),
+                            Color.Transparent
+                        )
                     ),
-                    orbitStart, orbitSweep, false, circleTopLeft, circleSize,
+                    orbitStart, WAVE_COMET_TAIL_DEGREES, false, circleTopLeft, circleSize,
                     style = Stroke(3.dp.toPx(), cap = StrokeCap.Round)
                 )
-                val headAngle = Math.toRadians((orbitStart + orbitSweep).toDouble())
+                val headAngle = Math.toRadians((orbitStart + WAVE_COMET_TAIL_DEGREES).toDouble())
                 val head = Offset(
                     center.x + cos(headAngle).toFloat() * (diameter / 2f),
                     center.y + sin(headAngle).toFloat() * (diameter / 2f)
@@ -603,7 +687,8 @@ private fun WaveGauge(
                         listOf(Color.White.copy(alpha = 0.82f), gaugeColor.copy(alpha = 0.42f), Color.Transparent),
                         center = head, radius = 3.dp.toPx() * 2.6f
                     ),
-                    radius = 3.dp.toPx() * 2.6f, center = head
+                    radius = 3.dp.toPx() * 2.6f,
+                    center = head
                 )
                 drawCircle(Color.White, 1.25.dp.toPx(), head)
             }
@@ -647,14 +732,17 @@ private fun waveY(
     height: Float,
     progress: Float,
     phase: Float,
+    amplitudePx: Float,
     amplitudeScale: Float = 1f,
     verticalOffset: Float = 0f
 ): Float {
     val normalized = if (width <= 0f) 0f else x / width
-    val damping = sin(progress.coerceIn(0f, 1f) * PI).toFloat()
-    val amplitude = height * 0.055f * damping * amplitudeScale
-    val baseline = height * (1f - progress.coerceIn(0f, 1f))
-    return baseline + verticalOffset + amplitude * sin(normalized * (2f * PI).toFloat() * 1.25f + phase)
+    val level = progress.coerceIn(0f, 1f)
+    val damping = 0.18f + 0.82f * sin(level * PI).toFloat()
+    val amplitude = amplitudePx * damping * amplitudeScale
+    val baseline = height * (1f - level)
+    return baseline + verticalOffset +
+        amplitude * sin(normalized * (2f * PI).toFloat() * WAVE_CYCLES + phase)
 }
 
 private fun waveFillPath(
@@ -662,13 +750,14 @@ private fun waveFillPath(
     height: Float,
     progress: Float,
     phase: Float,
+    amplitudePx: Float,
     amplitudeScale: Float = 1f,
     verticalOffset: Float = 0f
 ): Path = Path().apply {
-    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudeScale, verticalOffset))
-    for (step in 1..48) {
-        val x = width * step / 48f
-        lineTo(x, waveY(x, width, height, progress, phase, amplitudeScale, verticalOffset))
+    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset))
+    for (step in 1..64) {
+        val x = width * step / 64f
+        lineTo(x, waveY(x, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset))
     }
     lineTo(width, height)
     lineTo(0f, height)
@@ -680,11 +769,11 @@ private fun waveCrestPath(
     height: Float,
     progress: Float,
     phase: Float,
-    amplitudeScale: Float = 1f
+    amplitudePx: Float
 ): Path = Path().apply {
-    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudeScale))
-    for (step in 1..48) {
-        val x = width * step / 48f
-        lineTo(x, waveY(x, width, height, progress, phase, amplitudeScale))
+    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudePx))
+    for (step in 1..64) {
+        val x = width * step / 64f
+        lineTo(x, waveY(x, width, height, progress, phase, amplitudePx))
     }
 }
