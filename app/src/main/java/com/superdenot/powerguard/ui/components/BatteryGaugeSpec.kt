@@ -64,15 +64,44 @@ fun segmentedGaugeTrailAlpha(index: Int, headIndex: Int, activeCount: Int): Floa
     } else 0.82f
 }
 
-const val WAVE_REAR_PHASE_OFFSET = 1.15f
-const val WAVE_REAR_AMPLITUDE_SCALE = 0.68f
-const val WAVE_REAR_FILL_ALPHA = 0.28f
-const val WAVE_FRONT_FILL_ALPHA = 0.82f
+const val CAPSULE_OUTER_STROKE_DP = 1.8f
+const val CAPSULE_INNER_GAP_DP = 1.5f
+const val CAPSULE_MIN_INNER_CORNER_RADIUS_DP = 4f
+
+data class CapsuleInnerGeometry(
+    val insetPx: Float,
+    val cornerRadiusPx: Float
+)
+
+/** Computes a concentric inner capsule contour from the outer stroke and breathing gap. */
+fun capsuleInnerGeometry(
+    outerCornerRadiusPx: Float,
+    strokeWidthPx: Float,
+    innerGapPx: Float,
+    minimumCornerRadiusPx: Float
+): CapsuleInnerGeometry {
+    val inset = strokeWidthPx + innerGapPx
+    return CapsuleInnerGeometry(
+        insetPx = inset,
+        cornerRadiusPx = (outerCornerRadiusPx - inset).coerceAtLeast(minimumCornerRadiusPx)
+    )
+}
+
+const val WAVE_AMPLITUDE_DP = 6.5f
+const val WAVE_CYCLES = 1.6f
+const val WAVE_REAR_PHASE_OFFSET_DEGREES = 115f
+const val WAVE_REAR_PHASE_OFFSET = 2.0071286f
+const val WAVE_REAR_AMPLITUDE_SCALE = 0.76f
+const val WAVE_REAR_FILL_ALPHA = 0.30f
+const val WAVE_FRONT_FILL_ALPHA = 0.88f
+const val WAVE_MENISCUS_STROKE_DP = 2f
+const val WAVE_BUBBLE_COUNT = 7
+const val WAVE_COMET_TAIL_DEGREES = 100f
 
 data class WaveAnimationFeatures(
     val animatedSurface: Boolean,
-    val diagonalSweep: Boolean,
-    val horizontalStrata: Boolean,
+    val upwardSweep: Boolean,
+    val risingBubbles: Boolean,
     val outerComet: Boolean
 )
 
@@ -83,6 +112,10 @@ fun waveAnimationFeatures(animation: ChargingArcAnimation): WaveAnimationFeature
     ChargingArcAnimation.COMET_HEAD -> WaveAnimationFeatures(true, false, false, true)
     ChargingArcAnimation.STATIC -> WaveAnimationFeatures(false, false, false, false)
 }
+
+/** Uses a frame-clock phase only when the platform animator scale is disabled. */
+fun shouldUseGaugeFrameClockFallback(animatorsEnabled: Boolean, animateEffects: Boolean): Boolean =
+    !animatorsEnabled && animateEffects
 
 /** Charging state and animation style never change the measured Wave liquid fraction. */
 @Suppress("UNUSED_PARAMETER")
