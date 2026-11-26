@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 
 // All explicit color literals live in this theme package.
 val EmeraldCharge = Color(0xFF39765B)
@@ -36,33 +35,72 @@ private val DarkBackground = Color(0xFF171916)
 private val DarkSurface = Color(0xFF222720)
 private val DarkText = Color(0xFFF4F0E7)
 private val DarkMuted = Color(0xFFB5B9B0)
-private data class MidnightPalette(val background: Color, val surface: Color, val outline: Color, val primary: Color)
+private data class MidnightPalette(
+    val background: Color,
+    val surface: Color,
+    val lowest: Color,
+    val low: Color,
+    val container: Color,
+    val high: Color,
+    val highest: Color,
+    val outlineVariant: Color,
+    val primary: Color,
+    val onPrimary: Color
+)
 
-private val MidnightVioletBackground = Color(0xFF0B091E)
-private val MidnightVioletSurface = Color(0xFF151233)
-private val MidnightVioletOutline = Color(0xFF2E2866)
-val MidnightVioletAccent = Color(0xFF7C3AED)
-private val MidnightPinkBackground = Color(0xFF160A14)
-private val MidnightPinkSurface = Color(0xFF241120)
-private val MidnightPinkOutline = Color(0xFF4A1D3E)
-val MidnightPinkAccent = Color(0xFFEC4899)
-private val MidnightCyanBackground = Color(0xFF071318)
-private val MidnightCyanSurface = Color(0xFF0E2129)
-private val MidnightCyanOutline = Color(0xFF1B4352)
-val MidnightCyanAccent = Color(0xFF06B6D4)
-private val MidnightGreenBackground = Color(0xFF07140F)
-private val MidnightGreenSurface = Color(0xFF0E221B)
-private val MidnightGreenOutline = Color(0xFF1B4536)
-val MidnightGreenAccent = Color(0xFF10B981)
+private val MidnightOnSurface = Color(0xFFE6EAF2)
+private val MidnightOnSurfaceVariant = Color(0xFF9AA4B8)
 
 private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (accent) {
-    MidnightAccent.VIOLET -> MidnightPalette(MidnightVioletBackground, MidnightVioletSurface, MidnightVioletOutline, MidnightVioletAccent)
-    MidnightAccent.PINK -> MidnightPalette(MidnightPinkBackground, MidnightPinkSurface, MidnightPinkOutline, MidnightPinkAccent)
-    MidnightAccent.CYAN -> MidnightPalette(MidnightCyanBackground, MidnightCyanSurface, MidnightCyanOutline, MidnightCyanAccent)
-    MidnightAccent.GREEN -> MidnightPalette(MidnightGreenBackground, MidnightGreenSurface, MidnightGreenOutline, MidnightGreenAccent)
+    MidnightAccent.VIOLET -> MidnightPalette(
+        background = Color(0xFF0E0F1A),
+        surface = Color(0xFF161826),
+        lowest = Color(0xFF0A0B14),
+        low = Color(0xFF121420),
+        container = Color(0xFF161826),
+        high = Color(0xFF1D2032),
+        highest = Color(0xFF24283E),
+        outlineVariant = Color(0xFF2B2F47),
+        primary = Color(0xFF9D7BFF),
+        onPrimary = Color(0xFF130D26)
+    )
+    MidnightAccent.PINK -> MidnightPalette(
+        background = Color(0xFF140F14),
+        surface = Color(0xFF1E171E),
+        lowest = Color(0xFF0F0B0F),
+        low = Color(0xFF191319),
+        container = Color(0xFF1E171E),
+        high = Color(0xFF271E27),
+        highest = Color(0xFF312631),
+        outlineVariant = Color(0xFF3A2C39),
+        primary = Color(0xFFF472B6),
+        onPrimary = Color(0xFF240B18)
+    )
+    MidnightAccent.CYAN -> MidnightPalette(
+        background = Color(0xFF0C1318),
+        surface = Color(0xFF131E26),
+        lowest = Color(0xFF080E12),
+        low = Color(0xFF0F181F),
+        container = Color(0xFF131E26),
+        high = Color(0xFF192731),
+        highest = Color(0xFF20313E),
+        outlineVariant = Color(0xFF263947),
+        primary = Color(0xFF38BDF8),
+        onPrimary = Color(0xFF071B26)
+    )
+    MidnightAccent.GREEN -> MidnightPalette(
+        background = Color(0xFF0C1412),
+        surface = Color(0xFF131F1C),
+        lowest = Color(0xFF080E0D),
+        low = Color(0xFF0F1917),
+        container = Color(0xFF131F1C),
+        high = Color(0xFF192925),
+        highest = Color(0xFF20342F),
+        outlineVariant = Color(0xFF263B35),
+        primary = Color(0xFF34D399),
+        onPrimary = Color(0xFF062017)
+    )
 }
-private val MidnightOnSurface = Color(0xFFF8FAFC)
-private val MidnightOnSurfaceVariant = Color(0xFFA5A1C2)
 private val MidnightColdMetric = Color(0xFF102B3A)
 private val MidnightWarmMetric = Color(0xFF2D1F27)
 
@@ -95,21 +133,40 @@ internal fun basicSurfaceContainerPalette(
     )
 }
 
-internal fun midnightSurfaceContainerPalette(accent: MidnightAccent): SurfaceContainerPalette =
-    when (accent) {
-        MidnightAccent.VIOLET -> SurfaceContainerPalette(
-            Color(0xFF0A0819), Color(0xFF100E27), Color(0xFF171433), Color(0xFF1F1A42), Color(0xFF292354)
-        )
-        MidnightAccent.PINK -> SurfaceContainerPalette(
-            Color(0xFF140810), Color(0xFF1D0D19), Color(0xFF281321), Color(0xFF341A2C), Color(0xFF402237)
-        )
-        MidnightAccent.CYAN -> SurfaceContainerPalette(
-            Color(0xFF061116), Color(0xFF0A1A20), Color(0xFF10252D), Color(0xFF17323C), Color(0xFF1F404B)
-        )
-        MidnightAccent.GREEN -> SurfaceContainerPalette(
-            Color(0xFF06120C), Color(0xFF0B1C13), Color(0xFF11291D), Color(0xFF183728), Color(0xFF204634)
-        )
-    }
+internal fun midnightSurfaceContainerPalette(accent: MidnightAccent): SurfaceContainerPalette {
+    val palette = midnightPalette(accent)
+    return SurfaceContainerPalette(
+        lowest = palette.lowest,
+        low = palette.low,
+        container = palette.container,
+        high = palette.high,
+        highest = palette.highest
+    )
+}
+
+internal fun midnightColorScheme(accent: MidnightAccent) = darkColorScheme(
+    surfaceContainerLowest = midnightPalette(accent).lowest,
+    surfaceContainerLow = midnightPalette(accent).low,
+    surfaceContainer = midnightPalette(accent).container,
+    surfaceContainerHigh = midnightPalette(accent).high,
+    surfaceContainerHighest = midnightPalette(accent).highest,
+    primary = midnightPalette(accent).primary,
+    onPrimary = midnightPalette(accent).onPrimary,
+    primaryContainer = midnightPalette(accent).primary.copy(alpha = 0.24f),
+    onPrimaryContainer = MidnightOnSurface,
+    secondary = EmeraldCharge,
+    onSecondary = Color.White,
+    tertiary = AmberThermal,
+    error = CrimsonAnomaly,
+    background = midnightPalette(accent).background,
+    onBackground = MidnightOnSurface,
+    surface = midnightPalette(accent).surface,
+    onSurface = MidnightOnSurface,
+    surfaceVariant = midnightPalette(accent).surface,
+    onSurfaceVariant = MidnightOnSurfaceVariant,
+    outline = midnightPalette(accent).outlineVariant,
+    outlineVariant = midnightPalette(accent).outlineVariant
+)
 private val BasicDarkSurfaceVariant = Color(0xFF2B3029)
 private val BasicDarkOutline = Color(0xFF62665F)
 private val BasicDarkOutlineVariant = Color(0xFF454B42)
@@ -234,33 +291,7 @@ fun PowerGuardTheme(
                 )
             }
         }
-        is ThemePackConfig.MidnightViolet -> {
-            val palette = midnightPalette(config.midnightAccent)
-            val containers = midnightSurfaceContainerPalette(config.midnightAccent)
-            darkColorScheme(
-                surfaceContainerLowest = containers.lowest,
-                surfaceContainerLow = containers.low,
-                surfaceContainer = containers.container,
-                surfaceContainerHigh = containers.high,
-                surfaceContainerHighest = containers.highest,
-                primary = palette.primary,
-                onPrimary = if (palette.primary.luminance() > 0.175f) palette.background else Color.White,
-                primaryContainer = palette.primary.copy(alpha = 0.24f),
-                onPrimaryContainer = MidnightOnSurface,
-                secondary = EmeraldCharge,
-                onSecondary = Color.White,
-                tertiary = AmberThermal,
-                error = CrimsonAnomaly,
-                background = palette.background,
-                onBackground = MidnightOnSurface,
-                surface = palette.surface,
-                onSurface = MidnightOnSurface,
-                surfaceVariant = palette.surface,
-                onSurfaceVariant = MidnightOnSurfaceVariant,
-                outline = palette.outline,
-                outlineVariant = palette.outline
-            )
-        }
+        is ThemePackConfig.MidnightViolet -> midnightColorScheme(config.midnightAccent)
     }
 
     val metricTints = when (config) {

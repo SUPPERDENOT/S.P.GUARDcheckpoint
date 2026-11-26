@@ -1,3 +1,27 @@
+## 2026-11-26 — Midnight eye-comfort palette recalibration
+
+### Theme token verification
+- [x] Midnight Violet, Pink, Cyan, and Green use the exact requested background and surface values.
+- [x] All five Material 3 surfaceContainer tokens are explicitly set per Midnight accent; no neutral Material 3 fallback is used.
+- [x] Each Midnight accent uses its requested outlineVariant, primary, and onPrimary values.
+- [x] All four Midnight variants use onBackground/onSurface `#E6EAF2` and onSurfaceVariant `#9AA4B8`.
+- [x] BatteryGauge Busur, Kapsul, Blok, and Wave continue to resolve their main accent from `MaterialTheme.colorScheme.primary`.
+- [x] Active choice pills and action buttons retain Material 3 theme-token color resolution; both info popups retain `surfaceContainerHigh` / `outlineVariant` token resolution.
+- [x] Theme tests assert every requested token and WCAG contrast ratios of at least 4.5:1 for primary and text foreground combinations.
+
+### Protected-boundary and delivery gate
+- [x] Planned diff scope is limited to `Theme.kt`, `InfoDialogVisualTokensTest.kt`, `CHANGELOG.md`, and this checklist.
+- [x] Room DB v3, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number are outside the change.
+- [ ] Full branch diff crosscheck: pending.
+- [ ] `:app:testDebugUnitTest`: pending exact-HEAD CI.
+- [ ] `:app:assembleDebug`: pending exact-HEAD CI.
+- [ ] Anti-Slop UI Audit Gate: pending exact-HEAD CI.
+- [ ] Upload APK and record artifact ID: pending exact-HEAD CI.
+- [ ] Physical-device visual QA: not run; CI does not replace device review.
+- [ ] PR merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 final polish: Wave phase, outer Comet, Capsule bubbles
 
 - [x] Wave rear direction is `-1f`; normalized phase 0 and 1 have equivalent sine/cosine positions at wrap.

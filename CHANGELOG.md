@@ -1,3 +1,24 @@
+## 2026-11-26 — Midnight eye-comfort palette recalibration
+
+### Changed
+- Recalibrated all four Midnight accents (Ungu/Violet, Pink, Cyan, Green) to the specified low-saturation obsidian-slate backgrounds, surfaces, five Material 3 surface-container levels, outlineVariant, primary, and onPrimary tokens.
+- Standardized Midnight foreground tokens to onBackground/onSurface `#E6EAF2` and onSurfaceVariant `#9AA4B8`.
+- Centralized the Midnight Material 3 ColorScheme factory so the live theme and unit tests consume the same resolved token set. Existing BatteryGauge models, active choice pills, action buttons, and `InfoDialogSurface` continue to resolve their colors from MaterialTheme tokens; no component-specific color overrides were introduced.
+
+### Tests
+- Expanded theme tests to assert every requested token for all four Midnight variants.
+- Added WCAG relative-luminance contrast checks (minimum 4.5:1) for onPrimary/primary, onSurface/surface, onSurface/background, and onSurfaceVariant/surface.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition or sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Source-level crosscheck and diff-scope review: pending final branch review.
+- Unit tests, Anti-Slop UI Audit Gate, assembleDebug, and Upload APK: pending exact-HEAD GitHub Actions.
+- Physical-device visual QA: not run.
+
+---
+
 ## 2026-11-26 — PR #12 final polish: Wave phase continuity, unclipped outer Comet, Capsule rising bubbles
 
 ### Changed
