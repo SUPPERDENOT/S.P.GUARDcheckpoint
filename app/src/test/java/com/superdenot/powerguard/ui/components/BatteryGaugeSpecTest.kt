@@ -167,6 +167,14 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
+    fun capsuleGlossIsDisabledOnlyForStaticMode() {
+        assertFalse(capsuleGlossEnabled(ChargingArcAnimation.STATIC))
+        ChargingArcAnimation.values()
+            .filter { it != ChargingArcAnimation.STATIC }
+            .forEach { assertTrue(capsuleGlossEnabled(it)) }
+    }
+
+    @Test
     fun staticModeDisablesAnimationForEveryGaugeModel() {
         BatteryGaugeModel.values().forEach { model ->
             assertFalse(
