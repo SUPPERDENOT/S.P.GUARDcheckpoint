@@ -9,9 +9,11 @@
 - [x] ProtocolInfoDialog and the battery-side power info dialog use surfaceContainerHigh directly, tonalElevation = 0.dp, and a 1dp outlineVariant border.
 - [x] Both Charging info badges use a flat 16dp circle, 11dp Icons.Outlined.Info glyph, 4dp title gap, and 48dp accessible tap target; no Surface/shadow/tonal elevation is applied to the badge.
 - [x] Unit tests added for delta accumulation, bounded frame delta, wrap, disabled reset, all animation modes, and all theme accent palettes.
-- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number edits intended; final compare pending.
-- [ ] Final exact-HEAD diff self-crosscheck: pending.
-- [ ] GitHub Actions exact-HEAD Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, and APK upload: pending.
+- [x] Protected-boundary review: PASS — compare from base 5684d5047c51cb9f2cfb0a7f4f98d46ee564bdac lists only nine UI/theme/test/documentation paths; no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [x] Full line-by-line self-crosscheck: PASS — reviewed all nine changed paths and verified preview forceAnimate, active Overview charging-state forwarding, all theme container assignments, popup surfaces, and badge layout.
+- [x] Run #726 on intermediate HEAD 326c568b1abdfa9d632bbea76bd87362906fe36b: Anti-Slop SUCCESS; compile failed on nullable WaveGauge phase parameter. Corrected in the following source commit.
+- [x] Run #727 (45766872823) on source/test HEAD ee39dae4183115ee1d23d1fc967438d05b578fa2: SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload. APK Artifact ID 15092277556; unit-test report Artifact ID 15092262518.
+- [ ] Final documentation-head CI after this checklist/changelog closeout: pending; exact result and latest APK Artifact ID are recorded in the final delivery report.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
