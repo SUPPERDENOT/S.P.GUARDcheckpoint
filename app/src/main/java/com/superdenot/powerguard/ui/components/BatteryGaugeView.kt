@@ -1,12 +1,5 @@
 package com.superdenot.powerguard.ui.components
 
-import android.animation.ValueAnimator
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -91,86 +84,60 @@ fun BatteryGaugeView(
             animation = animation,
             forceAnimate = forceAnimate
         )
-        if (animateEffects) {
-            AnimatedBatteryGauge(
-                progress = safeProgress,
-                percentageLabel = percentageLabel,
-                model = model,
-                animation = animation,
-                gaugeColor = gaugeColor,
-                isCharging = isCharging
-            )
-        } else {
-            StaticBatteryGauge(
-                progress = safeProgress,
-                percentageLabel = percentageLabel,
-                model = model,
-                animation = animation,
-                gaugeColor = gaugeColor,
-                isCharging = isCharging
-            )
-        }
+        val phase = rememberGaugePhase(shouldAnimate = animateEffects)
+        BatteryGaugeRenderer(
+            progress = safeProgress,
+            percentageLabel = percentageLabel,
+            model = model,
+            animation = animation,
+            gaugeColor = gaugeColor,
+            phase = phase,
+            animateEffects = animateEffects,
+            isCharging = isCharging
+        )
     }
 }
 
 @Composable
-private fun AnimatedBatteryGauge(
-    progress: Float,
-    percentageLabel: String,
-    model: BatteryGaugeModel,
-    animation: ChargingArcAnimation,
-    gaugeColor: Color,
-    isCharging: Boolean
-) {
-    val animatorsEnabled = ValueAnimator.areAnimatorsEnabled()
-    val transition = rememberInfiniteTransition(label = "battery-gauge-charging")
-    val transitionPhase = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2f * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1_800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "battery-gauge-phase"
-    )
-    val fallbackPhase = remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(animatorsEnabled) {
-        if (shouldUseGaugeFrameClockFallback(animatorsEnabled, animateEffects = true)) {
-            val cycleNanos = 1_800_000_000L
-            while (isActive) {
-                val frameNanos = withFrameNanos { it }
-                fallbackPhase.floatValue =
-                    ((frameNanos % cycleNanos).toDouble() / cycleNanos * (2.0 * PI)).toFloat()
-            }
+internal fun rememberGaugePhase(
+    shouldAnimate: Boolean,
+    cycleDurationMillis: Int = 2_400
+): State<Float> {
+    val phase = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(shouldAnimate, cycleDurationMillis) {
+        if (!shouldAnimate) {
+            phase.floatValue = 0f
+            return@LaunchedEffect
+        }
+
+        val safeCycleDurationMillis = cycleDurationMillis.coerceAtLeast(1)
+        var lastFrameNanos = withFrameNanos { it }
+        while (isActive) {
+            val frameNanos = withFrameNanos { it }
+            val deltaMs = ((frameNanos - lastFrameNanos) / 1_000_000L).coerceIn(0L, 64L)
+            lastFrameNanos = frameNanos
+            phase.floatValue = advanceGaugePhase(
+                currentPhase = phase.floatValue,
+                deltaMs = deltaMs,
+                cycleDurationMillis = safeCycleDurationMillis,
+                shouldAnimate = shouldAnimate
+            )
         }
     }
-    val phase: State<Float> = if (animatorsEnabled) transitionPhase else fallbackPhase
-    BatteryGaugeRenderer(
-        progress, percentageLabel, model, animation, gaugeColor, phase,
-        animateEffects = true, isCharging = isCharging
-    )
+    return phase
 }
 
-@Composable
-private fun StaticBatteryGauge(
-    progress: Float,
-    percentageLabel: String,
-    model: BatteryGaugeModel,
-    animation: ChargingArcAnimation,
-    gaugeColor: Color,
-    isCharging: Boolean
-) {
-    BatteryGaugeRenderer(progress, percentageLabel, model, animation, gaugeColor, null, animateEffects = false, isCharging = isCharging)
-}
+private val GAUGE_PHASE_RADIANS_PER_CYCLE = (2f * PI).toFloat()
 
 @Composable
 private fun BatteryGaugeRenderer(
+
     progress: Float,
     percentageLabel: String,
     model: BatteryGaugeModel,
     animation: ChargingArcAnimation,
     gaugeColor: Color,
-    phase: State<Float>?,
+    phase: State<Float>,
     animateEffects: Boolean,
     isCharging: Boolean
 ) {
@@ -184,7 +151,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.ARC -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawArcGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, renderAnimation)
+                    drawArcGauge(progress, gaugeColor, trackColor, phase.value * GAUGE_PHASE_RADIANS_PER_CYCLE, renderAnimation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
@@ -192,7 +159,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.CAPSULE -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawCapsuleGauge(progress, gaugeColor, trackColor, capsuleOutlineColor, phase?.value ?: 0f, renderAnimation)
+                    drawCapsuleGauge(progress, gaugeColor, trackColor, capsuleOutlineColor, phase.value * GAUGE_PHASE_RADIANS_PER_CYCLE, renderAnimation)
                 }
                 GaugePercentageLabel(percentageLabel, 15.sp)
             }
@@ -200,7 +167,7 @@ private fun BatteryGaugeRenderer(
         BatteryGaugeModel.SEGMENTED -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
-                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase?.value ?: 0f, renderAnimation)
+                    drawSegmentedGauge(progress, gaugeColor, trackColor, phase.value * GAUGE_PHASE_RADIANS_PER_CYCLE, renderAnimation)
                 }
                 GaugeCenterLabel(percentageLabel)
             }
@@ -545,7 +512,7 @@ private fun WaveGauge(
             val circle = Path().apply {
                 addOval(androidx.compose.ui.geometry.Rect(left, top, left + diameter, top + diameter))
             }
-            val wavePhase = if (animateEffects && features.animatedSurface) phase?.value ?: 0f else 0f
+            val wavePhase = if (animateEffects && features.animatedSurface) phase.value * GAUGE_PHASE_RADIANS_PER_CYCLE else 0f
             val phaseFraction = gaugeAnimationPhaseFraction(wavePhase)
             val liquidProgress = waveLiquidFillLevel(progress, isCharging, animation)
             val liquidBottom = top + diameter
