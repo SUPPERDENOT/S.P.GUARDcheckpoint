@@ -1,3 +1,27 @@
+## 2026-11-26 — PR #12 precision pass: Capsule contour, Wave motion, and Charging info badges
+
+### Changed
+- Rebuilt the Capsule interior as a concentric rounded-rectangle path: the 1.8dp outer stroke plus 1.5dp inner breathing inset determines the inner contour, with a 4dp minimum inner corner radius. The empty track, liquid fill, shimmer, beam, and fixed glass reflection share one inner clip path. The terminal remains a separate cap with a 2dp gap; the outline uses the active theme's `outline` token and 0.85 alpha in dark surfaces.
+- Increased the Wave sinusoidal amplitude to 6.5dp and frequency to 1.6 cycles across the gauge. The rear layer uses a 115-degree phase offset; the front liquid uses a theme-derived vertical gradient and a 2dp meniscus.
+- Replaced Wave Sweep's diagonal blade with a soft bottom-to-crest light ribbon and a pulsing meniscus. Replaced Segmen's horizontal strata with seven rising luminous bubbles and double ripple rings. Comet now uses a 100-degree fading orbital tail with a 3dp stroke and bright head. Statis retains a fixed sinusoidal surface and disables all moving effects for Busur, Kapsul, Blok, and Wave.
+- Added a frame-clock fallback driven by `LaunchedEffect` and `withFrameNanos` when `ValueAnimator.areAnimatorsEnabled()` is false. The fallback is gated by the same animation eligibility rules and is not launched for Statis.
+- Centralized popup surface tokens to `surfaceContainerHigh` and `outlineVariant`. Both Charging info affordances now share an 18dp theme-colored badge, 12dp icon, 24dp minimum click area, and 3dp title gap.
+
+### Tests
+- Added Capsule inner-contour/stroke geometry tests, Wave amplitude/frequency/phase/profile tests, all-model Statis gating tests, and frame-clock fallback gating tests.
+- Added light/dark ColorScheme popup-token tests and info badge size/spacing token tests.
+- Updated obsolete Wave profile assertions that previously expected diagonal Sweep and horizontal Segmen strata.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition or sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, SDK, Gradle dependencies, app version, or build number changes are intended.
+
+### Verification status
+- Source implementation and regression tests are committed on `feat/theme-system-and-battery-gauges`; full diff review and exact-HEAD CI remain pending.
+- Physical-device QA on itel P55: NOT RUN.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 final polish: Blok orientation, Capsule beam, Wave mode separation, Charging label
 
 ### Changed
