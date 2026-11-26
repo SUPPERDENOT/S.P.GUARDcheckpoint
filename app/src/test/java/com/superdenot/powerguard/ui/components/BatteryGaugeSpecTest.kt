@@ -76,6 +76,7 @@ class BatteryGaugeSpecTest {
 
     @Test
     fun segmentedBlocksStartAtSixAndAdvanceClockwiseUpTheLeftSide() {
+        assertEquals(90f, SEGMENTED_GAUGE_START_ANGLE_DEGREES, 0f)
         assertEquals(90f, segmentedGaugeStartAngle(0), 0f)
         assertEquals(105f, segmentedGaugeStartAngle(1), 0f)
         assertEquals(180f, segmentedGaugeStartAngle(6), 0f)
