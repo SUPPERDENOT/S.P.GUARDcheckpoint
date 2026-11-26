@@ -56,6 +56,7 @@ class InfoDialogVisualTokensTest {
     fun infoBadgeUsesFlatCompactGeometry() {
         assertEquals(16f, INFO_BADGE_DIAMETER_DP, 0f)
         assertEquals(11f, INFO_BADGE_ICON_DIAMETER_DP, 0f)
+        assertEquals(48f, INFO_BADGE_TOUCH_TARGET_DP, 0f)
         assertEquals(4f, INFO_BADGE_GAP_DP, 0f)
     }
 }
