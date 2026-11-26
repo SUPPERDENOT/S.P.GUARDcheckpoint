@@ -214,10 +214,10 @@ class BatteryGaugeSpecTest {
 
     @Test
     fun waveRendererUsesTwoOffsetLayersAndBrightFrontFill() {
-        assertEquals(1.15f, WAVE_REAR_PHASE_OFFSET, 0f)
-        assertEquals(0.68f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
+        assertEquals(2.0071286f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        assertEquals(0.76f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
         assertTrue(WAVE_REAR_FILL_ALPHA < WAVE_FRONT_FILL_ALPHA)
-        assertEquals(0.82f, WAVE_FRONT_FILL_ALPHA, 0f)
+        assertEquals(0.88f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
     @Test
