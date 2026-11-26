@@ -41,7 +41,6 @@ import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
-import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -58,9 +57,8 @@ fun BatteryGaugeView(
     modifier: Modifier = Modifier,
     forceAnimate: Boolean = false
 ) {
-    val semanticColors = LocalBatterySemanticColors.current
     val gaugeColor = resolveBatteryGaugeAccent(
-        semanticColors = semanticColors,
+        themeAccent = MaterialTheme.colorScheme.primary,
         isCharging = isCharging
     )
     val safeProgress = progress.coerceIn(0f, 1f)

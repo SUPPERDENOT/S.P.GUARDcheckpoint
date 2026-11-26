@@ -67,10 +67,20 @@ class InfoDialogVisualTokensTest {
         assertEquals(16f, INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP, 0f)
         assertEquals(14f, INFO_DIALOG_HEADER_TOP_PADDING_DP, 0f)
         assertEquals(8f, INFO_DIALOG_HEADER_BOTTOM_PADDING_DP, 0f)
-        assertEquals(8f, INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP, 0f)
+        assertEquals(16f, INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP, 0f)
+        assertEquals(4f, INFO_DIALOG_SCROLL_TOP_PADDING_DP, 0f)
+        assertEquals(12f, INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP, 0f)
         assertEquals(16f, INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP, 0f)
         assertEquals(8f, INFO_DIALOG_FOOTER_TOP_PADDING_DP, 0f)
         assertEquals(12f, INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP, 0f)
+        assertEquals(36f, INFO_DIALOG_BUTTON_HEIGHT_DP, 0f)
+    }
+
+    @Test
+    fun bothInfoDialogsShareSolidSurfaceAndCompactFooterTokens() {
+        assertEquals(20f, INFO_DIALOG_SURFACE_CORNER_RADIUS_DP, 0f)
+        assertEquals(1f, INFO_DIALOG_SURFACE_BORDER_DP, 0f)
+        assertEquals(0f, INFO_DIALOG_SURFACE_TONAL_ELEVATION_DP, 0f)
         assertEquals(36f, INFO_DIALOG_BUTTON_HEIGHT_DP, 0f)
     }
 }

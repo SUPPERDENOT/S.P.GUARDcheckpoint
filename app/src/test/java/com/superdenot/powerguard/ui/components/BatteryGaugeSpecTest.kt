@@ -2,7 +2,6 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
 import com.superdenot.powerguard.ui.CHARGING_SOURCE_CAPABILITY_LABEL
 import org.junit.Assert.assertEquals
@@ -52,7 +51,7 @@ class BatteryGaugeSpecTest {
             resolveBatteryGaugeColor(palette, isCriticalThermal = false, isWarm = false, isCharging = false)
         )
         assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette, isCharging = true))
-        assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette, isCharging = false))
+        assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette.normal, isCharging = false))
     }
 
     @Test

@@ -93,12 +93,12 @@ fun capsuleInnerGeometry(
 
 const val WAVE_AMPLITUDE_DP = 6.5f
 const val WAVE_CYCLES = 1.6f
-const val WAVE_REAR_PHASE_OFFSET_DEGREES = 135f
-const val WAVE_REAR_PHASE_OFFSET = 2.3561945f
-const val WAVE_REAR_DIRECTION = -1f
-const val WAVE_REAR_AMPLITUDE_SCALE = 0.76f
-const val WAVE_REAR_FILL_ALPHA = 0.88f
-const val WAVE_FRONT_FILL_ALPHA = 0.88f
+const val WAVE_REAR_PHASE_OFFSET_DEGREES = 120f
+const val WAVE_REAR_PHASE_OFFSET = 2.0943952f
+const val WAVE_REAR_DIRECTION = -1.15f
+const val WAVE_REAR_AMPLITUDE_SCALE = 1.12f
+const val WAVE_REAR_FILL_ALPHA = 0.40f
+const val WAVE_FRONT_FILL_ALPHA = 0.92f
 const val WAVE_FRONT_HIGHLIGHT_BLEND = 0.32f
 const val WAVE_FRONT_SHADOW_BLEND = 0.22f
 const val WAVE_MENISCUS_HIGHLIGHT_BLEND = 0.35f
@@ -116,10 +116,10 @@ data class WaveLayerColors(
 )
 
 fun waveLayerColors(accentColor: Color): WaveLayerColors = WaveLayerColors(
-    rear = lerp(accentColor, Color.Black, 0.42f).copy(alpha = WAVE_REAR_FILL_ALPHA),
-    frontHighlight = lerp(accentColor, Color.White, WAVE_FRONT_HIGHLIGHT_BLEND),
+    rear = accentColor.copy(alpha = WAVE_REAR_FILL_ALPHA),
+    frontHighlight = lerp(accentColor, Color.White, WAVE_FRONT_HIGHLIGHT_BLEND).copy(alpha = WAVE_FRONT_FILL_ALPHA),
     frontBase = accentColor,
-    frontShadow = lerp(accentColor, Color.Black, WAVE_FRONT_SHADOW_BLEND),
+    frontShadow = lerp(accentColor, Color.Black, WAVE_FRONT_SHADOW_BLEND).copy(alpha = WAVE_FRONT_FILL_ALPHA),
     meniscus = lerp(accentColor, Color.White, WAVE_MENISCUS_HIGHLIGHT_BLEND)
         .copy(alpha = WAVE_MENISCUS_ALPHA)
 )
@@ -160,10 +160,11 @@ fun advanceGaugePhase(
 fun waveLiquidFillLevel(progress: Float, isCharging: Boolean, animation: ChargingArcAnimation): Float =
     progress.coerceIn(0f, 1f)
 
+@Suppress("UNUSED_PARAMETER")
 fun resolveBatteryGaugeAccent(
-    semanticColors: BatterySemanticColors,
+    themeAccent: Color,
     isCharging: Boolean
-): Color = if (isCharging) semanticColors.charging else semanticColors.normal
+): Color = themeAccent
 
 fun resolveBatteryGaugeColor(
     semanticColors: BatterySemanticColors,
@@ -173,7 +174,8 @@ fun resolveBatteryGaugeColor(
 ): Color = when {
     isCriticalThermal -> semanticColors.criticalThermal
     isWarm -> semanticColors.warm
-    else -> resolveBatteryGaugeAccent(semanticColors, isCharging)
+    isCharging -> semanticColors.charging
+    else -> semanticColors.normal
 }
 
 fun shouldAnimateBatteryGauge(

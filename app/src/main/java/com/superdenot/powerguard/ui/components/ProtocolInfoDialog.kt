@@ -14,6 +14,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,8 +48,13 @@ internal const val INFO_DIALOG_HEADER_TITLE_SP = 18f
 internal const val INFO_DIALOG_HEADER_GAP_DP = 2f
 internal const val INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP = 16f
 internal const val INFO_DIALOG_HEADER_TOP_PADDING_DP = 14f
-internal const val INFO_DIALOG_HEADER_BOTTOM_PADDING_DP = 10f
-internal const val INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP = 8f
+internal const val INFO_DIALOG_HEADER_BOTTOM_PADDING_DP = 8f
+internal const val INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP = 16f
+internal const val INFO_DIALOG_SCROLL_TOP_PADDING_DP = 4f
+internal const val INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP = 12f
+internal const val INFO_DIALOG_SURFACE_CORNER_RADIUS_DP = 20f
+internal const val INFO_DIALOG_SURFACE_BORDER_DP = 1f
+internal const val INFO_DIALOG_SURFACE_TONAL_ELEVATION_DP = 0f
 internal const val INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP = 16f
 internal const val INFO_DIALOG_FOOTER_TOP_PADDING_DP = 8f
 internal const val INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP = 12f
@@ -84,24 +92,23 @@ internal fun InfoBadge(
 }
 
 @Composable
-fun ProtocolInfoDialog(
-    protocolLabel: String,
-    onDismiss: () -> Unit
+internal fun InfoDialogSurface(
+    title: String,
+    subtitle: String? = null,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    val explanation = ProtocolExplanationCatalog.get(protocolLabel)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).heightIn(max = 560.dp),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(INFO_DIALOG_SURFACE_CORNER_RADIUS_DP.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            tonalElevation = 0.dp,
+            border = BorderStroke(INFO_DIALOG_SURFACE_BORDER_DP.dp, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = INFO_DIALOG_SURFACE_TONAL_ELEVATION_DP.dp,
             shadowElevation = 8.dp
         ) {
-            Column(
-                Modifier.fillMaxWidth().heightIn(max = 560.dp)
-            ) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(
                         start = INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP.dp,
@@ -112,32 +119,30 @@ fun ProtocolInfoDialog(
                     verticalArrangement = Arrangement.spacedBy(INFO_DIALOG_HEADER_GAP_DP.dp)
                 ) {
                     Text(
-                        explanation.title,
+                        title,
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = INFO_DIALOG_HEADER_TITLE_SP.sp),
                         fontWeight = FontWeight.SemiBold
                     )
-                    Text(protocolLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    subtitle?.let {
+                        Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
                 Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                    modifier = Modifier.fillMaxWidth()
+                        .weight(1f, fill = false)
                         .heightIn(max = 420.dp)
-                        .padding(vertical = INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Klasifikasi sumber", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text(explanation.powerRange, style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(2.dp))
-                    Text("Penjelasan", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text(explanation.summary, style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(2.dp))
-                    Text("Daya aktual sisi baterai", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text(ProtocolExplanationCatalog.batterySidePowerExplanation, style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(2.dp))
-                    Text("Panduan membandingkan aksesori", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text(ProtocolExplanationCatalog.comparisonGuidance, style = MaterialTheme.typography.bodyMedium)
-                }
-                androidx.compose.foundation.layout.Row(
+                        .verticalScroll(rememberScrollState())
+                        .padding(
+                            start = INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP.dp,
+                            end = INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP.dp,
+                            top = INFO_DIALOG_SCROLL_TOP_PADDING_DP.dp,
+                            bottom = INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP.dp
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    content = content
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Row(
                     Modifier.fillMaxWidth().padding(
                         start = INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP.dp,
                         top = INFO_DIALOG_FOOTER_TOP_PADDING_DP.dp,
@@ -156,5 +161,30 @@ fun ProtocolInfoDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ProtocolInfoDialog(
+    protocolLabel: String,
+    onDismiss: () -> Unit
+) {
+    val explanation = ProtocolExplanationCatalog.get(protocolLabel)
+    InfoDialogSurface(
+        title = explanation.title,
+        subtitle = protocolLabel,
+        onDismiss = onDismiss
+    ) {
+        Text("Klasifikasi sumber", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(explanation.powerRange, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(2.dp))
+        Text("Penjelasan", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(explanation.summary, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(2.dp))
+        Text("Daya aktual sisi baterai", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(ProtocolExplanationCatalog.batterySidePowerExplanation, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(2.dp))
+        Text("Panduan membandingkan aksesori", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(ProtocolExplanationCatalog.comparisonGuidance, style = MaterialTheme.typography.bodyMedium)
     }
 }

@@ -401,34 +401,14 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         )
     }
     if (showPowerInfo) {
-        Dialog(onDismissRequest = { showPowerInfo = false }) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 380.dp),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 0.dp,
-                shadowElevation = 8.dp
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("Pengukuran daya baterai", style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold)
-                    Text(
-                        "Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        PowerActionButton(
-                            onClick = { showPowerInfo = false },
-                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS
-                        ) { Text("Mengerti") }
-                    }
-                }
-            }
+        InfoDialogSurface(
+            title = "Pengukuran daya baterai",
+            onDismiss = { showPowerInfo = false }
+        ) {
+            Text(
+                "Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
