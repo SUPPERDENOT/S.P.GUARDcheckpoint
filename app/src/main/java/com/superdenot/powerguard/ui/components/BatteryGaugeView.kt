@@ -367,7 +367,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 Offset(innerLeft, fillTop),
                 Size(innerWidth, fillHeight)
             )
-            if (animation != ChargingArcAnimation.STATIC) {
+            if (capsuleGlossEnabled(animation)) {
                 drawRect(
                     Brush.horizontalGradient(
                         listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.White.copy(alpha = 0.16f))
