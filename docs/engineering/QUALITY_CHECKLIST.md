@@ -1,3 +1,23 @@
+## 2026-11-26 — PR #12 hotfix: gauge thermal gate, dual-wave tint, temperature presets, slim info popup
+
+- [x] Gauge animation eligibility is exactly `(isCharging || forceAnimate) && animationStyle != STATIC`; thermal and on-screen visibility gates are removed from the eligibility helper.
+- [x] BatteryGaugeView no longer accepts thermal/visibility booleans. Overview forwards the live charging state; Theme & Gauge preview forwards the live charging state without a temperature veto and keeps `forceAnimate = true`.
+- [x] Thermal classifications remain available for diagnostic/status labels only; they do not affect gauge animation.
+- [x] Wave rear phase uses `-phase + 135°`, with 42%-darkened accent at 0.88 alpha. Front gradient uses +32% accent highlight, active accent base, and -22% accent shadow.
+- [x] Wave meniscus is a 1.2dp accent-lightened stroke at 0.75 alpha; source crosscheck confirms no `Color.White` remains in the Wave renderer region.
+- [x] Sweep retains bottom-to-top ribbon, Segmen retains seven rising bubbles and ripple rings, Comet retains a 3dp outer orbit, and Statis keeps a fixed dual-wave surface.
+- [x] High-temperature preset order is exactly [42, 45, 48, 50]; model default and fresh-install SharedPreferences fallback are 45°C.
+- [x] Legacy stored 40°C is normalized to 45°C when read without rewriting the stored preference; no Room migration or schema change.
+- [x] Info popup header uses titleMedium/18sp/SemiBold, 2dp subtitle gap, and 16dp horizontal / 14dp top / 10dp bottom padding.
+- [x] Info popup scroll region has 8dp vertical breathing room; footer uses 16dp horizontal / 8dp top / 12dp bottom padding and 36dp Mengerti button.
+- [x] Unit tests cover thermal-independent animation, Statis exclusion, counter-phase dual-wave tint/alpha/meniscus, temperature preset ordering/default/legacy handling, and popup slim-layout tokens.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [ ] Final exact-HEAD GitHub Actions: pending.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 delta-frame / theme-container / info-badge precision fix
 
 - [x] Gauge phase is normalized and accumulated from frame-to-frame delta with a 0–64ms clamp and 2,400ms default cycle; disabled animation resets to 0.
