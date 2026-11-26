@@ -116,9 +116,18 @@ fun waveAnimationFeatures(animation: ChargingArcAnimation): WaveAnimationFeature
     ChargingArcAnimation.STATIC -> WaveAnimationFeatures(false, false, false, false)
 }
 
-/** Uses a frame-clock phase only when the platform animator scale is disabled. */
-fun shouldUseGaugeFrameClockFallback(animatorsEnabled: Boolean, animateEffects: Boolean): Boolean =
-    !animatorsEnabled && animateEffects
+/** Advances a normalized 0..1 gauge phase using a bounded frame delta. */
+fun advanceGaugePhase(
+    currentPhase: Float,
+    deltaMs: Long,
+    cycleDurationMillis: Int,
+    shouldAnimate: Boolean
+): Float {
+    if (!shouldAnimate) return 0f
+    val safeCycleDurationMillis = cycleDurationMillis.coerceAtLeast(1)
+    val safeDeltaMs = deltaMs.coerceIn(0L, 64L)
+    return (currentPhase + safeDeltaMs.toFloat() / safeCycleDurationMillis.toFloat()) % 1f
+}
 
 /** Charging state and animation style never change the measured Wave liquid fraction. */
 @Suppress("UNUSED_PARAMETER")
