@@ -12,18 +12,19 @@ data class ChargeGuardConfiguration(
     val chargeLimitEnabled: Boolean = false,
     val targetLevelPercent: Int = 85,
     val highTemperatureEnabled: Boolean = false,
-    val highTemperatureThresholdCelsius: Int = 40,
+    val highTemperatureThresholdCelsius: Int = 45,
     val repeatMode: ChargeGuardRepeatMode = ChargeGuardRepeatMode.ONCE
 ) {
     fun normalized(): ChargeGuardConfiguration = copy(
         targetLevelPercent = targetLevelPercent.takeIf { it in SUPPORTED_CHARGE_TARGETS } ?: 85,
         highTemperatureThresholdCelsius = highTemperatureThresholdCelsius
-            .takeIf { it in SUPPORTED_TEMPERATURE_THRESHOLDS } ?: 40
+            .takeIf { it in SUPPORTED_TEMPERATURE_THRESHOLDS } ?: 45
     )
 
     companion object {
         val SUPPORTED_CHARGE_TARGETS = setOf(80, 85, 90, 95, 100)
-        val SUPPORTED_TEMPERATURE_THRESHOLDS = setOf(40, 42, 45, 50)
+        val HIGH_TEMPERATURE_PRESETS = listOf(42, 45, 48, 50)
+        val SUPPORTED_TEMPERATURE_THRESHOLDS = HIGH_TEMPERATURE_PRESETS.toSet()
         const val MAX_REPEATS_PER_INCIDENT = 5
     }
 }
