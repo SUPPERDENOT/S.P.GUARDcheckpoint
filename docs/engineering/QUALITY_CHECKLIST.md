@@ -1,3 +1,17 @@
+## 2026-11-26 — PR #12 final polish
+
+- [x] Blok segment order starts at 90° (6 o'clock) and advances clockwise; 50% spans bottom → left → top. Sweep/Segmen/Comet head coordinates share the same positive-angle origin — source review and regression tests added.
+- [x] Capsule Comet is a vertical rising beam with a fading tail constrained to the liquid column and a bright meniscus flash; no floating dot remains — source review and geometry tests added.
+- [x] Wave Sweep, Segmen, Comet, and Statis map to distinct feature profiles; Statis has fixed phase and no moving sweep/strata/orbit — source review and profile tests added.
+- [x] Wave Comet uses a 90° orbital tail with a 3dp stroke and a white accent head — source review.
+- [x] Charging label is exactly "Kemampuan sumber"; both info affordances are 24dp clickable Boxes adjacent to their labels, with button semantics — source review and label test added.
+- [ ] Full-diff self-crosscheck against protected paths: pending after branch write.
+- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK artifact upload on exact final HEAD: pending CI.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 final visual pass
 
 - [x] Busur uses a clockwise -225° to +45° C-arc, track, active gradient, and endpoint halo — source review.
