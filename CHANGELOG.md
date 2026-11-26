@@ -1,3 +1,33 @@
+## 2026-11-27 — Restore four standalone theme packs (PR #15)
+
+### Added
+- Restored the six selectable theme packages: Basic, Midnight, AMOLED Pure, EV Cockpit, Nordic Frost, and Monochrome.
+- Added AMOLED Pure accents Amber Emas / Putih Bersih; EV Cockpit accents Electric Sky / Volt Lime; Nordic Frost accents Cobalt Steel / Teal; and Monochrome variants Arang Gelap / Kertas Terang.
+- Implemented the exact requested Material 3 background, surface, five surface-container, outlineVariant, primary, onPrimary, onBackground, onSurface, and onSurfaceVariant tokens for all new variants.
+- Rebuilt the package chooser as a responsive two-column grid with compact swatches and selectable cards. The configuration dialog continues to render the live preview from the current draft; changing package/accent/variant updates the preview before saving.
+- Extended theme preference persistence with separate stable pack keys while preserving the existing `basic` and `midnight_violet` values and their stored settings.
+- Theme-package switching preserves the currently selected BatteryGauge model and charging animation.
+
+### Tests
+- Added exact-token coverage for both AMOLED Pure accents, both EV Cockpit accents, both Nordic Frost accents, and both Monochrome variants.
+- Added SharedPreferences round-trip coverage for all eight new accent/variant selections and their gauge/animation settings.
+- Added summary, live-preview configuration, and pack-switch preservation coverage.
+- Existing Midnight token/eye-comfort tests remain intact.
+
+### Accessibility note
+- Nordic Frost / Teal uses the explicitly requested `primary=#0D9488` and `onPrimary=#FFFFFF`; measured contrast is 3.74:1. This is below WCAG AA 4.5:1 for normal-size button text. The requested tokens are retained unchanged and the exception is exposed for review rather than silently altering the specification.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition or sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Branch created from post-PR-14 main HEAD `697925eb7c002410c06e7b9034b0ea8c519ff469`.
+- Source/test implementation and documentation diff review: pending final exact-HEAD CI.
+- Physical-device visual QA at 360dp / 720p: NOT RUN; CI does not establish device layout behavior.
+- PR #15 is intended to remain open; no auto-merge.
+
+---
+
 ## 2026-11-26 — Midnight eye-comfort palette recalibration
 
 ### Changed

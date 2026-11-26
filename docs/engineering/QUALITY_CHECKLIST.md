@@ -1,3 +1,30 @@
+## 2026-11-27 — Restore four standalone theme packs (PR #15)
+
+### Theme package and picker
+- [x] Six package variants are modeled: Basic, Midnight, AMOLED Pure, EV Cockpit, Nordic Frost, and Monochrome.
+- [x] The four restored packages expose every requested accent/variant and exact Material 3 palette token.
+- [x] `Pilih Paket Tema` contains six selectable package cards in three proportional two-column rows; cards use compact swatches, a selected state, and bounded scrolling.
+- [x] The configuration screen offers the correct accent/variant controls for each pack.
+- [x] `Pratinjau langsung` is rendered by `PowerGuardTheme(themePreviewConfig(draft))`; changing package/accent/variant changes the preview without persisting until Save.
+- [x] Package switching retains the current gauge model and charging animation.
+- [x] Theme preferences persist all four restored packages and their selected accents/variants; existing Basic and Midnight preference keys remain compatible.
+
+### Shared visual consumers
+- [x] All four BatteryGauge models continue to consume `MaterialTheme.colorScheme.primary`; the selected package determines the active accent.
+- [x] InfoDialogSurface continues to consume Material 3 surface-container and outline tokens; each restored palette defines the required container levels.
+- [x] Package picker cards, selected pills, and action controls consume Material 3 color tokens rather than hard-coded per-screen overrides.
+
+### Verification and known accessibility exception
+- [x] Unit tests assert all requested palette tokens for both AMOLED Pure accents, both EV Cockpit accents, both Nordic Frost accents, and both Monochrome variants.
+- [x] SharedPreferences tests cover persistence round-trips for every new accent/variant and gauge settings.
+- [x] Theme summary, preview config, and package-switch preservation tests cover all six packages.
+- [ ] FAIL — Nordic Frost / Teal has `onPrimary=#FFFFFF` over `primary=#0D9488`, contrast 3.74:1; below 4.5:1 for normal-size button text. Exact user-specified tokens are retained pending design decision.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending PR #15 CI.
+- [ ] Physical-device visual QA at 360dp / 720p: NOT RUN.
+
+---
+
 ## 2026-11-26 — Midnight eye-comfort palette recalibration
 
 ### Theme token verification
@@ -17,9 +44,9 @@
 - [x] `:app:assembleDebug`: SUCCESS — same exact source/test HEAD and run.
 - [x] Anti-Slop UI Audit Gate: SUCCESS — Run #768.
 - [x] Upload APK: SUCCESS — Artifact ID `15136412249`; unit-test report Artifact ID `15136557090`.
-- [ ] Final documentation-closeout HEAD CI: pending at checklist commit time; exact final HEAD status is tracked in the PR delivery report.
+- [x] Final documentation-closeout HEAD Run #769: SUCCESS — Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, Upload APK, and unit-test report upload; APK Artifact ID `15135917972`.
+- [x] PR #14 Squash Merge to `main`: SUCCESS — merge commit `697925eb7c002410c06e7b9034b0ea8c519ff469`.
 - [ ] Physical-device visual QA: not run; CI does not replace device review.
-- [ ] PR merge: HOLD — no merge or auto-merge.
 
 ---
 
