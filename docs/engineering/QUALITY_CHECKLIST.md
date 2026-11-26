@@ -1,3 +1,22 @@
+## 2026-11-26 — PR #12 delta-frame / theme-container / info-badge precision fix
+
+- [x] Gauge phase is normalized and accumulated from frame-to-frame delta with a 0–64ms clamp and 2,400ms default cycle; disabled animation resets to 0.
+- [x] BatteryGaugeView no longer imports or references ValueAnimator, rememberInfiniteTransition, or Compose infinite animation APIs; the only animation driver is LaunchedEffect + withFrameNanos.
+- [x] Gauge phase State is read inside each Canvas draw block and converted to radians for the existing render geometry.
+- [x] Theme & Gauge preview call site retains forceAnimate = true; regression tests cover Sweep, Segmen, Comet, and Statis.
+- [x] Active Overview gauge call site in AppScreens.kt passes the selected live charging state; visibility and thermal eligibility gates remain intact. Legacy ui/dashboard/DashboardScreen.kt has no BatteryGaugeView call and is not routed by MainActivity, so no change was made there.
+- [x] All five Material 3 surfaceContainer tokens are explicitly supplied for Basic Terracotta/Emerald/Cobalt in Light and Dark and Midnight Violet/Pink/Cyan/Green.
+- [x] ProtocolInfoDialog uses surfaceContainerHigh directly, tonalElevation = 0.dp, and a 1dp outlineVariant border.
+- [x] Both Charging info badges use a flat 16dp circle, 11dp Icons.Outlined.Info glyph, 4dp title gap, and no Surface/shadow/tonal elevation.
+- [x] Unit tests added for delta accumulation, bounded frame delta, wrap, disabled reset, all animation modes, and all theme accent palettes.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number edits intended; final compare pending.
+- [ ] Final exact-HEAD diff self-crosscheck: pending.
+- [ ] GitHub Actions exact-HEAD Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, and APK upload: pending.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 precision pass
 
 - [x] Capsule outer frame uses the 1.8dp theme-aware outline; cap remains separate with a 2dp gap.
