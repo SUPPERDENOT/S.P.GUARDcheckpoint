@@ -14,6 +14,8 @@ import com.superdenot.powerguard.data.local.entity.BatterySampleEntity
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.data.local.entity.DailyRollupEntity
 import com.superdenot.powerguard.data.repository.BatteryRepository
+import com.superdenot.powerguard.data.ThemePreferences
+import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkCalculator
 import com.superdenot.powerguard.domain.benchmark.AccessoryBenchmarkResult
 import com.superdenot.powerguard.data.repository.DesignCapacitySetting
@@ -108,6 +110,9 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     val chargeGuardConfig: StateFlow<ChargeGuardConfiguration> = _chargeGuardConfig.asStateFlow()
     private val _chargeGuardAlertSound = MutableStateFlow(ChargeGuardSettings.readAlertSound(application))
     val chargeGuardAlertSound: StateFlow<ChargeGuardAlertSoundSetting> = _chargeGuardAlertSound.asStateFlow()
+    private val themePreferences = ThemePreferences(application)
+    private val _themePackConfig = MutableStateFlow(themePreferences.read())
+    val themePackConfig: StateFlow<ThemePackConfig> = _themePackConfig.asStateFlow()
     val batteryMonitoringEnabled: StateFlow<Boolean> = repository.batteryMonitoringEnabledFlow
         .catch { error ->
             Log.e("PowerGuard", "Gagal mengamati preferensi Battery Monitoring; pemantauan dinonaktifkan", error)
@@ -167,6 +172,11 @@ class PowerGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun setAppForeground(isForeground: Boolean) {
         _appForeground.value = isForeground
         AutoStartCoordinator.setAppForeground(isForeground)
+    }
+
+    fun setThemePackConfig(config: ThemePackConfig) {
+        themePreferences.save(config)
+        _themePackConfig.value = config
     }
 
     fun setChargeGuardConfiguration(configuration: ChargeGuardConfiguration) {

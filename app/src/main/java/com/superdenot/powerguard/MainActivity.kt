@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.*
@@ -45,6 +44,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.ui.*
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
+import com.superdenot.powerguard.ui.theme.EmeraldCharge
+import com.superdenot.powerguard.ui.theme.StatusReadyGreen
+import com.superdenot.powerguard.ui.theme.StatusErrorRed
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 
 class MainActivity : ComponentActivity() {
@@ -52,9 +54,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            PowerGuardTheme {
+            val vm: PowerGuardViewModel = viewModel()
+            val themePackConfig by vm.themePackConfig.collectAsState()
+            PowerGuardTheme(config = themePackConfig) {
                 val context = LocalContext.current
-                val vm: PowerGuardViewModel = viewModel()
                 var currentTab by remember { mutableIntStateOf(0) }
                 val setupPrefs = remember { context.getSharedPreferences("spg_initial_setup", 0) }
                 var showPermissionSetup by remember { mutableStateOf(!setupPrefs.getBoolean("completed", false)) }
@@ -100,7 +103,7 @@ class MainActivity : ComponentActivity() {
                     else -> "Siaga"
                 }
                 val headerStatusColor = when {
-                    headerLabel == "Mengisi" || headerLabel == "Penuh" -> Color(0xFF39765B)
+                    headerLabel == "Mengisi" || headerLabel == "Penuh" -> EmeraldCharge
                     headerLabel == "Aktif" -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
@@ -273,7 +276,7 @@ private fun SetupPermissionRow(
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Text(if (granted) "PASS" else "BELUM", color = if (granted) Color(0xFF22C55E) else Color(0xFFEF4444), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text(if (granted) "PASS" else "BELUM", color = if (granted) StatusReadyGreen else StatusErrorRed, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             }
             Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!granted) TextButton(onClick = onAction) { Text(actionLabel) }

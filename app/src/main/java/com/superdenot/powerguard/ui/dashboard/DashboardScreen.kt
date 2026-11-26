@@ -3,6 +3,7 @@ package com.superdenot.powerguard.ui.dashboard
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +14,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,6 +44,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -49,6 +54,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.superdenot.powerguard.ui.components.PowerActionButton
+import com.superdenot.powerguard.ui.components.PowerSaveButton
+import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
+import com.superdenot.powerguard.ui.components.powerButtonClickEffect
+import com.superdenot.powerguard.ui.dashboard.hasDesignCapacityDraftChanges
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -370,7 +381,12 @@ fun DashboardScreen(
                             )
                         }
 
-                        IconButton(onClick = { showCapacityDialog = true }) {
+                        val capacityEditInteractionSource = remember { MutableInteractionSource() }
+                        IconButton(
+                            onClick = { showCapacityDialog = true },
+                            interactionSource = capacityEditInteractionSource,
+                            modifier = Modifier.powerButtonClickEffect(capacityEditInteractionSource)
+                        ) {
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
                                 contentDescription = "Ubah Kapasitas Desain",
@@ -437,6 +453,7 @@ fun DashboardScreen(
                         }
 
                         if (!isBatteryOptIgnored) {
+                            val batteryOptimizationInteractionSource = remember { MutableInteractionSource() }
                             OutlinedButton(
                                 onClick = {
                                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -445,9 +462,11 @@ fun DashboardScreen(
                                     runCatching { context.startActivity(intent) }
                                 },
                                 shape = RoundedCornerShape(12.dp),
+                                interactionSource = batteryOptimizationInteractionSource,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(46.dp)
+                                    .powerButtonClickEffect(batteryOptimizationInteractionSource)
                             ) {
                                 Text("Izinkan Abaikan Optimasi Baterai untuk Auto-start")
                             }
@@ -460,14 +479,17 @@ fun DashboardScreen(
                         }
 
                         if (!hasUsagePerm) {
+                            val usageAccessInteractionSource = remember { MutableInteractionSource() }
                             OutlinedButton(
                                 onClick = {
                                     runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
                                 },
                                 shape = RoundedCornerShape(12.dp),
+                                interactionSource = usageAccessInteractionSource,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(46.dp)
+                                    .powerButtonClickEffect(usageAccessInteractionSource)
                             ) {
                                 Text("Aktifkan Akses Penggunaan Aplikasi")
                             }
@@ -505,6 +527,7 @@ fun DashboardScreen(
                             )
                         }
 
+                        val readMoreInteractionSource = remember { MutableInteractionSource() }
                         Button(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -513,7 +536,8 @@ fun DashboardScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                            modifier = Modifier.height(38.dp)
+                            modifier = Modifier.height(38.dp).powerButtonClickEffect(readMoreInteractionSource),
+                            interactionSource = readMoreInteractionSource
                         ) {
                             Text("READ MORE", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
@@ -533,49 +557,17 @@ fun DashboardScreen(
     }
 
     if (showCapacityDialog) {
-        var inputText by remember { mutableStateOf(designCapacity.capacityMah?.toString().orEmpty()) }
-        AlertDialog(
-            onDismissRequest = { showCapacityDialog = false },
-            title = { Text("Kapasitas Desain Baterai") },
-            text = {
-                Column {
-                    Text(
-                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual akan dipakai sampai Anda kembali ke Otomatis.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("Kapasitas (mAh)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
+        DesignCapacityDialog(
+            capacityMah = designCapacity.capacityMah,
+            isManualOverride = designCapacity.isManualOverride,
+            onDismiss = { showCapacityDialog = false },
+            onSaveManual = {
+                viewModel.updateDesignCapacity(it)
+                showCapacityDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
-                    onClick = {
-                        inputText.toIntOrNull()?.let { viewModel.updateDesignCapacity(it) }
-                        showCapacityDialog = false
-                    }
-                ) {
-                    Text("Simpan")
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = {
-                        viewModel.useAutomaticDesignCapacity()
-                        showCapacityDialog = false
-                    }) {
-                        Text("Gunakan Otomatis")
-                    }
-                    TextButton(onClick = { showCapacityDialog = false }) {
-                        Text("Batal")
-                    }
-                }
+            onUseAutomatic = {
+                viewModel.useAutomaticDesignCapacity()
+                showCapacityDialog = false
             }
         )
     }
@@ -586,37 +578,109 @@ fun DashboardScreen(
 }
 
 @Composable
+fun DesignCapacityDialog(
+    capacityMah: Int?,
+    isManualOverride: Boolean,
+    onDismiss: () -> Unit,
+    onSaveManual: (Int) -> Unit,
+    onUseAutomatic: () -> Unit
+) {
+    var inputText by remember(capacityMah, isManualOverride) { mutableStateOf(capacityMah?.toString().orEmpty()) }
+    val parsedCapacity = inputText.toIntOrNull()
+    val validCapacity = parsedCapacity?.let { it in 1000..20000 } == true
+    val draftIsManualMode = isManualOverride || (parsedCapacity != capacityMah)
+    val hasChanges = hasDesignCapacityDraftChanges(
+        parsedInput = parsedCapacity,
+        savedCapacityMah = capacityMah,
+        savedIsManualMode = isManualOverride,
+        draftIsManualMode = draftIsManualMode
+    )
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+                Text(
+                    "Kapasitas Desain Baterai",
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it.filter(Char::isDigit) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Kapasitas (mAh)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        isError = inputText.isNotEmpty() && !validCapacity
+                    )
+                    PowerActionButton(
+                        onClick = onUseAutomatic,
+                        enabled = canUseAutomaticDesignCapacity(isManualOverride),
+                        modifier = Modifier.wrapContentWidth(),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
+                    ) { Text("Gunakan Otomatis") }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PowerActionButton(onClick = onDismiss, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Batal") }
+                    PowerSaveButton(
+                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
+                        onClick = { parsedCapacity?.let(onSaveManual) },
+                        enabled = hasChanges
+                    ) { Text("Simpan") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
     val scrollState = rememberScrollState()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 680.dp),
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.Info,
-                    contentDescription = null,
-                    tint = CyanFastCharge,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "SUPERD POWER GUARD — Info",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).heightIn(max = 680.dp).imePadding(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Rounded.Info, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("SUPERD POWER GUARD — Info", fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .verticalScroll(scrollState).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(11.dp)
+                ) {
                 InfoSectionItem(
                     title = "1. Tentang Aplikasi",
                     content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.superdguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
@@ -657,17 +721,21 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                     title = "10. Status Versi",
                     content = "Versi dan version code diambil langsung dari konfigurasi build aplikasi: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}). Aplikasi masih dalam tahap pengembangan dan validasi lintas perangkat. Keberhasilan build dan unit test tidak berarti seluruh fitur telah diuji atau dijamin bekerja pada semua model ponsel."
                 )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = CyanFastCharge)
-            ) {
-                Text("Tutup", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.End) {
+                    PowerActionButton(
+                        onClick = onDismiss,
+                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                    ) {
+                        Text("Tutup")
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -677,9 +745,9 @@ private fun InfoSectionItem(title: String, content: String) {
             text = title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = CyanFastCharge
+            color = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = content,
             style = MaterialTheme.typography.bodySmall,

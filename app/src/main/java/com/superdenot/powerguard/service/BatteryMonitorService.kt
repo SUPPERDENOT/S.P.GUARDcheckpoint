@@ -46,6 +46,7 @@ import com.superdenot.powerguard.domain.engine.AnomalyDetector
 import com.superdenot.powerguard.domain.engine.BatteryMonitorEngine
 import com.superdenot.powerguard.domain.engine.BatteryHealthEstimator
 import com.superdenot.powerguard.domain.engine.ChargingEtaEstimator
+import com.superdenot.powerguard.domain.engine.ChargingEtaSanityCheck
 import com.superdenot.powerguard.domain.engine.ChargingMahIntegrator
 import com.superdenot.powerguard.domain.engine.ChargingSessionDurationTracker
 import com.superdenot.powerguard.domain.model.LiveBatteryState
@@ -315,11 +316,12 @@ class BatteryMonitorService : Service() {
                 healthPercentage = it.healthPercentage
             )
         }?.estimatedCapacityMah
-        if (validEstimate != null) return validEstimate
-        val designCapacity = effectiveDesignCapacityMah()
-        return designCapacity.takeIf {
+        val designCapacity = effectiveDesignCapacityMah().takeIf {
             it in ChargingEtaEstimator.MIN_CAPACITY_MAH..ChargingEtaEstimator.MAX_CAPACITY_MAH
-        } ?: DEFAULT_ETA_DESIGN_CAPACITY_MAH
+        }
+        chargingEtaDesignCapacityMah = designCapacity
+        if (validEstimate != null) return validEstimate
+        return designCapacity ?: DEFAULT_ETA_DESIGN_CAPACITY_MAH
     }
 
     // State sesi dan operasi database dilindungi oleh sharedSessionMutex
@@ -329,6 +331,7 @@ class BatteryMonitorService : Service() {
     private val chargingMahIntegrator = ChargingMahIntegrator()
     private val chargingEtaEstimator = ChargingEtaEstimator()
     private var chargingEtaCapacityMah: Int = DEFAULT_ETA_DESIGN_CAPACITY_MAH
+    private var chargingEtaDesignCapacityMah: Int? = null
     private val sessionDurationTracker = ChargingSessionDurationTracker()
     private var sessionSeconds: Long = 0L
     private var maxSessionTemp: Float = 0f
@@ -2100,10 +2103,18 @@ class BatteryMonitorService : Service() {
                                 isCurrentAvailable = effectiveSensor.isCurrentAvailable,
                                 isLevelAvailable = effectiveSensor.isLevelAvailable
                             )
-                            etaMinutes = chargingEtaEstimator.estimateMinutes(
+                            val estimatorFallbackMinutes = chargingEtaEstimator.estimateMinutes(
                                 level = effectiveSensor.level,
                                 capacityMah = chargingEtaCapacityMah,
                                 nowElapsedRealtimeMs = etaSampleTime
+                            )
+                            etaMinutes = ChargingEtaSanityCheck.resolveMinutes(
+                                osEtaMillis = effectiveSensor.osChargingEtaMillis,
+                                level = effectiveSensor.level.takeIf { effectiveSensor.isLevelAvailable } ?: -1,
+                                designCapacityMah = chargingEtaDesignCapacityMah ?: 0,
+                                activeCurrentMa = effectiveSensor.currentMa.takeIf { effectiveSensor.isCurrentAvailable } ?: 0,
+                                isCharging = effectiveSensor.isCharging && effectiveSensor.isPowerConnected,
+                                estimatorFallbackMinutes = estimatorFallbackMinutes
                             )
 
                             val anomaly = anomalyDetector.evaluate(effectiveSensor, isScreenOn)

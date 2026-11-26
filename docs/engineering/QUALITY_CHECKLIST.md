@@ -1,3 +1,282 @@
+## 2026-11-26 — PR #12 final polish: Wave phase, outer Comet, Capsule bubbles
+
+- [x] Wave rear direction is `-1f`; normalized phase 0 and 1 have equivalent sine/cosine positions at wrap.
+- [x] Wave animation cycle is 3,000ms; non-Wave gauge cycle remains 2,400ms.
+- [x] Wave fill and meniscus paths are sampled at a maximum 2dp interval.
+- [x] Wave Comet is drawn after the inner liquid clip, with the parent circular clip removed and 6dp canvas bleed to preserve the outer glow.
+- [x] Wave Comet orbit uses `radius - rimStroke / 2`; halo is 110° / 6dp / 0.28 alpha, tail is 110° / 3dp, and head is 3.5dp with 6dp radial glow.
+- [x] Capsule Segmen renders exactly six rising bubbles with 1.6–3.0dp radii, 0.28–0.58 base alpha, smooth meniscus fade, and surface ripple.
+- [x] Capsule Sweep, Capsule Comet vertical beam, and Capsule Statis remain separate; Statis disables the bubble animation. Wave Segmen retains its seven-bubble renderer.
+- [x] Unit tests cover Wave phase wrap, cycle duration, sample spacing, Comet geometry/clip contract, and Capsule bubble profile/fade/ripple/static behavior.
+- [x] Source/test diff review: only `BatteryGaugeSpec.kt`, `BatteryGaugeView.kt`, and `BatteryGaugeSpecTest.kt` changed in the implementation/test commit.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [x] Source/test HEAD Run #762 (`45808962585`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. APK Artifact ID `15110503341`; unit-test report Artifact ID `15110793351`.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-26 — PR #12 hotfix: theme accent, translucent Wave, shared info popups
+
+- [x] `BatteryGaugeView` resolves its main color from `MaterialTheme.colorScheme.primary`; charging state does not select semantic charging green.
+- [x] Overview and Theme & Gauge live preview continue to use the same gauge renderer; preview keeps `forceAnimate = true`.
+- [x] Thermal/charging semantic colors remain separate from the main gauge accent and can still be used by diagnostic/status labels.
+- [x] Wave rear layer uses active accent alpha 0.40, amplitude scale 1.12, and phase `-phase × 1.15 + 120°`.
+- [x] Wave front layer uses an accent-derived vertical gradient at alpha 0.92; the meniscus uses the 35%-lightened accent at alpha 0.75 and 1.2dp stroke.
+- [x] Both `Kemampuan sumber` and `Pengukuran daya baterai` call the same `InfoDialogSurface` wrapper and therefore share `surfaceContainerHigh`, 20dp radius, 1dp outline border, and zero tonal elevation.
+- [x] Shared popup header/body/footer use the requested typography, weights, scroll padding, divider, and 36dp `Mengerti` button.
+- [x] Regression tests cover theme accent during charging/idle, Wave alpha/amplitude/phase/front opacity, and shared popup surface/layout tokens.
+- [x] Protected-boundary diff review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [x] Source/test HEAD Run #756 (`45792227374`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15102908042`; unit-test report Artifact ID `15104150240`.
+- [x] Documentation HEAD Run #757 (`45792754724`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15104100894`; unit-test report Artifact ID `15103241922`. The final documentation-only closeout is followed by an exact-HEAD CI run recorded in the delivery report.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-26 — PR #12 hotfix: gauge thermal gate, dual-wave tint, temperature presets, slim info popup
+
+- [x] Gauge animation eligibility is exactly `(isCharging || forceAnimate) && animationStyle != STATIC`; thermal and on-screen visibility gates are removed from the eligibility helper.
+- [x] BatteryGaugeView no longer accepts thermal/visibility booleans. Overview forwards the live charging state; Theme & Gauge preview forwards the live charging state without a temperature veto and keeps `forceAnimate = true`.
+- [x] Thermal classifications remain available for diagnostic/status labels only; they do not affect gauge animation.
+- [x] Wave rear phase uses `-phase + 135°`, with 42%-darkened accent at 0.88 alpha. Front gradient uses +32% accent highlight, active accent base, and -22% accent shadow.
+- [x] Wave meniscus is a 1.2dp accent-lightened stroke at 0.75 alpha; source crosscheck confirms no `Color.White` remains in the Wave renderer region.
+- [x] Sweep retains bottom-to-top ribbon, Segmen retains seven rising bubbles and ripple rings, Comet retains a 3dp outer orbit, and Statis keeps a fixed dual-wave surface.
+- [x] High-temperature preset order is exactly [42, 45, 48, 50]; model default and fresh-install SharedPreferences fallback are 45°C.
+- [x] Legacy stored 40°C is normalized to 45°C when read without rewriting the stored preference; no Room migration or schema change.
+- [x] Info popup header uses titleMedium/18sp/SemiBold, 2dp subtitle gap, and 16dp horizontal / 14dp top / 10dp bottom padding.
+- [x] Info popup scroll region has 8dp vertical breathing room; footer uses 16dp horizontal / 8dp top / 12dp bottom padding and 36dp Mengerti button.
+- [x] Unit tests cover thermal-independent animation, Statis exclusion, counter-phase dual-wave tint/alpha/meniscus, temperature preset ordering/default/legacy handling, and popup slim-layout tokens.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [x] Run #748 (45781234776) on intermediate HEAD 8cb7de75e6835d79d8fb49eac9874a063419ec18: Anti-Slop SUCCESS; compile failed because the new header/footer padding used an unsupported named-argument combination. Fixed with start/end/top/bottom.
+- [x] Run #749 (45781438385) on HEAD 78c4354489d56daae488f7cb7aec09bfcaf5acc6: Kotlin compile and assembleDebug SUCCESS; 378 unit tests had one stale rear/front alpha assertion. Corrected to assert both layers at 0.88.
+- [x] Run #750 (45781843043) on source/test HEAD cc738b57501f24c18c41309d72269f327edc69e5: SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, APK upload, and test report upload. APK Artifact ID 15099070703; test report Artifact ID 15098971337.
+- [ ] Final exact documentation-head GitHub Actions after this checklist/changelog closeout: pending; exact run and latest APK Artifact ID are recorded in the delivery report.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-26 — PR #12 delta-frame / theme-container / info-badge precision fix
+
+- [x] Gauge phase is normalized and accumulated from frame-to-frame delta with a 0–64ms clamp and 2,400ms default cycle; disabled animation resets to 0.
+- [x] BatteryGaugeView no longer imports or references ValueAnimator, rememberInfiniteTransition, or Compose infinite animation APIs; the only animation driver is LaunchedEffect + withFrameNanos.
+- [x] Gauge phase State is read inside each Canvas draw block and converted to radians for the existing render geometry.
+- [x] Theme & Gauge preview call site retains forceAnimate = true; regression tests cover Sweep, Segmen, Comet, and Statis.
+- [x] Active Overview gauge call site in AppScreens.kt passes the selected live charging state; visibility and thermal eligibility gates remain intact. Legacy ui/dashboard/DashboardScreen.kt has no BatteryGaugeView call and is not routed by MainActivity, so no change was made there.
+- [x] All five Material 3 surfaceContainer tokens are explicitly supplied for Basic Terracotta/Emerald/Cobalt in Light and Dark and Midnight Violet/Pink/Cyan/Green.
+- [x] ProtocolInfoDialog and the battery-side power info dialog use surfaceContainerHigh directly, tonalElevation = 0.dp, and a 1dp outlineVariant border.
+- [x] Both Charging info badges use a flat 16dp circle, 11dp Icons.Outlined.Info glyph, 4dp title gap, and 48dp accessible tap target; no Surface/shadow/tonal elevation is applied to the badge.
+- [x] Unit tests added for delta accumulation, bounded frame delta, wrap, disabled reset, all animation modes, and all theme accent palettes.
+- [x] Protected-boundary review: PASS — compare from base 5684d5047c51cb9f2cfb0a7f4f98d46ee564bdac lists only nine UI/theme/test/documentation paths; no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [x] Full line-by-line self-crosscheck: PASS — reviewed all nine changed paths and verified preview forceAnimate, active Overview charging-state forwarding, all theme container assignments, popup surfaces, and badge layout.
+- [x] Run #726 on intermediate HEAD 326c568b1abdfa9d632bbea76bd87362906fe36b: Anti-Slop SUCCESS; compile failed on nullable WaveGauge phase parameter. Corrected in the following source commit.
+- [x] Run #727 (45766872823) on source/test HEAD ee39dae4183115ee1d23d1fc967438d05b578fa2: SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload. APK Artifact ID 15092277556; unit-test report Artifact ID 15092262518.
+- [x] Run #729 (45767209936) on documentation HEAD 18c13642e7477400bef96cb1548518b3bfa805e6: first attempt had one intermittent failure in unrelated NotificationVisualRendererTest line 636; failed job rerun on the same commit passed. Final workflow SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload. APK Artifact ID 15092194042; test report Artifact ID 15092149242.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-26 — PR #12 precision pass
+
+- [x] Capsule outer frame uses the 1.8dp theme-aware outline; cap remains separate with a 2dp gap.
+- [x] Capsule inner geometry uses the outer radius minus (stroke + 1.5dp), with a 4dp minimum radius; track, fill, shimmer, and beam share one inner rounded-rect clip.
+- [x] Wave amplitude is 6.5dp, frequency is 1.6 cycles, rear phase is 115°, and the front meniscus is 2dp.
+- [x] Wave Sweep uses a rising light ribbon and crest pulse; Segmen uses seven rising bubbles with double ripple rings; Comet uses a 100° tail and 3dp orbit stroke.
+- [x] Statis disables moving effects in Busur, Kapsul, Blok, and Wave; Capsule gloss/reflection are also suppressed and Wave retains a fixed sinusoidal curve.
+- [x] Frame-clock fallback uses LaunchedEffect + withFrameNanos only when platform animators are disabled and animation is eligible.
+- [x] Both Charging info badges use an 18dp theme-colored circle, 12dp icon, 24dp minimum click area, and 3dp title gap.
+- [x] Both info popups resolve their container and border from the active Material 3 ColorScheme; light/dark token tests added.
+- [x] Regression tests added/updated for Capsule geometry, Wave profiles/amplitude, four-model Statis behavior, frame-clock fallback, popup colors, and badge geometry.
+- [x] Full line-by-line diff self-crosscheck from pre-fix HEAD `6c1221e4f11105e8aa6296d9c654536572e97a13` to source/test HEAD `b757b73c6f923f9f37fdb12d0a960540b0695bd9`: PASS — eight changed paths; no protected database, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest/applicationId, Gradle/dependency, SDK, or version/build-number paths changed.
+- [x] Run #705 (`45757589472`) on source/test HEAD `b757b73c6f923f9f37fdb12d0a960540b0695bd9`: SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload. APK Artifact ID `15088831300`; test report Artifact ID `15088363248`.
+- [x] Run #707 (`45757879662`) on documentation HEAD `23187bacec905b7c053ada8eebc5e9a387115c5a`: SUCCESS — Anti-Slop, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload; APK Artifact ID `15088527818`.
+- [x] Final checklist closeout is a documentation-only commit; its exact-HEAD CI result and latest APK Artifact ID are recorded in the delivery report.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-26 — PR #12 final polish
+
+- [x] Blok segment order starts at 90° (6 o'clock) and advances clockwise; 50% spans bottom → left → top. Sweep/Segmen/Comet head coordinates share the same positive-angle origin — source review and regression tests added.
+- [x] Capsule Comet is a vertical rising beam with a fading tail constrained to the liquid column and a bright meniscus flash; no floating dot remains — source review and geometry tests added.
+- [x] Wave Sweep, Segmen, Comet, and Statis map to distinct feature profiles; Statis has fixed phase and no moving sweep/strata/orbit — source review and profile tests added.
+- [x] Wave Comet uses a 90° orbital tail with a 3dp stroke and a white accent head — source review.
+- [x] Charging label is exactly "Kemampuan sumber"; both info affordances are 24dp clickable Boxes adjacent to their labels, with button semantics — source review and label test added.
+- [x] Full-diff self-crosscheck: PASS — all six changed paths reviewed; protected database/schema, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest/applicationId, Gradle/dependency, SDK, and version/build-number paths are absent.
+- [x] Run #690 (45734904830) on source/test HEAD 8c150d546cbc3d83c4254250cc0729d52af3fe20: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload; APK Artifact ID 15078965622; report Artifact ID 15078163363.
+- [ ] CI for the final documentation-only HEAD: triggered by the final checklist update; exact result is recorded in the delivery report.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-25 — PR #12 final visual pass
+
+- [x] Busur uses a clockwise -225° to +45° C-arc, track, active gradient, and endpoint halo — source review.
+- [x] Kapsul has a distinct terminal with 2dp gap, glossy outline, vertical fill gradient, and bottom-to-top Sweep/Comet phase mapping — source review.
+- [x] Blok uses 24 radial blocks from -90° clockwise with a dimming trail behind Sweep/Comet heads — source review.
+- [x] Wave retains battery-level fill when idle or charging and renders two phase-offset waves, 0.82-alpha front fill, crest highlight, glass rim, and animated outer orbit — source review.
+- [x] `BatteryGaugeView.forceAnimate` defaults false; Theme & Gauge preview passes true; static selection and visibility/thermal gates remain respected.
+- [x] Percentage text outline token is 1.2dp; both Canvas text passes use one measured layout and the same origin.
+- [x] Theme preview passes the full Basic draft (appearance mode + accent) and gauge configuration into `PowerGuardTheme`.
+- [x] Charging information icons are adjacent to their headings; both explanatory dialogs use opaque `surfaceContainerHigh` surfaces with outline/elevation.
+- [x] Disabled Save text uses `onSurface`, matching Cancel; enabled Save remains primary/onPrimary.
+- [x] Status Bar interval presets are 32dp and aligned with the 32dp custom field; scroll body and sticky footer are separate, with imePadding retained.
+- [x] Capacity dirty-state compares the effective (capacityMah, isManualMode) pair; unchanged Automatic state remains clean.
+- [x] Regression tests added/updated for gauge motion, dual Wave layers, forceAnimate, outline width, live Basic accent preview, and capacity dirty-state. Existing Status Bar preset/dirty-state tests retained.
+- [x] Final full-diff self-crosscheck: PASS — 20/20 requested checks; 14 changed paths; no protected Room, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest, Gradle/dependency, or applicationId paths changed.
+- [x] Run #683 (`45625532677`) on source HEAD `e3f61d1290ccb87c42da833c21be0cf4a876d465`: SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload. APK Artifact ID `15027787319`; report Artifact ID `15028747474`.
+- [ ] Exact final test/documentation HEAD CI: pending; Run #683 predates the final Wave boundary assertion and documentation-only commits.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-25 — PR #12 combined hotfix
+
+- [x] Wave liquid fill follows battery level independently of charging animation eligibility; all four animation modes retain the fill.
+- [x] Wave/Capsule percentage uses one measured TextLayoutResult and identical Canvas coordinates for 1.8dp dark rounded outline and pure-white ExtraBold fill.
+- [x] Theme & Gauge preview model label is width-bounded and ellipsized.
+- [x] History uses the shared numeric range formatter with U+2192; straight/curly apostrophe-n regressions are covered.
+- [x] Basic Light preserves DESIGN.md Warm Ivory / Paper / Mineral colors and strengthens outline contrast.
+- [x] OS ETA is captured only when API 28+ exposes a positive value; implausibly low estimates below 90% are sanity-checked against remaining design capacity and active current.
+- [x] Overview, Charging, and foreground notification consume the same resolved ETA field.
+- [x] The only new platform reading is BatteryManager's OS ETA API; existing voltage/current/temperature reads, normalization, and sampling cadence are unchanged.
+- [x] Capacity dirty-state compares numeric value and manual/automatic mode; automatic action is compact and disabled when already automatic.
+- [x] Status Bar interval presets reflect the effective active interval; initial draft state follows the saved value.
+- [x] Added regression coverage for Wave, outline, History, theme contrast, ETA, capacity dirty-state, interval presets, and notification ETA.
+- [x] Full diff review: PASS — 22 files; database/schema, manifest, Gradle, applicationId, existing sensor normalization/sampling cadence, calibration default, and service lifecycle/startup remain unchanged. Engine/service changes are isolated to OS ETA capture/resolution.
+- [x] Run #661 (45608819047): SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and Upload unit-test reports.
+- [x] Debug APK Artifact ID 15018512787; unit-test report Artifact ID 15018722461.
+- [x] Run #659 compile failure was traced to the drawText import package and corrected in the follow-up source commit.
+- [x] Run #662 (45609359837) on final combined source/documentation HEAD: SUCCESS — all jobs passed; APK Artifact ID 15018364086; unit-test report Artifact ID 15019132838.
+
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD; no merge or auto-merge.
+
+---
+
+## 2026-11-25 — PR #12 follow-up: smoother button feedback and thinner gauge outline
+
+- [x] `powerButtonClickEffect` uses 0.95 press scale with MediumBouncy / MediumLow spring.
+- [x] Accent glow peaks at 0.20 and uses 150ms press / 180ms release tweens.
+- [x] Shared action wrappers support a 90ms delay before closing-dialog callbacks; Save, Batal, Tutup, and equivalent confirmation actions use it.
+- [x] Atur indikator, Ubah Kapasitas Desain, Buka Pengaturan Awal, Tes, Hitung Sekarang, Dashboard actions, Analytics actions, theme-package cards, and option pills use the shared interaction effect.
+- [x] Wave and Capsule percentage outline is 1.8dp with StrokeJoin.Round; both text layers retain the same centered alignment.
+- [x] Added `InteractionVisualTokensTest` for scale, glow alpha/timing, close delay, and gauge outline width.
+- [x] Source diff review: PASS — 10 files changed; only UI source, focused unit test, and documentation files changed. Protected database, sensor, calibration, service, manifest, and build configuration paths are unchanged.
+- [x] `testDebugUnitTest`: SUCCESS — Run #657.
+- [x] `assembleDebug`: SUCCESS — Run #657.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #657.
+- [x] Debug APK Artifact ID `15014994471` and unit-test report Artifact ID `15014969066` uploaded — Run #657.
+- [ ] Physical-device QA on itel P55 at 360dp / 720p: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-25 — PR #12 final polish: outlined gauge text and uniform interaction system
+
+- [x] Wave and Capsule percentage badges have no backing Surface/pill; the percentage is white ExtraBold text with a 3.5dp rounded black outline token centralized in ui/theme/.
+- [x] Capsule terminal cap is separated from the body by a visible gap; the positive (+) mark is removed.
+- [x] Shared `powerButtonClickEffect` uses a shared MutableInteractionSource, 0.94 spring bounce, and 0.24 primary-accent flash.
+- [x] Dialog action buttons and interactive choice pills use 36dp CircleShape; Save is outlined/muted when unchanged and primary/onPrimary when enabled.
+- [x] Theme & Gauge dirty-state compares the full config; footer is right-aligned with 10dp spacing and no equal-width weights.
+- [x] Capacity Save requires a valid value different from the saved value; Use Automatic is enabled only for a manual override.
+- [x] Status Bar Indicator dirty-state compares effective mode, metrics, scale, and interval; custom interval input has 56dp minimum width and 32dp CircleShape.
+- [x] Capacity and Status Bar dialogs keep the footer outside the scrollable body and apply imePadding().
+- [x] Info popup header/footer compacted; header information icon follows MaterialTheme primary.
+- [x] Analysis Hitung Sekarang uses the shared 36dp circular action button.
+- [x] Existing SessionLevelRangeFormatterTest asserts U+2192 exactly once and rejects the malformed 'n sequence.
+- [x] Added capacity dirty-state and automatic/manual eligibility tests.
+- [x] Added Status Bar Indicator dirty-state tests for mode, metrics, scale, and interval.
+- [x] Added Theme & Gauge dirty-state tests for gauge model, animation, accent, and dual-tint.
+- [x] Source diff review: PASS — 15 files changed in this polish; protected database, sensor, calibration, service, manifest, and build-configuration paths are unchanged.
+- [x] `testDebugUnitTest`: SUCCESS — Run #655.
+- [x] `assembleDebug`: SUCCESS — Run #655.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #655.
+- [x] Debug APK Artifact ID `15002199739` and unit-test report Artifact ID `15003148539` uploaded — Run #655.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
+## 2026-11-25 — PR #12 final polish
+
+- [x] Midnight display name and all four accent summary labels use Midnight; internal config and persisted keys are unchanged.
+- [x] Midnight VIOLET/PINK/CYAN/GREEN use the requested per-accent background, surface, outlineVariant, and primary tokens; all explicit color literals remain in ui/theme/.
+- [x] Theme picker exposes the four matching accent swatches.
+- [x] Wave idle contour uses a static 2.5dp amplitude override, including endpoint battery levels; charging animation path remains separate.
+- [x] Wave and Capsule percentage badges use 8dp × 3dp padding.
+- [x] Info popup header/footer compacted and close action follows active theme.
+- [x] Dashboard and Settings capacity dialogs share compact layout; Save requires valid changed value/mode, Automatic action is available only for a manual override.
+- [x] Status Bar Indicator Save is disabled until a valid draft differs from persisted settings.
+- [x] Custom clickable surfaces and choice pills use animated press scale; Material 3 buttons retain default ripple/pressed feedback; no indication=null introduced.
+- [x] Session range formatter uses Unicode U+2192; unit test asserts exactly one arrow and rejects the malformed 'n sequence.
+- [x] testDebugUnitTest: SUCCESS — baseline Run #653.
+- [x] assembleDebug: SUCCESS — baseline Run #653.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — baseline Run #653.
+- [x] APK Artifact ID `15000545345` and unit-test report Artifact ID `15000465571` uploaded — baseline Run #653.
+- [ ] Physical-device QA on itel P55: NOT RUN.
+
+---
+
+## 2026-11-25 — PR #12 polish: Midnight accents and gauge readability
+
+- [x] Added MidnightAccent with safe ungu/pink/cyan/green parsing and Violet fallback.
+- [x] Persisted/restored the Midnight accent in the existing theme SharedPreferences; legacy records without the key resolve to Violet.
+- [x] Added four 32dp accent choices to the Midnight dialog; draft preview and Save flow use the same ThemePackConfig.
+- [x] Centralized the Pink, Cyan, and Green hex literals in ui/theme/Theme.kt.
+- [x] Wave gauge now has a high-contrast 1.5dp outline, two charging wave layers, edge-damped amplitude, and a percentage badge.
+- [x] Capsule gauge now has a stronger frame/terminal and a percentage badge.
+- [x] Updated Status Bar Indicator dialog button shape/size and Indonesian History/SOH copy.
+- [x] Added unit tests for Midnight accent parsing, invalid-key fallback, persistence round-trips, and summary formatting.
+- [x] Protected boundaries reviewed: Room DB v3, sensor/sampling, calibration 1x, P0 foreground monitoring channel/lifecycle, RECOVERY_HOLD, and applicationId remain outside the intended diff.
+- [x] GitHub Actions Run #650 on implementation HEAD `0c2d87d0e473db59e1d66a6b9cd3ccb7d904e1b1`: all jobs SUCCESS.
+- [x] `testDebugUnitTest`: SUCCESS — Run #650.
+- [x] `assembleDebug`: SUCCESS — Run #650.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #650.
+- [x] Upload APK: SUCCESS — artifact ID `14989161654`.
+- [x] Upload unit-test reports: SUCCESS — artifact ID `14988424665`.
+- [x] Source diff review: PASS — 11 changed files; protected DB, sensor, sampling, calibration, service lifecycle, manifest, and build-configuration paths are unchanged.
+- [ ] Physical-device QA on itel P55: NOT RUN; required before merge.
+- [ ] PR #12 merge: HOLD; no merge or auto-merge.
+
+### Accessibility note
+- The requested 32dp accent pills and 36dp dialog buttons are smaller than the 48dp touch-target guidance in DESIGN.md. CI cannot verify thumb usability; retain physical review as a release gate.
+
+---
+## 2026-11-25 — PR #12: theme packs and animated battery gauges
+
+- [x] Created `feat/theme-system-and-battery-gauges` directly from verified `main` HEAD `229081788c01ebbe1b20d9a0b4c9ce2dac2d122d`.
+- [x] Added Basic and Midnight Violet theme-pack configuration; SYSTEM mode uses reactive `isSystemInDarkTheme()`.
+- [x] Added safe key parsers and dedicated SharedPreferences persistence for package, mode, accent, dual tint, gauge model, and charging animation.
+- [x] Exposed theme config as a ViewModel StateFlow and applied it at the Compose root.
+- [x] Added four Canvas gauge models and four charging animation modes; infinite transition is only composed while charging, visible, and thermally normal.
+- [x] Enforced semantic color priority: critical thermal > warm > charging > normal theme accent. Existing analyzer thresholds 40°C / 38°C are reused.
+- [x] Added the two-layer Settings picker, draft live preview, sticky footer, and two-line summary.
+- [x] Centralized explicit color hex literals in `ui/theme/`; added an Anti-Slop audit guard for literals outside that package.
+- [x] Added unit tests for preference parser/fallback/round-trip, semantic color priority, segment boundaries, and summary formatting.
+- [x] Follow-up source review: thermal animation is gated in the reusable gauge, capsule terminal has a plus marker, dual-tint OFF removes both tints, preview thresholds reuse shared analyzer constants, idle gauges suppress charging overlays, capsule label contrast follows fill luminance, and animated phase reads occur in draw scopes.
+- [x] Corrected the Anti-Slop color-literal regex and verified its match behavior against `Color(0xFF112233)`; final CI rerun pending.
+- [x] No intended changes to Room DB v3, sensor acquisition/cadence, calibration default 1x, foreground monitoring P0 channel/lifecycle, RECOVERY_HOLD, or applicationId.
+- [x] Full diff review: PASS — 15 changed files; protected Room, sensor, sampling, calibration, P0 lifecycle, RECOVERY_HOLD, and build configuration files are unchanged.
+- [x] `testDebugUnitTest`: SUCCESS — Run #646.
+- [x] `assembleDebug`: SUCCESS — Run #646.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #646; corrected color-literal regex was exercised by CI.
+- [x] Upload APK: SUCCESS — Run #646; debug APK Artifact ID `14955470895`.
+- [x] Upload unit-test reports: SUCCESS — Run #646; Artifact ID `14955331593`.
+- [x] Final implementation CI Run #646 HEAD: `14261dba3660d1ee24a8a61dee16a02b6748fa71`.
+- [ ] Physical-device QA on itel P55 360dp / 720p: NOT RUN.
+- [ ] PR #12 merge: HOLD until CI and physical-device QA are confirmed.
+
+### Accessibility exception
+- Requested 32dp choice pills and 36dp sticky-footer buttons are below the 48dp touch-target guidance in DESIGN.md. Keep this as an explicit QA item; do not report full accessibility compliance before device review.
+
+---
+
 ## 2026-11-24 — PR #11 final polish: sticky popup, state-aware footer, and alert repetition
 
 - [x] Charge Guard dialog has a fixed compact header, weighted scrollable body, and sticky compact footer.

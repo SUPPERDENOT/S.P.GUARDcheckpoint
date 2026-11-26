@@ -11,10 +11,14 @@ import android.os.SystemClock
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +30,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -58,15 +63,33 @@ import com.superdenot.powerguard.domain.engine.ChargeGuardSettingsSummaryFormatt
 import com.superdenot.powerguard.data.repository.ChargeGuardAlertSoundSetting
 import com.superdenot.powerguard.data.repository.ChargeGuardVibrationPattern
 import com.superdenot.powerguard.ui.components.CompactSwitch
+import com.superdenot.powerguard.ui.components.pressScale
+import com.superdenot.powerguard.ui.components.PowerActionButton
+import com.superdenot.powerguard.ui.components.PowerSaveButton
+import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
+import com.superdenot.powerguard.ui.components.pressScaleClickable
+import com.superdenot.powerguard.ui.dashboard.DesignCapacityDialog
+import com.superdenot.powerguard.ui.components.BatteryGaugeView
+import com.superdenot.powerguard.ui.components.ThemePickerDialogs
+import com.superdenot.powerguard.ui.components.resolveBatteryGaugeColor
 import com.superdenot.powerguard.domain.model.StatusBarParameter
 import com.superdenot.powerguard.domain.model.StatusBarDisplayMode
 import com.superdenot.powerguard.domain.model.BatteryCurrentScale
 import com.superdenot.powerguard.domain.model.StatusBarSettingsSummaryFormatter
+import com.superdenot.powerguard.domain.model.hasStatusBarIndicatorUnsavedChanges
+import com.superdenot.powerguard.domain.model.isCustomStatusBarInterval
+import com.superdenot.powerguard.domain.model.isStatusBarIntervalPresetSelected
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
+import com.superdenot.powerguard.ui.components.InfoDialogSurface
+import com.superdenot.powerguard.ui.components.InfoBadge
+import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.*
+import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
+import com.superdenot.powerguard.ui.theme.LocalBatteryMetricTints
+import com.superdenot.powerguard.ui.theme.InstrumentGraphite
 import com.superdenot.powerguard.service.LiveStatusBarRenderer
 import com.superdenot.powerguard.ui.components.ChargingThermalSummaryPanel
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
@@ -74,6 +97,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
 import kotlinx.coroutines.delay
+
+internal const val CHARGING_SOURCE_CAPABILITY_LABEL = "Kemampuan sumber"
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
@@ -95,19 +120,24 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
 
+    val isCriticalThermal = state.isTemperatureAvailable &&
+        state.tempCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS
+    val isWarm = state.isTemperatureAvailable &&
+        state.tempCelsius >= ChargingThermalPhaseAnalyzer.WARM_TEMPERATURE_CELSIUS && !isCriticalThermal
     val gaugeStatus = when {
-        state.isTemperatureAvailable && state.tempCelsius >= 40f -> "Suhu Tinggi"
+        isCriticalThermal -> "Suhu Tinggi"
+        isWarm -> "Hangat"
         state.isChargingStatusAvailable && state.isCharging -> "Mengisi"
         state.isChargingStatusAvailable && state.isLevelAvailable && state.level >= 100 && !state.isCharging -> "Penuh"
         running -> "Aktif"
         else -> "Siaga"
     }
-    val gaugeColor = when (gaugeStatus) {
-        "Suhu Tinggi" -> CrimsonAnomaly
-        "Mengisi", "Penuh" -> EmeraldCharge
-        "Aktif" -> MaterialTheme.colorScheme.primary
-        else -> AmberThermal
-    }
+    val gaugeColor = resolveBatteryGaugeColor(
+        LocalBatterySemanticColors.current, isCriticalThermal, isWarm,
+        state.isChargingStatusAvailable && state.isCharging
+    )
+    val metricTints = LocalBatteryMetricTints.current
+    val themePackConfig by vm.themePackConfig.collectAsState()
     val eta = state.chargingEtaMinutes
         ?.takeIf { state.isCharging && state.isChargingEtaTracking && it > 0L }
         ?.let { ChargingEtaEstimator.formatEta(it) }
@@ -131,24 +161,14 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                        BatteryArcGauge(
-                            progress = if (state.isLevelAvailable) state.level.coerceIn(0, 100) / 100f else 0f,
-                            color = gaugeColor,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                if (state.isLevelAvailable) "${state.level}%" else "—",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1
-                            )
-                            Text("BATERAI", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.8.sp)
-                        }
-                    }
+                    BatteryGaugeView(
+                        progress = if (state.isLevelAvailable) state.level.coerceIn(0, 100) / 100f else 0f,
+                        percentageLabel = if (state.isLevelAvailable) "${state.level}%" else "—",
+                        model = themePackConfig.gaugeModel,
+                        animation = themePackConfig.chargingAnimation,
+                        isCharging = state.isChargingStatusAvailable && state.isCharging,
+                        modifier = Modifier.size(112.dp)
+                    )
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -160,12 +180,12 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                                 color = gaugeColor, fontWeight = FontWeight.Bold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f))
-                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f))
+                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f), metricTints.cold)
+                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f), metricTints.cold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—", Modifier.weight(1f))
-                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—", Modifier.weight(1f))
+                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—", Modifier.weight(1f), metricTints.warm)
+                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—", Modifier.weight(1f), metricTints.cold)
                         }
                         eta?.let {
                             Text("Estimasi penuh · $it", style = MaterialTheme.typography.labelSmall,
@@ -228,42 +248,16 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
 }
 
 @Composable
-private fun BatteryArcGauge(progress: Float, color: Color, modifier: Modifier = Modifier) {
-    val trackColor = MaterialTheme.colorScheme.outlineVariant
-    Canvas(modifier) {
-        val stroke = 7.dp.toPx()
-        val diameter = (size.minDimension - stroke).coerceAtLeast(1f)
-        val topLeft = androidx.compose.ui.geometry.Offset(
-            (size.width - diameter) / 2f,
-            (size.height - diameter) / 2f
-        )
-        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
-        drawArc(
-            color = trackColor,
-            startAngle = 135f,
-            sweepAngle = 270f,
-            useCenter = false,
-            topLeft = topLeft,
-            size = arcSize,
-            style = Stroke(stroke, cap = StrokeCap.Round)
-        )
-        if (progress > 0f) {
-            drawArc(
-                color = color,
-                startAngle = 135f,
-                sweepAngle = 270f * progress.coerceIn(0f, 1f),
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(stroke, cap = StrokeCap.Round)
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeroMetric(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+private fun HeroMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    containerColor: Color = Color.Transparent
+) {
+    Column(
+        modifier = modifier.background(containerColor, RoundedCornerShape(8.dp)).padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp)
+    ) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         Text(value, style = MaterialTheme.typography.bodyMedium,
@@ -318,25 +312,19 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(INFO_BADGE_GAP_DP.dp)
                         ) {
                             Text(
-                                "Protokol / kemampuan sumber",
-                                modifier = Modifier.weight(1f),
+                                CHARGING_SOURCE_CAPABILITY_LABEL,
+                                modifier = Modifier.weight(1f, fill = false),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            IconButton(
-                                onClick = { showProtocolInfo = true },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Info,
-                                    contentDescription = "Penjelasan protokol pengisian",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(19.dp)
-                                )
-                            }
+                            InfoBadge(
+                                contentDescription = "Penjelasan kemampuan sumber pengisian",
+                                onClick = { showProtocolInfo = true }
+                            )
                         }
                         Text(
                             state.chargingProtocol,
@@ -358,19 +346,24 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(INFO_BADGE_GAP_DP.dp)
+                ) {
                     Text(
                         "PEMBACAAN BATERAI • SISI BATERAI",
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f, fill = false),
                         color = CyanFastCharge,
+                        maxLines = 2,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp
                     )
-                    IconButton(onClick = { showPowerInfo = true }, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Rounded.Info, contentDescription = "Informasi pengukuran daya baterai",
-                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                    }
+                    InfoBadge(
+                        contentDescription = "Informasi pengukuran daya baterai",
+                        onClick = { showPowerInfo = true }
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
@@ -409,12 +402,15 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         )
     }
     if (showPowerInfo) {
-        AlertDialog(
-            onDismissRequest = { showPowerInfo = false },
-            title = { Text("Pengukuran daya baterai") },
-            text = { Text("Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.") },
-            confirmButton = { TextButton(onClick = { showPowerInfo = false }) { Text("Mengerti") } }
-        )
+        InfoDialogSurface(
+            title = "Pengukuran daya baterai",
+            onDismiss = { showPowerInfo = false }
+        ) {
+            Text(
+                "Daya merupakan hasil tegangan × arus pada sisi baterai. Nilai ini bukan batas kemampuan input charger dan tidak mengidentifikasi protokol pengisian.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
 }
 
@@ -454,7 +450,7 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     }
                 }
                 Text(
-                    if (healthSummary != null) "Snapshot SOH tersimpan • Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis/default"})"
+                    if (healthSummary != null) "Taksiran SOH tersimpan · Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis"})"
                     else "Belum ada snapshot SOH yang valid. Estimasi akan tersedia setelah sesi pengisian memenuhi kriteria.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -489,11 +485,15 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     val capacity by vm.designCapacitySetting.collectAsState()
     val statusBarSetting by vm.statusBarIndicatorSetting.collectAsState()
     val currentScale by vm.batteryCurrentScale.collectAsState()
+    val themeConfig by vm.themePackConfig.collectAsState()
     val previewService by vm.liveState.collectAsState()
     val previewFallback by vm.fallbackState.collectAsState()
     val previewRunning by vm.isServiceRunning.collectAsState()
     val previewServiceAt by vm.lastSensorUpdateElapsedRealtime.collectAsState()
     val previewFallbackAt by vm.fallbackUpdatedAtElapsedRealtime.collectAsState()
+    val previewBatteryState = selectDashboardLiveState(
+        previewRunning, previewService, previewFallback, previewServiceAt, previewFallbackAt, SystemClock.elapsedRealtime()
+    )
     var showStatusBarSettingsDialog by remember { mutableStateOf(false) }
     var showCapacityDialog by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
@@ -586,7 +586,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(
-                            Modifier.weight(1f).clickable { showStatusBarSettingsDialog = true },
+                            Modifier.weight(1f).pressScaleClickable { showStatusBarSettingsDialog = true },
                             verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
@@ -605,7 +605,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         CompactSwitch(checked = statusBarSetting.enabled, onCheckedChange = vm::setStatusBarIndicatorEnabled,
                             contentDescription = "Indikator status bar")
                     }
-                    OutlinedButton(
+                    PowerActionButton(
                         onClick = { showStatusBarSettingsDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -622,6 +622,16 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
+            ThemePickerDialogs(
+                config = themeConfig,
+                batteryLevel = previewBatteryState.level.takeIf { previewBatteryState.isLevelAvailable },
+                isCharging = previewBatteryState.isChargingStatusAvailable && previewBatteryState.isCharging,
+                temperatureCelsius = previewBatteryState.tempCelsius,
+                isTemperatureAvailable = previewBatteryState.isTemperatureAvailable,
+                onSave = vm::setThemePackConfig
+            )
+        }
+        item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Kapasitas baterai", fontWeight = FontWeight.Bold)
@@ -634,7 +644,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedButton(onClick = { showCapacityDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                    PowerActionButton(onClick = { showCapacityDialog = true }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Edit, null)
                         Text("  Ubah Kapasitas Desain")
                     }
@@ -646,7 +656,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Persiapan Izin", fontWeight = FontWeight.Bold)
                     Text("Periksa dan atur akses Android yang mendukung pemantauan serta analisis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
+                    PowerActionButton(onClick = onOpenPermissionSetup, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Settings, null)
                         Text("  Buka Pengaturan Awal")
                     }
@@ -655,7 +665,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = ::openChargeGuardDialog),
+                modifier = Modifier.fillMaxWidth().pressScaleClickable(onClick = ::openChargeGuardDialog),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -689,7 +699,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            OutlinedButton(onClick = { showInfo = true }, modifier = Modifier.fillMaxWidth()) {
+            PowerActionButton(onClick = { showInfo = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Rounded.Info, null)
                 Text("  Tentang SUPERD POWER GUARD")
             }
@@ -750,7 +760,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
-                            listOf(40, 42, 45, 50).forEach { threshold ->
+                            ChargeGuardConfiguration.HIGH_TEMPERATURE_PRESETS.forEach { threshold ->
                                 ChargeGuardChoicePill(
                                     "$threshold°C",
                                     draftChargeGuardConfig.highTemperatureThresholdCelsius == threshold,
@@ -779,7 +789,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Surface(
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).clickable {
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).pressScaleClickable {
                                     val existingUri = when (draftChargeGuardSound.selection) {
                                         ChargeGuardAlertSoundSetting.DEFAULT -> Settings.System.DEFAULT_NOTIFICATION_URI
                                         ChargeGuardAlertSoundSetting.SILENT -> null
@@ -813,10 +823,8 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                     )
                                 }
                             }
-                            OutlinedButton(
+                            PowerActionButton(
                                 onClick = { vm.previewChargeGuardAlert(draftChargeGuardSound) },
-                                modifier = Modifier.height(36.dp),
-                                shape = androidx.compose.foundation.shape.CircleShape,
                                 contentPadding = PaddingValues(horizontal = 14.dp)
                             ) { Text("Tes") }
                         }
@@ -842,7 +850,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Surface(
-                                    modifier = Modifier.weight(1f).height(44.dp).clickable {
+                                    modifier = Modifier.weight(1f).height(44.dp).pressScaleClickable {
                                         val now = SystemClock.elapsedRealtime()
                                         val existing = draftChargeGuardSound.customVibrationTimings
                                         if (pulseCount < 6) {
@@ -872,7 +880,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                         )
                                     }
                                 }
-                                TextButton(onClick = {
+                                PowerActionButton(onClick = {
                                     draftChargeGuardSound = draftChargeGuardSound.copy(customVibrationTimings = emptyList())
                                     lastCustomTapAt = 0L
                                 }) { Text("Reset") }
@@ -899,27 +907,19 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
+                        PowerActionButton(
                             onClick = { showChargeGuardDialog = false },
-                            modifier = Modifier.height(36.dp).weight(1f),
-                            shape = androidx.compose.foundation.shape.CircleShape,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) { Text("Batal") }
-                        Button(
+                        PowerSaveButton(
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             onClick = {
                                 vm.setChargeGuardConfiguration(draftChargeGuardConfig)
                                 vm.setChargeGuardAlertSound(draftChargeGuardSound)
                                 showChargeGuardDialog = false
                             },
-                            enabled = hasUnsavedChanges,
-                            modifier = Modifier.height(36.dp).weight(1f),
-                            shape = androidx.compose.foundation.shape.CircleShape,
-                            contentPadding = PaddingValues(horizontal = 12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            enabled = hasUnsavedChanges
                         ) { Text("Simpan") }
                     }
                 }
@@ -930,16 +930,39 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         var draftMode by remember { mutableStateOf(statusBarSetting.displayMode) }
         var draftParameter by remember { mutableStateOf(statusBarSetting.parameter) }
         var draftRotationParameters by remember { mutableStateOf(statusBarSetting.rotationParameters.toSet()) }
-        var draftIntervalSeconds by remember { mutableIntStateOf(statusBarSetting.rotationIntervalSeconds) }
-        var draftIntervalInput by remember { mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString()) }
-        var draftCurrentScale by remember { mutableStateOf(currentScale) }
-        var customIntervalEdited by remember {
-            mutableStateOf(statusBarSetting.rotationIntervalSeconds !in listOf(2, 3, 5, 10))
+        var draftIntervalSeconds by remember(statusBarSetting.rotationIntervalSeconds) {
+            mutableIntStateOf(statusBarSetting.rotationIntervalSeconds)
         }
+        var draftIntervalInput by remember(statusBarSetting.rotationIntervalSeconds) {
+            mutableStateOf(statusBarSetting.rotationIntervalSeconds.toString())
+        }
+        var draftCurrentScale by remember { mutableStateOf(currentScale) }
 
         val validCustomInterval = draftIntervalInput.toIntOrNull()?.let { it in 1..60 } == true
-        val canSave = draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
-            (draftRotationParameters.size >= 2 && validCustomInterval)
+        val draftMetrics = if (draftMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+            draftRotationParameters
+        } else {
+            setOf(draftParameter)
+        }
+        val savedMetrics = if (statusBarSetting.displayMode == StatusBarDisplayMode.CUSTOM_ROTATION) {
+            statusBarSetting.rotationParameters.toSet()
+        } else {
+            setOf(statusBarSetting.parameter)
+        }
+        val hasUnsavedChanges = hasStatusBarIndicatorUnsavedChanges(
+            draftMode = draftMode,
+            savedMode = statusBarSetting.displayMode,
+            draftMetrics = draftMetrics,
+            savedMetrics = savedMetrics,
+            draftScale = draftCurrentScale,
+            savedScale = currentScale,
+            draftInterval = draftIntervalSeconds,
+            savedInterval = statusBarSetting.rotationIntervalSeconds
+        )
+        val canSave = hasUnsavedChanges && (
+            draftMode != StatusBarDisplayMode.CUSTOM_ROTATION ||
+                (draftRotationParameters.size >= 2 && validCustomInterval)
+            )
 
         Dialog(onDismissRequest = { showStatusBarSettingsDialog = false }) {
             Surface(
@@ -948,9 +971,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp
             ) {
-                Column(
-                    Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState())
-                ) {
+                Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                     val previewBaseState = selectDashboardLiveState(
                         previewRunning, previewService, previewFallback, previewServiceAt,
                         previewFallbackAt, SystemClock.elapsedRealtime()
@@ -989,6 +1010,9 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         val reading = LiveStatusBarRenderer.format(previewReadingState, previewParameter)
                         LiveStatusBarRenderer.render(previewParameter, reading, previewDensity)
                     }
+                    Column(
+                        Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())
+                    ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1001,7 +1025,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             fontWeight = FontWeight.SemiBold
                         )
                         Box(
-                            modifier = Modifier.size(32.dp).background(Color(0xFF252923), RoundedCornerShape(6.dp)),
+                            modifier = Modifier.size(32.dp).background(InstrumentGraphite, RoundedCornerShape(6.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             previewBitmap?.let { bitmap ->
@@ -1030,16 +1054,18 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 StatusBarDisplayMode.CUSTOM_ROTATION to "Rotasi kustom"
                             ).forEach { (mode, label) ->
                                 val selected = draftMode == mode
+                                val interactionSource = remember(mode) { MutableInteractionSource() }
                                 Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(32.dp)
+                                    modifier = Modifier.weight(1f).height(36.dp)
+                                        .pressScale(interactionSource)
                                         .selectable(
                                             selected = selected,
                                             role = Role.RadioButton,
+                                            interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                             onClick = { draftMode = mode }
                                         ),
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     color = if (selected) MaterialTheme.colorScheme.primaryContainer
                                     else MaterialTheme.colorScheme.surface,
                                     contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -1107,16 +1133,18 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         ) {
                             BatteryCurrentScale.values().forEach { scale ->
                                 val selected = draftCurrentScale == scale
+                                val interactionSource = remember(scale) { MutableInteractionSource() }
                                 Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(32.dp)
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                        .pressScale(interactionSource)
                                         .selectable(
                                             selected = selected,
                                             role = Role.RadioButton,
+                                            interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                             onClick = { draftCurrentScale = scale }
                                         ),
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     color = if (selected) MaterialTheme.colorScheme.primaryContainer
                                     else MaterialTheme.colorScheme.surface,
                                     contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -1161,21 +1189,22 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 listOf(2, 3, 5, 10).forEach { seconds ->
-                                    val selected = draftIntervalSeconds == seconds && !customIntervalEdited
+                                    val selected = isStatusBarIntervalPresetSelected(seconds, draftIntervalSeconds)
+                                    val interactionSource = remember(seconds) { MutableInteractionSource() }
                                     Surface(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(32.dp)
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                            .pressScale(interactionSource)
                                             .selectable(
                                                 selected = selected,
                                                 role = Role.RadioButton,
+                                                interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                                 onClick = {
                                                     draftIntervalSeconds = seconds
                                                     draftIntervalInput = seconds.toString()
-                                                    customIntervalEdited = false
                                                 }
                                             ),
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = androidx.compose.foundation.shape.CircleShape,
                                         color = if (selected) MaterialTheme.colorScheme.primaryContainer
                                         else MaterialTheme.colorScheme.surface,
                                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -1204,16 +1233,16 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 }
                                 val customBorderColor = when {
                                     !validCustomInterval -> MaterialTheme.colorScheme.error
-                                    customIntervalEdited -> MaterialTheme.colorScheme.primary
+                                    isCustomStatusBarInterval(draftIntervalSeconds) -> MaterialTheme.colorScheme.primary
                                     else -> MaterialTheme.colorScheme.outlineVariant
                                 }
                                 Surface(
-                                    modifier = Modifier.width(52.dp).height(32.dp),
-                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.widthIn(min = 56.dp).height(32.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     color = MaterialTheme.colorScheme.surface,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
                                     border = androidx.compose.foundation.BorderStroke(
-                                        if (customIntervalEdited && validCustomInterval) 1.5.dp else 1.dp,
+                                        if (isCustomStatusBarInterval(draftIntervalSeconds) && validCustomInterval) 1.5.dp else 1.dp,
                                         customBorderColor
                                     )
                                 ) {
@@ -1225,7 +1254,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                             value = draftIntervalInput,
                                             onValueChange = { input ->
                                                 draftIntervalInput = input.filter(Char::isDigit).take(2)
-                                                customIntervalEdited = true
                                                 draftIntervalInput.toIntOrNull()
                                                     ?.takeIf { it in 1..60 }
                                                     ?.let { draftIntervalSeconds = it }
@@ -1255,19 +1283,22 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             }
                         }
                     }
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = { showStatusBarSettingsDialog = false }) {
-                            Text("Batal")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Button(
+                        PowerActionButton(
+                            onClick = { showStatusBarSettingsDialog = false },
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) { Text("Batal") }
+                        PowerSaveButton(
+                            clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
                             enabled = canSave,
                             onClick = {
                                 vm.saveStatusBarIndicatorSettings(
@@ -1279,9 +1310,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                                 )
                                 showStatusBarSettingsDialog = false
                             }
-                        ) {
-                            Text("Simpan")
-                        }
+                        ) { Text("Simpan") }
                     }
                 }
             }
@@ -1289,44 +1318,17 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     }
 
     if (showCapacityDialog) {
-        var inputText by remember(capacity.capacityMah) {
-            mutableStateOf(capacity.capacityMah?.toString().orEmpty())
-        }
-        AlertDialog(
-            onDismissRequest = { showCapacityDialog = false },
-            title = { Text("Kapasitas Desain Baterai") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Masukkan kapasitas desain resmi baterai (1000–20000 mAh). Nilai manual digunakan sampai Anda kembali ke Otomatis.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it.filter(Char::isDigit) },
-                        label = { Text("Kapasitas (mAh)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
+        DesignCapacityDialog(
+            capacityMah = capacity.capacityMah,
+            isManualOverride = capacity.isManualOverride,
+            onDismiss = { showCapacityDialog = false },
+            onSaveManual = {
+                vm.updateDesignCapacity(it)
+                showCapacityDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    enabled = inputText.toIntOrNull()?.let { it in 1000..20000 } == true,
-                    onClick = {
-                        inputText.toIntOrNull()?.let(vm::updateDesignCapacity)
-                        showCapacityDialog = false
-                    }
-                ) { Text("Simpan") }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = {
-                        vm.useAutomaticDesignCapacity()
-                        showCapacityDialog = false
-                    }) { Text("Gunakan Otomatis") }
-                    TextButton(onClick = { showCapacityDialog = false }) { Text("Batal") }
-                }
+            onUseAutomatic = {
+                vm.useAutomaticDesignCapacity()
+                showCapacityDialog = false
             }
         )
     }
@@ -1335,9 +1337,12 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
 
 @Composable
 private fun ChargeGuardChoicePill(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        modifier = modifier.height(32.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        modifier = modifier.height(36.dp).pressScale(interactionSource)
+            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource,
+                                            indication = LocalIndication.current, onClick = onClick),
+        shape = androidx.compose.foundation.shape.CircleShape,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
         border = androidx.compose.foundation.BorderStroke(if (selected) 1.5.dp else 1.dp,
@@ -1372,17 +1377,19 @@ private fun StatusBarParameterGrid(
                 row.forEach { parameter ->
                     val selected = parameter in selectedParameters
                     val enabled = !multiSelect || !selected || canDeselectSelected
+                    val interactionSource = remember(parameter) { MutableInteractionSource() }
                     Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(32.dp)
+                        modifier = Modifier.weight(1f).height(36.dp)
+                            .pressScale(interactionSource)
                             .selectable(
                                 selected = selected,
                                 enabled = enabled,
                                 role = if (multiSelect) Role.Checkbox else Role.RadioButton,
+                                interactionSource = interactionSource,
+                                            indication = LocalIndication.current,
                                 onClick = { onParameterClick(parameter) }
                             ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         color = if (selected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surface,
                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -1468,7 +1475,7 @@ private fun ExpandPanel(id: String, title: String, subtitle: String, expanded: S
     val open = id in expanded
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Row(Modifier.fillMaxWidth().clickable(onClick = onToggle), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().pressScaleClickable(onClick = onToggle), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(title, fontWeight = FontWeight.Bold)
                     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

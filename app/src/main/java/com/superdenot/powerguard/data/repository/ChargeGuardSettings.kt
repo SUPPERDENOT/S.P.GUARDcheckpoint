@@ -100,7 +100,7 @@ object ChargeGuardSettings {
             chargeLimitEnabled = prefs.getBoolean(KEY_CHARGE_LIMIT_ENABLED, false),
             targetLevelPercent = prefs.getInt(KEY_CHARGE_TARGET_PERCENT, 85),
             highTemperatureEnabled = prefs.getBoolean(KEY_HIGH_TEMPERATURE_ENABLED, false),
-            highTemperatureThresholdCelsius = prefs.getInt(KEY_HIGH_TEMPERATURE_THRESHOLD, 40),
+            highTemperatureThresholdCelsius = prefs.getInt(KEY_HIGH_TEMPERATURE_THRESHOLD, 45),
             repeatMode = runCatching {
                 ChargeGuardRepeatMode.valueOf(
                     prefs.getString(KEY_REPEAT_MODE, ChargeGuardRepeatMode.ONCE.name)

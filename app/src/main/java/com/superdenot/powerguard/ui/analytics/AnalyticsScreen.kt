@@ -43,17 +43,17 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.superdenot.powerguard.ui.components.PowerActionButton
+import com.superdenot.powerguard.ui.components.PowerSaveButton
+import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -231,7 +231,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                     maxLines = 1,
                     softWrap = false
                 )
-                androidx.compose.material3.TextButton(
+                PowerActionButton(
                     onClick = { isCurveExpanded = false },
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -246,12 +246,12 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 Column(Modifier.weight(1f)) {
                     Text("Riwayat Sesi Pengisian", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "${visibleSessions.size} dari ${sessions.size} sesi • ${selectedHistoryFilter.label}",
+                        "Menampilkan ${visibleSessions.size} dari ${sessions.size} sesi (terbaru)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                androidx.compose.material3.TextButton(onClick = { isCurveExpanded = true }) {
+                PowerActionButton(onClick = { isCurveExpanded = true }) {
                     Text("Analisis Kurva Pengisian")
                 }
             }
@@ -457,7 +457,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            TextButton(onClick = { editingAccessorySession = session }) {
+                            PowerActionButton(onClick = { editingAccessorySession = session }) {
                                 Text(if (session.accessoryLabel.isNullOrBlank()) "Tambah" else "Ubah")
                             }
                         }
@@ -505,12 +505,12 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
             title = { Text("Hapus grup aksesori?") },
             text = { Text("Label \"$label\" akan dikosongkan dari semua sesi dalam grup. Riwayat sesi dan sampel tetap tersimpan.") },
             confirmButton = {
-                TextButton(onClick = {
+                PowerActionButton(onClick = {
                     viewModel.clearAccessoryLabelGroup(label)
                     accessoryDeleteConfirmation = null
-                }) { Text("Hapus label") }
+                }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Hapus label") }
             },
-            dismissButton = { TextButton(onClick = { accessoryDeleteConfirmation = null }) { Text("Batal") } }
+            dismissButton = { PowerActionButton(onClick = { accessoryDeleteConfirmation = null }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Batal") } }
         )
     }
 
@@ -520,12 +520,12 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
             title = { Text("Reset semua label aksesori?") },
             text = { Text("Semua label aksesori akan dikosongkan. Riwayat sesi dan sampel tidak dihapus.") },
             confirmButton = {
-                TextButton(onClick = {
+                PowerActionButton(onClick = {
                     viewModel.clearAllAccessoryLabels()
                     showResetAllAccessoryLabelsConfirmation = false
-                }) { Text("Reset semua") }
+                }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Reset semua") }
             },
-            dismissButton = { TextButton(onClick = { showResetAllAccessoryLabelsConfirmation = false }) { Text("Batal") } }
+            dismissButton = { PowerActionButton(onClick = { showResetAllAccessoryLabelsConfirmation = false }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Batal") } }
         )
     }
 }
@@ -565,10 +565,10 @@ private fun AccessoryLabelDialog(
         confirmButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (!session.accessoryLabel.isNullOrBlank()) {
-                    TextButton(onClick = { onSave(null) }) { Text("Hapus") }
+                    PowerActionButton(onClick = { onSave(null) }, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Hapus") }
                 }
-                TextButton(onClick = onDismiss) { Text("Batal") }
-                Button(onClick = { onSave(label.trim().takeIf { it.isNotEmpty() }) }, enabled = label.isNotBlank()) {
+                PowerActionButton(onClick = onDismiss, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) { Text("Batal") }
+                PowerSaveButton(onClick = { onSave(label.trim().takeIf { it.isNotEmpty() }) }, enabled = label.isNotBlank(), clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) {
                     Text("Simpan")
                 }
             }
@@ -593,7 +593,7 @@ private fun AccessoryBenchmarkCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Perbandingan Aksesori", modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                TextButton(onClick = onResetAll, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
+                PowerActionButton(onClick = onResetAll, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
                     Text("Reset Semua")
                 }
             }
@@ -628,7 +628,7 @@ private fun AccessoryBenchmarkCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${group.sessionCount} sesi", modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        TextButton(onClick = { onDeleteGroup(group.label) },
+                        PowerActionButton(onClick = { onDeleteGroup(group.label) },
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)) { Text("Hapus") }
                     }
                     val rate = group.averageChargeRatePercentPerHour
@@ -735,11 +735,9 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
             ) {
                 Text("Laporan Siklus Harian", style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 10.dp))
-                OutlinedButton(
+                PowerActionButton(
                     onClick = { viewModel.triggerManualRollup() },
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
                 ) {
                     Text("Hitung Sekarang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                         maxLines = 1, softWrap = false)
@@ -888,12 +886,10 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        Button(
+                        PowerActionButton(
                             onClick = {
                                 runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.height(42.dp)
+                            }
                         ) {
                             Text("Buka Pengaturan Izin", fontWeight = FontWeight.SemiBold)
                         }

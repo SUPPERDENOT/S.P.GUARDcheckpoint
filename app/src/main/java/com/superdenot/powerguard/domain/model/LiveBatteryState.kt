@@ -23,7 +23,9 @@ data class LiveBatteryState(
     val isTemperatureAvailable: Boolean = true,
     val isPowerAvailable: Boolean = true,
     val isChargingStatusAvailable: Boolean = true,
-    /** Estimated minutes to full; null means insufficient or unavailable live samples. */
+    /** OS-provided estimate in milliseconds; null means unavailable or invalid. */
+    val osChargingEtaMillis: Long? = null,
+    /** Resolved estimated minutes to full; null means insufficient or unavailable evidence. */
     val chargingEtaMinutes: Long? = null,
     /** True only while the Battery Monitoring session is collecting ETA samples. */
     val isChargingEtaTracking: Boolean = false,
