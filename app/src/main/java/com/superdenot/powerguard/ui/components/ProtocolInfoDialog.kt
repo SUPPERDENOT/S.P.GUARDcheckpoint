@@ -38,6 +38,7 @@ import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
 
 internal const val INFO_BADGE_DIAMETER_DP = 18f
+internal const val INFO_BADGE_ICON_DIAMETER_DP = 12f
 internal const val INFO_BADGE_TOUCH_TARGET_DP = 24f
 internal const val INFO_BADGE_GAP_DP = 3f
 
@@ -76,7 +77,7 @@ internal fun InfoBadge(
                 Icons.Rounded.Info,
                 contentDescription = contentDescription,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(INFO_BADGE_ICON_DIAMETER_DP.dp)
             )
         }
     }
