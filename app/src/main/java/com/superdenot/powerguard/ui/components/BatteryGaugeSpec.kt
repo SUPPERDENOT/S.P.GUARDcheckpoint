@@ -36,14 +36,21 @@ fun segmentedGaugeLitCount(levelPercent: Int): Int =
     ((levelPercent.coerceIn(0, 100) / 100f) * SEGMENTED_GAUGE_BLOCK_COUNT)
         .roundToInt().coerceIn(0, SEGMENTED_GAUGE_BLOCK_COUNT)
 
+const val SEGMENTED_GAUGE_START_ANGLE_DEGREES = 90f
+
 fun segmentedGaugeStartAngle(index: Int): Float =
-    -90f + index.coerceIn(0, SEGMENTED_GAUGE_BLOCK_COUNT - 1) * SEGMENTED_GAUGE_STEP_DEGREES
+    SEGMENTED_GAUGE_START_ANGLE_DEGREES +
+        index.coerceIn(0, SEGMENTED_GAUGE_BLOCK_COUNT - 1) * SEGMENTED_GAUGE_STEP_DEGREES
 
 fun gaugeAnimationPhaseFraction(phase: Float): Float =
     (phase / (2f * Math.PI.toFloat())).coerceIn(0f, 1f)
 
 fun capsuleCometY(topY: Float, bottomY: Float, phaseFraction: Float): Float =
     bottomY - (bottomY - topY) * phaseFraction.coerceIn(0f, 1f)
+
+/** Keeps the vertical energy tail inside the capsule's liquid column. */
+fun capsuleCometBeamTailBottom(cometY: Float, bottomY: Float, maxLength: Float): Float =
+    (cometY + maxLength.coerceAtLeast(0f)).coerceAtMost(bottomY)
 
 /** Returns the brightness of an active block; distance is measured backward from a clockwise head. */
 fun segmentedGaugeTrailAlpha(index: Int, headIndex: Int, activeCount: Int): Float {
@@ -61,6 +68,21 @@ const val WAVE_REAR_PHASE_OFFSET = 1.15f
 const val WAVE_REAR_AMPLITUDE_SCALE = 0.68f
 const val WAVE_REAR_FILL_ALPHA = 0.28f
 const val WAVE_FRONT_FILL_ALPHA = 0.82f
+
+data class WaveAnimationFeatures(
+    val animatedSurface: Boolean,
+    val diagonalSweep: Boolean,
+    val horizontalStrata: Boolean,
+    val outerComet: Boolean
+)
+
+/** Keeps the four Wave animation choices visually distinct and testable. */
+fun waveAnimationFeatures(animation: ChargingArcAnimation): WaveAnimationFeatures = when (animation) {
+    ChargingArcAnimation.ENERGY_SWEEP -> WaveAnimationFeatures(true, true, false, false)
+    ChargingArcAnimation.SEGMENTED_FLOW -> WaveAnimationFeatures(true, false, true, false)
+    ChargingArcAnimation.COMET_HEAD -> WaveAnimationFeatures(true, false, false, true)
+    ChargingArcAnimation.STATIC -> WaveAnimationFeatures(false, false, false, false)
+}
 
 /** Charging state and animation style never change the measured Wave liquid fraction. */
 @Suppress("UNUSED_PARAMETER")
