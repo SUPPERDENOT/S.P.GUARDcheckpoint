@@ -5,13 +5,13 @@
 - Kept Theme & Gauge's live preview forceAnimate = true; Statis remains excluded by the existing animation eligibility rule. The active Overview gauge now receives the charging state directly from the selected live dashboard state; thermal and visibility gates remain centralized in the gauge eligibility rule. The separate legacy ui/dashboard/DashboardScreen.kt contains no gauge call and is not routed by MainActivity, so it was intentionally left untouched.
 - Added explicit five-level Material 3 surface-container palettes for Basic Terracotta/Emerald/Cobalt in Light and Dark modes and Midnight Violet/Pink/Cyan/Green. Each set is tinted to its theme rather than inheriting the neutral Material 3 defaults.
 - Protocol and battery-side power info dialogs now use surfaceContainerHigh, zero tonal elevation, and a 1dp outlineVariant border.
-- Flattened both Charging info badges to a 16dp primary-tinted circle with an 11dp outlined info icon and 4dp heading gap. The badge is a flat Box composition with no Surface elevation or shadow modifier.
+- Flattened both Charging info badges to a 16dp primary-tinted circle with an 11dp outlined info icon, 4dp heading gap, and a 48dp accessible tap target aligned at the visual circle's leading edge. The badge is a flat Box composition with no Surface elevation or shadow modifier.
 
 ### Tests
 - Added deterministic delta-phase accumulation, wrap/bounded-delta, and disabled-reset tests without Android animator dependencies.
 - Expanded preview and charging-mode tests to cover Sweep, Segmen, and Comet while preserving Statis, thermal, and visibility gating.
 - Added palette coverage for all Basic and Midnight accents and both Basic appearance modes; verifies five distinct container levels and rejects the default dark neutral #2B2930.
-- Updated compact badge token assertions to 16dp / 11dp / 4dp.
+- Updated compact badge token assertions to 16dp / 11dp / 4dp, retaining a 48dp tap target.
 
 ### Protected boundaries
 - No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, SDK, Gradle dependencies, app version, or build number changes intended.
