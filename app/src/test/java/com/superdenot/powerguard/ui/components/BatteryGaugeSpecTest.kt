@@ -1,6 +1,8 @@
 package com.superdenot.powerguard.ui.components
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
 import com.superdenot.powerguard.ui.CHARGING_SOURCE_CAPABILITY_LABEL
 import org.junit.Assert.assertEquals
@@ -48,6 +50,8 @@ class BatteryGaugeSpecTest {
             Color.Blue,
             resolveBatteryGaugeColor(palette, isCriticalThermal = false, isWarm = false, isCharging = false)
         )
+        assertEquals(Color.Green, resolveBatteryGaugeAccent(palette, isCharging = true))
+        assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette, isCharging = false))
     }
 
     @Test
@@ -158,9 +162,11 @@ class BatteryGaugeSpecTest {
     fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
         assertEquals(6.5f, WAVE_AMPLITUDE_DP, 0f)
         assertEquals(1.6f, WAVE_CYCLES, 0f)
-        assertEquals(115f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(2.0071286f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
-        assertEquals(2f, WAVE_MENISCUS_STROKE_DP, 0f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
+        assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
         assertEquals(100f, WAVE_COMET_TAIL_DEGREES, 0f)
         assertTrue(WAVE_REAR_FILL_ALPHA < WAVE_FRONT_FILL_ALPHA)
@@ -181,10 +187,7 @@ class BatteryGaugeSpecTest {
                 "Statis must disable effects for ${model.label}",
                 shouldAnimateBatteryGauge(
                     isCharging = true,
-                    isVisibleOnScreen = true,
-                    isCriticalThermal = false,
-                    isWarm = false,
-                    animation = ChargingArcAnimation.STATIC
+                    animationStyle = ChargingArcAnimation.STATIC
                 )
             )
         }
@@ -256,107 +259,48 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun waveRendererUsesTwoOffsetLayersAndBrightFrontFill() {
-        assertEquals(2.0071286f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+    fun waveRendererUsesCounterPhaseDarkRearAndAccentLitFrontAndMeniscus() {
+        val accent = Color(0xFF12B886)
+        val layers = waveLayerColors(accent)
+        assertEquals(-1f, waveRearPhase(1f) - waveRearPhase(0f), 0f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
         assertEquals(0.76f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
-        assertTrue(WAVE_REAR_FILL_ALPHA < WAVE_FRONT_FILL_ALPHA)
+        assertEquals(0.88f, WAVE_REAR_FILL_ALPHA, 0f)
         assertEquals(0.88f, WAVE_FRONT_FILL_ALPHA, 0f)
+        assertEquals(lerp(accent, Color.Black, 0.42f).copy(alpha = 0.88f), layers.rear)
+        assertEquals(lerp(accent, Color.White, 0.32f), layers.frontHighlight)
+        assertEquals(accent, layers.frontBase)
+        assertEquals(lerp(accent, Color.Black, 0.22f), layers.frontShadow)
+        assertEquals(lerp(accent, Color.White, 0.35f).copy(alpha = 0.75f), layers.meniscus)
+        assertTrue(layers.rear.luminance() < accent.luminance())
+        assertNotEquals(Color.White, layers.meniscus)
+        assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
     }
 
     @Test
-    fun forceAnimateEnablesAllAnimatedPreviewModesWithoutCharging() {
-        listOf(
-            ChargingArcAnimation.ENERGY_SWEEP,
-            ChargingArcAnimation.SEGMENTED_FLOW,
-            ChargingArcAnimation.COMET_HEAD
-        ).forEach { animation ->
-            assertTrue(
-                animation.name,
-                shouldAnimateBatteryGauge(
-                    isCharging = false,
-                    isVisibleOnScreen = true,
-                    isCriticalThermal = false,
-                    isWarm = false,
-                    animation = animation,
-                    forceAnimate = true
-                )
-            )
+    fun forceAnimateKeepsSweepSegmentsAndCometRunningForEveryThermalLabel() {
+        val thermalLabels = listOf("Normal", "Hangat", "Tinggi")
+        thermalLabels.forEach { thermal ->
+            listOf(ChargingArcAnimation.ENERGY_SWEEP, ChargingArcAnimation.SEGMENTED_FLOW, ChargingArcAnimation.COMET_HEAD)
+                .forEach { animation ->
+                    assertTrue("$thermal / ${animation.name}",
+                        shouldAnimateBatteryGauge(isCharging = false, animationStyle = animation, forceAnimate = true))
+                }
         }
-        assertFalse(
-            shouldAnimateBatteryGauge(
-                isCharging = false,
-                isVisibleOnScreen = true,
-                isCriticalThermal = false,
-                isWarm = false,
-                animation = ChargingArcAnimation.STATIC,
-                forceAnimate = true
-            )
-        )
-        assertFalse(
-            shouldAnimateBatteryGauge(
-                isCharging = false,
-                isVisibleOnScreen = false,
-                isCriticalThermal = false,
-                isWarm = false,
-                animation = ChargingArcAnimation.COMET_HEAD,
-                forceAnimate = true
-            )
-        )
+        assertFalse(shouldAnimateBatteryGauge(isCharging = false, animationStyle = ChargingArcAnimation.STATIC, forceAnimate = true))
     }
 
     @Test
-    fun chargingAnimationRunsForEveryAnimatedModeWhenVisibleAndThermallyNormal() {
-        listOf(
-            ChargingArcAnimation.ENERGY_SWEEP,
-            ChargingArcAnimation.SEGMENTED_FLOW,
-            ChargingArcAnimation.COMET_HEAD
-        ).forEach { animation ->
-            assertTrue(
-                animation.name,
-                shouldAnimateBatteryGauge(
-                    isCharging = true,
-                    isVisibleOnScreen = true,
-                    isCriticalThermal = false,
-                    isWarm = false,
-                    animation = animation
-                )
-            )
+    fun chargingKeepsSweepSegmentsAndCometRunningForEveryThermalLabel() {
+        val thermalLabels = listOf("Normal", "Hangat", "Tinggi")
+        thermalLabels.forEach { thermal ->
+            listOf(ChargingArcAnimation.ENERGY_SWEEP, ChargingArcAnimation.SEGMENTED_FLOW, ChargingArcAnimation.COMET_HEAD)
+                .forEach { animation ->
+                    assertTrue("$thermal / ${animation.name}",
+                        shouldAnimateBatteryGauge(isCharging = true, animationStyle = animation))
+                }
         }
-        assertFalse(
-            shouldAnimateBatteryGauge(
-                isCharging = true,
-                isVisibleOnScreen = true,
-                isCriticalThermal = true,
-                isWarm = false,
-                animation = ChargingArcAnimation.COMET_HEAD
-            )
-        )
-        assertFalse(
-            shouldAnimateBatteryGauge(
-                isCharging = true,
-                isVisibleOnScreen = true,
-                isCriticalThermal = false,
-                isWarm = true,
-                animation = ChargingArcAnimation.SEGMENTED_FLOW
-            )
-        )
-        assertFalse(
-            shouldAnimateBatteryGauge(
-                isCharging = true,
-                isVisibleOnScreen = false,
-                isCriticalThermal = false,
-                isWarm = false,
-                animation = ChargingArcAnimation.ENERGY_SWEEP
-            )
-        )
-        assertFalse(
-            shouldAnimateBatteryGauge(
-                isCharging = true,
-                isVisibleOnScreen = true,
-                isCriticalThermal = false,
-                isWarm = false,
-                animation = ChargingArcAnimation.STATIC
-            )
-        )
+        assertFalse(shouldAnimateBatteryGauge(isCharging = true, animationStyle = ChargingArcAnimation.STATIC))
+        assertFalse(shouldAnimateBatteryGauge(isCharging = false, animationStyle = ChargingArcAnimation.COMET_HEAD))
     }
 }
