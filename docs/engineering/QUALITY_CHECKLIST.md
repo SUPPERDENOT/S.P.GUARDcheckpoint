@@ -5,8 +5,9 @@
 - [x] Wave Sweep, Segmen, Comet, and Statis map to distinct feature profiles; Statis has fixed phase and no moving sweep/strata/orbit — source review and profile tests added.
 - [x] Wave Comet uses a 90° orbital tail with a 3dp stroke and a white accent head — source review.
 - [x] Charging label is exactly "Kemampuan sumber"; both info affordances are 24dp clickable Boxes adjacent to their labels, with button semantics — source review and label test added.
-- [ ] Full-diff self-crosscheck against protected paths: pending after branch write.
-- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK artifact upload on exact final HEAD: pending CI.
+- [x] Full-diff self-crosscheck: PASS — all six changed paths reviewed; protected database/schema, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, Manifest/applicationId, Gradle/dependency, SDK, and version/build-number paths are absent.
+- [x] Run #690 (45734904830) on source/test HEAD 8c150d546cbc3d83c4254250cc0729d52af3fe20: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload; APK Artifact ID 15078965622; report Artifact ID 15078163363.
+- [ ] CI for the final documentation-only HEAD: triggered by the final checklist update; exact result is recorded in the delivery report.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
