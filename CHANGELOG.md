@@ -1,3 +1,29 @@
+## 2026-11-26 — PR #12 final polish: Wave phase continuity, unclipped outer Comet, Capsule rising bubbles
+
+### Changed
+- Wave rear phase now uses the integer direction multiplier `-1f` over normalized phase: `rearPhase = -phase × 2π + 120°`. The phase endpoints 0 and 1 produce identical sine/cosine positions at wrap. Wave-only cycle duration is 3,000ms; other gauge models retain the 2,400ms default.
+- Wave liquid fill and meniscus paths now use adaptive sampling at a maximum 2dp interval instead of 64 fixed segments.
+- Wave Comet rendering is moved after the inner liquid `clipPath` and is not clipped to the liquid circle. Its expanded, centered drawing surface provides 6dp bleed so the glow remains visible beyond the glass edge. The orbit centerline is `radius - rimStroke / 2`; the three layers are a 110° accent halo (6dp / 0.28 alpha), a 110° sweep-gradient tail (3dp), and a 3.5dp bright head with a 6dp radial glow. Tail/head tints are blended 25% / 48% toward white.
+- Capsule Segmen replaces static horizontal bars with six staggered energy bubbles that rise from the liquid base toward the meniscus. Bubble radii range 1.6–3.0dp and base alpha 0.28–0.58; a smooth final-rise fade and soft surface ripple are applied. Capsule Sweep, Comet, and Statis paths remain separate and unchanged in behavior. Wave Segmen retains its existing seven-bubble effect.
+
+### Tests
+- Added phase-wrap regression assertions comparing sine and cosine at normalized phase 0 and 1, and checks for the `-1f` direction, 3,000ms Wave cycle, and 2dp sampling.
+- Added Wave Comet geometry assertions for outside-liquid clipping, 110° sweep, 6dp halo, 3dp tail, 3.5dp head radius, 6dp glow, and outer-ring orbit radius.
+- Added Capsule Segmen profile tests for six rising bubbles, radius/alpha ranges, upward movement, smooth meniscus fade, surface ripple, and disabled bubbles in Statis.
+- Preserved assertions for Capsule Sweep, vertical Comet beam, and Statis behavior.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Source/diff crosscheck: PASS — only `BatteryGaugeSpec.kt`, `BatteryGaugeView.kt`, and `BatteryGaugeSpecTest.kt` changed in the source/test implementation commit; the Comet draw block is structurally after the liquid clip block, and the Wave parent no longer applies a circular clip.
+- Run #761 (`45808460676`) on intermediate source/test HEAD `3d3517ff10b1a0b0bd744da5ef30ccd5f1e53e36`: Kotlin compile and `assembleDebug` succeeded; unit tests found one stale 100° Comet assertion. The test expectation was corrected to 110°.
+- Run #762 (`45808962585`) on source/test HEAD `30b9054a3bc635e103c4b10bd534709f7cb4fe7b`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15110503341` (ZIP SHA-256 `a337a04a5a6cefc614fab29579d363260ca8bcb976b7eff73aa23c32224cc26e`); unit-test report Artifact ID `15110793351`. [Run #762](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45808962585).
+- Physical-device QA: NOT RUN.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 hotfix: theme-following gauge accent, translucent Wave rear layer, shared info popup surface
 
 ### Changed

@@ -1,3 +1,21 @@
+## 2026-11-26 — PR #12 final polish: Wave phase, outer Comet, Capsule bubbles
+
+- [x] Wave rear direction is `-1f`; normalized phase 0 and 1 have equivalent sine/cosine positions at wrap.
+- [x] Wave animation cycle is 3,000ms; non-Wave gauge cycle remains 2,400ms.
+- [x] Wave fill and meniscus paths are sampled at a maximum 2dp interval.
+- [x] Wave Comet is drawn after the inner liquid clip, with the parent circular clip removed and 6dp canvas bleed to preserve the outer glow.
+- [x] Wave Comet orbit uses `radius - rimStroke / 2`; halo is 110° / 6dp / 0.28 alpha, tail is 110° / 3dp, and head is 3.5dp with 6dp radial glow.
+- [x] Capsule Segmen renders exactly six rising bubbles with 1.6–3.0dp radii, 0.28–0.58 base alpha, smooth meniscus fade, and surface ripple.
+- [x] Capsule Sweep, Capsule Comet vertical beam, and Capsule Statis remain separate; Statis disables the bubble animation. Wave Segmen retains its seven-bubble renderer.
+- [x] Unit tests cover Wave phase wrap, cycle duration, sample spacing, Comet geometry/clip contract, and Capsule bubble profile/fade/ripple/static behavior.
+- [x] Source/test diff review: only `BatteryGaugeSpec.kt`, `BatteryGaugeView.kt`, and `BatteryGaugeSpecTest.kt` changed in the implementation/test commit.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
+- [x] Source/test HEAD Run #762 (`45808962585`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. APK Artifact ID `15110503341`; unit-test report Artifact ID `15110793351`.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #12 merge: HOLD — no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 hotfix: theme accent, translucent Wave, shared info popups
 
 - [x] `BatteryGaugeView` resolves its main color from `MaterialTheme.colorScheme.primary`; charging state does not select semantic charging green.
