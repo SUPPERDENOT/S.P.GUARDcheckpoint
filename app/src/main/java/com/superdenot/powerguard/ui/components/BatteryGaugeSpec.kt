@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.lerp
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
 import kotlin.math.roundToInt
 import kotlin.math.min
+import kotlin.math.ceil
 
 enum class BatteryGaugeModel(val key: String, val label: String) {
     ARC("arc", "Busur"),
@@ -93,9 +94,13 @@ fun capsuleInnerGeometry(
 
 const val WAVE_AMPLITUDE_DP = 6.5f
 const val WAVE_CYCLES = 1.6f
+const val WAVE_CYCLE_DURATION_MILLIS = 3_000
+const val DEFAULT_GAUGE_CYCLE_DURATION_MILLIS = 2_400
+const val WAVE_SAMPLE_STEP_DP = 2f
+const val WAVE_RIM_STROKE_DP = 1.5f
 const val WAVE_REAR_PHASE_OFFSET_DEGREES = 120f
 const val WAVE_REAR_PHASE_OFFSET = 2.0943952f
-const val WAVE_REAR_DIRECTION = -1.15f
+const val WAVE_REAR_DIRECTION = -1f
 const val WAVE_REAR_AMPLITUDE_SCALE = 1.12f
 const val WAVE_REAR_FILL_ALPHA = 0.40f
 const val WAVE_FRONT_FILL_ALPHA = 0.92f
@@ -105,7 +110,19 @@ const val WAVE_MENISCUS_HIGHLIGHT_BLEND = 0.35f
 const val WAVE_MENISCUS_ALPHA = 0.75f
 const val WAVE_MENISCUS_STROKE_DP = 1.2f
 const val WAVE_BUBBLE_COUNT = 7
-const val WAVE_COMET_TAIL_DEGREES = 100f
+const val WAVE_COMET_TAIL_DEGREES = 110f
+const val WAVE_COMET_HALO_STROKE_DP = 6f
+const val WAVE_COMET_TAIL_STROKE_DP = 3f
+const val WAVE_COMET_HEAD_RADIUS_DP = 3.5f
+const val WAVE_COMET_GLOW_RADIUS_DP = 6f
+const val WAVE_COMET_TAIL_HIGHLIGHT_BLEND = 0.25f
+const val WAVE_COMET_HEAD_HIGHLIGHT_BLEND = 0.48f
+
+const val CAPSULE_BUBBLE_COUNT = 6
+const val CAPSULE_BUBBLE_MIN_RADIUS_DP = 1.6f
+const val CAPSULE_BUBBLE_MAX_RADIUS_DP = 3f
+const val CAPSULE_BUBBLE_MIN_ALPHA = 0.28f
+const val CAPSULE_BUBBLE_MAX_ALPHA = 0.58f
 
 data class WaveLayerColors(
     val rear: Color,
@@ -124,8 +141,94 @@ fun waveLayerColors(accentColor: Color): WaveLayerColors = WaveLayerColors(
         .copy(alpha = WAVE_MENISCUS_ALPHA)
 )
 
-fun waveRearPhase(frontPhase: Float): Float =
-    frontPhase * WAVE_REAR_DIRECTION + WAVE_REAR_PHASE_OFFSET
+/** Converts a normalized phase into a reverse-moving rear phase; 0 and 1 are wrap-equivalent. */
+fun waveRearPhase(phaseFraction: Float): Float =
+    phaseFraction.coerceIn(0f, 1f) * WAVE_REAR_DIRECTION * (2f * Math.PI.toFloat()) +
+        WAVE_REAR_PHASE_OFFSET
+
+fun waveSampleCount(widthPx: Float, sampleStepPx: Float): Int =
+    if (widthPx <= 0f || sampleStepPx <= 0f) 1
+    else ceil(widthPx / sampleStepPx).toInt().coerceAtLeast(1)
+
+fun waveCometOrbitRadius(radiusPx: Float, rimStrokePx: Float): Float =
+    (radiusPx - rimStrokePx / 2f).coerceAtLeast(0f)
+
+data class CapsuleBubbleSpec(
+    val xFraction: Float,
+    val riseFraction: Float,
+    val radiusDp: Float,
+    val alpha: Float
+)
+
+fun capsuleBubbleSpec(index: Int, phaseFraction: Float): CapsuleBubbleSpec {
+    val safeIndex = index.coerceIn(0, CAPSULE_BUBBLE_COUNT - 1)
+    val xFraction = when (safeIndex) {
+        0 -> 0.26f
+        1 -> 0.70f
+        2 -> 0.43f
+        3 -> 0.78f
+        4 -> 0.22f
+        else -> 0.57f
+    }
+    val radius = when (safeIndex % 3) {
+        0 -> CAPSULE_BUBBLE_MIN_RADIUS_DP
+        1 -> 2.3f
+        else -> CAPSULE_BUBBLE_MAX_RADIUS_DP
+    }
+    val alpha = when (safeIndex % 4) {
+        0 -> CAPSULE_BUBBLE_MIN_ALPHA
+        1 -> 0.38f
+        2 -> 0.48f
+        else -> CAPSULE_BUBBLE_MAX_ALPHA
+    }
+    val staggeredPhase = (phaseFraction.coerceIn(0f, 1f) + safeIndex / CAPSULE_BUBBLE_COUNT.toFloat()) % 1f
+    return CapsuleBubbleSpec(xFraction, staggeredPhase, radius, alpha)
+}
+
+/** Smoothly fades bubbles into the meniscus during the final 28% of their rise. */
+fun capsuleBubbleSurfaceFade(riseFraction: Float): Float {
+    val t = ((riseFraction.coerceIn(0f, 1f) - 0.72f) / 0.28f).coerceIn(0f, 1f)
+    val smooth = t * t * (3f - 2f * t)
+    return 1f - smooth
+}
+
+fun capsuleBubbleRippleProgress(riseFraction: Float): Float {
+    val t = ((riseFraction.coerceIn(0f, 1f) - 0.72f) / 0.28f).coerceIn(0f, 1f)
+    return t * t * (3f - 2f * t)
+}
+
+data class CapsuleAnimationFeatures(
+    val risingBubbles: Boolean,
+    val upwardSweep: Boolean,
+    val verticalComet: Boolean,
+    val animatedSurface: Boolean
+)
+
+fun capsuleAnimationFeatures(animation: ChargingArcAnimation): CapsuleAnimationFeatures =
+    CapsuleAnimationFeatures(
+        risingBubbles = animation == ChargingArcAnimation.SEGMENTED_FLOW,
+        upwardSweep = animation == ChargingArcAnimation.ENERGY_SWEEP,
+        verticalComet = animation == ChargingArcAnimation.COMET_HEAD,
+        animatedSurface = animation != ChargingArcAnimation.STATIC
+    )
+
+data class WaveCometStyle(
+    val clipToLiquid: Boolean,
+    val tailSweepDegrees: Float,
+    val haloStrokeDp: Float,
+    val tailStrokeDp: Float,
+    val headRadiusDp: Float,
+    val glowRadiusDp: Float
+)
+
+val WAVE_COMET_STYLE = WaveCometStyle(
+    clipToLiquid = false,
+    tailSweepDegrees = WAVE_COMET_TAIL_DEGREES,
+    haloStrokeDp = WAVE_COMET_HALO_STROKE_DP,
+    tailStrokeDp = WAVE_COMET_TAIL_STROKE_DP,
+    headRadiusDp = WAVE_COMET_HEAD_RADIUS_DP,
+    glowRadiusDp = WAVE_COMET_GLOW_RADIUS_DP
+)
 
 data class WaveAnimationFeatures(
     val animatedSurface: Boolean,

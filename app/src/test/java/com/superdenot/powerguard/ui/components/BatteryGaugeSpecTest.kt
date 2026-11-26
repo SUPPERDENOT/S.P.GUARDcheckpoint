@@ -10,6 +10,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.cos
 
 class BatteryGaugeSpecTest {
     private val palette = BatterySemanticColors(
@@ -164,7 +166,14 @@ class BatteryGaugeSpecTest {
         assertEquals(1.6f, WAVE_CYCLES, 0f)
         assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
         assertEquals(2.0943952f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
-        assertEquals(-1.15f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(3_000, WAVE_CYCLE_DURATION_MILLIS)
+        assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
+        assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
+        assertEquals(6f, WAVE_COMET_HALO_STROKE_DP, 0f)
+        assertEquals(3f, WAVE_COMET_TAIL_STROKE_DP, 0f)
+        assertEquals(3.5f, WAVE_COMET_HEAD_RADIUS_DP, 0f)
+        assertEquals(6f, WAVE_COMET_GLOW_RADIUS_DP, 0f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
         assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
@@ -263,7 +272,11 @@ class BatteryGaugeSpecTest {
     fun waveRendererUsesSemiTransparentAccentRearAndCounterDirectionFrontAndMeniscus() {
         val accent = Color(0xFF12B886)
         val layers = waveLayerColors(accent)
-        assertEquals(-1.15f, waveRearPhase(1f) - waveRearPhase(0f), 0.000001f)
+        val rearAtZero = waveRearPhase(0f)
+        val rearAtWrap = waveRearPhase(1f)
+        assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(sin(rearAtZero), sin(rearAtWrap), 0.000001f)
+        assertEquals(cos(rearAtZero), cos(rearAtWrap), 0.000001f)
         assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
         assertEquals(1.12f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
         assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
@@ -276,6 +289,45 @@ class BatteryGaugeSpecTest {
         assertEquals(0.40f, layers.rear.alpha, 0f)
         assertNotEquals(Color.White, layers.meniscus)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
+        assertEquals(50, waveSampleCount(100f, 2f))
+        assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
+    }
+
+    @Test
+    fun waveCometUsesOuterGlassOrbitAndUnclippedThreeLayerGeometry() {
+        assertFalse(WAVE_COMET_STYLE.clipToLiquid)
+        assertEquals(110f, WAVE_COMET_STYLE.tailSweepDegrees, 0f)
+        assertEquals(6f, WAVE_COMET_STYLE.haloStrokeDp, 0f)
+        assertEquals(3f, WAVE_COMET_STYLE.tailStrokeDp, 0f)
+        assertEquals(3.5f, WAVE_COMET_STYLE.headRadiusDp, 0f)
+        assertEquals(6f, WAVE_COMET_STYLE.glowRadiusDp, 0f)
+        assertEquals(49.25f, waveCometOrbitRadius(50f, 1.5f), 0f)
+    }
+
+    @Test
+    fun capsuleSegmentProfileUsesSixRisingBubblesAndStaticKeepsThemDisabled() {
+        val segmented = capsuleAnimationFeatures(ChargingArcAnimation.SEGMENTED_FLOW)
+        val static = capsuleAnimationFeatures(ChargingArcAnimation.STATIC)
+        assertEquals(6, CAPSULE_BUBBLE_COUNT)
+        assertTrue(segmented.risingBubbles)
+        assertTrue(segmented.animatedSurface)
+        assertFalse(static.risingBubbles)
+        assertFalse(static.animatedSurface)
+        assertTrue(capsuleAnimationFeatures(ChargingArcAnimation.ENERGY_SWEEP).upwardSweep)
+        assertTrue(capsuleAnimationFeatures(ChargingArcAnimation.COMET_HEAD).verticalComet)
+
+        val first = capsuleBubbleSpec(0, 0.2f)
+        val later = capsuleBubbleSpec(0, 0.4f)
+        assertTrue(later.riseFraction > first.riseFraction)
+        assertTrue((0 until CAPSULE_BUBBLE_COUNT).all { index ->
+            val bubble = capsuleBubbleSpec(index, 0.35f)
+            bubble.radiusDp in CAPSULE_BUBBLE_MIN_RADIUS_DP..CAPSULE_BUBBLE_MAX_RADIUS_DP &&
+                bubble.alpha in CAPSULE_BUBBLE_MIN_ALPHA..CAPSULE_BUBBLE_MAX_ALPHA
+        })
+        assertEquals(1f, capsuleBubbleSurfaceFade(0.72f), 0f)
+        assertEquals(0f, capsuleBubbleSurfaceFade(1f), 0f)
+        assertEquals(0f, capsuleBubbleRippleProgress(0.72f), 0f)
+        assertEquals(1f, capsuleBubbleRippleProgress(1f), 0f)
     }
 
     @Test
