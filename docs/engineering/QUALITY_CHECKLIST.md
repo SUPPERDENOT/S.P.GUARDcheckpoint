@@ -13,7 +13,7 @@
 - [x] Full line-by-line self-crosscheck: PASS — reviewed all nine changed paths and verified preview forceAnimate, active Overview charging-state forwarding, all theme container assignments, popup surfaces, and badge layout.
 - [x] Run #726 on intermediate HEAD 326c568b1abdfa9d632bbea76bd87362906fe36b: Anti-Slop SUCCESS; compile failed on nullable WaveGauge phase parameter. Corrected in the following source commit.
 - [x] Run #727 (45766872823) on source/test HEAD ee39dae4183115ee1d23d1fc967438d05b578fa2: SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload. APK Artifact ID 15092277556; unit-test report Artifact ID 15092262518.
-- [ ] Final documentation-head CI after this checklist/changelog closeout: pending; exact result and latest APK Artifact ID are recorded in the final delivery report.
+- [x] Run #729 (45767209936) on documentation HEAD 18c13642e7477400bef96cb1548518b3bfa805e6: first attempt had one intermittent failure in unrelated NotificationVisualRendererTest line 636; failed job rerun on the same commit passed. Final workflow SUCCESS — Anti-Slop, testDebugUnitTest, assembleDebug, Upload APK, and unit-test report upload. APK Artifact ID 15092194042; test report Artifact ID 15092149242.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
