@@ -1,3 +1,25 @@
+## 2026-11-26 — PR #12 final polish: Blok orientation, Capsule beam, Wave mode separation, Charging label
+
+### Changed
+- Blok's 24 radial segments now start at 90° (6 o'clock) and advance by positive 15° increments clockwise. The first 12 segments cover the left semicircle from bottom through 9 o'clock to top; Sweep, Segmen, and Comet heads use the same angle helper.
+- Capsule Comet now renders a vertical, bottom-to-top energy beam with a narrow bright core, soft glow, and a concentrated flash along the liquid meniscus; the previous floating circular head was removed.
+- Wave animation modes now have distinct render paths: Sweep adds a diagonal lower-left to upper-right light blade; Segmen adds pulsing horizontal luminous strata rising through the liquid; Comet orbits the glass perimeter with a 90° fading tail and 3dp stroke; Statis keeps the wave phase fixed and disables all moving effects.
+- Charging source capability copy is shortened to "Kemampuan sumber". Both adjacent info affordances are 24dp circular clickable Boxes rather than 48dp IconButtons, retaining button semantics and descriptive content labels.
+
+### Tests
+- Added assertions for Blok's 90° start and clockwise left-side progression, Capsule vertical-beam path bounds, distinct feature flags for all four Wave modes, and the exact "Kemampuan sumber" label.
+- Existing Wave fill, dual-layer, thermal/visibility animation gates, and gauge percentage tests remain.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring channel/P0 lifecycle, RECOVERY_HOLD, applicationId, package, SDK, Gradle dependencies, app version, or build number changes.
+
+### Verification
+- Source implementation and documentation updated on the approved feature branch; exact-HEAD CI and debug APK artifact are pending.
+- Physical-device QA on itel P55: NOT RUN.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-25 — PR #12 final visual pass: four gauge models, live accent preview, solid info dialogs
 
 ### Changed
