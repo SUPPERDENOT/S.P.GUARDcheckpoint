@@ -357,17 +357,38 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleGauge(
                 }
                 ChargingArcAnimation.COMET_HEAD -> {
                     val cometY = capsuleCometY(fillTop, innerBottom, phaseFraction)
-                    val tailLength = (innerBottom - fillTop).coerceAtMost(22.dp.toPx())
+                    val tailBottom = capsuleCometBeamTailBottom(cometY, innerBottom, 28.dp.toPx())
+                    val beamHeight = (tailBottom - cometY).coerceAtLeast(1.dp.toPx())
+                    val centerX = size.width / 2f
+                    val glowWidth = 8.dp.toPx()
+                    val coreWidth = 2.2.dp.toPx()
                     drawRect(
                         Brush.verticalGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.92f), Color.White.copy(alpha = 0.36f), Color.Transparent),
+                            colors = listOf(Color.White.copy(alpha = 0.82f), color.copy(alpha = 0.66f), Color.Transparent),
                             startY = cometY,
-                            endY = (cometY + tailLength).coerceAtLeast(cometY + 1f)
+                            endY = tailBottom.coerceAtLeast(cometY + 1f)
                         ),
-                        Offset(innerLeft + innerWidth * 0.22f, cometY),
-                        Size(innerWidth * 0.56f, tailLength)
+                        Offset(centerX - glowWidth / 2f, cometY),
+                        Size(glowWidth, beamHeight)
                     )
-                    drawCircle(Color.White, 2.8.dp.toPx(), Offset(size.width / 2f, cometY))
+                    drawRect(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.White, Color.White.copy(alpha = 0.72f), Color.Transparent),
+                            startY = cometY,
+                            endY = tailBottom.coerceAtLeast(cometY + 1f)
+                        ),
+                        Offset(centerX - coreWidth / 2f, cometY),
+                        Size(coreWidth, beamHeight)
+                    )
+                    // The rising beam meets the liquid meniscus with a concentrated flash.
+                    drawLine(color.copy(alpha = 0.72f),
+                        Offset(innerLeft + 2.dp.toPx(), fillTop),
+                        Offset(innerLeft + innerWidth - 2.dp.toPx(), fillTop),
+                        strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
+                    drawLine(Color.White.copy(alpha = 0.96f),
+                        Offset(innerLeft + 3.dp.toPx(), fillTop),
+                        Offset(innerLeft + innerWidth - 3.dp.toPx(), fillTop),
+                        strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round)
                 }
                 ChargingArcAnimation.STATIC -> Unit
             }
@@ -426,7 +447,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSegmentedGauge(
     }
 
     if (litCount > 0 && (animation == ChargingArcAnimation.COMET_HEAD || animation == ChargingArcAnimation.ENERGY_SWEEP)) {
-        val headAngle = Math.toRadians((-90f + (headIndex + 0.5f) * SEGMENTED_GAUGE_STEP_DEGREES).toDouble())
+        val headAngle = Math.toRadians(
+            (segmentedGaugeStartAngle(headIndex) + SEGMENTED_GAUGE_STEP_DEGREES / 2f).toDouble()
+        )
         val radius = diameter / 2f
         val head = Offset(
             size.width / 2f + cos(headAngle).toFloat() * radius,
@@ -459,6 +482,7 @@ private fun WaveGauge(
     animateEffects: Boolean,
     isCharging: Boolean
 ) {
+    val features = waveAnimationFeatures(animation)
     Box(Modifier.fillMaxSize().clip(CircleShape), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val diameter = size.minDimension
@@ -470,24 +494,21 @@ private fun WaveGauge(
             val circle = Path().apply {
                 addOval(androidx.compose.ui.geometry.Rect(left, top, left + diameter, top + diameter))
             }
-            val wavePhase = if (animateEffects) phase?.value ?: 0f else 0f
+            val wavePhase = if (animateEffects && features.animatedSurface) phase?.value ?: 0f else 0f
+            val phaseFraction = gaugeAnimationPhaseFraction(wavePhase)
             val liquidProgress = waveLiquidFillLevel(progress, isCharging, animation)
+            val fillTop = size.height * (1f - liquidProgress)
 
             drawCircle(trackColor, diameter / 2f, center)
             clipPath(circle) {
                 val rearWaveOffset = -size.height * 0.012f * sin(liquidProgress * PI).toFloat()
                 val rearWave = waveFillPath(
                     size.width, size.height, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
-                    amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
-                    verticalOffset = rearWaveOffset
+                    amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE, verticalOffset = rearWaveOffset
                 )
                 drawPath(rearWave, gaugeColor.copy(alpha = WAVE_REAR_FILL_ALPHA))
 
-                val frontWave = waveFillPath(
-                    size.width, size.height, liquidProgress, wavePhase,
-                    amplitudeScale = 1f
-                )
-                val fillTop = size.height * (1f - liquidProgress)
+                val frontWave = waveFillPath(size.width, size.height, liquidProgress, wavePhase)
                 drawPath(
                     frontWave,
                     Brush.verticalGradient(
@@ -500,46 +521,101 @@ private fun WaveGauge(
                         endY = size.height
                     )
                 )
-                val crest = waveCrestPath(
-                    size.width, size.height, liquidProgress, wavePhase,
-                    amplitudeScale = 1f
-                )
-                drawPath(crest, Color.White.copy(alpha = 0.9f), style = Stroke(1.25.dp.toPx(), cap = StrokeCap.Round))
-                drawArc(
-                    Brush.sweepGradient(
-                        listOf(Color.Transparent, Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.06f), Color.Transparent)
-                    ),
-                    -150f, 105f, false, circleTopLeft, circleSize,
-                    style = Stroke(2.4.dp.toPx(), cap = StrokeCap.Round)
-                )
-                drawArc(
-                    Color.White.copy(alpha = 0.16f),
-                    28f, 58f, false, circleTopLeft, circleSize,
-                    style = Stroke(1.2.dp.toPx(), cap = StrokeCap.Round)
-                )
+                val crest = waveCrestPath(size.width, size.height, liquidProgress, wavePhase)
+                drawPath(crest, Color.White.copy(alpha = 0.9f),
+                    style = Stroke(1.25.dp.toPx(), cap = StrokeCap.Round))
+
+                // Sweep: a diagonal light blade travels from lower-left to upper-right.
+                // Segmen: horizontal luminous strata rise through the liquid column.
+                if (animateEffects && liquidProgress > 0f &&
+                    (features.diagonalSweep || features.horizontalStrata)
+                ) {
+                    clipPath(frontWave) {
+                        if (features.diagonalSweep) {
+                            val sweepCenterX = -diameter * 0.25f + diameter * 1.5f * phaseFraction
+                            val start = Offset(sweepCenterX - diameter * 0.18f, fillTop + diameter * 0.28f)
+                            val end = Offset(sweepCenterX + diameter * 0.18f, fillTop - diameter * 0.12f)
+                            drawLine(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = 0.88f),
+                                        gaugeColor.copy(alpha = 0.72f),
+                                        Color.Transparent
+                                    ),
+                                    start = start,
+                                    end = end
+                                ),
+                                start = start,
+                                end = end,
+                                strokeWidth = 7.dp.toPx(),
+                                cap = StrokeCap.Round
+                            )
+                        }
+                        if (features.horizontalStrata) {
+                            val availableHeight = (size.height - fillTop).coerceAtLeast(0f)
+                            val spacing = 11.dp.toPx()
+                            if (availableHeight > 0f) {
+                                val lineCount = (availableHeight / spacing).toInt() + 2
+                                repeat(lineCount) { index ->
+                                    val y = size.height -
+                                        ((phaseFraction * availableHeight + index * spacing) % availableHeight)
+                                    if (y >= fillTop && y <= size.height) {
+                                        drawLine(gaugeColor.copy(alpha = 0.52f),
+                                            Offset(left + diameter * 0.16f, y),
+                                            Offset(left + diameter * 0.84f, y),
+                                            strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
+                                        drawLine(Color.White.copy(alpha = 0.82f),
+                                            Offset(left + diameter * 0.18f, y),
+                                            Offset(left + diameter * 0.82f, y),
+                                            strokeWidth = 1.1.dp.toPx(), cap = StrokeCap.Round)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Fixed glass reflection only; animated sweep is reserved for Sweep mode.
+                drawArc(Color.White.copy(alpha = 0.16f), 28f, 58f, false,
+                    circleTopLeft, circleSize, style = Stroke(1.2.dp.toPx(), cap = StrokeCap.Round))
             }
 
-            if (animateEffects && animation != ChargingArcAnimation.STATIC) {
-                val orbitStart = -90f + wavePhase * 57.29578f
+            // Comet: a crisp 90-degree energy tail orbits the outer glass ring.
+            if (animateEffects && features.outerComet) {
+                val orbitStart = -90f + phaseFraction * 360f
+                val orbitSweep = 90f
                 drawArc(
                     Brush.sweepGradient(
-                        listOf(Color.Transparent, gaugeColor.copy(alpha = 0.68f), Color.White.copy(alpha = 0.92f), Color.Transparent)
+                        listOf(Color.Transparent, gaugeColor.copy(alpha = 0.56f),
+                            Color.White.copy(alpha = 0.98f), Color.Transparent)
                     ),
-                    orbitStart, 30f, false, circleTopLeft, circleSize,
-                    style = Stroke(1.8.dp.toPx(), cap = StrokeCap.Round)
+                    orbitStart, orbitSweep, false, circleTopLeft, circleSize,
+                    style = Stroke(3.dp.toPx(), cap = StrokeCap.Round)
                 )
+                val headAngle = Math.toRadians((orbitStart + orbitSweep).toDouble())
+                val head = Offset(
+                    center.x + cos(headAngle).toFloat() * (diameter / 2f),
+                    center.y + sin(headAngle).toFloat() * (diameter / 2f)
+                )
+                drawCircle(
+                    Brush.radialGradient(
+                        listOf(Color.White.copy(alpha = 0.82f), gaugeColor.copy(alpha = 0.42f), Color.Transparent),
+                        center = head, radius = 3.dp.toPx() * 2.6f
+                    ),
+                    radius = 3.dp.toPx() * 2.6f, center = head
+                )
+                drawCircle(Color.White, 1.25.dp.toPx(), head)
             }
 
             val borderStroke = 1.5.dp.toPx()
             drawCircle(
                 Brush.linearGradient(
                     listOf(Color.White.copy(alpha = 0.72f), borderColor.copy(alpha = 0.72f), Color.White.copy(alpha = 0.28f)),
-                    start = Offset(left, top),
-                    end = Offset(left + diameter, top + diameter)
+                    start = Offset(left, top), end = Offset(left + diameter, top + diameter)
                 ),
                 (diameter / 2f - borderStroke / 2f).coerceAtLeast(0f),
-                center,
-                style = Stroke(borderStroke)
+                center, style = Stroke(borderStroke)
             )
         }
         GaugePercentageLabel(percentageLabel, 21.sp)
