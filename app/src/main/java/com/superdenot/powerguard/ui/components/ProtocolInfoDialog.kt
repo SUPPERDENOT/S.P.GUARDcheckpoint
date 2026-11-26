@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.superdenot.powerguard.domain.model.ProtocolExplanationCatalog
 import com.superdenot.powerguard.ui.components.PowerActionButton
@@ -40,6 +41,16 @@ internal const val INFO_BADGE_DIAMETER_DP = 16f
 internal const val INFO_BADGE_ICON_DIAMETER_DP = 11f
 internal const val INFO_BADGE_TOUCH_TARGET_DP = 48f
 internal const val INFO_BADGE_GAP_DP = 4f
+internal const val INFO_DIALOG_HEADER_TITLE_SP = 18f
+internal const val INFO_DIALOG_HEADER_GAP_DP = 2f
+internal const val INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP = 16f
+internal const val INFO_DIALOG_HEADER_TOP_PADDING_DP = 14f
+internal const val INFO_DIALOG_HEADER_BOTTOM_PADDING_DP = 10f
+internal const val INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP = 8f
+internal const val INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP = 16f
+internal const val INFO_DIALOG_FOOTER_TOP_PADDING_DP = 8f
+internal const val INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP = 12f
+internal const val INFO_DIALOG_BUTTON_HEIGHT_DP = 36f
 
 @Composable
 internal fun InfoBadge(
@@ -89,16 +100,28 @@ fun ProtocolInfoDialog(
             shadowElevation = 8.dp
         ) {
             Column(
-                Modifier.fillMaxWidth().heightIn(max = 560.dp).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                Modifier.fillMaxWidth().heightIn(max = 560.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(explanation.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Column(
+                    Modifier.fillMaxWidth().padding(
+                        horizontal = INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP.dp,
+                        top = INFO_DIALOG_HEADER_TOP_PADDING_DP.dp,
+                        bottom = INFO_DIALOG_HEADER_BOTTOM_PADDING_DP.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(INFO_DIALOG_HEADER_GAP_DP.dp)
+                ) {
+                    Text(
+                        explanation.title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = INFO_DIALOG_HEADER_TITLE_SP.sp),
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Text(protocolLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                        .heightIn(max = 420.dp)
+                        .padding(vertical = INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text("Klasifikasi sumber", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -114,10 +137,18 @@ fun ProtocolInfoDialog(
                     Text(ProtocolExplanationCatalog.comparisonGuidance, style = MaterialTheme.typography.bodyMedium)
                 }
                 androidx.compose.foundation.layout.Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth().padding(
+                        horizontal = INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP.dp,
+                        top = INFO_DIALOG_FOOTER_TOP_PADDING_DP.dp,
+                        bottom = INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP.dp
+                    ),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
                 ) {
-                    PowerActionButton(onClick = onDismiss, clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS) {
+                    PowerActionButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.height(INFO_DIALOG_BUTTON_HEIGHT_DP.dp),
+                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS
+                    ) {
                         Text("Mengerti")
                     }
                 }
