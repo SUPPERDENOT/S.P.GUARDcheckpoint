@@ -1,3 +1,26 @@
+## 2026-11-26 — Midnight eye-comfort palette recalibration
+
+### Changed
+- Recalibrated all four Midnight accents (Ungu/Violet, Pink, Cyan, Green) to the specified low-saturation obsidian-slate backgrounds, surfaces, five Material 3 surface-container levels, outlineVariant, primary, and onPrimary tokens.
+- Standardized Midnight foreground tokens to onBackground/onSurface `#E6EAF2` and onSurfaceVariant `#9AA4B8`.
+- Centralized the Midnight Material 3 ColorScheme factory so the live theme and unit tests consume the same resolved token set. Existing BatteryGauge models, active choice pills, action buttons, and `InfoDialogSurface` continue to resolve their colors from MaterialTheme tokens; no component-specific color overrides were introduced.
+
+### Tests
+- Expanded theme tests to assert every requested token for all four Midnight variants.
+- Added WCAG relative-luminance contrast checks (minimum 4.5:1) for onPrimary/primary, onSurface/surface, onSurface/background, and onSurfaceVariant/surface.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition or sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Source-level self-crosscheck: PASS — compare against base `54ca815e7c5f6b55c53846736c7ad2833cc401b4` shows exactly four changed paths: `Theme.kt`, `InfoDialogVisualTokensTest.kt`, `CHANGELOG.md`, and `QUALITY_CHECKLIST.md`. No Room, sensor/sampling, calibration, service/lifecycle, RECOVERY_HOLD, applicationId, Gradle/dependency, SDK, or version/build-number path changed.
+- WCAG contrast calculation: PASS — minimum observed ratios are 6.03:1 for onPrimary/primary, 6.75:1 for onSurfaceVariant/surface, and 14.03:1 for onSurface/surface or background; all exceed 4.5:1.
+- GitHub Actions Run #768 (`45856063932`) on source/test HEAD `0ea67480f9c4da6bad86ffde2b18e6d845383d06`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. Debug APK Artifact ID `15136412249` (SHA-256 `50c114313fe7e89be1042494ce26ecd1d21ba5e7f7ae2b0f3511bd54ce3b8660`); unit-test report Artifact ID `15136557090`. [Run #768](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45856063932).
+- Final documentation-closeout HEAD CI: pending at this checklist/changelog commit; exact final HEAD result and newest APK artifact are recorded in the PR delivery report.
+- Physical-device visual QA: not run.
+
+---
+
 ## 2026-11-26 — PR #12 final polish: Wave phase continuity, unclipped outer Comet, Capsule rising bubbles
 
 ### Changed
