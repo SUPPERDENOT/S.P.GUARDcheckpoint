@@ -1,3 +1,27 @@
+## 2026-11-26 — PR #13: four independent theme packs
+
+### Changed
+- Added four independent theme packs after Basic and Midnight: **AMOLED Pure**, **EV Cockpit**, **Nordic Frost**, and **Monochrome**. Theme switching retains the selected gauge model and charging animation.
+- AMOLED Pure uses true-black background/surface, five explicit OLED container levels (#050505 to #181818), a strong outline variant, and Amber Emas / Putih Bersih accents with dark high-contrast onPrimary values.
+- EV Cockpit adds a slate/navy instrument palette with Electric Sky / Volt Lime. Nordic Frost adds a cool ice/blue-grey light palette with Cobalt Steel / Teal. Monochrome provides a grayscale-only palette that follows system light/dark mode.
+- Moved all six package choices into a compact 2-column, 3-row grid in Konfigurasi Tema & Gauge. Package/accent edits feed the live preview immediately; only Simpan persists the draft.
+- All five surfaceContainer roles are explicitly assigned for each new palette. The four gauge models and four animation profiles continue using MaterialTheme primary for gauge accent; semantic charging/thermal/anomaly colors remain separate for diagnostic indicators.
+
+### Tests
+- Added persistence round-trip and unknown-key fallback tests for all new packs and accent variants.
+- Added theme summary/live-preview tests, gauge accent matrix coverage, and palette tests for WCAG AA primary/onPrimary contrast, five distinct container levels, and exclusion of the default M3 #2B2930 container fallback.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition/sampling cadence, calibration default 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Source/diff self-crosscheck: pending exact branch review.
+- Unit tests, assembleDebug, and Anti-Slop UI Audit Gate: pending exact-head PR CI.
+- 360dp layout geometry: pending final source review; physical itel P55 QA NOT RUN.
+- PR #13 will target main and remain unmerged.
+
+---
+
 ## 2026-11-26 — PR #12 final polish: Wave phase continuity, unclipped outer Comet, Capsule rising bubbles
 
 ### Changed

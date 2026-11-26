@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -110,6 +111,145 @@ internal fun midnightSurfaceContainerPalette(accent: MidnightAccent): SurfaceCon
             Color(0xFF06120C), Color(0xFF0B1C13), Color(0xFF11291D), Color(0xFF183728), Color(0xFF204634)
         )
     }
+
+private val AmoledSurfaceContainers = SurfaceContainerPalette(
+    Color(0xFF050505), Color(0xFF090909), Color(0xFF0D0D0D),
+    Color(0xFF131313), Color(0xFF181818)
+)
+
+internal fun amoledPureColorScheme(accent: AmoledPureAccent): ColorScheme {
+    val primary = when (accent) {
+        AmoledPureAccent.AMBER_GOLD -> Color(0xFFD6A84B)
+        AmoledPureAccent.CLEAN_WHITE -> Color(0xFFF5F5F5)
+    }
+    val onPrimary = when (accent) {
+        AmoledPureAccent.AMBER_GOLD -> Color(0xFF17120A)
+        AmoledPureAccent.CLEAN_WHITE -> Color(0xFF111111)
+    }
+    return darkColorScheme(
+        surfaceContainerLowest = AmoledSurfaceContainers.lowest,
+        surfaceContainerLow = AmoledSurfaceContainers.low,
+        surfaceContainer = AmoledSurfaceContainers.container,
+        surfaceContainerHigh = AmoledSurfaceContainers.high,
+        surfaceContainerHighest = AmoledSurfaceContainers.highest,
+        primary = primary, onPrimary = onPrimary,
+        primaryContainer = primary.copy(alpha = 0.20f),
+        onPrimaryContainer = Color(0xFFF5F5F5),
+        secondary = Color(0xFFC7C7C7), onSecondary = Color(0xFF111111),
+        tertiary = Color(0xFFD6A84B), error = CrimsonAnomaly,
+        background = Color(0xFF000000), onBackground = Color(0xFFF5F5F5),
+        surface = Color(0xFF000000), onSurface = Color(0xFFF5F5F5),
+        surfaceVariant = Color(0xFF101010), onSurfaceVariant = Color(0xFFC2C2C2),
+        outline = Color(0xFF777777), outlineVariant = Color(0xFF5A5A5A)
+    )
+}
+
+private val EvCockpitSurfaceContainers = SurfaceContainerPalette(
+    Color(0xFF0D1723), Color(0xFF12202E), Color(0xFF182838),
+    Color(0xFF203246), Color(0xFF293E52)
+)
+
+internal fun evCockpitColorScheme(accent: EvCockpitAccent): ColorScheme {
+    val primary = when (accent) {
+        EvCockpitAccent.ELECTRIC_SKY -> Color(0xFF63C8F2)
+        EvCockpitAccent.VOLT_LIME -> Color(0xFFC4E86B)
+    }
+    val onPrimary = when (accent) {
+        EvCockpitAccent.ELECTRIC_SKY -> Color(0xFF06202B)
+        EvCockpitAccent.VOLT_LIME -> Color(0xFF1A2508)
+    }
+    return darkColorScheme(
+        surfaceContainerLowest = EvCockpitSurfaceContainers.lowest,
+        surfaceContainerLow = EvCockpitSurfaceContainers.low,
+        surfaceContainer = EvCockpitSurfaceContainers.container,
+        surfaceContainerHigh = EvCockpitSurfaceContainers.high,
+        surfaceContainerHighest = EvCockpitSurfaceContainers.highest,
+        primary = primary, onPrimary = onPrimary,
+        primaryContainer = primary.copy(alpha = 0.20f),
+        onPrimaryContainer = Color(0xFFEAF3FA),
+        secondary = Color(0xFF91AFC8), onSecondary = Color(0xFF101D2A),
+        tertiary = Color(0xFF9BB6C8), error = CrimsonAnomaly,
+        background = Color(0xFF09131F), onBackground = Color(0xFFEAF1F7),
+        surface = Color(0xFF101D2A), onSurface = Color(0xFFEAF1F7),
+        surfaceVariant = Color(0xFF1B2B3B), onSurfaceVariant = Color(0xFFB8C7D5),
+        outline = Color(0xFF8297AA), outlineVariant = Color(0xFF536A7E)
+    )
+}
+
+private val NordicFrostSurfaceContainers = SurfaceContainerPalette(
+    Color(0xFFFFFFFF), Color(0xFFF5F9FC), Color(0xFFECF3F8),
+    Color(0xFFE2EBF2), Color(0xFFD7E3EC)
+)
+
+internal fun nordicFrostColorScheme(accent: NordicFrostAccent): ColorScheme {
+    val primary = when (accent) {
+        NordicFrostAccent.COBALT_STEEL -> Color(0xFF285A91)
+        NordicFrostAccent.TEAL -> Color(0xFF16766F)
+    }
+    return lightColorScheme(
+        surfaceContainerLowest = NordicFrostSurfaceContainers.lowest,
+        surfaceContainerLow = NordicFrostSurfaceContainers.low,
+        surfaceContainer = NordicFrostSurfaceContainers.container,
+        surfaceContainerHigh = NordicFrostSurfaceContainers.high,
+        surfaceContainerHighest = NordicFrostSurfaceContainers.highest,
+        primary = primary, onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = Color(0xFFDCEAF4), onPrimaryContainer = Color(0xFF102B42),
+        secondary = Color(0xFF526F86), onSecondary = Color(0xFFFFFFFF),
+        secondaryContainer = Color(0xFFDDE8EF), onSecondaryContainer = Color(0xFF203746),
+        tertiary = Color(0xFF547D82), onTertiary = Color(0xFFFFFFFF),
+        error = CrimsonAnomaly, onError = Color.White,
+        background = Color(0xFFEAF1F6), onBackground = Color(0xFF1B2B38),
+        surface = Color(0xFFF8FBFD), onSurface = Color(0xFF1B2B38),
+        surfaceVariant = Color(0xFFE2EBF2), onSurfaceVariant = Color(0xFF4D6272),
+        outline = Color(0xFF657B8C), outlineVariant = Color(0xFF718697)
+    )
+}
+
+internal fun monochromeColorScheme(isDark: Boolean): ColorScheme {
+    val containers = if (isDark) SurfaceContainerPalette(
+        Color(0xFF080808), Color(0xFF101010), Color(0xFF181818),
+        Color(0xFF222222), Color(0xFF2C2C2C)
+    ) else SurfaceContainerPalette(
+        Color(0xFFFFFFFF), Color(0xFFF5F5F5), Color(0xFFEBEBEB),
+        Color(0xFFE1E1E1), Color(0xFFD7D7D7)
+    )
+    return if (isDark) darkColorScheme(
+        surfaceContainerLowest = containers.lowest,
+        surfaceContainerLow = containers.low,
+        surfaceContainer = containers.container,
+        surfaceContainerHigh = containers.high,
+        surfaceContainerHighest = containers.highest,
+        primary = Color(0xFFF2F2F2), onPrimary = Color(0xFF111111),
+        primaryContainer = Color(0xFF333333), onPrimaryContainer = Color(0xFFF2F2F2),
+        secondary = Color(0xFFBDBDBD), onSecondary = Color(0xFF111111),
+        tertiary = Color(0xFFD6D6D6), error = Color(0xFFCF6679),
+        background = Color(0xFF101010), onBackground = Color(0xFFF2F2F2),
+        surface = Color(0xFF171717), onSurface = Color(0xFFF2F2F2),
+        surfaceVariant = Color(0xFF252525), onSurfaceVariant = Color(0xFFD0D0D0),
+        outline = Color(0xFF969696), outlineVariant = Color(0xFF686868)
+    ) else lightColorScheme(
+        surfaceContainerLowest = containers.lowest,
+        surfaceContainerLow = containers.low,
+        surfaceContainer = containers.container,
+        surfaceContainerHigh = containers.high,
+        surfaceContainerHighest = containers.highest,
+        primary = Color(0xFF252525), onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = Color(0xFFE0E0E0), onPrimaryContainer = Color(0xFF111111),
+        secondary = Color(0xFF555555), onSecondary = Color(0xFFFFFFFF),
+        tertiary = Color(0xFF707070), onTertiary = Color(0xFFFFFFFF),
+        error = Color(0xFFB3261E), onError = Color.White,
+        background = Color(0xFFF1F1F1), onBackground = Color(0xFF202020),
+        surface = Color(0xFFFAFAFA), onSurface = Color(0xFF202020),
+        surfaceVariant = Color(0xFFE5E5E5), onSurfaceVariant = Color(0xFF4F4F4F),
+        outline = Color(0xFF666666), outlineVariant = Color(0xFF858585)
+    )
+}
+
+fun amoledAccentSwatches(): List<Color> = listOf(Color(0xFFD6A84B), Color(0xFFF5F5F5))
+fun evCockpitAccentSwatches(): List<Color> = listOf(Color(0xFF63C8F2), Color(0xFFC4E86B))
+fun nordicFrostAccentSwatches(): List<Color> = listOf(Color(0xFF285A91), Color(0xFF16766F))
+fun monochromeAccentSwatches(): List<Color> = listOf(Color(0xFF303030), Color(0xFF909090), Color(0xFFE6E6E6))
+
 private val BasicDarkSurfaceVariant = Color(0xFF2B3029)
 private val BasicDarkOutline = Color(0xFF62665F)
 private val BasicDarkOutlineVariant = Color(0xFF454B42)
@@ -173,7 +313,15 @@ fun PowerGuardTheme(
             BasicAppearanceMode.LIGHT -> false
             BasicAppearanceMode.DARK -> true
         }
-        is ThemePackConfig.MidnightViolet -> true
+        is ThemePackConfig.MidnightViolet,
+        is ThemePackConfig.AmoledPure,
+        is ThemePackConfig.EvCockpit -> true
+        is ThemePackConfig.NordicFrost -> false
+        is ThemePackConfig.Monochrome -> when (config.appearanceMode) {
+            BasicAppearanceMode.SYSTEM -> systemDark
+            BasicAppearanceMode.LIGHT -> false
+            BasicAppearanceMode.DARK -> true
+        }
     }
 
     val colorScheme = when (config) {
@@ -187,20 +335,13 @@ fun PowerGuardTheme(
                     surfaceContainer = containers.container,
                     surfaceContainerHigh = containers.high,
                     surfaceContainerHighest = containers.highest,
-                    primary = accent,
-                    onPrimary = Color.White,
-                    secondary = EmeraldCharge,
-                    onSecondary = Color.White,
-                    tertiary = AmberThermal,
-                    error = CrimsonAnomaly,
-                    background = DarkBackground,
-                    onBackground = DarkText,
-                    surface = DarkSurface,
-                    onSurface = DarkText,
-                    surfaceVariant = BasicDarkSurfaceVariant,
-                    onSurfaceVariant = DarkMuted,
-                    outline = BasicDarkOutline,
-                    outlineVariant = BasicDarkOutlineVariant
+                    primary = accent, onPrimary = Color.White,
+                    secondary = EmeraldCharge, onSecondary = Color.White,
+                    tertiary = AmberThermal, error = CrimsonAnomaly,
+                    background = DarkBackground, onBackground = DarkText,
+                    surface = DarkSurface, onSurface = DarkText,
+                    surfaceVariant = BasicDarkSurfaceVariant, onSurfaceVariant = DarkMuted,
+                    outline = BasicDarkOutline, outlineVariant = BasicDarkOutlineVariant
                 )
             } else {
                 lightColorScheme(
@@ -209,28 +350,17 @@ fun PowerGuardTheme(
                     surfaceContainer = containers.container,
                     surfaceContainerHigh = containers.high,
                     surfaceContainerHighest = containers.highest,
-                    primary = accent,
-                    onPrimary = Color.White,
-                    primaryContainer = accent.copy(alpha = 0.16f),
-                    onPrimaryContainer = InstrumentGraphite,
-                    secondary = EmeraldCharge,
-                    onSecondary = Color.White,
-                    secondaryContainer = EmeraldContainer,
-                    onSecondaryContainer = EmeraldOnContainer,
-                    tertiary = AmberThermal,
-                    onTertiary = Color.White,
-                    error = CrimsonAnomaly,
-                    onError = Color.White,
-                    errorContainer = ErrorContainer,
-                    onErrorContainer = ErrorOnContainer,
-                    background = SlateSurface,
-                    onBackground = InstrumentGraphite,
-                    surface = Paper,
-                    onSurface = InstrumentGraphite,
-                    surfaceVariant = BasicLightSubSurface,
-                    onSurfaceVariant = BasicLightOnSurfaceVariant,
-                    outline = BasicLightOutline,
-                    outlineVariant = BasicLightOutlineVariant
+                    primary = accent, onPrimary = Color.White,
+                    primaryContainer = accent.copy(alpha = 0.16f), onPrimaryContainer = InstrumentGraphite,
+                    secondary = EmeraldCharge, onSecondary = Color.White,
+                    secondaryContainer = EmeraldContainer, onSecondaryContainer = EmeraldOnContainer,
+                    tertiary = AmberThermal, onTertiary = Color.White,
+                    error = CrimsonAnomaly, onError = Color.White,
+                    errorContainer = ErrorContainer, onErrorContainer = ErrorOnContainer,
+                    background = SlateSurface, onBackground = InstrumentGraphite,
+                    surface = Paper, onSurface = InstrumentGraphite,
+                    surfaceVariant = BasicLightSubSurface, onSurfaceVariant = BasicLightOnSurfaceVariant,
+                    outline = BasicLightOutline, outlineVariant = BasicLightOutlineVariant
                 )
             }
         }
@@ -247,20 +377,18 @@ fun PowerGuardTheme(
                 onPrimary = if (palette.primary.luminance() > 0.175f) palette.background else Color.White,
                 primaryContainer = palette.primary.copy(alpha = 0.24f),
                 onPrimaryContainer = MidnightOnSurface,
-                secondary = EmeraldCharge,
-                onSecondary = Color.White,
-                tertiary = AmberThermal,
-                error = CrimsonAnomaly,
-                background = palette.background,
-                onBackground = MidnightOnSurface,
-                surface = palette.surface,
-                onSurface = MidnightOnSurface,
-                surfaceVariant = palette.surface,
-                onSurfaceVariant = MidnightOnSurfaceVariant,
-                outline = palette.outline,
-                outlineVariant = palette.outline
+                secondary = EmeraldCharge, onSecondary = Color.White,
+                tertiary = AmberThermal, error = CrimsonAnomaly,
+                background = palette.background, onBackground = MidnightOnSurface,
+                surface = palette.surface, onSurface = MidnightOnSurface,
+                surfaceVariant = palette.surface, onSurfaceVariant = MidnightOnSurfaceVariant,
+                outline = palette.outline, outlineVariant = palette.outline
             )
         }
+        is ThemePackConfig.AmoledPure -> amoledPureColorScheme(config.accent)
+        is ThemePackConfig.EvCockpit -> evCockpitColorScheme(config.accent)
+        is ThemePackConfig.NordicFrost -> nordicFrostColorScheme(config.accent)
+        is ThemePackConfig.Monochrome -> monochromeColorScheme(isDark)
     }
 
     val metricTints = when (config) {
@@ -269,7 +397,7 @@ fun PowerGuardTheme(
             cold = if (config.dualTintMetrics) MidnightColdMetric else Color.Transparent,
             warm = if (config.dualTintMetrics) MidnightWarmMetric else Color.Transparent
         )
-        is ThemePackConfig.Basic -> BatteryMetricTints()
+        else -> BatteryMetricTints()
     }
 
     CompositionLocalProvider(

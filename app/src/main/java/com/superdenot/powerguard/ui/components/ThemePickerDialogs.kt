@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,7 +49,9 @@ import androidx.compose.ui.window.Dialog
 import com.superdenot.powerguard.domain.analytics.ChargingThermalPhaseAnalyzer
 import com.superdenot.powerguard.ui.theme.BasicAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
-import com.superdenot.powerguard.ui.theme.EmeraldCharge
+import com.superdenot.powerguard.ui.theme.AmoledPureAccent
+import com.superdenot.powerguard.ui.theme.EvCockpitAccent
+import com.superdenot.powerguard.ui.theme.NordicFrostAccent
 import com.superdenot.powerguard.ui.theme.MidnightAccent
 import com.superdenot.powerguard.ui.theme.ThemeGaugeSummaryFormatter
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
@@ -58,6 +61,10 @@ import com.superdenot.powerguard.ui.theme.themePreviewConfig
 import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.PowerSaveButton
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
+import com.superdenot.powerguard.ui.theme.amoledAccentSwatches
+import com.superdenot.powerguard.ui.theme.evCockpitAccentSwatches
+import com.superdenot.powerguard.ui.theme.nordicFrostAccentSwatches
+import com.superdenot.powerguard.ui.theme.monochromeAccentSwatches
 import com.superdenot.powerguard.ui.theme.midnightAccentSwatches
 import com.superdenot.powerguard.ui.components.pressScale
 import com.superdenot.powerguard.ui.components.pressScaleClickable
@@ -72,7 +79,6 @@ fun ThemePickerDialogs(
     onSave: (ThemePackConfig) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showPackagePicker by remember { mutableStateOf(false) }
     var showConfiguration by remember { mutableStateOf(false) }
     var draft by remember(config) { mutableStateOf(config) }
     val (themeSummary, gaugeSummary) = ThemeGaugeSummaryFormatter.format(config)
@@ -80,7 +86,7 @@ fun ThemePickerDialogs(
     Card(
         modifier = modifier.fillMaxWidth().pressScaleClickable {
             draft = config
-            showPackagePicker = true
+            showConfiguration = true
         },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
@@ -104,60 +110,6 @@ fun ThemePickerDialogs(
                 contentDescription = "Konfigurasi tema dan gauge",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-
-    if (showPackagePicker) {
-        Dialog(onDismissRequest = { showPackagePicker = false }) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
-            ) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Pilih Paket Tema", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    ThemePackageChoice(
-                        title = "Basic",
-                        description = "Mode sistem, terang, atau gelap dengan tiga aksen.",
-                        swatches = basicAccentSwatches(),
-                        selected = draft is ThemePackConfig.Basic,
-                        onClick = {
-                            draft = when (val current = draft) {
-                                is ThemePackConfig.Basic -> current
-                                is ThemePackConfig.MidnightViolet -> ThemePackConfig.Basic(
-                                    gaugeModel = current.gaugeModel,
-                                    chargingAnimation = current.chargingAnimation
-                                )
-                            }
-                            showPackagePicker = false
-                            showConfiguration = true
-                        }
-                    )
-                    ThemePackageChoice(
-                        title = "Midnight",
-                        description = "Tema gelap dengan empat pilihan aksen dan opsi sub-kartu metrik dua warna.",
-                        swatches = midnightAccentSwatches(),
-                        selected = draft is ThemePackConfig.MidnightViolet,
-                        onClick = {
-                            draft = when (val current = draft) {
-                                is ThemePackConfig.MidnightViolet -> current
-                                is ThemePackConfig.Basic -> ThemePackConfig.MidnightViolet(
-                                    gaugeModel = current.gaugeModel,
-                                    chargingAnimation = current.chargingAnimation
-                                )
-                            }
-                            showPackagePicker = false
-                            showConfiguration = true
-                        }
-                    )
-                    PowerActionButton(
-                        onClick = { showPackagePicker = false },
-                        clickDelayMillis = POWER_BUTTON_CLOSE_DELAY_MS,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Batal") }
-                }
-            }
         }
     }
 
@@ -238,6 +190,46 @@ fun ThemePickerDialogs(
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        Text("Paket tema", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ThemePackageChoice(
+                                    modifier = Modifier.weight(1f), title = "Basic",
+                                    swatches = basicAccentSwatches(), selected = draft is ThemePackConfig.Basic,
+                                    onClick = { draft = draft.toBasic() }
+                                )
+                                ThemePackageChoice(
+                                    modifier = Modifier.weight(1f), title = "Midnight",
+                                    swatches = midnightAccentSwatches(), selected = draft is ThemePackConfig.MidnightViolet,
+                                    onClick = { draft = draft.toMidnight() }
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ThemePackageChoice(
+                                    modifier = Modifier.weight(1f), title = "AMOLED Pure",
+                                    swatches = amoledAccentSwatches(), selected = draft is ThemePackConfig.AmoledPure,
+                                    onClick = { draft = draft.toAmoledPure() }
+                                )
+                                ThemePackageChoice(
+                                    modifier = Modifier.weight(1f), title = "EV Cockpit",
+                                    swatches = evCockpitAccentSwatches(), selected = draft is ThemePackConfig.EvCockpit,
+                                    onClick = { draft = draft.toEvCockpit() }
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ThemePackageChoice(
+                                    modifier = Modifier.weight(1f), title = "Nordic Frost",
+                                    swatches = nordicFrostAccentSwatches(), selected = draft is ThemePackConfig.NordicFrost,
+                                    onClick = { draft = draft.toNordicFrost() }
+                                )
+                                ThemePackageChoice(
+                                    modifier = Modifier.weight(1f), title = "Monochrome",
+                                    swatches = monochromeAccentSwatches(), selected = draft is ThemePackConfig.Monochrome,
+                                    onClick = { draft = draft.toMonochrome() }
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Text("Model gauge", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                         ChoiceRow(BatteryGaugeModel.values().toList(), draft.gaugeModel, { it.label }) { selected ->
                             draft = draft.withGaugeModel(selected)
@@ -280,6 +272,34 @@ fun ThemePickerDialogs(
                                     )
                                 }
                             }
+                            is ThemePackConfig.AmoledPure -> {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Text("Aksen", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                ChoiceRow(AmoledPureAccent.values().toList(), current.accent, { it.label }) { selected ->
+                                    draft = current.copy(accent = selected)
+                                }
+                            }
+                            is ThemePackConfig.EvCockpit -> {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Text("Aksen", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                ChoiceRow(EvCockpitAccent.values().toList(), current.accent, { it.label }) { selected ->
+                                    draft = current.copy(accent = selected)
+                                }
+                            }
+                            is ThemePackConfig.NordicFrost -> {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Text("Aksen", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                ChoiceRow(NordicFrostAccent.values().toList(), current.accent, { it.label }) { selected ->
+                                    draft = current.copy(accent = selected)
+                                }
+                            }
+                            is ThemePackConfig.Monochrome -> {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Text("Palet tunggal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text("Grayscale tanpa aksen dekoratif; mengikuti mode sistem.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -306,34 +326,47 @@ fun ThemePickerDialogs(
 
 @Composable
 private fun ThemePackageChoice(
+    modifier: Modifier,
     title: String,
-    description: String,
     swatches: List<Color>,
     selected: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        modifier = Modifier.fillMaxWidth().pressScale(interactionSource)
-            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick),
+        modifier = modifier.fillMaxWidth().heightIn(min = 68.dp).pressScale(interactionSource)
+            .selectable(selected = selected, role = Role.RadioButton, interactionSource = interactionSource,
+                indication = LocalIndication.current, onClick = onClick),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 swatches.forEach { swatch ->
-                    Box(Modifier.size(13.dp).clip(CircleShape).background(swatch))
+                    Box(Modifier.size(12.dp).clip(CircleShape).background(swatch))
+                }
+                if (selected) {
+                    Spacer(Modifier.weight(1f))
+                    Text("Aktif", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                Text(description, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (selected) Text("AKTIF", style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -372,9 +405,42 @@ private fun <T> ChoiceRow(
 private fun ThemePackConfig.withGaugeModel(model: BatteryGaugeModel): ThemePackConfig = when (this) {
     is ThemePackConfig.Basic -> copy(gaugeModel = model)
     is ThemePackConfig.MidnightViolet -> copy(gaugeModel = model)
+    is ThemePackConfig.AmoledPure -> copy(gaugeModel = model)
+    is ThemePackConfig.EvCockpit -> copy(gaugeModel = model)
+    is ThemePackConfig.NordicFrost -> copy(gaugeModel = model)
+    is ThemePackConfig.Monochrome -> copy(gaugeModel = model)
 }
 
 private fun ThemePackConfig.withAnimation(animation: ChargingArcAnimation): ThemePackConfig = when (this) {
     is ThemePackConfig.Basic -> copy(chargingAnimation = animation)
     is ThemePackConfig.MidnightViolet -> copy(chargingAnimation = animation)
+    is ThemePackConfig.AmoledPure -> copy(chargingAnimation = animation)
+    is ThemePackConfig.EvCockpit -> copy(chargingAnimation = animation)
+    is ThemePackConfig.NordicFrost -> copy(chargingAnimation = animation)
+    is ThemePackConfig.Monochrome -> copy(chargingAnimation = animation)
+}
+
+private fun ThemePackConfig.toBasic(): ThemePackConfig.Basic = when (this) {
+    is ThemePackConfig.Basic -> this
+    else -> ThemePackConfig.Basic(gaugeModel = gaugeModel, chargingAnimation = chargingAnimation)
+}
+private fun ThemePackConfig.toMidnight(): ThemePackConfig.MidnightViolet = when (this) {
+    is ThemePackConfig.MidnightViolet -> this
+    else -> ThemePackConfig.MidnightViolet(gaugeModel = gaugeModel, chargingAnimation = chargingAnimation)
+}
+private fun ThemePackConfig.toAmoledPure(): ThemePackConfig.AmoledPure = when (this) {
+    is ThemePackConfig.AmoledPure -> this
+    else -> ThemePackConfig.AmoledPure(gaugeModel = gaugeModel, chargingAnimation = chargingAnimation)
+}
+private fun ThemePackConfig.toEvCockpit(): ThemePackConfig.EvCockpit = when (this) {
+    is ThemePackConfig.EvCockpit -> this
+    else -> ThemePackConfig.EvCockpit(gaugeModel = gaugeModel, chargingAnimation = chargingAnimation)
+}
+private fun ThemePackConfig.toNordicFrost(): ThemePackConfig.NordicFrost = when (this) {
+    is ThemePackConfig.NordicFrost -> this
+    else -> ThemePackConfig.NordicFrost(gaugeModel = gaugeModel, chargingAnimation = chargingAnimation)
+}
+private fun ThemePackConfig.toMonochrome(): ThemePackConfig.Monochrome = when (this) {
+    is ThemePackConfig.Monochrome -> this
+    else -> ThemePackConfig.Monochrome(gaugeModel = gaugeModel, chargingAnimation = chargingAnimation)
 }

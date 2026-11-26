@@ -57,6 +57,42 @@ class ThemeGaugeSummaryFormatterTest {
     }
 
     @Test
+    fun formatsAllFourNewThemePackagesWithTheirSelectedAccent() {
+        assertEquals("AMOLED Pure · Putih Bersih" to "Wave · Comet",
+            ThemeGaugeSummaryFormatter.format(ThemePackConfig.AmoledPure(
+                accent = AmoledPureAccent.CLEAN_WHITE,
+                gaugeModel = BatteryGaugeModel.WAVE,
+                chargingAnimation = ChargingArcAnimation.COMET_HEAD
+            )))
+        assertEquals("EV Cockpit · Volt Lime" to "Kapsul · Segmen",
+            ThemeGaugeSummaryFormatter.format(ThemePackConfig.EvCockpit(
+                accent = EvCockpitAccent.VOLT_LIME,
+                gaugeModel = BatteryGaugeModel.CAPSULE,
+                chargingAnimation = ChargingArcAnimation.SEGMENTED_FLOW
+            )))
+        assertEquals("Nordic Frost · Teal" to "Blok · Statis",
+            ThemeGaugeSummaryFormatter.format(ThemePackConfig.NordicFrost(
+                accent = NordicFrostAccent.TEAL,
+                gaugeModel = BatteryGaugeModel.SEGMENTED,
+                chargingAnimation = ChargingArcAnimation.STATIC
+            )))
+        assertEquals("Monochrome · Grayscale" to "Busur · Sweep",
+            ThemeGaugeSummaryFormatter.format(ThemePackConfig.Monochrome()))
+    }
+
+    @Test
+    fun livePreviewPreservesNewThemePackAccentSelections() {
+        assertEquals(ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE),
+            themePreviewConfig(ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE)))
+        assertEquals(ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME),
+            themePreviewConfig(ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME)))
+        assertEquals(ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL),
+            themePreviewConfig(ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL)))
+        assertEquals(ThemePackConfig.Monochrome(),
+            themePreviewConfig(ThemePackConfig.Monochrome()))
+    }
+
+    @Test
     fun liveBasicPreviewCarriesDraftAppearanceAndAccentIntoThemeWrapperConfig() {
         val draft = ThemePackConfig.Basic(
             appearanceMode = BasicAppearanceMode.LIGHT,

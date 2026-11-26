@@ -1170,3 +1170,19 @@ Evidence reviewed: `SPG_AutoStart_Filtered.txt` and `spg_job_and_battrey.txt`. T
 - Root cause attribution to Unisoc HAL / a missing or delayed `ACTION_CHARGING` event: **NOT VERIFIED** — the captures prove the unsatisfied JobScheduler constraint, not the underlying framework/HAL cause.
 - Android build and unit tests: **N/A** — documentation-only recording of device evidence; no application source or runtime behavior changed in this entry.
 - Changelog cross-reference and evidence limitations recorded: **PASS**.
+
+
+## 2026-11-26 — PR #13: four independent theme packs
+
+- [x] Added AMOLED Pure with true-black background/surface, explicit five-step OLED containers, strong outline variant, and Amber Emas / Putih Bersih accents.
+- [x] Added EV Cockpit with explicit slate/navy surface tokens and Electric Sky / Volt Lime accents.
+- [x] Added Nordic Frost with explicit ice/blue-grey surface tokens and Cobalt Steel / Teal accents.
+- [x] Added Monochrome with grayscale-only palette and system-following light/dark behavior; no decorative accent choices.
+- [x] Integrated all six theme packs into a 2-column selector in Konfigurasi Tema & Gauge; package/accent draft changes feed the live preview.
+- [x] Added safe key parsing, SharedPreferences persistence, gauge/animation preservation on package switching, and Basic fallback for unknown theme-pack keys.
+- [x] Confirmed by source inspection that all four gauge models use MaterialTheme primary for all four animation profiles; diagnostic semantic colors remain separate.
+- [x] Added tests for accent persistence/fallback, live preview, gauge accent, primary/onPrimary contrast, and explicit surfaceContainer tokens.
+- [x] Protected boundaries unchanged by source scope: Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number.
+- [ ] Exact-head PR CI: NOT RUN — pending GitHub Actions.
+- [ ] 360dp / 720p UI verification: source geometry review pending; physical itel P55 QA NOT RUN.
+- [ ] Final diff / Anti-Slop gate review: pending branch verification.

@@ -57,6 +57,21 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
+    fun allGaugeModelsAndAnimationProfilesKeepThemePrimaryWhenCharging() {
+        val themeAccent = Color(0xFF63C8F2)
+        BatteryGaugeModel.values().forEach { model ->
+            ChargingArcAnimation.values().forEach { animation ->
+                assertEquals("$model/$animation charging", themeAccent,
+                    resolveBatteryGaugeAccent(themeAccent, isCharging = true))
+                assertEquals("$model/$animation idle", themeAccent,
+                    resolveBatteryGaugeAccent(themeAccent, isCharging = false))
+            }
+        }
+        assertEquals(Color.Yellow, resolveBatteryGaugeColor(palette, false, true, true))
+        assertEquals(Color.Red, resolveBatteryGaugeColor(palette, true, false, true))
+    }
+
+    @Test
     fun segmentedGaugeUsesTwentyFourClockwiseBlocksAcrossZeroToOneHundred() {
         assertEquals(24, SEGMENTED_GAUGE_BLOCK_COUNT)
         assertEquals(0, segmentedGaugeLitCount(0))

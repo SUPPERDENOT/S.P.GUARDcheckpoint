@@ -5,6 +5,9 @@ import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.ui.components.BatteryGaugeModel
 import com.superdenot.powerguard.ui.components.ChargingArcAnimation
 import com.superdenot.powerguard.ui.theme.BasicAccent
+import com.superdenot.powerguard.ui.theme.AmoledPureAccent
+import com.superdenot.powerguard.ui.theme.EvCockpitAccent
+import com.superdenot.powerguard.ui.theme.NordicFrostAccent
 import com.superdenot.powerguard.ui.theme.BasicAppearanceMode
 import com.superdenot.powerguard.ui.theme.MidnightAccent
 import com.superdenot.powerguard.ui.theme.ThemePackConfig
@@ -94,6 +97,52 @@ class ThemePreferencesTest {
             ThemePreferences(context).save(expected)
             assertEquals(expected, ThemePreferences(context).read())
         }
+    }
+
+    @Test
+    fun persistsEveryNewThemePackAndItsAccentAndGaugeChoices() {
+        val configs = listOf(
+            ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE, BatteryGaugeModel.WAVE, ChargingArcAnimation.COMET_HEAD),
+            ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.SEGMENTED_FLOW),
+            ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.STATIC),
+            ThemePackConfig.Monochrome(BasicAppearanceMode.DARK, BatteryGaugeModel.ARC, ChargingArcAnimation.ENERGY_SWEEP)
+        )
+        configs.forEach { expected ->
+            ThemePreferences(context).save(expected)
+            assertEquals(expected, ThemePreferences(context).read())
+        }
+    }
+
+    @Test
+    fun unknownNewThemeAccentKeysFallBackToPackageDefaults() {
+        val preferences = context.getSharedPreferences(ThemePreferences.PREFERENCES_NAME, Context.MODE_PRIVATE)
+        val themePreferences = ThemePreferences(context)
+        val cases = listOf(
+            Triple(ThemePreferences.PACK_AMOLED_PURE, ThemePreferences.KEY_AMOLED_ACCENT, ThemePackConfig.AmoledPure()),
+            Triple(ThemePreferences.PACK_EV_COCKPIT, ThemePreferences.KEY_EV_ACCENT, ThemePackConfig.EvCockpit()),
+            Triple(ThemePreferences.PACK_NORDIC_FROST, ThemePreferences.KEY_NORDIC_ACCENT, ThemePackConfig.NordicFrost())
+        )
+        cases.forEach { (pack, key, expected) ->
+            preferences.edit().putString(ThemePreferences.KEY_THEME_PACK, pack).putString(key, "future-accent").commit()
+            assertEquals(expected, themePreferences.read())
+        }
+    }
+
+    @Test
+    fun monochromeAppearanceRoundTripsAndUnknownPackFallsBackToBasic() {
+        val expected = ThemePackConfig.Monochrome(appearanceMode = BasicAppearanceMode.LIGHT)
+        ThemePreferences(context).save(expected)
+        assertEquals(expected, ThemePreferences(context).read())
+        context.getSharedPreferences(ThemePreferences.PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .edit().putString(ThemePreferences.KEY_THEME_PACK, "not_a_real_theme").commit()
+        assertEquals(ThemePackConfig.Basic(), ThemePreferences(context).read())
+    }
+
+    @Test
+    fun newAccentParsersUseSafePackageDefaults() {
+        assertEquals(AmoledPureAccent.AMBER_GOLD, AmoledPureAccent.fromKey("future"))
+        assertEquals(EvCockpitAccent.ELECTRIC_SKY, EvCockpitAccent.fromKey(null))
+        assertEquals(NordicFrostAccent.COBALT_STEEL, NordicFrostAccent.fromKey("future"))
     }
 
     @Test
