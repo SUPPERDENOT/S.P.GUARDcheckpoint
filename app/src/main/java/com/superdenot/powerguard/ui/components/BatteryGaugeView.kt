@@ -545,22 +545,25 @@ private fun WaveGauge(
             val wavePhase = if (animateEffects && features.animatedSurface) phase?.value ?: 0f else 0f
             val phaseFraction = gaugeAnimationPhaseFraction(wavePhase)
             val liquidProgress = waveLiquidFillLevel(progress, isCharging, animation)
-            val fillTop = size.height * (1f - liquidProgress)
+            val liquidBottom = top + diameter
+            val fillTop = top + diameter * (1f - liquidProgress)
 
             drawCircle(trackColor, diameter / 2f, center)
             clipPath(circle) {
-                val rearWaveOffset = -size.height * 0.012f * sin(liquidProgress * PI).toFloat()
+                val rearWaveOffset = -diameter * 0.012f * sin(liquidProgress * PI).toFloat()
                 val rearWave = waveFillPath(
-                    size.width, size.height, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
+                    diameter, diameter, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
                     amplitudePx = waveAmplitudePx,
                     amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
-                    verticalOffset = rearWaveOffset
+                    verticalOffset = rearWaveOffset,
+                    origin = Offset(left, top)
                 )
                 drawPath(rearWave, gaugeColor.copy(alpha = WAVE_REAR_FILL_ALPHA))
 
                 val frontWave = waveFillPath(
-                    size.width, size.height, liquidProgress, wavePhase,
-                    amplitudePx = waveAmplitudePx
+                    diameter, diameter, liquidProgress, wavePhase,
+                    amplitudePx = waveAmplitudePx,
+                    origin = Offset(left, top)
                 )
                 drawPath(
                     frontWave,
@@ -570,8 +573,8 @@ private fun WaveGauge(
                             gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA),
                             gaugeColor.copy(alpha = 0.84f)
                         ),
-                        startY = fillTop.coerceAtLeast(0f),
-                        endY = size.height
+                        startY = fillTop.coerceAtLeast(top),
+                        endY = liquidBottom
                     )
                 )
 
@@ -580,8 +583,8 @@ private fun WaveGauge(
                 if (animateEffects && liquidProgress > 0f && (features.upwardSweep || features.risingBubbles)) {
                     clipPath(frontWave) {
                         if (features.upwardSweep) {
-                            val availableHeight = (size.height - fillTop).coerceAtLeast(0f)
-                            val sweepCenterY = size.height - availableHeight * phaseFraction
+                            val availableHeight = (liquidBottom - fillTop).coerceAtLeast(0f)
+                            val sweepCenterY = liquidBottom - availableHeight * phaseFraction
                             val bandHalfHeight = 10.dp.toPx()
                             drawRect(
                                 brush = Brush.verticalGradient(
@@ -605,8 +608,8 @@ private fun WaveGauge(
                                 val lane = index % 4
                                 val laneX = 0.20f + lane * 0.20f
                                 val x = left + diameter * (laneX + sin(index * 1.7f) * 0.025f)
-                                val availableHeight = (size.height - fillTop).coerceAtLeast(0f)
-                                val y = size.height - availableHeight * stagger
+                                val availableHeight = (liquidBottom - fillTop).coerceAtLeast(0f)
+                                val y = liquidBottom - availableHeight * stagger
                                 val radius = (1.35f + (index % 3) * 0.42f).dp.toPx()
                                 val bubbleCenter = Offset(x, y)
                                 drawCircle(
@@ -641,8 +644,9 @@ private fun WaveGauge(
                 }
 
                 val crest = waveCrestPath(
-                    size.width, size.height, liquidProgress, wavePhase,
-                    amplitudePx = waveAmplitudePx
+                    diameter, diameter, liquidProgress, wavePhase,
+                    amplitudePx = waveAmplitudePx,
+                    origin = Offset(left, top)
                 )
                 val crestPulse = if (animateEffects && animation == ChargingArcAnimation.ENERGY_SWEEP) {
                     (0.68f + 0.28f * ((sin(wavePhase * 2f) + 1f) / 2f)).coerceIn(0f, 1f)
@@ -752,15 +756,22 @@ private fun waveFillPath(
     phase: Float,
     amplitudePx: Float,
     amplitudeScale: Float = 1f,
-    verticalOffset: Float = 0f
+    verticalOffset: Float = 0f,
+    origin: Offset = Offset.Zero
 ): Path = Path().apply {
-    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset))
+    moveTo(
+        origin.x,
+        origin.y + waveY(0f, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset)
+    )
     for (step in 1..64) {
         val x = width * step / 64f
-        lineTo(x, waveY(x, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset))
+        lineTo(
+            origin.x + x,
+            origin.y + waveY(x, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset)
+        )
     }
-    lineTo(width, height)
-    lineTo(0f, height)
+    lineTo(origin.x + width, origin.y + height)
+    lineTo(origin.x, origin.y + height)
     close()
 }
 
@@ -769,11 +780,12 @@ private fun waveCrestPath(
     height: Float,
     progress: Float,
     phase: Float,
-    amplitudePx: Float
+    amplitudePx: Float,
+    origin: Offset = Offset.Zero
 ): Path = Path().apply {
-    moveTo(0f, waveY(0f, width, height, progress, phase, amplitudePx))
+    moveTo(origin.x, origin.y + waveY(0f, width, height, progress, phase, amplitudePx))
     for (step in 1..64) {
         val x = width * step / 64f
-        lineTo(x, waveY(x, width, height, progress, phase, amplitudePx))
+        lineTo(origin.x + x, origin.y + waveY(x, width, height, progress, phase, amplitudePx))
     }
 }
