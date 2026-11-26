@@ -7,7 +7,7 @@
 - [x] Active Overview gauge call site in AppScreens.kt passes the selected live charging state; visibility and thermal eligibility gates remain intact. Legacy ui/dashboard/DashboardScreen.kt has no BatteryGaugeView call and is not routed by MainActivity, so no change was made there.
 - [x] All five Material 3 surfaceContainer tokens are explicitly supplied for Basic Terracotta/Emerald/Cobalt in Light and Dark and Midnight Violet/Pink/Cyan/Green.
 - [x] ProtocolInfoDialog and the battery-side power info dialog use surfaceContainerHigh directly, tonalElevation = 0.dp, and a 1dp outlineVariant border.
-- [x] Both Charging info badges use a flat 16dp circle, 11dp Icons.Outlined.Info glyph, 4dp title gap, and no Surface/shadow/tonal elevation.
+- [x] Both Charging info badges use a flat 16dp circle, 11dp Icons.Outlined.Info glyph, 4dp title gap, and 48dp accessible tap target; no Surface/shadow/tonal elevation is applied to the badge.
 - [x] Unit tests added for delta accumulation, bounded frame delta, wrap, disabled reset, all animation modes, and all theme accent palettes.
 - [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, Foreground Service P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number edits intended; final compare pending.
 - [ ] Final exact-HEAD diff self-crosscheck: pending.
