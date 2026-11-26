@@ -191,10 +191,45 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun frameClockFallbackOnlyRunsWhenPlatformAnimatorsAreDisabledAndEffectsAreRequested() {
-        assertTrue(shouldUseGaugeFrameClockFallback(animatorsEnabled = false, animateEffects = true))
-        assertFalse(shouldUseGaugeFrameClockFallback(animatorsEnabled = true, animateEffects = true))
-        assertFalse(shouldUseGaugeFrameClockFallback(animatorsEnabled = false, animateEffects = false))
+    fun deltaGaugePhaseAccumulatesWhileAnimationIsEnabled() {
+        val firstFrame = advanceGaugePhase(
+            currentPhase = 0f,
+            deltaMs = 32L,
+            cycleDurationMillis = 2_400,
+            shouldAnimate = true
+        )
+        val secondFrame = advanceGaugePhase(
+            currentPhase = firstFrame,
+            deltaMs = 32L,
+            cycleDurationMillis = 2_400,
+            shouldAnimate = true
+        )
+
+        assertEquals(32f / 2_400f, firstFrame, 0.000001f)
+        assertEquals(64f / 2_400f, secondFrame, 0.000001f)
+    }
+
+    @Test
+    fun deltaGaugePhaseWrapsAndBoundsLongFrameDeltas() {
+        assertEquals(
+            (0.99f + 64f / 2_400f) % 1f,
+            advanceGaugePhase(0.99f, 900L, 2_400, shouldAnimate = true),
+            0.000001f
+        )
+        assertEquals(
+            0f,
+            advanceGaugePhase(0f, -20L, 2_400, shouldAnimate = true),
+            0f
+        )
+    }
+
+    @Test
+    fun deltaGaugePhaseResetsToZeroWhenAnimationIsDisabled() {
+        assertEquals(
+            0f,
+            advanceGaugePhase(0.72f, 48L, 2_400, shouldAnimate = false),
+            0f
+        )
     }
 
     @Test
@@ -229,17 +264,24 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun forceAnimateEnablesPreviewWithoutChargingButStillHonorsVisibilityAndStaticMode() {
-        assertTrue(
-            shouldAnimateBatteryGauge(
-                isCharging = false,
-                isVisibleOnScreen = true,
-                isCriticalThermal = false,
-                isWarm = false,
-                animation = ChargingArcAnimation.ENERGY_SWEEP,
-                forceAnimate = true
+    fun forceAnimateEnablesAllAnimatedPreviewModesWithoutCharging() {
+        listOf(
+            ChargingArcAnimation.ENERGY_SWEEP,
+            ChargingArcAnimation.SEGMENTED_FLOW,
+            ChargingArcAnimation.COMET_HEAD
+        ).forEach { animation ->
+            assertTrue(
+                animation.name,
+                shouldAnimateBatteryGauge(
+                    isCharging = false,
+                    isVisibleOnScreen = true,
+                    isCriticalThermal = false,
+                    isWarm = false,
+                    animation = animation,
+                    forceAnimate = true
+                )
             )
-        )
+        }
         assertFalse(
             shouldAnimateBatteryGauge(
                 isCharging = false,
@@ -263,16 +305,23 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun chargingAnimationOnlyRunsWhenVisibleAndThermallyNormal() {
-        assertTrue(
-            shouldAnimateBatteryGauge(
-                isCharging = true,
-                isVisibleOnScreen = true,
-                isCriticalThermal = false,
-                isWarm = false,
-                animation = ChargingArcAnimation.ENERGY_SWEEP
+    fun chargingAnimationRunsForEveryAnimatedModeWhenVisibleAndThermallyNormal() {
+        listOf(
+            ChargingArcAnimation.ENERGY_SWEEP,
+            ChargingArcAnimation.SEGMENTED_FLOW,
+            ChargingArcAnimation.COMET_HEAD
+        ).forEach { animation ->
+            assertTrue(
+                animation.name,
+                shouldAnimateBatteryGauge(
+                    isCharging = true,
+                    isVisibleOnScreen = true,
+                    isCriticalThermal = false,
+                    isWarm = false,
+                    animation = animation
+                )
             )
-        )
+        }
         assertFalse(
             shouldAnimateBatteryGauge(
                 isCharging = true,
