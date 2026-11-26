@@ -9,7 +9,8 @@
 - [x] Shared popup header/body/footer use the requested typography, weights, scroll padding, divider, and 36dp `Mengerti` button.
 - [x] Regression tests cover theme accent during charging/idle, Wave alpha/amplitude/phase/front opacity, and shared popup surface/layout tokens.
 - [x] Protected-boundary diff review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number paths changed.
-- [ ] Exact final HEAD GitHub Actions: pending — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and Upload APK must all report SUCCESS.
+- [x] Source/test HEAD Run #756 (`45792227374`): SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload. APK Artifact ID `15102908042`; unit-test report Artifact ID `15104150240`.
+- [ ] Exact documentation-head CI after this checklist/changelog closeout: pending; final delivery report records the exact HEAD run and latest APK artifact.
 - [ ] Physical-device QA on itel P55: NOT RUN.
 - [ ] PR #12 merge: HOLD — no merge or auto-merge.
 
