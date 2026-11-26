@@ -55,17 +55,12 @@ fun BatteryGaugeView(
     model: BatteryGaugeModel,
     animation: ChargingArcAnimation,
     isCharging: Boolean,
-    isCriticalThermal: Boolean,
-    isWarm: Boolean,
-    isVisibleOnScreen: Boolean,
     modifier: Modifier = Modifier,
     forceAnimate: Boolean = false
 ) {
     val semanticColors = LocalBatterySemanticColors.current
-    val gaugeColor = resolveBatteryGaugeColor(
+    val gaugeColor = resolveBatteryGaugeAccent(
         semanticColors = semanticColors,
-        isCriticalThermal = isCriticalThermal,
-        isWarm = isWarm,
         isCharging = isCharging
     )
     val safeProgress = progress.coerceIn(0f, 1f)
@@ -78,10 +73,7 @@ fun BatteryGaugeView(
     ) {
         val animateEffects = shouldAnimateBatteryGauge(
             isCharging = isCharging,
-            isVisibleOnScreen = isVisibleOnScreen,
-            isCriticalThermal = isCriticalThermal,
-            isWarm = isWarm,
-            animation = animation,
+            animationStyle = animation,
             forceAnimate = forceAnimate
         )
         val phase = rememberGaugePhase(shouldAnimate = animateEffects)
@@ -500,6 +492,7 @@ private fun WaveGauge(
     isCharging: Boolean
 ) {
     val features = waveAnimationFeatures(animation)
+    val waveColors = waveLayerColors(gaugeColor)
     val waveAmplitudePx = with(LocalDensity.current) { WAVE_AMPLITUDE_DP.dp.toPx() }
     Box(Modifier.fillMaxSize().clip(CircleShape), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -522,13 +515,13 @@ private fun WaveGauge(
             clipPath(circle) {
                 val rearWaveOffset = -diameter * 0.012f * sin(liquidProgress * PI).toFloat()
                 val rearWave = waveFillPath(
-                    diameter, diameter, liquidProgress, wavePhase + WAVE_REAR_PHASE_OFFSET,
+                    diameter, diameter, liquidProgress, waveRearPhase(wavePhase),
                     amplitudePx = waveAmplitudePx,
                     amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
                     verticalOffset = rearWaveOffset,
                     origin = Offset(left, top)
                 )
-                drawPath(rearWave, gaugeColor.copy(alpha = WAVE_REAR_FILL_ALPHA))
+                drawPath(rearWave, waveColors.rear)
 
                 val frontWave = waveFillPath(
                     diameter, diameter, liquidProgress, wavePhase,
@@ -539,9 +532,9 @@ private fun WaveGauge(
                     frontWave,
                     Brush.verticalGradient(
                         colors = listOf(
-                            gaugeColor.copy(alpha = 0.66f),
-                            gaugeColor.copy(alpha = WAVE_FRONT_FILL_ALPHA),
-                            gaugeColor.copy(alpha = 0.84f)
+                            waveColors.frontHighlight,
+                            waveColors.frontBase.copy(alpha = WAVE_FRONT_FILL_ALPHA),
+                            waveColors.frontShadow
                         ),
                         startY = fillTop.coerceAtLeast(top),
                         endY = liquidBottom
@@ -560,9 +553,9 @@ private fun WaveGauge(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.White.copy(alpha = 0.24f),
-                                        Color.White.copy(alpha = 0.62f),
-                                        Color.White.copy(alpha = 0.24f),
+                                        waveColors.frontHighlight.copy(alpha = 0.24f),
+                                        waveColors.frontHighlight.copy(alpha = 0.62f),
+                                        waveColors.frontHighlight.copy(alpha = 0.24f),
                                         Color.Transparent
                                     ),
                                     startY = sweepCenterY - bandHalfHeight,
@@ -584,7 +577,7 @@ private fun WaveGauge(
                                 val bubbleCenter = Offset(x, y)
                                 drawCircle(
                                     Brush.radialGradient(
-                                        listOf(Color.White.copy(alpha = 0.54f), gaugeColor.copy(alpha = 0.24f), Color.Transparent),
+                                        listOf(waveColors.frontHighlight.copy(alpha = 0.54f), gaugeColor.copy(alpha = 0.24f), Color.Transparent),
                                         center = bubbleCenter,
                                         radius = radius * 2.5f
                                     ),
@@ -592,7 +585,7 @@ private fun WaveGauge(
                                     center = bubbleCenter
                                 )
                                 drawCircle(
-                                    Color.White.copy(alpha = 0.76f),
+                                    waveColors.frontHighlight.copy(alpha = 0.76f),
                                     radius = radius * 0.58f,
                                     center = bubbleCenter
                                 )
@@ -603,7 +596,7 @@ private fun WaveGauge(
                                     style = Stroke(0.8.dp.toPx())
                                 )
                                 drawCircle(
-                                    Color.White.copy(alpha = 0.22f),
+                                    waveColors.frontHighlight.copy(alpha = 0.22f),
                                     radius = radius * 2.05f,
                                     center = bubbleCenter,
                                     style = Stroke(0.65.dp.toPx())
@@ -625,12 +618,12 @@ private fun WaveGauge(
                 }
                 drawPath(
                     crest,
-                    Color.White.copy(alpha = crestPulse),
+                    waveColors.meniscus.copy(alpha = WAVE_MENISCUS_ALPHA * crestPulse),
                     style = Stroke(WAVE_MENISCUS_STROKE_DP.dp.toPx(), cap = StrokeCap.Round)
                 )
 
                 drawArc(
-                    Color.White.copy(alpha = 0.16f), 28f, 58f, false,
+                    waveColors.frontHighlight.copy(alpha = 0.16f), 28f, 58f, false,
                     circleTopLeft, circleSize,
                     style = Stroke(1.2.dp.toPx(), cap = StrokeCap.Round)
                 )
@@ -644,7 +637,7 @@ private fun WaveGauge(
                         listOf(
                             Color.Transparent,
                             gaugeColor.copy(alpha = 0.52f),
-                            Color.White.copy(alpha = 0.98f),
+                            waveColors.frontHighlight.copy(alpha = 0.98f),
                             Color.Transparent
                         )
                     ),
@@ -658,19 +651,19 @@ private fun WaveGauge(
                 )
                 drawCircle(
                     Brush.radialGradient(
-                        listOf(Color.White.copy(alpha = 0.82f), gaugeColor.copy(alpha = 0.42f), Color.Transparent),
+                        listOf(waveColors.frontHighlight.copy(alpha = 0.82f), gaugeColor.copy(alpha = 0.42f), Color.Transparent),
                         center = head, radius = 3.dp.toPx() * 2.6f
                     ),
                     radius = 3.dp.toPx() * 2.6f,
                     center = head
                 )
-                drawCircle(Color.White, 1.25.dp.toPx(), head)
+                drawCircle(waveColors.frontHighlight, 1.25.dp.toPx(), head)
             }
 
             val borderStroke = 1.5.dp.toPx()
             drawCircle(
                 Brush.linearGradient(
-                    listOf(Color.White.copy(alpha = 0.72f), borderColor.copy(alpha = 0.72f), Color.White.copy(alpha = 0.28f)),
+                    listOf(waveColors.frontHighlight.copy(alpha = 0.72f), borderColor.copy(alpha = 0.72f), waveColors.frontHighlight.copy(alpha = 0.28f)),
                     start = Offset(left, top), end = Offset(left + diameter, top + diameter)
                 ),
                 (diameter / 2f - borderStroke / 2f).coerceAtLeast(0f),
