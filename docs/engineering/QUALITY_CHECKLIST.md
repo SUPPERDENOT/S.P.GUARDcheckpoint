@@ -12,11 +12,12 @@
 ### Protected-boundary and delivery gate
 - [x] Planned diff scope is limited to `Theme.kt`, `InfoDialogVisualTokensTest.kt`, `CHANGELOG.md`, and this checklist.
 - [x] Room DB v3, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number are outside the change.
-- [ ] Full branch diff crosscheck: pending.
-- [ ] `:app:testDebugUnitTest`: pending exact-HEAD CI.
-- [ ] `:app:assembleDebug`: pending exact-HEAD CI.
-- [ ] Anti-Slop UI Audit Gate: pending exact-HEAD CI.
-- [ ] Upload APK and record artifact ID: pending exact-HEAD CI.
+- [x] Full branch diff crosscheck: PASS — exactly four requested files changed; all protected source/build paths are absent.
+- [x] `:app:testDebugUnitTest`: SUCCESS — GitHub Actions Run #768 on source/test HEAD `0ea67480f9c4da6bad86ffde2b18e6d845383d06`.
+- [x] `:app:assembleDebug`: SUCCESS — same exact source/test HEAD and run.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #768.
+- [x] Upload APK: SUCCESS — Artifact ID `15136412249`; unit-test report Artifact ID `15136557090`.
+- [ ] Final documentation-closeout HEAD CI: pending at checklist commit time; exact final HEAD status is tracked in the PR delivery report.
 - [ ] Physical-device visual QA: not run; CI does not replace device review.
 - [ ] PR merge: HOLD — no merge or auto-merge.
 
