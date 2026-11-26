@@ -4,11 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material3.ColorScheme
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -38,20 +36,9 @@ import com.superdenot.powerguard.domain.model.ProtocolExplanationCatalog
 import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.POWER_BUTTON_CLOSE_DELAY_MS
 
-internal const val INFO_BADGE_DIAMETER_DP = 18f
-internal const val INFO_BADGE_ICON_DIAMETER_DP = 12f
-internal const val INFO_BADGE_TOUCH_TARGET_DP = 24f
-internal const val INFO_BADGE_GAP_DP = 3f
-
-internal data class InfoDialogSurfaceColors(
-    val containerColor: Color,
-    val borderColor: Color
-)
-
-internal fun infoDialogSurfaceColors(colorScheme: ColorScheme) = InfoDialogSurfaceColors(
-    containerColor = colorScheme.surfaceContainerHigh,
-    borderColor = colorScheme.outlineVariant
-)
+internal const val INFO_BADGE_DIAMETER_DP = 16f
+internal const val INFO_BADGE_ICON_DIAMETER_DP = 11f
+internal const val INFO_BADGE_GAP_DP = 4f
 
 @Composable
 internal fun InfoBadge(
@@ -60,27 +47,18 @@ internal fun InfoBadge(
 ) {
     Box(
         modifier = Modifier
-            .defaultMinSize(
-                minWidth = INFO_BADGE_TOUCH_TARGET_DP.dp,
-                minHeight = INFO_BADGE_TOUCH_TARGET_DP.dp
-            )
+            .size(INFO_BADGE_DIAMETER_DP.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
             .clickable(role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(INFO_BADGE_DIAMETER_DP.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Rounded.Info,
-                contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(INFO_BADGE_ICON_DIAMETER_DP.dp)
-            )
-        }
+        Icon(
+            Icons.Outlined.Info,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(INFO_BADGE_ICON_DIAMETER_DP.dp)
+        )
     }
 }
 
@@ -90,15 +68,14 @@ fun ProtocolInfoDialog(
     onDismiss: () -> Unit
 ) {
     val explanation = ProtocolExplanationCatalog.get(protocolLabel)
-    val surfaceColors = infoDialogSurfaceColors(MaterialTheme.colorScheme)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).heightIn(max = 560.dp),
             shape = RoundedCornerShape(20.dp),
-            color = surfaceColors.containerColor,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            border = BorderStroke(1.dp, surfaceColors.borderColor),
-            tonalElevation = 6.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = 0.dp,
             shadowElevation = 8.dp
         ) {
             Column(
