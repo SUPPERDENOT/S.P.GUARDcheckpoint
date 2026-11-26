@@ -66,7 +66,7 @@ class InfoDialogVisualTokensTest {
         assertEquals(2f, INFO_DIALOG_HEADER_GAP_DP, 0f)
         assertEquals(16f, INFO_DIALOG_HEADER_HORIZONTAL_PADDING_DP, 0f)
         assertEquals(14f, INFO_DIALOG_HEADER_TOP_PADDING_DP, 0f)
-        assertEquals(10f, INFO_DIALOG_HEADER_BOTTOM_PADDING_DP, 0f)
+        assertEquals(8f, INFO_DIALOG_HEADER_BOTTOM_PADDING_DP, 0f)
         assertEquals(8f, INFO_DIALOG_SCROLL_VERTICAL_PADDING_DP, 0f)
         assertEquals(16f, INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP, 0f)
         assertEquals(8f, INFO_DIALOG_FOOTER_TOP_PADDING_DP, 0f)

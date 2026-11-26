@@ -42,7 +42,7 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun normalChargingUsesGreenAndNormalIdleUsesThemeAccent() {
+    fun batteryGaugeAccentUsesThemeAccentDuringChargingAndIdle() {
         assertEquals(
             Color.Green,
             resolveBatteryGaugeColor(palette, isCriticalThermal = false, isWarm = false, isCharging = true)
@@ -51,7 +51,7 @@ class BatteryGaugeSpecTest {
             Color.Blue,
             resolveBatteryGaugeColor(palette, isCriticalThermal = false, isWarm = false, isCharging = false)
         )
-        assertEquals(Color.Green, resolveBatteryGaugeAccent(palette, isCharging = true))
+        assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette, isCharging = true))
         assertEquals(Color.Blue, resolveBatteryGaugeAccent(palette, isCharging = false))
     }
 
@@ -163,15 +163,15 @@ class BatteryGaugeSpecTest {
     fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
         assertEquals(6.5f, WAVE_AMPLITUDE_DP, 0f)
         assertEquals(1.6f, WAVE_CYCLES, 0f)
-        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
-        assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.0943952f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        assertEquals(-1.15f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
         assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
         assertEquals(100f, WAVE_COMET_TAIL_DEGREES, 0f)
-        assertEquals(0.88f, WAVE_REAR_FILL_ALPHA, 0f)
-        assertEquals(0.88f, WAVE_FRONT_FILL_ALPHA, 0f)
+        assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
     @Test
@@ -261,20 +261,20 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun waveRendererUsesCounterPhaseDarkRearAndAccentLitFrontAndMeniscus() {
+    fun waveRendererUsesSemiTransparentAccentRearAndCounterDirectionFrontAndMeniscus() {
         val accent = Color(0xFF12B886)
         val layers = waveLayerColors(accent)
-        assertEquals(-1f, waveRearPhase(1f) - waveRearPhase(0f), 0f)
-        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(0.76f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
-        assertEquals(0.88f, WAVE_REAR_FILL_ALPHA, 0f)
-        assertEquals(0.88f, WAVE_FRONT_FILL_ALPHA, 0f)
-        assertEquals(lerp(accent, Color.Black, 0.42f).copy(alpha = 0.88f), layers.rear)
-        assertEquals(lerp(accent, Color.White, 0.32f), layers.frontHighlight)
+        assertEquals(-1.15f, waveRearPhase(1f) - waveRearPhase(0f), 0.000001f)
+        assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(1.12f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
+        assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
+        assertEquals(accent.copy(alpha = 0.40f), layers.rear)
+        assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.92f), layers.frontHighlight)
         assertEquals(accent, layers.frontBase)
-        assertEquals(lerp(accent, Color.Black, 0.22f), layers.frontShadow)
+        assertEquals(lerp(accent, Color.Black, 0.22f).copy(alpha = 0.92f), layers.frontShadow)
         assertEquals(lerp(accent, Color.White, 0.35f).copy(alpha = 0.75f), layers.meniscus)
-        assertTrue(layers.rear.luminance() < accent.luminance())
+        assertEquals(0.40f, layers.rear.alpha, 0f)
         assertNotEquals(Color.White, layers.meniscus)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
     }
