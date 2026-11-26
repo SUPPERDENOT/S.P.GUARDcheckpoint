@@ -4,7 +4,7 @@
 - Replaced the rememberInfiniteTransition / ValueAnimator.areAnimatorsEnabled() path and conditional fallback with one rememberGaugePhase loop driven by LaunchedEffect and withFrameNanos. Phase is accumulated from a bounded 0–64ms frame delta over a 2,400ms cycle and normalized to 0..1; disabled animation resets phase to zero. Canvas draw scopes read the phase state directly and convert the normalized phase to radians for the existing gauge geometry.
 - Kept Theme & Gauge's live preview forceAnimate = true; Statis remains excluded by the existing animation eligibility rule. The active Overview gauge now receives the charging state directly from the selected live dashboard state; thermal and visibility gates remain centralized in the gauge eligibility rule. The separate legacy ui/dashboard/DashboardScreen.kt contains no gauge call and is not routed by MainActivity, so it was intentionally left untouched.
 - Added explicit five-level Material 3 surface-container palettes for Basic Terracotta/Emerald/Cobalt in Light and Dark modes and Midnight Violet/Pink/Cyan/Green. Each set is tinted to its theme rather than inheriting the neutral Material 3 defaults.
-- Protocol info dialog now uses surfaceContainerHigh, zero tonal elevation, and a 1dp outlineVariant border.
+- Protocol and battery-side power info dialogs now use surfaceContainerHigh, zero tonal elevation, and a 1dp outlineVariant border.
 - Flattened both Charging info badges to a 16dp primary-tinted circle with an 11dp outlined info icon and 4dp heading gap. The badge is a flat Box composition with no Surface elevation or shadow modifier.
 
 ### Tests
