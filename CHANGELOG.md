@@ -15,10 +15,10 @@
 - No Room DB v3/schema/migrations, sensor acquisition/sampling cadence, calibration default 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
 
 ### Verification
-- Source/diff self-crosscheck: pending exact branch review.
-- Unit tests, assembleDebug, and Anti-Slop UI Audit Gate: pending exact-head PR CI.
-- 360dp layout geometry: pending final source review; physical itel P55 QA NOT RUN.
-- PR #13 will target main and remain unmerged.
+- Source/diff self-crosscheck: PASS — exactly 10 intended paths changed; no protected Room, sensor, service, manifest, Gradle, dependency, SDK, or versioning paths are present.
+- GitHub Actions Run #765 on exact implementation HEAD 950ae890a18d94f6821807393ad96cd3a065ec0d: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, debug APK upload, and unit-test report upload. APK Artifact ID 15118694945 (ZIP SHA-256 0b2a71903bb83b3863d303c3cdbf5ae10a1d4da2314ffd81d074c4bf42de7c80); unit-test report Artifact ID 15118869454. The PR workflow revalidates the documentation closeout commit on its exact HEAD.
+- 360dp layout source geometry: PASS by calculation — using the compact Dialog default-width estimate of 87% (about 313dp at 360dp), 32dp total content padding and an 8dp column gap leave about 136.5dp per tile; 20dp tile padding leaves about 116.5dp for the one-line label. Physical itel P55 QA: NOT RUN.
+- PR #13 remains OPEN and unmerged.
 
 ---
 

@@ -1183,6 +1183,7 @@ Evidence reviewed: `SPG_AutoStart_Filtered.txt` and `spg_job_and_battrey.txt`. T
 - [x] Confirmed by source inspection that all four gauge models use MaterialTheme primary for all four animation profiles; diagnostic semantic colors remain separate.
 - [x] Added tests for accent persistence/fallback, live preview, gauge accent, primary/onPrimary contrast, and explicit surfaceContainer tokens.
 - [x] Protected boundaries unchanged by source scope: Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number.
-- [ ] Exact-head PR CI: NOT RUN — pending GitHub Actions.
-- [ ] 360dp / 720p UI verification: source geometry review pending; physical itel P55 QA NOT RUN.
-- [ ] Final diff / Anti-Slop gate review: pending branch verification.
+- [x] GitHub Actions Run #765 on implementation HEAD 950ae890a18d94f6821807393ad96cd3a065ec0d: SUCCESS — Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, debug APK upload, and unit-test report upload. APK Artifact ID 15118694945; unit-test report Artifact ID 15118869454.
+- [x] Final source diff / Anti-Slop review: PASS — 10 intended files only; all package choices and config branches are exhaustive; no protected runtime/build paths changed.
+- [x] 360dp / 720p source geometry review: PASS by calculation — estimated 116.5dp label width per tile; labels use maxLines=1 and softWrap=false.
+- [ ] Physical-device visual QA on itel P55: NOT RUN — automated CI does not establish device rendering.
