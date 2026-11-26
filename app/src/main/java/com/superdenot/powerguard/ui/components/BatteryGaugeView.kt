@@ -696,7 +696,7 @@ private fun WaveGauge(
                 val orbitSize = Size(orbitRadius * 2f, orbitRadius * 2f)
                 val orbitStart = -90f + phaseFraction * 360f
                 val tailColor = androidx.compose.ui.graphics.lerp(
-                    gaugeColor, Color.White, WAVE_COMET_STYLE.tailSweepDegrees.let { WAVE_COMET_TAIL_HIGHLIGHT_BLEND }
+                    gaugeColor, Color.White, WAVE_COMET_TAIL_HIGHLIGHT_BLEND
                 )
                 val headColor = androidx.compose.ui.graphics.lerp(
                     gaugeColor, Color.White, WAVE_COMET_HEAD_HIGHLIGHT_BLEND
