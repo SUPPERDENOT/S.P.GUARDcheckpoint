@@ -166,7 +166,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                         percentageLabel = if (state.isLevelAvailable) "${state.level}%" else "—",
                         model = themePackConfig.gaugeModel,
                         animation = themePackConfig.chargingAnimation,
-                        isCharging = state.isChargingStatusAvailable && state.isCharging && !isCriticalThermal && !isWarm,
+                        isCharging = state.isChargingStatusAvailable && state.isCharging,
                         isCriticalThermal = isCriticalThermal,
                         isWarm = isWarm,
                         isVisibleOnScreen = isActive,
