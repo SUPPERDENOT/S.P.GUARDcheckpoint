@@ -16,7 +16,9 @@
 - No Room DB v3/schema/migrations, sensor acquisition or sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, SDK, Gradle dependencies, app version, or build number changes are intended.
 
 ### Verification status
-- Source implementation and regression tests are committed on `feat/theme-system-and-battery-gauges`; full diff review and exact-HEAD CI remain pending.
+- Run #701 on intermediate HEAD `e024aa77ddf73183ddf33beae01bc13c3dda4e72`: Anti-Slop SUCCESS; build failed at `ProtocolInfoDialog.kt` due to a missing `clip` import. The import was added in the subsequent source commit before the successful run.
+- Run #705 (`45757589472`) on source/test HEAD `b757b73c6f923f9f37fdb12d0a960540b0695bd9`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and Upload unit-test reports. APK Artifact ID `15088831300` (SHA256 `5570b47290af45b3b120bbfb4b400027d9ab7dda3f2dfeedb14eb95fd42068d1`); test report Artifact ID `15088363248`.
+- A documentation-only verification update follows Run #705. CI for the resulting exact delivery HEAD is tracked in the final delivery report.
 - Physical-device QA on itel P55: NOT RUN.
 - PR #12 remains OPEN; no merge or auto-merge.
 
