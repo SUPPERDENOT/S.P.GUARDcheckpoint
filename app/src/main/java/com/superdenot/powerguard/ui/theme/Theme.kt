@@ -50,6 +50,10 @@ private data class MidnightPalette(
 
 private val MidnightOnSurface = Color(0xFFE6EAF2)
 private val MidnightOnSurfaceVariant = Color(0xFF9AA4B8)
+val MidnightVioletAccent = Color(0xFF9D7BFF)
+val MidnightPinkAccent = Color(0xFFF472B6)
+val MidnightCyanAccent = Color(0xFF38BDF8)
+val MidnightGreenAccent = Color(0xFF34D399)
 
 private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (accent) {
     MidnightAccent.VIOLET -> MidnightPalette(
@@ -61,7 +65,7 @@ private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (acc
         high = Color(0xFF1D2032),
         highest = Color(0xFF24283E),
         outlineVariant = Color(0xFF2B2F47),
-        primary = Color(0xFF9D7BFF),
+        primary = MidnightVioletAccent,
         onPrimary = Color(0xFF130D26)
     )
     MidnightAccent.PINK -> MidnightPalette(
@@ -73,7 +77,7 @@ private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (acc
         high = Color(0xFF271E27),
         highest = Color(0xFF312631),
         outlineVariant = Color(0xFF3A2C39),
-        primary = Color(0xFFF472B6),
+        primary = MidnightPinkAccent,
         onPrimary = Color(0xFF240B18)
     )
     MidnightAccent.CYAN -> MidnightPalette(
@@ -85,7 +89,7 @@ private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (acc
         high = Color(0xFF192731),
         highest = Color(0xFF20313E),
         outlineVariant = Color(0xFF263947),
-        primary = Color(0xFF38BDF8),
+        primary = MidnightCyanAccent,
         onPrimary = Color(0xFF071B26)
     )
     MidnightAccent.GREEN -> MidnightPalette(
@@ -97,7 +101,7 @@ private fun midnightPalette(accent: MidnightAccent): MidnightPalette = when (acc
         high = Color(0xFF192925),
         highest = Color(0xFF20342F),
         outlineVariant = Color(0xFF263B35),
-        primary = Color(0xFF34D399),
+        primary = MidnightGreenAccent,
         onPrimary = Color(0xFF062017)
     )
 }
