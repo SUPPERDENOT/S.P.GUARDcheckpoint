@@ -81,7 +81,7 @@ class ChargeGuardAlarmPolicyTest {
             chargeLimitEnabled = true,
             targetLevelPercent = 85,
             highTemperatureEnabled = true,
-            highTemperatureThresholdCelsius = 40
+            highTemperatureThresholdCelsius = 42
         )
         val result = ChargeGuardAlarmPolicy.evaluate(
             config, ChargeGuardAlarmState(), 5L, true, 90, true, 42f, true, 2_000_000L
@@ -149,7 +149,7 @@ class ChargeGuardAlarmPolicyTest {
     @Test fun temperatureIncidentAlsoStopsAfterFiveRepeats() {
         val config = ChargeGuardConfiguration(
             highTemperatureEnabled = true,
-            highTemperatureThresholdCelsius = 40,
+            highTemperatureThresholdCelsius = 42,
             repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
         )
         var result = ChargeGuardAlarmPolicy.evaluate(
@@ -176,7 +176,7 @@ class ChargeGuardAlarmPolicyTest {
             chargeLimitEnabled = true,
             targetLevelPercent = 80,
             highTemperatureEnabled = true,
-            highTemperatureThresholdCelsius = 40,
+            highTemperatureThresholdCelsius = 42,
             repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
         )
         val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 10L, true, 85, true, 42f, true, 20_000L)
@@ -198,7 +198,7 @@ class ChargeGuardAlarmPolicyTest {
             chargeLimitEnabled = true,
             targetLevelPercent = 80,
             highTemperatureEnabled = true,
-            highTemperatureThresholdCelsius = 40,
+            highTemperatureThresholdCelsius = 42,
             repeatMode = ChargeGuardRepeatMode.EVERY_1_MINUTE
         )
         val first = ChargeGuardAlarmPolicy.evaluate(config, ChargeGuardAlarmState(), 11L, true, 90, true, 43f, true, 30_000L)
