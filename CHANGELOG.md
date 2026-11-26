@@ -1,3 +1,27 @@
+## 2026-11-26 — PR #12 hotfix: thermal-independent gauge animation, accent dual-wave, 48°C preset, slim info popup
+
+### Changed
+- Simplified gauge animation eligibility to the exact rule `(isCharging || forceAnimate) && animationStyle != STATIC`. Removed thermal-state and on-screen-visibility gates from `shouldAnimateBatteryGauge` and removed thermal/visibility arguments from `BatteryGaugeView` call sites. The Overview passes the actual charging state; Theme & Gauge preview retains `forceAnimate = true` and receives charging state without a temperature veto. Thermal classifications remain available for status text and diagnostic color only.
+- Rebuilt Wave as a counter-phase dual layer: the rear phase runs as `-phase + 135°` and uses the accent darkened by 42% at 0.88 alpha; the front fill uses accent-derived highlight/base/shadow stops (32% toward white at the crest and 22% toward black at the base). The 1.2dp meniscus uses a 35%-lightened accent tint at 0.75 alpha. Wave surface details, Sweep ribbon, Segmen bubbles, Comet's 3dp outer orbit, and the glass rim use accent-derived highlights rather than a plain white crest stroke. Statis keeps both waves fixed.
+- Changed high-temperature presets to the ordered list `[42, 45, 48, 50]` and aligned the model and fresh-install preference fallback to 45°C. A legacy stored 40°C value normalizes to 45°C when read; the existing SharedPreferences value is not rewritten by the read, and no Room migration/schema change is involved.
+- Slimmed ProtocolInfoDialog: titleMedium at 18sp/SemiBold, 2dp title/subtitle gap, 16dp horizontal header/footer padding, 14/10dp header top/bottom, 8dp vertical scroll breathing room, and a 36dp Mengerti button with 16/8/12dp footer padding.
+
+### Tests
+- Added/updated gauge tests for the exact animation rule across Normal/Hangat/Tinggi labels, Statis exclusion, rear-wave counter-phase, rear/front tint and alpha, accent meniscus, and no white meniscus color.
+- Added/updated temperature tests for ordered presets, 45°C default, 48°C alarm behavior, and safe legacy 40°C preference normalization without rewriting the stored preference.
+- Added popup token tests for header typography/spacing, scroll padding, footer padding, and 36dp button height.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId/package, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Source-level self-crosscheck: PASS — all gauge call sites checked; no thermal or visibility arguments remain in the gauge animation path; no `Color.White` remains in the Wave renderer region; thermal classification and alarm policy are kept separate from gauge motion.
+- Automated CI on the final documentation HEAD: pending.
+- Physical-device QA on itel P55: NOT RUN.
+- PR #12 remains OPEN; no merge or auto-merge.
+
+---
+
 ## 2026-11-26 — PR #12 precision fix: delta-frame gauge, themed popup containers, flat info badges
 
 ### Changed
