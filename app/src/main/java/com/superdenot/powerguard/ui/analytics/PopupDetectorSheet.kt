@@ -295,8 +295,8 @@ private fun PopupIncidentCard(
     var showIncidentInfo by remember { mutableStateOf(false) }
     val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
         initialValue = null,
-        incident.packageName,
-        incident.isSimulated
+        key1 = incident.packageName,
+        key2 = incident.isSimulated
     ) {
         value = if (incident.isSimulated) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching {
@@ -315,9 +315,9 @@ private fun PopupIncidentCard(
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                if (bitmap != null) {
-                    Image(bitmap, contentDescription = "Ikon " + popupDisplayName(context, incident), modifier = Modifier.size(36.dp))
-                } else {
+                bitmap?.let { image ->
+                    Image(image, contentDescription = "Ikon " + popupDisplayName(context, incident), modifier = Modifier.size(36.dp))
+                } ?: run {
                     Icon(Icons.Rounded.Apps, contentDescription = "Ikon aplikasi tidak tersedia",
                         modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
