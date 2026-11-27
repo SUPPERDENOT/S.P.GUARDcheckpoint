@@ -1,3 +1,18 @@
+## 2026-11-27 — Wave gauge sweet-spot tuning
+
+- [x] Scope limited to the four Wave calibration constants, focused Wave unit-test assertions, and required engineering documentation.
+- [x] Front amplitude ratio is 0.038f and cap is 5.2dp; unit tests verify the 100px diameter result (3.8px) and the 5.2px cap.
+- [x] Rear elevation maximum is 2.6dp and rear amplitude ratio is 0.82f; unit tests verify the midpoint elevation and both rear-ratio assertions.
+- [x] Shared smoothstep envelope, integer-harmonic wave profile, phase behavior, meniscus/gradient rendering, percentage text, and all six theme palettes remain unchanged.
+- [x] Room DB v3/schema, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number remain outside the edited file set.
+- [x] Diff review against the pre-tuning branch HEAD: pending final comparison.
+- [ ] Exact final HEAD CI: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and APK upload must all be SUCCESS.
+- [ ] Latest debug APK Artifact ID: pending workflow completion.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #15 merge: HOLD — leave OPEN and do not enable auto-merge.
+
+---
+
 ## 2026-11-27 — Wave gauge harmonic surface and liquid depth calibration
 
 - [x] Scope limited to Wave gauge rendering/specification, focused unit tests, and engineering documentation.
