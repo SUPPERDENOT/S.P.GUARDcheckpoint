@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Superd Guard</string>
+    <string name="qs_tile_popup_check_label">Cek Pop-up</string>
 </resources>
