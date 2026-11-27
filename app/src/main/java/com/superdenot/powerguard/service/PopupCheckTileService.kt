@@ -2,12 +2,19 @@ package com.superdenot.powerguard.service
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.superdenot.powerguard.MainActivity
+import com.superdenot.powerguard.R
 
 class PopupCheckTileService : TileService() {
+    override fun onTileAdded() {
+        super.onTileAdded()
+        updateInactiveTile()
+    }
+
     override fun onStartListening() {
         super.onStartListening()
         updateInactiveTile()
@@ -36,11 +43,11 @@ class PopupCheckTileService : TileService() {
     }
 
     private fun updateInactiveTile() {
-        qsTile?.let { tile ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.label = TILE_LABEL
-            tile.state = Tile.STATE_INACTIVE
-            tile.updateTile()
-        }
+        val tile = qsTile ?: return
+        tile.icon = Icon.createWithResource(this, R.drawable.ic_qs_popup_shield)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.label = TILE_LABEL
+        tile.state = Tile.STATE_INACTIVE
+        tile.updateTile()
     }
 
     private companion object {
