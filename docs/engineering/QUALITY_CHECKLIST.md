@@ -8,7 +8,11 @@
 - [x] Daftar Aman lists app icon, readable app label, package name, and per-item Pulihkan action.
 - [x] Archive load migration removes safe/excluded packages, invalid old burst entries, and duplicate packageName records; merge deduplicates by packageName.
 - [x] Analysis summary and timeline use the same PopupDetectorViewModel instance.
-- [ ] Exact-HEAD `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK upload — pending.
+- [x] Established launcher apps (>=14 days, no overlay) are suppressed when evidence consists only of weak post-unlock / sandwich combinations; valid burst or browser redirect evidence remains eligible.
+- [x] Archive migration resolves the active HOME package and checks PackageManager FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP flags, preserving only a literal browser-chain + overlay exception.
+- [x] GitHub Actions Run #846 SUCCESS on implementation HEAD `2c0bf724109b9681bd9c2fc4f31bb3cbedec0ca5`: `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and both artifact uploads passed.
+- [x] Debug APK Artifact ID `15213563223`; unit-test report Artifact ID `15213702957`.
+- [ ] Exact-HEAD verification after this documentation-only update — pending.
 - [ ] Physical itel P55 360dp / 720p visual, touch, safe-list, and Quick Settings verification — NOT RUN.
 
 ### UI self-crosscheck
