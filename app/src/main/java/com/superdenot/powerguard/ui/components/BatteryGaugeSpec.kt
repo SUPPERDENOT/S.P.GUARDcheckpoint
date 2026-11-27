@@ -98,11 +98,18 @@ const val WAVE_CYCLE_DURATION_MILLIS = 3_000
 const val DEFAULT_GAUGE_CYCLE_DURATION_MILLIS = 2_400
 const val WAVE_SAMPLE_STEP_DP = 2f
 const val WAVE_RIM_STROKE_DP = 1.5f
-const val WAVE_REAR_PHASE_OFFSET_DEGREES = 120f
-const val WAVE_REAR_PHASE_OFFSET = 2.0943952f
+const val BACK_WAVE_ELEVATION_DP = 3.5f
+const val BACK_WAVE_AMPLITUDE_RATIO = 1.20f
+const val BACK_WAVE_ELEVATION_ZERO_START = 0.02f
+const val BACK_WAVE_ELEVATION_FULL_START = 0.08f
+const val BACK_WAVE_ELEVATION_FULL_END = 0.92f
+const val BACK_WAVE_ELEVATION_ZERO_END = 0.98f
+const val WAVE_REAR_PHASE_OFFSET_DEGREES = 135f
+const val WAVE_REAR_PHASE_OFFSET = 2.3561945f
 const val WAVE_REAR_DIRECTION = -1f
-const val WAVE_REAR_AMPLITUDE_SCALE = 1.12f
-const val WAVE_REAR_FILL_ALPHA = 0.40f
+const val WAVE_REAR_FILL_ALPHA = 0.38f
+const val WAVE_REAR_CREST_ALPHA = 0.30f
+const val WAVE_REAR_CREST_STROKE_DP = 0.8f
 const val WAVE_FRONT_FILL_ALPHA = 0.92f
 const val WAVE_FRONT_HIGHLIGHT_BLEND = 0.32f
 const val WAVE_FRONT_SHADOW_BLEND = 0.22f
@@ -126,6 +133,7 @@ const val CAPSULE_BUBBLE_MAX_ALPHA = 0.58f
 
 data class WaveLayerColors(
     val rear: Color,
+    val rearCrest: Color,
     val frontHighlight: Color,
     val frontBase: Color,
     val frontShadow: Color,
@@ -134,6 +142,7 @@ data class WaveLayerColors(
 
 fun waveLayerColors(accentColor: Color): WaveLayerColors = WaveLayerColors(
     rear = accentColor.copy(alpha = WAVE_REAR_FILL_ALPHA),
+    rearCrest = accentColor.copy(alpha = WAVE_REAR_CREST_ALPHA),
     frontHighlight = lerp(accentColor, Color.White, WAVE_FRONT_HIGHLIGHT_BLEND).copy(alpha = WAVE_FRONT_FILL_ALPHA),
     frontBase = accentColor,
     frontShadow = lerp(accentColor, Color.Black, WAVE_FRONT_SHADOW_BLEND).copy(alpha = WAVE_FRONT_FILL_ALPHA),
@@ -141,10 +150,32 @@ fun waveLayerColors(accentColor: Color): WaveLayerColors = WaveLayerColors(
         .copy(alpha = WAVE_MENISCUS_ALPHA)
 )
 
-/** Converts a normalized phase into a reverse-moving rear phase; 0 and 1 are wrap-equivalent. */
-fun waveRearPhase(phaseFraction: Float): Float =
-    phaseFraction.coerceIn(0f, 1f) * WAVE_REAR_DIRECTION * (2f * Math.PI.toFloat()) +
-        WAVE_REAR_PHASE_OFFSET
+/** Smoothly fades rear-wave elevation in/out while keeping the exact empty/full endpoints level. */
+fun backWaveElevationTaper(level: Float): Float {
+    val safeLevel = level.coerceIn(0f, 1f)
+    val fadeIn = smoothStep01(
+        (safeLevel - BACK_WAVE_ELEVATION_ZERO_START) /
+            (BACK_WAVE_ELEVATION_FULL_START - BACK_WAVE_ELEVATION_ZERO_START)
+    )
+    val fadeOut = smoothStep01(
+        (safeLevel - BACK_WAVE_ELEVATION_FULL_END) /
+            (BACK_WAVE_ELEVATION_ZERO_END - BACK_WAVE_ELEVATION_FULL_END)
+    )
+    return (fadeIn * (1f - fadeOut)).coerceIn(0f, 1f)
+}
+
+fun backWaveElevationOffsetDp(level: Float): Float =
+    BACK_WAVE_ELEVATION_DP * backWaveElevationTaper(level)
+
+private fun smoothStep01(value: Float): Float {
+    val t = value.coerceIn(0f, 1f)
+    return t * t * (3f - 2f * t)
+}
+
+/** Rear phase runs opposite the front phase; the 0/2π endpoints are cycle-equivalent. */
+fun waveRearPhase(frontPhase: Float): Float =
+    WAVE_REAR_DIRECTION * frontPhase + WAVE_REAR_PHASE_OFFSET
+
 
 fun waveSampleCount(widthPx: Float, sampleStepPx: Float): Int =
     if (widthPx <= 0f || sampleStepPx <= 0f) 1
