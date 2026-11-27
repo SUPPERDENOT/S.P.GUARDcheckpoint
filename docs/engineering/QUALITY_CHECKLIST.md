@@ -13,7 +13,8 @@
 ### Verification and protected boundaries
 - [x] Source scope is limited to theme rendering, the two dialogs, Settings subtitle, focused unit tests, and required documentation.
 - [x] No Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, or build number changes.
-- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending PR #15 CI.
+- [x] Run #777 intermediate result: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` FAILED at test compilation because `assertNotEquals` was not imported. The test import is corrected in the next commit.
+- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending the next PR #15 CI run.
 - [ ] Physical-device QA at 360dp / 720p: NOT RUN.
 - [ ] PR #15 merge: HOLD — remain OPEN and unmerged as explicitly requested.
 
