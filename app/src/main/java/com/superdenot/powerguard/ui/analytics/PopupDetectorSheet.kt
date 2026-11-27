@@ -63,6 +63,7 @@ internal fun PopupDetectorCard(
     val statusText = when {
         state.isScanning -> "Sedang memindai..."
         !state.hasUsagePermission -> "Akses Penggunaan belum aktif"
+        state.currentIncidents.isEmpty() && state.archivedIncidents.isNotEmpty() -> "Tidak ada indikasi baru"
         state.currentIncidents.isEmpty() -> "Layar Aman"
         else -> state.currentIncidents.size.toString() + " indikasi perlu diperiksa"
     }
@@ -290,10 +291,16 @@ private fun PopupIncidentCard(
 ) {
     val context = LocalContext.current
     var showIncidentInfo by remember { mutableStateOf(false) }
-    val bitmap = remember(context, incident.packageName, incident.isSimulated) {
-        if (incident.isSimulated) null else runCatching {
-            context.packageManager.getApplicationIcon(incident.packageName).toBitmap().asImageBitmap()
-        }.getOrNull()
+    val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+        initialValue = null,
+        incident.packageName,
+        incident.isSimulated
+    ) {
+        value = if (incident.isSimulated) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                context.packageManager.getApplicationIcon(incident.packageName).toBitmap().asImageBitmap()
+            }.getOrNull()
+        }
     }
     Card(
         modifier = Modifier.fillMaxWidth().infoLongPress(
@@ -379,7 +386,9 @@ private fun PopupIncidentCard(
     if (showIncidentInfo) {
         InfoLongPressDialog(
             title = popupDisplayName(context, incident),
-            body = "Pola yang teramati berasal dari riwayat perpindahan aktivitas Android. Izin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.",
+            body = "Pola yang teramati berasal dari riwayat perpindahan aktivitas Android. " +
+                incident.reasons.joinToString(" ") { it.userLabel } +
+                " Izin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.",
             onDismiss = { showIncidentInfo = false }
         )
     }

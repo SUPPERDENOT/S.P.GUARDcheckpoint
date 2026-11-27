@@ -959,30 +959,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
             )
         }
 
-        if (!hasPerm) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = { showLongPressInfo = true }),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Diperlukan untuk menampilkan aplikasi aktif selama 24 jam terakhir.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        PowerActionButton(
-                            onClick = {
-                                runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-                            }
-                        ) {
-                            Text("Buka Pengaturan Izin", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-        } else if (apps.isEmpty()) {
+        if (hasPerm && apps.isEmpty()) {
             item {
                 Text(
                     text = "Tidak ada aktivitas aplikasi signifikan dalam 24 jam terakhir.",
@@ -990,7 +967,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else {
+        } else if (hasPerm) {
             items(apps, key = { it.packageName }) { app ->
                 Card(
                     modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = { showLongPressInfo = true }),

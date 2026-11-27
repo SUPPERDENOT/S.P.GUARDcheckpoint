@@ -37,7 +37,7 @@ class PopupCheckTileService : TileService() {
 
     private fun updateInactiveTile() {
         qsTile?.let { tile ->
-            tile.label = TILE_LABEL
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.label = TILE_LABEL
             tile.state = Tile.STATE_INACTIVE
             tile.updateTile()
         }
