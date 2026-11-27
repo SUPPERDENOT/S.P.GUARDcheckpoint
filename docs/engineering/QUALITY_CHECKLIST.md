@@ -1,3 +1,24 @@
+## 2026-11-27 — PR #15 final theme/dialog polish
+
+### Draft theme dialog
+- [x] The complete Theme & Gauge configuration dialog is wrapped in the ColorScheme resolved from the current draft; selection pills, dual-tint switch, gauge preview, and Save action share the preview palette.
+- [x] Basic / System preview resolves against the current system dark-mode state.
+- [x] Existing six package palette tokens and saved configuration behavior are unchanged.
+
+### Info dialog and Settings copy
+- [x] `InfoDialogSurface` owns one remembered scroll state and shows a 12dp bottom fade only when `canScrollForward` is true; the fade ends in the active `surfaceContainerHigh` color.
+- [x] Status Bar Indicator subtitle is the requested single-line text: `Rotasi 2 dtk · W, A/mA, °C, Sumber`.
+- [x] Unit tests cover draft ColorScheme selection/system appearance and the 12dp fade-height token.
+
+### Verification and protected boundaries
+- [x] Source scope is limited to theme rendering, the two dialogs, Settings subtitle, focused unit tests, and required documentation.
+- [x] No Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, or build number changes.
+- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending PR #15 CI.
+- [ ] Physical-device QA at 360dp / 720p: NOT RUN.
+- [ ] PR #15 merge: HOLD — remain OPEN and unmerged as explicitly requested.
+
+---
+
 ## 2026-11-27 — Restore four standalone theme packs (PR #15)
 
 ### Theme package and picker
