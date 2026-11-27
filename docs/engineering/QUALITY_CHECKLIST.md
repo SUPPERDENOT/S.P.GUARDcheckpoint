@@ -1,3 +1,16 @@
+## 2026-11-27 — Wave gauge harmonic surface and liquid depth calibration
+
+- [x] Scope limited to Wave gauge rendering/specification, focused unit tests, and engineering documentation.
+- [x] Existing Wave renderer and prior back-wave implementation inspected; fractional 1.6-cycle profile and non-zero minimum damping were replaced by the requested integer-harmonic profile and shared smoothstep envelope.
+- [x] Front amplitude ratio 0.028f and 4.0dp maximum; rear amplitude ratio 0.78f; rear elevation maximum 2.4dp: source-level implementation.
+- [x] Rear fill/crest alpha 0.30f / 0.25f, crest stroke 0.75dp, front gradient alpha 0.95f → 0.76f, and luminance-adaptive 1.2dp meniscus: source-level implementation.
+- [x] Regression tests added for constants, amplitude cap, envelope boundaries/midpoint, harmonic normalization and cycle continuity, reverse rear phase, layer colors, and dark/bright meniscus.
+- [x] Six theme palettes, Room DB v3/schema, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number are outside the edited file set.
+- [ ] Final diff review: pending.
+- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload on exact final HEAD: pending CI.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #15 merge: HOLD — leave OPEN and do not enable auto-merge.
+
 ## 2026-11-27 — Wave gauge back-surface depth polish
 
 ### Wave back-surface
