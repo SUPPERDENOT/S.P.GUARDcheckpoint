@@ -222,7 +222,8 @@ class PopupHijackDetectorTest {
             "com.transsion.resolver", "com.transsion.screencapture", "com.transsion.camera",
             "com.transsion.applock", "com.transsion.filemanagerx", "com.google.android.providers.media.module",
             "com.google.android.documentsui", "com.android.documentsui", "com.google.android.gms",
-            "com.android.vending", "com.google.android.googlequicksearchbox", "com.vendor.photopicker"
+            "com.android.vending", "com.google.android.googlequicksearchbox", "com.vendor.photopicker",
+            "com.android.systemui", "com.android.settings", "com.android.chrome"
         )
         excluded.forEach { pkg ->
             val result = PopupHijackDetector.evaluate(
@@ -260,6 +261,25 @@ class PopupHijackDetectorTest {
         assertEquals(listOf("com.example.duplicate"), migrated.map { it.packageName })
         assertEquals(now - 1, migrated.single().lastSeenAtMs)
         assertEquals(45, migrated.single().riskScore)
+    }
+
+
+    @Test fun archiveMigrationOnlyRetainsSystemPackageWithLiteralRedirectAndOverlayEvidence() {
+        val valid = PopupIncident(
+            "com.example.system.redirect", 45, PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN, PopupSignalReason.OVERLAY_PERMISSION),
+            listOf(now)
+        )
+        val invalid = PopupIncident(
+            "com.example.system.other", 45, PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
+            listOf(now)
+        )
+        val result = sanitizePopupIncidentArchive(
+            listOf(valid, invalid), emptySet(),
+            setOf("com.example.system.redirect", "com.example.system.other")
+        )
+        assertEquals(listOf("com.example.system.redirect"), result.map { it.packageName })
     }
 
     @Test fun simulationContainsBothNewStatusBands() {

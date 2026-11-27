@@ -61,7 +61,12 @@ private val POPUP_ALWAYS_EXCLUDED_PACKAGES = setOf(
     "com.transsion.applock", "com.transsion.filemanagerx",
     "com.google.android.providers.media.module", "com.google.android.documentsui",
     "com.android.documentsui", "com.google.android.gms", "com.android.vending",
-    "com.google.android.googlequicksearchbox"
+    "com.google.android.googlequicksearchbox",
+    "com.android.systemui", "com.android.settings", "com.android.packageinstaller",
+    "com.google.android.packageinstaller", "com.android.permissioncontroller",
+    "com.google.android.permissioncontroller", "com.android.dialer", "com.google.android.dialer",
+    "com.android.chrome", "com.brave.browser", "org.mozilla.firefox", "com.opera.browser",
+    "com.sec.android.app.sbrowser", "com.microsoft.emmx", "com.kiwibrowser.browser"
 )
 
 object PopupHijackDetector {
@@ -251,11 +256,16 @@ internal fun isPopupAlwaysExcludedPackage(packageName: String): Boolean =
 
 internal fun sanitizePopupIncidentArchive(
     incidents: List<PopupIncident>,
-    safePackages: Set<String>
+    safePackages: Set<String>,
+    systemPackages: Set<String> = emptySet()
 ): List<PopupIncident> {
     val cleaned = incidents.mapNotNull { incident ->
         if (incident.packageName in safePackages || isPopupAlwaysExcludedPackage(incident.packageName)) return@mapNotNull null
         val reasons = incident.reasons.toMutableSet()
+        val hasLiteralBrowserRedirectEvidence =
+            PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons &&
+                PopupSignalReason.OVERLAY_PERMISSION in reasons
+        if (incident.packageName in systemPackages && !hasLiteralBrowserRedirectEvidence) return@mapNotNull null
         val burstReasons = setOf(PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS)
         if (reasons.any { it in burstReasons }) {
             val times = incident.eventTimesMs.distinct().sorted()
