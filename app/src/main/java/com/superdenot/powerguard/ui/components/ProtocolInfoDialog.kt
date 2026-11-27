@@ -1,8 +1,6 @@
 package com.superdenot.powerguard.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
@@ -36,9 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,24 +62,6 @@ internal const val INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP = 16f
 internal const val INFO_DIALOG_FOOTER_TOP_PADDING_DP = 8f
 internal const val INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP = 12f
 internal const val INFO_DIALOG_BUTTON_HEIGHT_DP = 36f
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun Modifier.infoLongPress(
-    onLongPress: () -> Unit,
-    onClick: () -> Unit = {}
-): Modifier {
-    val hapticFeedback = LocalHapticFeedback.current
-    return combinedClickable(
-        role = Role.Button,
-        onClick = onClick,
-        onLongClickLabel = "Tampilkan penjelasan",
-        onLongClick = {
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-            onLongPress()
-        }
-    )
-}
 
 @Composable
 internal fun InfoBadge(
@@ -204,17 +181,6 @@ internal fun InfoDialogSurface(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun InfoLongPressDialog(
-    title: String,
-    body: String,
-    onDismiss: () -> Unit
-) {
-    InfoDialogSurface(title = title, onDismiss = onDismiss) {
-        Text(body, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

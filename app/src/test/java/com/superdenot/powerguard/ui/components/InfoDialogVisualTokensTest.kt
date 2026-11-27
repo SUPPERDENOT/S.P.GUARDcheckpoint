@@ -153,16 +153,6 @@ class InfoDialogVisualTokensTest {
     }
 
     @Test
-    fun longPressInfoDialogReusesTheSharedSolidSurfaceAndScrollFade() {
-        assertEquals(18f, INFO_DIALOG_HEADER_TITLE_SP, 0f)
-        assertEquals(20f, INFO_DIALOG_SURFACE_CORNER_RADIUS_DP, 0f)
-        assertEquals(1f, INFO_DIALOG_SURFACE_BORDER_DP, 0f)
-        assertEquals(0f, INFO_DIALOG_SURFACE_TONAL_ELEVATION_DP, 0f)
-        assertEquals(12f, INFO_DIALOG_SCROLL_FADE_HEIGHT_DP, 0f)
-        assertEquals(36f, INFO_DIALOG_BUTTON_HEIGHT_DP, 0f)
-    }
-
-    @Test
     fun bothInfoDialogsShareSolidSurfaceAndCompactFooterTokens() {
         assertEquals(20f, INFO_DIALOG_SURFACE_CORNER_RADIUS_DP, 0f)
         assertEquals(1f, INFO_DIALOG_SURFACE_BORDER_DP, 0f)
