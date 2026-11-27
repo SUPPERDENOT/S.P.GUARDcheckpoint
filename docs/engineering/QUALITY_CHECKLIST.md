@@ -1,3 +1,16 @@
+## 2026-11-28 — PR #17 Quick Settings Shield Icon
+
+- [x] Scope limited to the popup tile VectorDrawable, tile service icon refresh, manifest resource reference, and required documentation.
+- [x] Added 24dp × 24dp VectorDrawable with 24 × 24 viewport, transparent canvas, white path fill, even-odd frame cutout, and shield/exclamation negative space.
+- [x] Manifest references `@drawable/ic_qs_popup_shield` for `.service.PopupCheckTileService`.
+- [x] `onTileAdded()` and `onStartListening()` refresh the icon before `updateTile()`; existing click/navigation behavior is preserved.
+- [x] No new permission or `QUERY_ALL_PACKAGES`; no Gradle/dependency/SDK/app version changes.
+- [x] Protected P0 boundaries (Room DB v3, sensor/sampling, calibration 1x, foreground battery monitoring, and `RECOVERY_HOLD`) remain outside the diff.
+- [ ] Exact-HEAD `testDebugUnitTest` — pending CI.
+- [ ] Exact-HEAD `assembleDebug` and APK upload — pending CI.
+- [ ] Exact-HEAD Anti-Slop UI Audit Gate and unit-test report upload — pending CI.
+- [ ] Physical Quick Settings icon rendering and cache refresh on itel P55 — NOT RUN.
+
 ## 2026-11-27 — PR #17 Calibration / Safe-List Polish
 
 - [x] Risk bands are 0–44 omitted, 45–74 Perlu Dicek, and 75–100 Mencurigakan; burst count does not force a status.
