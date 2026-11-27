@@ -12,7 +12,15 @@ internal object AppDisplayNameFormatter {
         "com.facebook.katana" to "Facebook",
         "com.facebook.orca" to "Messenger",
         "com.instagram.android" to "Instagram",
-        "com.google.android.youtube" to "YouTube"
+        "com.google.android.googlequicksearchbox" to "Google",
+        "com.google.android.youtube" to "YouTube",
+        "com.google.android.gm" to "Gmail",
+        "com.google.android.apps.maps" to "Google Maps",
+        "com.android.chrome" to "Chrome",
+        "com.android.vending" to "Google Play Store",
+        "com.shopee.id" to "Shopee",
+        "com.gojek.app" to "Gojek",
+        "com.tokopedia.tkpd" to "Tokopedia"
     )
 
     fun format(packageName: String, systemLabel: String?): String {
