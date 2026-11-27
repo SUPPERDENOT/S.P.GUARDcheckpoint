@@ -170,6 +170,7 @@ internal fun PopupDetectorSheet(
     onRestoreSafeList: () -> Unit,
     onRunSimulation: () -> Unit,
     onClearSimulation: () -> Unit,
+    onOpenUsageSettings: () -> Unit,
     onOpenAppDetails: (String) -> Unit,
     onOpenSystemApps: () -> Unit
 ) {
@@ -228,6 +229,11 @@ internal fun PopupDetectorSheet(
                 }
             }
         }
+        Text(
+            "Pulihkan daftar aman menghapus tanda aman manual. Pengecualian komponen sistem tetap otomatis.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,

@@ -1022,6 +1022,9 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
             onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
             onRunSimulation = popupDetectorViewModel::showSimulation,
             onClearSimulation = popupDetectorViewModel::clearSimulation,
+            onOpenUsageSettings = {
+                runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+            },
             onOpenAppDetails = { packageName ->
                 runCatching {
                     context.startActivity(
