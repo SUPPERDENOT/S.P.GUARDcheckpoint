@@ -34,10 +34,14 @@ internal object OverviewMetricsFormatter {
         chargingProtocol: String,
         healthPercentage: Float?,
         temperatureCelsius: Float?,
-        isTemperatureAvailable: Boolean
+        isTemperatureAvailable: Boolean,
+        liveCurrentMa: Int? = null,
+        inMemoryPeakCurrentMa: Int? = null
     ): OverviewMetricsPresentation = OverviewMetricsPresentation(
         estimatedTime = formatEstimatedTime(isChargingStatusAvailable, isCharging, etaMinutes, isEtaTracking),
-        peakCurrent = formatPeakCurrent(isChargingStatusAvailable, isCharging, currentSamples),
+        peakCurrent = formatPeakCurrent(
+            isChargingStatusAvailable, isCharging, currentSamples, liveCurrentMa, inMemoryPeakCurrentMa
+        ),
         powerLimitProfile = formatPowerLimitProfile(
             isChargingStatusAvailable, isCharging, chargeSource, isChargeSourceAvailable, chargingProtocol
         ),
@@ -65,16 +69,29 @@ internal object OverviewMetricsFormatter {
     fun formatPeakCurrent(
         isChargingStatusAvailable: Boolean,
         isCharging: Boolean,
-        samples: List<BatterySampleEntity>
+        samples: List<BatterySampleEntity>,
+        liveCurrentMa: Int? = null,
+        inMemoryPeakCurrentMa: Int? = null
     ): String {
         if (!isChargingStatusAvailable) return "Tidak tersedia"
         if (!isCharging) return "—"
-        val peak = samples.asSequence()
+        val peak = resolvePeakCurrentMa(samples, liveCurrentMa, inMemoryPeakCurrentMa)
+            ?: return "Belum tersedia"
+        return NumberFormat.getIntegerInstance(Locale("id", "ID")).format(peak) + " mA"
+    }
+
+    internal fun resolvePeakCurrentMa(
+        samples: List<BatterySampleEntity>,
+        liveCurrentMa: Int?,
+        inMemoryPeakCurrentMa: Int?
+    ): Long? {
+        val persistedPeak = samples.asSequence()
             .filter { it.isCurrentAvailable && (!it.isChargingStatusAvailable || it.isCharging) }
             .map { kotlin.math.abs(it.currentMa.toLong()) }
             .maxOrNull()
-            ?: return "Belum tersedia"
-        return NumberFormat.getIntegerInstance(Locale("id", "ID")).format(peak) + " mA"
+        val livePeak = liveCurrentMa?.let { kotlin.math.abs(it.toLong()) }
+        val inMemoryPeak = inMemoryPeakCurrentMa?.takeIf { it >= 0 }?.toLong()
+        return listOfNotNull(persistedPeak, livePeak, inMemoryPeak).maxOrNull()
     }
 
     fun formatPowerLimitProfile(
