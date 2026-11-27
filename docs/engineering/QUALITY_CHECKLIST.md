@@ -14,9 +14,9 @@
 - [x] Manifest review: only the PopupCheckTileService component was added; no QUERY_ALL_PACKAGES or new uses-permission declaration.
 - [x] Gradle review: compileSdk remains 35; no dependency or Gradle configuration change.
 - [x] Protected-area source scope review: Room schema, sensor/sampling engine, calibration defaults, BatteryMonitorService lifecycle, RECOVERY_HOLD, and app identity files are not part of the intended diff.
-- [ ] Run `:app:testDebugUnitTest` and `:app:assembleDebug` on exact final branch HEAD — pending CI.
-- [ ] Anti-Slop UI Audit Gate — pending CI.
-- [ ] Review exact final diff and workflow output — pending.
+- [x] Run `:app:testDebugUnitTest` and `:app:assembleDebug` — GitHub Actions Run #827 SUCCESS on source HEAD `382a5c705b002fe9f5adbb51473ffc424ce2b207`.
+- [x] Anti-Slop UI Audit Gate — Run #827 SUCCESS.
+- [x] Review exact source diff and workflow output; no protected battery/Room/Gradle paths changed.
 - [ ] Physical layout / interaction check on itel P55 at 360dp / 720p — NOT RUN.
 - [ ] Quick Settings tile runtime verification on physical device — NOT RUN.
 
@@ -27,6 +27,7 @@
 - [x] Main actions and per-suspect actions use weighted one-row buttons with single-line ellipsis.
 - [x] Loading, no-permission, no-activity-data, clean-scan, incident, simulation, and error states are represented.
 - [ ] Actual 360dp / 720p visual and touch-target behavior — NOT RUN.
+- [x] Run #827 artifacts uploaded: debug APK `15201462713`; unit-test reports `15202417277`.
 
 
 ## 2026-11-27 — PR #16 focused polish follow-up

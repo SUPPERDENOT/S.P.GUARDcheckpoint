@@ -17,7 +17,8 @@
 - Browser discovery is best-effort through ACTION_VIEW queryIntentActivities plus known-package fallbacks; Android package visibility may limit enumeration. Unresolved app metadata is not treated as evidence of a missing launcher icon.
 
 ### Verification
-- Source implementation and tests are present on feat/on-demand-popup-detector. CI execution, final diff review, and physical-device verification are pending.
+- Source implementation and tests are present on feat/on-demand-popup-detector. GitHub Actions Run #827 passed on source HEAD `382a5c705b002fe9f5adbb51473ffc424ce2b207`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and both artifact uploads succeeded. Debug APK Artifact ID `15201462713`; unit-test report Artifact ID `15202417277`.
+- Final diff review confirms no Gradle/dependency, Room, sensor/sampling, calibration, foreground battery service, RECOVERY_HOLD, or applicationId changes. Physical itel P55 / 360dp / 720p and Quick Settings runtime verification remain pending.
 - No changes to Room DB v3, battery sensor/sampling logic, calibration defaults, foreground monitoring lifecycle, RECOVERY_HOLD, applicationId, compileSdk, or Gradle dependencies are intended.
 
 ## 2026-11-27 — PR #16 focused polish: live peak current, app labels, and long-press consistency
