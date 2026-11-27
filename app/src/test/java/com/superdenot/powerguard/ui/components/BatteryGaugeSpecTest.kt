@@ -164,10 +164,14 @@ class BatteryGaugeSpecTest {
     fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
         assertEquals(6.5f, WAVE_AMPLITUDE_DP, 0f)
         assertEquals(1.6f, WAVE_CYCLES, 0f)
-        assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(2.0943952f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
         assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(3_000, WAVE_CYCLE_DURATION_MILLIS)
+        assertEquals(3.5f, BACK_WAVE_ELEVATION_DP, 0f)
+        assertEquals(1.20f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.8f, WAVE_REAR_CREST_STROKE_DP, 0f)
+        assertEquals(0.30f, WAVE_REAR_CREST_ALPHA, 0f)
         assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
         assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
         assertEquals(6f, WAVE_COMET_HALO_STROKE_DP, 0f)
@@ -178,7 +182,9 @@ class BatteryGaugeSpecTest {
         assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
         assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
-        assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.38f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.30f, WAVE_REAR_CREST_ALPHA, 0f)
+        assertEquals(0.8f, WAVE_REAR_CREST_STROKE_DP, 0f)
         assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
@@ -251,6 +257,38 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
+    fun backWaveElevationIsThreePointFiveDpAndTapersSmoothlyAtBothBoundaries() {
+        assertEquals(3.5f, BACK_WAVE_ELEVATION_DP, 0f)
+        assertEquals(0f, backWaveElevationTaper(-0.1f), 0f)
+        assertEquals(0f, backWaveElevationTaper(0f), 0f)
+        assertEquals(0f, backWaveElevationTaper(0.02f), 0f)
+        assertEquals(0.5f, backWaveElevationTaper(0.05f), 0.000001f)
+        assertEquals(1f, backWaveElevationTaper(0.08f), 0f)
+        assertEquals(1f, backWaveElevationTaper(0.5f), 0f)
+        assertEquals(1f, backWaveElevationTaper(0.92f), 0f)
+        assertEquals(0.5f, backWaveElevationTaper(0.95f), 0.000001f)
+        assertEquals(0f, backWaveElevationTaper(0.98f), 0f)
+        assertEquals(0f, backWaveElevationTaper(1f), 0f)
+        assertEquals(0f, backWaveElevationOffsetDp(0f), 0f)
+        assertEquals(3.5f, backWaveElevationOffsetDp(0.5f), 0f)
+        assertEquals(0f, backWaveElevationOffsetDp(1f), 0f)
+    }
+
+    @Test
+    fun backWavePhaseIsOppositeToFrontAndContinuousAcrossTheFullCycle() {
+        assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        val start = waveRearPhase(0f)
+        val middle = waveRearPhase(Math.PI.toFloat())
+        val end = waveRearPhase((2f * Math.PI).toFloat())
+        assertEquals(WAVE_REAR_PHASE_OFFSET, start, 0f)
+        assertEquals(Math.toRadians(-45.0).toFloat(), middle, 0.000001f)
+        assertEquals(sin(start), sin(end), 0.000001f)
+        assertEquals(cos(start), cos(end), 0.000001f)
+    }
+
+    @Test
     fun waveLiquidLevelTracksBatteryFractionForChargingIdleAndExactBoundariesAcrossEveryAnimation() {
         listOf(false, true).forEach { isCharging ->
             ChargingArcAnimation.values().forEach { animation ->
@@ -273,20 +311,22 @@ class BatteryGaugeSpecTest {
         val accent = Color(0xFF12B886)
         val layers = waveLayerColors(accent)
         val rearAtZero = waveRearPhase(0f)
-        val rearAtWrap = waveRearPhase(1f)
+        val rearAtWrap = waveRearPhase((2f * Math.PI).toFloat())
         assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(sin(rearAtZero), sin(rearAtWrap), 0.000001f)
         assertEquals(cos(rearAtZero), cos(rearAtWrap), 0.000001f)
-        assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(1.12f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
-        assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(1.20f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.38f, WAVE_REAR_FILL_ALPHA, 0f)
         assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
-        assertEquals(accent.copy(alpha = 0.40f), layers.rear)
+        assertEquals(accent.copy(alpha = 0.38f), layers.rear)
+        assertEquals(accent.copy(alpha = 0.30f), layers.rearCrest)
         assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.92f), layers.frontHighlight)
         assertEquals(accent, layers.frontBase)
         assertEquals(lerp(accent, Color.Black, 0.22f).copy(alpha = 0.92f), layers.frontShadow)
         assertEquals(lerp(accent, Color.White, 0.35f).copy(alpha = 0.75f), layers.meniscus)
-        assertEquals(0.40f, layers.rear.alpha, 0f)
+        assertEquals(0.38f, layers.rear.alpha, 0f)
+        assertEquals(0.30f, layers.rearCrest.alpha, 0f)
         assertNotEquals(Color.White, layers.meniscus)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
         assertEquals(50, waveSampleCount(100f, 2f))
