@@ -216,6 +216,20 @@ class PopupHijackDetectorTest {
         assertTrue(result.isEmpty())
     }
 
+    @Test fun ordinaryOldLauncherAppWithUnlockAndSandwichSignalsStillStaysBelowVisibleRisk() {
+        val result = PopupHijackDetector.evaluate(
+            listOf(
+                event(appA, now - 10_000),
+                event(null, now - 5_000, ScreenUsageEventType.SCREEN_INTERACTIVE),
+                event(suspect, now - 3_000),
+                event(appA, now - 1_000)
+            ),
+            mapOf(appA to resolved(appA), suspect to resolved(suspect)),
+            emptySet(), now
+        )
+        assertTrue(result.isEmpty())
+    }
+
     @Test fun explicitOemAndGooglePackagesAreAlwaysExcluded() {
         val excluded = listOf(
             "com.transsion.itel.launcher", "com.transsion.hilauncher", "com.transsion.XOSLauncher",

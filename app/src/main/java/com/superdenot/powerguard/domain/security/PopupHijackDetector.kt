@@ -219,6 +219,15 @@ object PopupHijackDetector {
         }
 
         return reasonsByPackage.mapNotNull { (pkg, reasons) ->
+            val metadata = signals(pkg)
+            val establishedLauncherApp = metadata.isMetadataResolved && metadata.hasLauncherActivity &&
+                !metadata.isSystemApp && !metadata.hasOverlayPermission &&
+                !isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs)
+            val hasStrongPattern = PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons ||
+                PopupSignalReason.BURST_LOOP_2 in reasons ||
+                PopupSignalReason.BURST_LOOP_3_PLUS in reasons
+            if (establishedLauncherApp && !hasStrongPattern) return@mapNotNull null
+
             val score = reasons.sumOf { it.points }.coerceIn(0, 100)
             if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
             PopupIncident(
