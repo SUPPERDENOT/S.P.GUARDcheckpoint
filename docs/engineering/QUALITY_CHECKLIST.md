@@ -1,3 +1,20 @@
+## 2026-11-27 — PR #16 focused polish follow-up
+
+- [x] Baseline verified: PR #16 OPEN / UNMERGED; branch feat/compact-overview-and-longpress-info at parent 5225e8a8bc09314afc2446014909fc260d77fa1e; base remains 97a2710ce61f4842f45ad8663ba0f64b0e5d750c.
+- [x] Root cause: Overview peak-current formatter read only persisted session samples; live battery current was not included before the first/next Room sample became available.
+- [x] Peak-current presentation now considers persisted active-session samples, the current live reading, and a composable in-memory high-water mark that resets when charging is no longer reported.
+- [x] Added tests for live current with no persisted sample and max selection across persisted/live/in-memory sources.
+- [x] Added requested known-package fallbacks: Google, YouTube, Gmail, Google Maps, Chrome, Google Play Store, Shopee, Gojek, and Tokopedia.
+- [x] Status Bar Indicator card body/title has no tap navigation; the explicit Atur indikator button remains the settings action. Long-press explanation remains haptic.
+- [x] Header status pill now opens the shared InfoLongPressDialog on long-press with haptic feedback; explanation distinguishes charging status from actual service state.
+- [x] Added focused tests for the Status Bar Indicator and header-pill long-press explanation content. CombinedClickable/haptic wiring source-reviewed; Compose interaction instrumentation test is N/A because this project does not currently declare Compose UI test dependencies and no dependency change is in scope.
+- [x] Protected boundary source paths excluded from the patch: AndroidManifest, Room schema/entities, sensor acquisition/sampling, calibration, service lifecycle, RECOVERY_HOLD, Gradle build configuration.
+- [ ] Unit tests and debug build: NOT RUN — pending GitHub Actions on the new exact HEAD.
+- [ ] Anti-Slop UI Audit Gate and APK artifact upload: NOT RUN — pending GitHub Actions.
+- [ ] Physical-device tap/long-press/haptic QA on itel P55: NOT RUN.
+
+---
+
 ## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
 
 ### Follow-up correction
