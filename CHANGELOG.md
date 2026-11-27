@@ -3,11 +3,11 @@
 ### Changed
 - Recalibrated visible risk bands: 0–44 omitted, 45–74 Perlu Dicek, and 75–100 Mencurigakan. Burst count no longer forces a status independently of the score.
 - Burst clusters require all selected events to fit within 45 minutes and average inter-event gap <=15 minutes. The reason label is “Siklus berulang dalam 45 menit”.
-- Added itel/Transsion and Google launcher, resolver, picker, media, Play services/store, and utility exclusions. FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP packages are excluded except for a literal App A → package → external-browser chain with corroborating overlay AppOp evidence.
+- Added itel/Transsion and Google launcher, resolver, picker, media, Play services/store, and utility exclusions. FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP packages are excluded except for a literal App A → package → external-browser chain when the literal three-step browser redirect is present; the normal >=45 visibility threshold still applies.
 - Mark Safe immediately removes real packages from active results and archived incidents, persists the whitelist, and filters subsequent scans. Simulated items cannot be added permanently.
 - Added a visible Daftar Aman section with original application icon, readable label, package name, and per-package Pulihkan action.
 - Added a conservative score guard for established launcher apps (installed >=14 days, no overlay permission): weak post-unlock / sandwich combinations cannot reach the visible risk list without a valid burst or browser redirect. The active HOME package is resolved with ACTION_MAIN + CATEGORY_HOME and is also removed during archive migration.
-- Legacy archive migration additionally checks FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP via PackageManager; the literal redirect exception is retained only with both browser-chain and overlay evidence.
+- Legacy archive migration additionally checks FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP via PackageManager; the literal browser-chain exception does not require overlay AppOp evidence; the normal risk-score threshold still applies.
 - Legacy archive loading removes excluded/safe packages, invalid old burst entries, and duplicate packageName entries. Archive merging now deduplicates strictly by packageName.
 - Added status pill badges and ensured Analysis summary and timeline share one PopupDetectorViewModel instance.
 - Added regression coverage for calibrated thresholds, 44/73/466-minute intervals, exact 45-minute clusters, OEM/system exclusions, safe-list purge, archive migration, deduplication, and both simulation status bands.
