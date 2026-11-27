@@ -9,8 +9,10 @@
 - [x] Header status pill now opens the shared InfoLongPressDialog on long-press with haptic feedback; explanation distinguishes charging status from actual service state.
 - [x] Added focused tests for the Status Bar Indicator and header-pill long-press explanation content. CombinedClickable/haptic wiring source-reviewed; Compose interaction instrumentation test is N/A because this project does not currently declare Compose UI test dependencies and no dependency change is in scope.
 - [x] Protected boundary source paths excluded from the patch: AndroidManifest, Room schema/entities, sensor acquisition/sampling, calibration, service lifecycle, RECOVERY_HOLD, Gradle build configuration.
-- [ ] Unit tests and debug build: NOT RUN — pending GitHub Actions on the new exact HEAD.
-- [ ] Anti-Slop UI Audit Gate and APK artifact upload: NOT RUN — pending GitHub Actions.
+- [x] `testDebugUnitTest` and `assembleDebug`: PASS — GitHub Actions Run #817 on source HEAD `d42f9e12a8b96e5d5da2a73458a639ada2eb0186`; Gradle reported `BUILD SUCCESSFUL`.
+- [x] Anti-Slop UI Audit Gate: PASS — Run #817.
+- [x] Debug APK artifact upload: PASS — Artifact ID `15193268756`; unit-test report upload: PASS — Artifact ID `15192759388`.
+- [x] Workflow: https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45990237369
 - [ ] Physical-device tap/long-press/haptic QA on itel P55: NOT RUN.
 
 ---
