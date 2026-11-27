@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -90,6 +91,8 @@ import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.dashboard.OverviewMetricsFormatter
+import com.superdenot.powerguard.ui.dashboard.OVERVIEW_GRID_GAP_DP
+import com.superdenot.powerguard.ui.dashboard.OVERVIEW_GRID_MIN_CELL_HEIGHT_DP
 import com.superdenot.powerguard.ui.theme.*
 import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
 import com.superdenot.powerguard.ui.theme.LocalBatteryMetricTints
