@@ -46,7 +46,6 @@ import androidx.core.graphics.drawable.toBitmap
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
-import com.superdenot.powerguard.ui.AppDisplayNameFormatter
 import com.superdenot.powerguard.ui.components.InfoDialogSurface
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
