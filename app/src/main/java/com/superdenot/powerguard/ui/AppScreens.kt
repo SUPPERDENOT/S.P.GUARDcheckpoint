@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -82,10 +84,16 @@ import com.superdenot.powerguard.domain.model.isStatusBarIntervalPresetSelected
 import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.components.InfoDialogSurface
+import com.superdenot.powerguard.ui.components.InfoLongPressDialog
+import com.superdenot.powerguard.ui.components.InfoLongPressContentFactory
+import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.components.InfoBadge
 import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
+import com.superdenot.powerguard.ui.dashboard.OverviewMetricsFormatter
+import com.superdenot.powerguard.ui.dashboard.OVERVIEW_GRID_GAP_DP
+import com.superdenot.powerguard.ui.dashboard.OVERVIEW_GRID_MIN_CELL_HEIGHT_DP
 import com.superdenot.powerguard.ui.theme.*
 import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
 import com.superdenot.powerguard.ui.theme.LocalBatteryMetricTints
@@ -102,8 +110,30 @@ internal const val CHARGING_SOURCE_CAPABILITY_LABEL = "Kemampuan sumber"
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
+    val context = LocalContext.current
+    var notificationPermissionGranted by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+        )
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (isActive) vm.refreshPermissionsAndUsage()
+        if (isActive) {
+            vm.refreshPermissionsAndUsage()
+            notificationPermissionGranted =
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
+    }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            notificationPermissionGranted =
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
     }
     val service by vm.liveState.collectAsState()
     val fallback by vm.fallbackState.collectAsState()
@@ -119,6 +149,53 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val monitoringEnabled by vm.batteryMonitoringEnabled.collectAsState()
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
+    val currentSessionSamples by vm.currentSessionSamples.collectAsState()
+    var inMemorySessionPeakCurrentMa by remember { mutableIntStateOf(0) }
+    LaunchedEffect(
+        state.isChargingStatusAvailable, state.isCharging, state.isCurrentAvailable, state.currentMa
+    ) {
+        val chargingNow = state.isChargingStatusAvailable && state.isCharging
+        if (!chargingNow) {
+            inMemorySessionPeakCurrentMa = 0
+        } else if (state.isCurrentAvailable) {
+            inMemorySessionPeakCurrentMa = maxOf(
+                inMemorySessionPeakCurrentMa,
+                kotlin.math.abs(state.currentMa.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            )
+        }
+    }
+    var longPressInfoTitle by remember { mutableStateOf<String?>(null) }
+    var longPressInfoBody by remember { mutableStateOf("") }
+    fun showLongPressInfo(title: String, body: String) {
+        longPressInfoTitle = title
+        longPressInfoBody = body
+    }
+    val overviewMetrics = remember(state, currentSessionSamples, healthSummary, inMemorySessionPeakCurrentMa) {
+        OverviewMetricsFormatter.format(
+            isChargingStatusAvailable = state.isChargingStatusAvailable,
+            isCharging = state.isCharging,
+            etaMinutes = state.chargingEtaMinutes,
+            isEtaTracking = state.isChargingEtaTracking,
+            currentSamples = currentSessionSamples,
+            chargeSource = state.chargeSource,
+            isChargeSourceAvailable = state.isChargeSourceAvailable,
+            chargingProtocol = state.chargingProtocol,
+            healthPercentage = healthSummary?.healthPercentage,
+            temperatureCelsius = state.tempCelsius,
+            isTemperatureAvailable = state.isTemperatureAvailable,
+            liveCurrentMa = state.currentMa.takeIf { state.isCurrentAvailable },
+            inMemoryPeakCurrentMa = inMemorySessionPeakCurrentMa.takeIf { it > 0 }
+        )
+    }
+    val sohSummary = OverviewMetricsFormatter.formatSohSummary(healthSummary?.healthPercentage)
+    val readinessSummary = OverviewMetricsFormatter.formatReadinessSummary(
+        isServiceRunning = running,
+        monitoringEnabled = monitoringEnabled,
+        isCharging = state.isChargingStatusAvailable && state.isCharging,
+        isBatteryOptimizationIgnored = batteryOpt,
+        hasUsagePermission = usage,
+        hasNotificationPermission = notificationPermissionGranted
+    )
 
     val isCriticalThermal = state.isTemperatureAvailable &&
         state.tempCelsius >= ChargingThermalPhaseAnalyzer.HIGH_TEMPERATURE_CELSIUS
@@ -138,10 +215,6 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     )
     val metricTints = LocalBatteryMetricTints.current
     val themePackConfig by vm.themePackConfig.collectAsState()
-    val eta = state.chargingEtaMinutes
-        ?.takeIf { state.isCharging && state.isChargingEtaTracking && it > 0L }
-        ?.let { ChargingEtaEstimator.formatEta(it) }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
         contentPadding = PaddingValues(
@@ -152,6 +225,9 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     ) {
         item {
             Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
+                    showLongPressInfo("Ringkasan baterai", "Gauge menunjukkan level baterai. Daya dihitung dari tegangan dan arus sisi baterai. Arus, suhu, tegangan, dan status mengikuti data yang diekspos perangkat.")
+                }),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(18.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -180,16 +256,16 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                                 color = gaugeColor, fontWeight = FontWeight.Bold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—", Modifier.weight(1f), metricTints.cold)
-                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—", Modifier.weight(1f), metricTints.cold)
+                            HeroMetric("Daya", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "—",
+                                Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Daya", "Daya adalah hasil perhitungan tegangan × arus pada sisi baterai, bukan batas kemampuan adaptor.") }), metricTints.cold)
+                            HeroMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "—",
+                                Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Arus", "Arus adalah pembacaan arus baterai yang tersedia dari perangkat. Nilai yang tidak diekspos ditampilkan sebagai tidak tersedia.") }), metricTints.cold)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—", Modifier.weight(1f), metricTints.warm)
-                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—", Modifier.weight(1f), metricTints.cold)
-                        }
-                        eta?.let {
-                            Text("Estimasi penuh · $it", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            HeroMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f °C", state.tempCelsius) else "—",
+                                Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Suhu", "Suhu berasal dari sensor/API baterai yang diekspos perangkat. Ambang kategori suhu mengikuti analisis termal SPG.") }), metricTints.warm)
+                            HeroMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V", state.voltageMv / 1000.0) else "—",
+                                Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Tegangan", "Tegangan adalah pembacaan sisi baterai dari Android/perangkat, bukan tegangan keluaran adaptor.") }), metricTints.cold)
                         }
                         state.anomalyAlert?.let {
                             Text("Perlu diperiksa: $it", style = MaterialTheme.typography.labelSmall,
@@ -200,50 +276,113 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
             }
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    SectionHeading("KESEHATAN BATERAI (SOH)", "Estimasi kapasitas dan acuan desain")
-                    DiagnosticLine("Kapasitas terestimasi", healthSummary?.let { "${it.estimatedCapacityMah} mAh" } ?: "Belum tersedia")
-                    DiagnosticLine("Estimasi SOH", healthSummary?.let { "${String.format(Locale.US, "%.1f", it.healthPercentage)}%" } ?: "Belum tersedia")
-                    DiagnosticLine("Kapasitas desain", capacity.capacityMah?.let { "$it mAh" } ?: "Belum tersedia")
-                    DiagnosticLine("Sumber", if (capacity.isManualOverride) "Manual" else "Otomatis")
-                }
-            }
+            OverviewMetricsGrid(
+                metrics = listOf(
+                    OverviewMetricItem("Estimasi Waktu", overviewMetrics.estimatedTime,
+                        "Saat mengisi, ETA memakai estimasi Android atau sampel sesi yang tersedia. Estimasi sisa waktu pakai saat idle belum diekspos pada jalur data saat ini."),
+                    OverviewMetricItem("Puncak Arus", overviewMetrics.peakCurrent,
+                        "Nilai tertinggi dihitung dari magnitudo sampel arus valid pada sesi pengisian yang sedang berlangsung. Saat tidak mengisi, nilai ditampilkan sebagai tanda pisah."),
+                    OverviewMetricItem("Batas Daya", overviewMetrics.powerLimitProfile,
+                        "Profil ini berasal dari metadata kemampuan sumber yang dilaporkan Android/perangkat. Label metadata bukan daya aktual baterai atau angka maksimum adaptor yang tidak diekspos."),
+                    OverviewMetricItem("Kondisi Sel", overviewMetrics.cellCondition,
+                        "Ringkasan menggabungkan SOH tersimpan dan kategori suhu saat ini. SOH adalah estimasi berbasis sesi, bukan pengukuran laboratorium. Metrik CS terpisah belum tersedia pada model data saat ini.")
+                ),
+                onInfo = ::showLongPressInfo
+            )
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    SectionHeading("KESIAPAN SISTEM", "Izin dan pemantauan latar belakang")
-                    ReadinessLine(
-                        "Pemantauan Baterai",
-                        when {
-                            running -> "AKTIF"
-                            !monitoringEnabled -> "OFF"
-                            !state.isCharging -> "SIAGA — menunggu charger"
-                            !batteryOpt -> "OFF — izin latar belakang diperlukan"
-                            else -> "OFF — menunggu aktivasi sistem"
-                        },
-                        when {
-                            running -> EmeraldCharge
-                            !monitoringEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
-                            !state.isCharging -> AmberThermal
-                            !batteryOpt -> CrimsonAnomaly
-                            else -> AmberThermal
+            OverviewSummaryBar(
+                title = "Kesehatan Baterai",
+                value = sohSummary,
+                onInfo = {
+                    val detail = if (healthSummary == null) {
+                        "Belum ada snapshot SOH valid. Estimasi kapasitas akan tersedia setelah sesi memenuhi kriteria penghitungan."
+                    } else {
+                        "Kapasitas terestimasi: " + healthSummary.estimatedCapacityMah + " mAh\n" +
+                            "Estimasi SOH: " + String.format(Locale.US, "%.1f%%", healthSummary.healthPercentage) + "\n" +
+                            "Kapasitas desain: " + healthSummary.designCapacityMah + " mAh\n" +
+                            "Sumber kapasitas desain: " + (if (capacity.isManualOverride) "Manual" else "Otomatis") +
+                            "\n\nSOH merupakan estimasi berbasis data sesi, bukan pengukuran kapasitas laboratorium."
+                    }
+                    showLongPressInfo("Kesehatan Baterai (SOH)", detail)
+                }
+            )
+        }
+        item {
+            OverviewSummaryBar(
+                title = "Kesiapan Sistem",
+                value = readinessSummary,
+                onInfo = {
+                    val monitoringStatus = when {
+                        running -> "Layanan sedang berjalan"
+                        !monitoringEnabled -> "Toggle OFF"
+                        !state.isChargingStatusAvailable || !state.isCharging -> "Siaga menunggu charger"
+                        else -> "Belum berjalan"
+                    }
+                    val detail = "Pemantauan Baterai: " + monitoringStatus +
+                        "\nOptimasi baterai: " + (if (batteryOpt) "Diizinkan" else "Belum diizinkan") +
+                        "\nAkses penggunaan: " + (if (usage) "Diizinkan" else "Belum diizinkan") +
+                        "\nNotifikasi pemantauan: " + (if (notificationPermissionGranted) "Diizinkan" else "Belum diizinkan") +
+                        "\nStatus layanan latar belakang: " + (if (running) "Aktif" else "Tidak berjalan")
+                    showLongPressInfo("Kesiapan Sistem", detail)
+                }
+            )
+        }
+    }
+    longPressInfoTitle?.let { title ->
+        InfoLongPressDialog(title = title, body = longPressInfoBody, onDismiss = { longPressInfoTitle = null })
+    }
+}
+
+internal data class OverviewMetricItem(val title: String, val value: String, val explanation: String)
+
+@Composable
+internal fun OverviewMetricsGrid(metrics: List<OverviewMetricItem>, onInfo: (String, String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(OVERVIEW_GRID_GAP_DP.dp)) {
+        listOf(metrics.take(2), metrics.drop(2).take(2)).forEach { rowMetrics ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OVERVIEW_GRID_GAP_DP.dp)) {
+                rowMetrics.forEach { metric ->
+                    Card(
+                        modifier = Modifier.weight(1f).heightIn(min = OVERVIEW_GRID_MIN_CELL_HEIGHT_DP.dp).infoLongPress(
+                            onLongPress = { onInfo(metric.title, metric.explanation) },
+                            onClick = { onInfo(metric.title, metric.explanation) }
+                        ),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(metric.title, style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            Text(metric.value, style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
+                                maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
-                    )
-                    ReadinessLine("Optimasi baterai", if (batteryOpt) "SIAP" else "BELUM", if (batteryOpt) EmeraldCharge else CrimsonAnomaly)
-                    ReadinessLine("Akses pengguna", if (usage) "SIAP" else "BELUM", if (usage) EmeraldCharge else CrimsonAnomaly)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OverviewSummaryBar(title: String, value: String, onInfo: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+            .infoLongPress(onLongPress = onInfo, onClick = onInfo)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Icon(Icons.Rounded.ChevronRight, contentDescription = "Lihat rincian " + title,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -284,6 +423,12 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     }
     var showProtocolInfo by remember { mutableStateOf(false) }
     var showPowerInfo by remember { mutableStateOf(false) }
+    var longPressInfoTitle by remember { mutableStateOf<String?>(null) }
+    var longPressInfoBody by remember { mutableStateOf("") }
+    fun showLongPressInfo(title: String, body: String) {
+        longPressInfoTitle = title
+        longPressInfoBody = body
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp),
@@ -295,6 +440,9 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
     ) {
         item {
             Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
+                    showLongPressInfo("Ringkasan pengisian", "Kartu ini menampilkan level, status, sumber, dan estimasi pengisian. Label protokol hanya ditampilkan jika sumber sistem/perangkat mendukungnya; arus, tegangan, dan watt tidak dipakai untuk menebak protokol.")
+                }),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(18.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -366,20 +514,33 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia", Modifier.weight(1f))
-                    MiniMetric("Daya baterai", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia", Modifier.weight(1f))
+                    MiniMetric("Arus", if (state.isCurrentAvailable) "${state.currentMa} mA" else "Tidak tersedia",
+                        Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Arus baterai", "Arus yang ditampilkan merupakan pembacaan sisi baterai dari perangkat.") }))
+                    MiniMetric("Daya baterai", if (state.isPowerAvailable) String.format(Locale.US, "%.2f W", state.powerWatt) else "Tidak tersedia",
+                        Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Daya baterai", "Daya dihitung dari tegangan × arus sisi baterai. Ini bukan batas input charger atau identifikasi protokol.") }))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V (%d mV)", state.voltageMv / 1000.0, state.voltageMv) else "Tidak tersedia", Modifier.weight(1f))
-                    MiniMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "Tidak tersedia", Modifier.weight(1f))
+                    MiniMetric("Tegangan", if (state.isVoltageAvailable) String.format(Locale.US, "%.2f V (%d mV)", state.voltageMv / 1000.0, state.voltageMv) else "Tidak tersedia",
+                        Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Tegangan baterai", "Tegangan adalah pembacaan sisi baterai yang diekspos perangkat.") }))
+                    MiniMetric("Suhu", if (state.isTemperatureAvailable) String.format(Locale.US, "%.1f°C", state.tempCelsius) else "Tidak tersedia",
+                        Modifier.weight(1f).infoLongPress(onLongPress = { showLongPressInfo("Suhu baterai", "Kategori suhu mengikuti ambang analisis termal SPG: aman di bawah 38°C, hangat mulai 38°C, dan tinggi mulai 40°C.") }))
                 }
             }
         }
         item {
-            ChargingThermalSummaryPanel(thermalSummary)
+            ChargingThermalSummaryPanel(thermalSummary, onLongPressInfo = {
+                showLongPressInfo("Distribusi suhu sesi", "Durasi dihitung dari interval sampel suhu valid. Jeda antarsampel lebih dari dua menit tidak dihitung. Zona: aman di bawah 38°C, hangat 38–kurang dari 40°C, dan tinggi mulai 40°C.")
+            })
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
+                    showLongPressInfo("Ringkasan sesi", "Muatan bersih, durasi sesi, dan rasio deep sleep dirangkum dari data sesi yang sedang berlangsung. Nilai yang belum tersedia tidak disubstitusi dengan angka perkiraan.")
+                }),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         "RINGKASAN SESI",
@@ -412,6 +573,9 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             )
         }
     }
+    longPressInfoTitle?.let { title ->
+        InfoLongPressDialog(title = title, body = longPressInfoBody, onDismiss = { longPressInfoTitle = null })
+    }
 }
 
 @Composable
@@ -421,10 +585,12 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
         health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
     }
     val capacity by vm.designCapacitySetting.collectAsState()
+    var showLongPressInfo by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, bottom = 8.dp)
+                .infoLongPress(onLongPress = { showLongPressInfo = true }),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             shape = RoundedCornerShape(16.dp)
@@ -449,22 +615,24 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
                         )
                     }
                 }
-                Text(
-                    if (healthSummary != null) "Taksiran SOH tersimpan · Kapasitas desain ${healthSummary.designCapacityMah} mAh (${if (capacity.isManualOverride) "manual" else "otomatis"})"
-                    else "Belum ada snapshot SOH yang valid. Estimasi akan tersedia setelah sesi pengisian memenuhi kriteria.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "Nilai ini merupakan estimasi berbasis data sesi, bukan pengukuran kapasitas laboratorium.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
         Box(Modifier.weight(1f)) {
             AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 1, visibleSubTabs = listOf(1, 2))
         }
+    }
+    if (showLongPressInfo) {
+        InfoLongPressDialog(
+            title = "Estimasi SOH baterai",
+            body = if (healthSummary == null) {
+                "Belum ada snapshot SOH valid. Estimasi akan tersedia setelah sesi pengisian memenuhi kriteria."
+            } else {
+                "Taksiran SOH tersimpan. Kapasitas desain " + healthSummary.designCapacityMah + " mAh (" +
+                    (if (capacity.isManualOverride) "manual" else "otomatis") +
+                    "). Nilai ini merupakan estimasi berbasis data sesi, bukan pengukuran kapasitas laboratorium."
+            },
+            onDismiss = { showLongPressInfo = false }
+        )
     }
 }
 
@@ -498,6 +666,12 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
     var showCapacityDialog by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     var showChargeGuardDialog by remember { mutableStateOf(false) }
+    var longPressInfoTitle by remember { mutableStateOf<String?>(null) }
+    var longPressInfoBody by remember { mutableStateOf("") }
+    fun showLongPressInfo(title: String, body: String) {
+        longPressInfoTitle = title
+        longPressInfoBody = body
+    }
     var draftChargeGuardConfig by remember { mutableStateOf(chargeGuardConfig) }
     var draftChargeGuardSound by remember { mutableStateOf(chargeGuardAlertSound) }
     var pendingExternalAudioUri by remember { mutableStateOf<Uri?>(null) }
@@ -563,7 +737,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
+                    showLongPressInfo("Pemantauan Baterai", "Toggle ini mengatur layanan Battery Monitoring. Saat ON, layanan mengikuti lifecycle pengisian yang diizinkan Android; saat OFF, layanan dihentikan.")
+                }),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -582,11 +762,21 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(
+                    onLongPress = {
+                        val info = InfoLongPressContentFactory.statusBarIndicator()
+                        showLongPressInfo(info.title, info.body)
+                    },
+                    onClick = {}
+                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(
-                            Modifier.weight(1f).pressScaleClickable { showStatusBarSettingsDialog = true },
+                            Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
@@ -610,11 +800,6 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         Spacer(Modifier.width(8.dp))
                         Text("Atur indikator")
                     }
-                    Text(
-                        "Perubahan diterapkan pada notifikasi pemantauan yang sedang aktif. Tampilan ikon dapat berbeda menurut versi Android dan perangkat.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
         }
@@ -629,7 +814,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             )
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
+                    showLongPressInfo("Kapasitas baterai", "Kapasitas desain menjadi acuan perhitungan SOH. Sumber dapat berasal dari nilai otomatis sistem atau nilai manual yang ditetapkan pengguna.")
+                }),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Kapasitas baterai", fontWeight = FontWeight.Bold)
                     Text(
@@ -649,7 +840,13 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
+                    showLongPressInfo("Persiapan Izin", "Halaman ini membuka pengaturan Android yang diperlukan oleh fitur pemantauan dan analisis. Status izin tetap ditentukan oleh sistem Android.")
+                }),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Persiapan Izin", fontWeight = FontWeight.Bold)
                     Text("Periksa dan atur akses Android yang mendukung pemantauan serta analisis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -662,7 +859,10 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().pressScaleClickable(onClick = ::openChargeGuardDialog),
+                modifier = Modifier.fillMaxWidth().infoLongPress(
+                    onLongPress = { showLongPressInfo("Peringatan & Nada", "Atur batas pengisian, ambang suhu tinggi, pola pengulangan, suara, dan getaran. Pengaturan ini tidak mengubah protokol pengisian yang dideteksi perangkat.") },
+                    onClick = ::openChargeGuardDialog
+                ),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -703,14 +903,18 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
     }
     if (showInfo) ReadMoreInfoDialog { showInfo = false }
+    longPressInfoTitle?.let { title ->
+        InfoLongPressDialog(title = title, body = longPressInfoBody, onDismiss = { longPressInfoTitle = null })
+    }
     if (showChargeGuardDialog) {
         val hasUnsavedChanges = draftChargeGuardConfig != chargeGuardConfig ||
             draftChargeGuardSound != chargeGuardAlertSound
+        val chargeGuardScrollState = rememberScrollState()
         Dialog(onDismissRequest = { showChargeGuardDialog = false }) {
             Surface(
                 modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = 6.dp
             ) {
                 Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
@@ -722,13 +926,15 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Column(
-                        Modifier.fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Box(
+                        Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 420.dp)
                     ) {
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .verticalScroll(chargeGuardScrollState)
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Batas pengisian", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                             CompactSwitch(
@@ -897,6 +1103,17 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    if (chargeGuardScrollState.canScrollForward) {
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(12.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    )
+                                )
+                        )
+                    }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -70,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -661,7 +663,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).heightIn(max = 680.dp).imePadding(),
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp
         ) {
             Column(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
@@ -676,11 +678,14 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                         style = MaterialTheme.typography.titleMedium)
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .verticalScroll(scrollState).padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(11.dp)
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 620.dp)
                 ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .verticalScroll(scrollState).padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(11.dp)
+                    ) {
                 InfoSectionItem(
                     title = "1. Tentang Aplikasi",
                     content = "SUPERD POWER GUARD adalah aplikasi diagnostik dan pemantauan baterai Android. Aplikasi menampilkan data baterai yang tersedia dari sistem, menganalisis pola pengisian, dan menyimpan riwayat sesi secara lokal.\n\nDeveloper: superdenot\nApplication ID: com.superdenot.superdguard\nVersi: ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})"
@@ -721,6 +726,17 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                     title = "10. Status Versi",
                     content = "Versi dan version code diambil langsung dari konfigurasi build aplikasi: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}). Aplikasi masih dalam tahap pengembangan dan validasi lintas perangkat. Keberhasilan build dan unit test tidak berarti seluruh fitur telah diuji atau dijamin bekerja pada semua model ponsel."
                 )
+                    }
+                    if (scrollState.canScrollForward) {
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(12.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    )
+                                )
+                        )
+                    }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),

@@ -1,3 +1,52 @@
+## 2026-11-27 — PR #16 focused polish follow-up
+
+- [x] Baseline verified: PR #16 OPEN / UNMERGED; branch feat/compact-overview-and-longpress-info at parent 5225e8a8bc09314afc2446014909fc260d77fa1e; base remains 97a2710ce61f4842f45ad8663ba0f64b0e5d750c.
+- [x] Root cause: Overview peak-current formatter read only persisted session samples; live battery current was not included before the first/next Room sample became available.
+- [x] Peak-current presentation now considers persisted active-session samples, the current live reading, and a composable in-memory high-water mark that resets when charging is no longer reported.
+- [x] Added tests for live current with no persisted sample and max selection across persisted/live/in-memory sources.
+- [x] Added requested known-package fallbacks: Google, YouTube, Gmail, Google Maps, Chrome, Google Play Store, Shopee, Gojek, and Tokopedia.
+- [x] Status Bar Indicator card body/title has no tap navigation; the explicit Atur indikator button remains the settings action. Long-press explanation remains haptic.
+- [x] Header status pill now opens the shared InfoLongPressDialog on long-press with haptic feedback; explanation distinguishes charging status from actual service state.
+- [x] Added focused tests for the Status Bar Indicator and header-pill long-press explanation content. CombinedClickable/haptic wiring source-reviewed; Compose interaction instrumentation test is N/A because this project does not currently declare Compose UI test dependencies and no dependency change is in scope.
+- [x] Protected boundary source paths excluded from the patch: AndroidManifest, Room schema/entities, sensor acquisition/sampling, calibration, service lifecycle, RECOVERY_HOLD, Gradle build configuration.
+- [x] `testDebugUnitTest` and `assembleDebug`: PASS — GitHub Actions Run #817 on source HEAD `d42f9e12a8b96e5d5da2a73458a639ada2eb0186`; Gradle reported `BUILD SUCCESSFUL`.
+- [x] Anti-Slop UI Audit Gate: PASS — Run #817.
+- [x] Debug APK artifact upload: PASS — Artifact ID `15193268756`; unit-test report upload: PASS — Artifact ID `15192759388`.
+- [x] Workflow: https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45990237369
+- [ ] Physical-device tap/long-press/haptic QA on itel P55: NOT RUN.
+
+---
+
+## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
+
+### Follow-up correction
+- [x] Readiness summary now checks all three setup permissions: POST_NOTIFICATIONS (API 33+), battery-optimization exemption, and Usage Access; notification state refreshes on Activity resume and when Overview becomes active after the setup overlay closes.
+- [x] Readiness detail lists each permission separately and the actual background-service state.
+- [x] Kotlin imports reported by Run #802 are corrected; duplicate Compose Role import and stale unused imports are removed.
+- [x] Both long-scroll dialog fades now terminate at the actual `surfaceContainerHigh` backing surface.
+- [x] Thermal distribution formatting is extracted and covered for populated and unavailable states.
+- [x] `UiCopyRegressionTest` guards against reintroducing the removed SOH/readiness card headings, Status Bar footer note, repeated history instruction, and verbose curve distribution heading.
+- [x] Compact history header regression test matches the concise `Sesi x/y` label.
+- [ ] Exact final-head CI: pending.
+- [ ] Physical-device QA at 360dp / 720p: pending.
+
+
+- [x] Scope limited to Overview presentation, contextual long-press explanations, app-label formatting, tab copy/layout polish, focused tests, and required documentation.
+- [x] Overview uses one primary gauge/metric row, a two-column grid of four metric summaries, and two one-line detail rows; outer vertical scrolling remains enabled.
+- [x] 360dp horizontal geometry crosscheck: 360dp - 36dp side gutters - 8dp column gap = 316dp content width; each grid cell receives 158dp.
+- [x] Idle/discharging ETA does not invent a remaining-time estimate; source capability displays existing detector metadata only; no exact adapter maximum is inferred; cell condition uses SOH/temperature only and does not claim an unavailable CS metric or calibrated state.
+- [x] Long-press interactions use combinedClickable and HapticFeedbackType.LongPress; SOH/System Readiness rows open detail dialogs on tap and long-press.
+- [x] App usage labels use PackageManager.getApplicationLabel() with known package-name fallback; original package name remains visible as the subtitle; no package-visibility manifest permission added.
+- [x] Long visible notes and repeated history instructions removed; daily chart selection highlights its matching rollup instead of rendering a duplicate detail card.
+- [x] Dialog scroll fades use a conditional 12dp gradient; new surfaces use MaterialTheme.colorScheme tokens and contain no emoji or hardcoded hex colors.
+- [x] Protected boundaries unchanged: AndroidManifest, Room DB v3/schema, sensor/sampling, default calibration 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number.
+- [x] Run #805 on source/test HEAD `aa2d0f799ee5a9fe26459d29812bcc67a2667f5a`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload all SUCCESS; APK Artifact ID `15187717785`; test report Artifact ID `15188480260`.
+- [x] CI evidence policy: record the exact final documentation-closeout HEAD, workflow URL, all required SUCCESS gates, and final APK Artifact ID in the PR #16 delivery description after the workflow completes.
+- [ ] Physical-device visual QA at 360dp / 720p: NOT RUN; source geometry crosscheck is not a substitute for device testing.
+- [x] PR #16 remains OPEN and UNMERGED; auto-merge is not enabled.
+
+---
+
 ## 2026-11-27 — Wave gauge sweet-spot tuning
 
 - [x] Scope limited to the four Wave calibration constants, focused Wave unit-test assertions, and required engineering documentation.

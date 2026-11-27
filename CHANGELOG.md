@@ -1,3 +1,60 @@
+## 2026-11-27 — PR #16 focused polish: live peak current, app labels, and long-press consistency
+
+### Changed
+- Overview peak current now resolves the maximum valid current across persisted active-session samples, the current live reading, and an in-memory session high-water mark. The in-memory value resets when charging is no longer reported; unavailable current remains unavailable rather than being fabricated.
+- Expanded the application-name fallback dictionary for Google, YouTube, Gmail, Google Maps, Chrome, Google Play Store, Shopee, Gojek, and Tokopedia.
+- Status Bar Indicator card now reserves settings navigation for the explicit **Atur indikator** action; tapping the card body/title does not open the settings dialog. Long-press retains haptic feedback and opens the shared explanation dialog.
+- Added long-press help to the header status pill. Its explanation separates Android charging status from actual background-monitoring service state.
+
+### Tests and verification
+- Added regression tests for live peak current when no persisted sample exists, maximum selection across persisted/live/in-memory values, and the Google package fallback.
+- Added unit tests for the shared long-press explanation content used by the Status Bar Indicator card and header status pill. Interaction wiring (combinedClickable + HapticFeedbackType.LongPress) is source-reviewed through the shared modifier.
+- Android unit tests and debug build: PASS — GitHub Actions Run #817, exact source HEAD `d42f9e12a8b96e5d5da2a73458a639ada2eb0186`; `testDebugUnitTest` and `assembleDebug` completed with `BUILD SUCCESSFUL`.
+- Anti-Slop UI Audit Gate: PASS — Run #817.
+- Debug APK artifact: PASS — ID `15193268756`; unit-test report artifact: PASS — ID `15192759388`.
+- Workflow Run #817: https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45990237369
+- Physical-device interaction and display QA on itel P55: NOT RUN.
+
+### Protected boundaries
+- No intended changes to AndroidManifest/package visibility, Room DB v3, sensor acquisition or sampling cadence, calibration default 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number.
+- PR #16 remains OPEN and UNMERGED; do not merge without explicit approval.
+
+---
+
+## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
+
+### Follow-up correction
+- Added notification permission to the three-permission readiness summary (POST_NOTIFICATIONS on Android 13+; treated as granted on older Android versions). Its state refreshes both when the Activity resumes and when Overview becomes active again after the in-app permission setup flow. Readiness detail lists notification permission alongside battery-optimization exemption, Usage Access, and actual background-service state.
+- Fixed compile blockers found by PR #16 Run #802: imported Overview grid geometry tokens and Compose border/background extensions, and removed the duplicate Compose Role import in the prior fix commit.
+- Aligned the bottom fade and backing surfaces of both long-scroll dialogs to `surfaceContainerHigh`.
+- Extracted the one-line thermal distribution formatter and added tests for populated and unavailable summaries.
+- Updated the compact history header test to the current non-clipping `Sesi x/y` presentation.
+
+
+### Changed
+- Reworked Overview into a compact primary gauge row, a two-column/four-metric grid, and single-line SOH/System Readiness summary bars. Kept the outer vertical scroll as a font-scale safety fallback.
+- Added haptic combinedClickable long-press explanations using the shared InfoDialogSurface visual wrapper. The SOH and readiness summary bars also open details on tap.
+- Added compact ETA, session peak-current, source-capability profile, cell-condition, SOH summary, and readiness formatters. Idle/discharging ETA remains "Estimasi aktif" because the current model does not expose a validated discharge-time estimate. Source capability is shown only from existing Android/sysfs detector labels; no unsupported exact adapter wattage is inferred. Cell summary uses available SOH and temperature only; no separate CS metric or calibrated-state claim is invented.
+- Replaced long visible SOH/thermal/Status Bar notes with contextual dialogs; reduced thermal distribution to one line. Removed the repeated per-session curve instruction and duplicate daily-cycle detail card; selected dates now highlight the corresponding rollup with "Dipilih".
+- App activity now prefers PackageManager.getApplicationLabel() and falls back to known human-readable package labels while retaining the original package name as the subtitle.
+- Added conditional 12dp bottom fades to the Charge Guard and application Info scroll dialogs.
+
+### Tests
+- Added idle/charging presentation tests for the four Overview metrics, SOH/readiness summaries, and 360dp two-column grid width.
+- Added application-label fallback tests, compact history header/selected-rollup tests, and long-press dialog surface-token coverage.
+- Added a source-level UI copy regression test for removal of the old SOH/readiness card headings, Status Bar footer note, repeated per-session instruction, and old curve temperature-distribution heading.
+
+### Verification
+- Source-level responsive crosscheck: 360dp width budget gives 158dp per metric cell after 18dp side gutters and an 8dp inter-column gap. The outer Overview LazyColumn remains scrollable as a large-font safety fallback.
+- GitHub Actions Run #805 on source/test HEAD `aa2d0f799ee5a9fe26459d29812bcc67a2667f5a`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. Debug APK Artifact ID `15187717785`; unit-test report Artifact ID `15188480260`.
+- The documentation-closeout commit triggers a final exact-HEAD CI run; its run URL, final HEAD, and APK Artifact ID are recorded in the PR #16 delivery description after completion.
+- Physical-device QA at 360dp / 720p: NOT RUN; source geometry and CI do not replace it.
+
+### Protected boundaries
+- AndroidManifest (including package visibility), Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number remain unchanged.
+
+---
+
 ## 2026-11-27 — Wave gauge sweet-spot tuning
 
 ### Changed

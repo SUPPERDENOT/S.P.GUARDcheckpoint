@@ -48,6 +48,7 @@ import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CyanFastCharge
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
+import com.superdenot.powerguard.ui.components.infoLongPress
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -58,6 +59,13 @@ import kotlin.math.roundToInt
 
 internal fun formatCurveReading(isAvailable: Boolean, value: String): String =
     if (isAvailable) value else "—"
+
+internal fun formatThermalDistributionSummary(summary: ChargingThermalSummary): String =
+    if (summary.hasTemperatureData) {
+        "${summary.safeMinutes}m Aman · ${summary.warmMinutes}m Hangat · ${summary.highMinutes}m Tinggi"
+    } else {
+        "Distribusi suhu tidak tersedia"
+    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -361,54 +369,24 @@ fun ChargingCurveChart(
 }
 
 @Composable
-internal fun ChargingThermalSummaryPanel(summary: ChargingThermalSummary) {
+internal fun ChargingThermalSummaryPanel(
+    summary: ChargingThermalSummary,
+    onLongPressInfo: (() -> Unit)? = null
+) {
+    val infoModifier = onLongPressInfo?.let { Modifier.infoLongPress(onLongPress = it) } ?: Modifier
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(infoModifier),
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(10.dp)
     ) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("Distribusi zona suhu", style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold)
-            Text("Aman <38°C · Hangat 38–<40°C · Tinggi ≥40°C",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val totalMinutes = summary.safeMinutes + summary.warmMinutes + summary.highMinutes
-            if (totalMinutes > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(50)),
-                    horizontalArrangement = Arrangement.spacedBy(1.dp)
-                ) {
-                    if (summary.safeMinutes > 0) {
-                        Box(Modifier.weight(summary.safeMinutes.toFloat()).fillMaxHeight().background(EmeraldCharge))
-                    }
-                    if (summary.warmMinutes > 0) {
-                        Box(Modifier.weight(summary.warmMinutes.toFloat()).fillMaxHeight().background(AmberThermal))
-                    }
-                    if (summary.highMinutes > 0) {
-                        Box(Modifier.weight(summary.highMinutes.toFloat()).fillMaxHeight().background(CrimsonAnomaly))
-                    }
-                }
-            }
-            Text(
-                if (summary.hasTemperatureData) {
-                    "${summary.safeMinutes}m Aman · ${summary.warmMinutes}m Hangat · ${summary.highMinutes}m Tinggi"
-                } else "Data suhu sesi tidak tersedia",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(summary.phase.label, style = MaterialTheme.typography.labelMedium,
-                color = when (summary.phase) {
-                    com.superdenot.powerguard.domain.analytics.ChargingPhaseIndicator.CC -> EmeraldCharge
-                    com.superdenot.powerguard.domain.analytics.ChargingPhaseIndicator.CV -> AmberThermal
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                fontWeight = FontWeight.SemiBold)
-            Text("Jeda sampel >2 menit tidak dihitung. Pola sisi baterai ini bukan identifikasi protokol langsung.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(
+            text = formatThermalDistributionSummary(summary),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
