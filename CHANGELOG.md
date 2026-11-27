@@ -1,3 +1,16 @@
+## 2026-11-28 — PR #17 Quick Settings Shield Icon
+
+### Changed
+- Added a transparent-background 24dp monochrome VectorDrawable, `ic_qs_popup_shield.xml`, combining a thin pop-up frame and a central protective shield with a transparent exclamation-mark cutout.
+- Updated the `PopupCheckTileService` manifest icon to `@drawable/ic_qs_popup_shield`.
+- Added `onTileAdded()` handling and refresh the tile icon before `updateTile()` in both `onTileAdded()` and `onStartListening()`, replacing the launcher-icon fallback at tile refresh time.
+- No permissions, package-visibility declarations, Gradle configuration, Room schema, sensor/sampling, calibration, foreground battery-monitoring lifecycle, or `RECOVERY_HOLD` behavior changed.
+
+### Verification
+- Source and documentation diff review: pending.
+- Exact-HEAD GitHub Actions CI (Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload): pending.
+- Physical Quick Settings rendering on itel P55 / SystemUI: NOT RUN — CI cannot verify OEM rendering or icon cache behavior.
+
 ## 2026-11-27 — PR #17 Calibration and Safe-List Polish
 
 ### Changed
