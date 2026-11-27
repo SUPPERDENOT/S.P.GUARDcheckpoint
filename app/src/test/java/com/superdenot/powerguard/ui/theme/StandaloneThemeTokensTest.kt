@@ -112,6 +112,36 @@ class StandaloneThemeTokensTest {
         assertEquals(3.74, tealButtonTextContrast, 0.02)
     }
 
+    @Test
+    fun previewColorSchemeTracksTheSelectedDraftPackAndSystemAppearance() {
+        val cases = listOf(
+            ThemePackConfig.Basic(BasicAppearanceMode.LIGHT, BasicAccent.TERRACOTTA) to false,
+            ThemePackConfig.Basic(BasicAppearanceMode.DARK, BasicAccent.COBALT) to false,
+            ThemePackConfig.MidnightViolet(midnightAccent = MidnightAccent.PINK) to false,
+            ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE) to false,
+            ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME) to false,
+            ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL) to false,
+            ThemePackConfig.Monochrome(MonochromeVariant.LIGHT_PAPER) to false
+        )
+        cases.forEach { (config, systemDark) ->
+            val preview = themeColorScheme(themePreviewConfig(config), systemDark)
+            val expectedPrimary = when (config) {
+                is ThemePackConfig.Basic -> basicAccentColor(config.accent)
+                is ThemePackConfig.MidnightViolet -> midnightAccentColor(config.midnightAccent)
+                is ThemePackConfig.AmoledPure -> amoledPureColorScheme(config.accent).primary
+                is ThemePackConfig.EvCockpit -> evCockpitColorScheme(config.accent).primary
+                is ThemePackConfig.NordicFrost -> nordicFrostColorScheme(config.accent).primary
+                is ThemePackConfig.Monochrome -> monochromeColorScheme(config.variant).primary
+            }
+            assertEquals(config.toString(), expectedPrimary, preview.primary)
+        }
+
+        val systemConfig = ThemePackConfig.Basic(appearanceMode = BasicAppearanceMode.SYSTEM)
+        val lightPreview = themeColorScheme(systemConfig, systemDark = false)
+        val darkPreview = themeColorScheme(systemConfig, systemDark = true)
+        assertNotEquals(lightPreview.background, darkPreview.background)
+    }
+
     private fun assertScheme(
         scheme: ColorScheme,
         background: Long,
