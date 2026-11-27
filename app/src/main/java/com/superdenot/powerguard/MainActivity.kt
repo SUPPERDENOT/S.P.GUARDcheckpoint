@@ -42,6 +42,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.ui.*
+import com.superdenot.powerguard.ui.components.InfoLongPressContentFactory
+import com.superdenot.powerguard.ui.components.InfoLongPressDialog
+import com.superdenot.powerguard.ui.components.InfoLongPressContent
+import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
             PowerGuardTheme(config = themePackConfig) {
                 val context = LocalContext.current
                 var currentTab by remember { mutableIntStateOf(0) }
+                var headerLongPressInfo by remember { mutableStateOf<InfoLongPressContent?>(null) }
                 val setupPrefs = remember { context.getSharedPreferences("spg_initial_setup", 0) }
                 var showPermissionSetup by remember { mutableStateOf(!setupPrefs.getBoolean("completed", false)) }
                 var notificationGranted by remember {
@@ -127,7 +132,21 @@ class MainActivity : ComponentActivity() {
                                 Text("SUPERD POWER GUARD", modifier = Modifier.weight(1f),
                                     fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, letterSpacing = 0.35.sp,
                                     maxLines = 1, softWrap = false, color = MaterialTheme.colorScheme.onBackground)
-                                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(50)) {
+                                Surface(
+                                    modifier = Modifier.infoLongPress(
+                                        onLongPress = {
+                                            headerLongPressInfo = InfoLongPressContentFactory.headerStatus(
+                                                statusLabel = headerLabel,
+                                                isServiceRunning = headerServiceRunning,
+                                                isChargingStatusAvailable = headerBatteryState.isChargingStatusAvailable,
+                                                isCharging = headerBatteryState.isCharging
+                                            )
+                                        },
+                                        onClick = {}
+                                    ),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(50)
+                                ) {
                                     Row(Modifier.padding(horizontal = 9.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Box(Modifier.size(7.dp).clip(CircleShape).background(headerStatusColor))
@@ -192,6 +211,13 @@ class MainActivity : ComponentActivity() {
                         3 -> HistoryScreen(vm, padding)
                         else -> SettingsScreen(vm, padding, onOpenPermissionSetup = { showPermissionSetup = true })
                     }
+                }
+                headerLongPressInfo?.let { info ->
+                    InfoLongPressDialog(
+                        title = info.title,
+                        body = info.body,
+                        onDismiss = { headerLongPressInfo = null }
+                    )
                 }
                 if (showPermissionSetup) {
                     InitialPermissionSetup(
