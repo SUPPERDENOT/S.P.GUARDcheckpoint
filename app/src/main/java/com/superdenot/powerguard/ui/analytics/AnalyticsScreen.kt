@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.analytics
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -77,6 +78,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.domain.analytics.HistorySessionFilter
 import com.superdenot.powerguard.domain.analytics.HistorySessionFilterMatcher
@@ -89,6 +91,7 @@ import com.superdenot.powerguard.domain.analytics.DailyCycleTrend
 import com.superdenot.powerguard.domain.analytics.DailyCycleTrendPoint
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
+import com.superdenot.powerguard.ui.viewmodel.PopupDetectorViewModel
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
@@ -119,7 +122,8 @@ fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
     contentPadding: PaddingValues,
     initialSubTab: Int = 0,
-    visibleSubTabs: List<Int> = listOf(0, 1, 2)
+    visibleSubTabs: List<Int> = listOf(0, 1, 2),
+    popupDetectorOpenRequest: Int = 0
 ) {
     val availableTabs = visibleSubTabs.filter { it in 0..2 }.ifEmpty { listOf(0) }
     var selectedSubTab by remember(availableTabs, initialSubTab) {
@@ -185,7 +189,7 @@ fun AnalyticsScreen(
         when (selectedSubTab) {
             0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
             1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
-            2 -> AppUsageTab(viewModel, bottomScrollPadding)
+            2 -> AppUsageTab(viewModel, bottomScrollPadding, popupDetectorOpenRequest)
         }
     }
 }
@@ -907,11 +911,25 @@ private fun SevenDayCycleMiniChart(
 }
 
 @Composable
-private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
+private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues, popupDetectorOpenRequest: Int) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
     val apps by viewModel.appUsageList.collectAsState()
+    val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
+    val popupDetectorState by popupDetectorViewModel.uiState.collectAsState()
     var showLongPressInfo by remember { mutableStateOf(false) }
+    var showPopupDetectorInfo by remember { mutableStateOf(false) }
+    var showPopupDetectorSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        popupDetectorViewModel.scan()
+    }
+    LaunchedEffect(popupDetectorOpenRequest) {
+        if (popupDetectorOpenRequest > 0) {
+            showPopupDetectorSheet = true
+            popupDetectorViewModel.scan()
+        }
+    }
 
     LazyColumn(
         contentPadding = bottomScrollPadding,
@@ -923,6 +941,18 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 text = "Aktivitas Aplikasi Latar Belakang & Layar (24 Jam)",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            PopupDetectorCard(
+                state = popupDetectorState,
+                onOpenTimeline = { showPopupDetectorSheet = true },
+                onRescan = popupDetectorViewModel::scan,
+                onInfo = { showPopupDetectorInfo = true },
+                onOpenUsageSettings = {
+                    runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+                }
             )
         }
 
@@ -998,6 +1028,36 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 }
             }
         }
+    }
+    if (showPopupDetectorInfo) {
+        InfoLongPressDialog(
+            title = "Detektor Pop-up & Pembajak Layar",
+            body = "Detektor membaca riwayat perpindahan aktivitas dan status layar Android selama 24 jam terakhir. Skor merupakan heuristik; Usage Events tidak membuktikan jendela overlay benar-benar tampil atau memastikan suatu aplikasi adalah malware. Pemindaian berjalan hanya saat tab ini dibuka, tombol Pindai Ulang digunakan, atau tile Cek Pop-up diketuk.",
+            onDismiss = { showPopupDetectorInfo = false }
+        )
+    }
+    if (showPopupDetectorSheet) {
+        PopupDetectorSheet(
+            state = popupDetectorState,
+            onDismiss = { showPopupDetectorSheet = false },
+            onRescan = popupDetectorViewModel::scan,
+            onMarkSafe = popupDetectorViewModel::markSafe,
+            onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
+            onRunSimulation = popupDetectorViewModel::showSimulation,
+            onClearSimulation = popupDetectorViewModel::clearSimulation,
+            onOpenAppDetails = { packageName ->
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:" + packageName)
+                        }
+                    )
+                }
+            },
+            onOpenSystemApps = {
+                runCatching { context.startActivity(Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)) }
+            }
+        )
     }
     if (showLongPressInfo) {
         InfoLongPressDialog(
