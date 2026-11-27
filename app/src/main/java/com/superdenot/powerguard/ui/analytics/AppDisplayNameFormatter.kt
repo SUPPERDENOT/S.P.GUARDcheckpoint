@@ -24,7 +24,9 @@ internal object AppDisplayNameFormatter {
     private fun readablePackageFallback(packageName: String): String {
         val segment = packageName.substringAfterLast('.').ifBlank { packageName }
         val words = segment
-            .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+            .replace(Regex("([a-z])([A-Z])")) { match ->
+                match.groupValues[1] + " " + match.groupValues[2]
+            }
             .replace('_', ' ')
             .replace('-', ' ')
             .trim()

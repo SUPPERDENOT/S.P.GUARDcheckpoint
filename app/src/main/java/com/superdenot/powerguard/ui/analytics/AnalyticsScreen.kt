@@ -12,7 +12,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Arrangement
@@ -936,7 +935,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Izin Akses Penggunaan diperlukan agar PowerGuard dapat mendeteksi aplikasi aktif saat terjadi anomali pengisian daya.",
+                            text = "Diperlukan untuk menampilkan aplikasi aktif selama 24 jam terakhir.",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(10.dp))

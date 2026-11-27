@@ -90,7 +90,6 @@ import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
 import com.superdenot.powerguard.ui.dashboard.ReadMoreInfoDialog
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
 import com.superdenot.powerguard.ui.dashboard.OverviewMetricsFormatter
-import com.superdenot.powerguard.ui.dashboard.OverviewMetricsGridLayout
 import com.superdenot.powerguard.ui.theme.*
 import com.superdenot.powerguard.ui.theme.LocalBatterySemanticColors
 import com.superdenot.powerguard.ui.theme.LocalBatteryMetricTints
