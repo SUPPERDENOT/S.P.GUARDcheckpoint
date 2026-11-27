@@ -36,6 +36,19 @@ class OverviewMetricsPresentationTest {
     }
 
     @Test
+    fun liveCurrentIsShownImmediatelyWhenNoPersistedSessionSampleExists() {
+        assertEquals(760L, OverviewMetricsFormatter.resolvePeakCurrentMa(emptyList(), 760, null))
+        assertEquals("760 mA", OverviewMetricsFormatter.formatPeakCurrent(true, true, emptyList(), 760, null))
+    }
+
+    @Test
+    fun peakCurrentUsesTheMaximumOfPersistedLiveAndInMemoryValues() {
+        val persisted = listOf(sample(1_100))
+        assertEquals(1_450L, OverviewMetricsFormatter.resolvePeakCurrentMa(persisted, 1_450, 1_300))
+        assertEquals(1_500L, OverviewMetricsFormatter.resolvePeakCurrentMa(persisted, 900, 1_500))
+    }
+
+    @Test
     fun unavailableSamplesAndUnexposedSourceRemainExplicit() {
         assertEquals("Belum tersedia", OverviewMetricsFormatter.formatPeakCurrent(true, true, emptyList()))
         assertEquals("USB · Metadata tidak diekspos",
