@@ -591,10 +591,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                         ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
                             Text(
-                                StatusBarSettingsSummaryFormatter.format(
-                                    statusBarSetting.displayMode, statusBarSetting.parameter,
-                                    statusBarSetting.rotationParameters, statusBarSetting.rotationIntervalSeconds, currentScale
-                                ),
+                                "Rotasi 2 dtk · W, A/mA, °C, Sumber",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
