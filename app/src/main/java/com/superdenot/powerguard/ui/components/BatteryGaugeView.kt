@@ -559,16 +559,33 @@ private fun WaveGauge(
 
             drawCircle(trackColor, diameter / 2f, center)
             clipPath(circle) {
-                val rearWaveOffset = -diameter * 0.012f * sin(liquidProgress * PI).toFloat()
+                val rearWaveOffset =
+                    -diameter * 0.012f * sin(liquidProgress * PI).toFloat() -
+                        backWaveElevationOffsetDp(liquidProgress).dp.toPx()
+                val rearPhase = waveRearPhase(wavePhase)
                 val rearWave = waveFillPath(
-                    diameter, diameter, liquidProgress, waveRearPhase(phaseFraction),
+                    diameter, diameter, liquidProgress, rearPhase,
                     amplitudePx = waveAmplitudePx,
-                    amplitudeScale = WAVE_REAR_AMPLITUDE_SCALE,
+                    amplitudeScale = BACK_WAVE_AMPLITUDE_RATIO,
                     verticalOffset = rearWaveOffset,
                     sampleStepPx = sampleStepPx,
                     origin = Offset(left, top)
                 )
                 drawPath(rearWave, waveColors.rear)
+
+                val rearCrest = waveCrestPath(
+                    diameter, diameter, liquidProgress, rearPhase,
+                    amplitudePx = waveAmplitudePx,
+                    amplitudeScale = BACK_WAVE_AMPLITUDE_RATIO,
+                    verticalOffset = rearWaveOffset,
+                    sampleStepPx = sampleStepPx,
+                    origin = Offset(left, top)
+                )
+                drawPath(
+                    rearCrest,
+                    waveColors.rearCrest,
+                    style = Stroke(WAVE_REAR_CREST_STROKE_DP.dp.toPx(), cap = StrokeCap.Round)
+                )
 
                 val frontWave = waveFillPath(
                     diameter, diameter, liquidProgress, wavePhase,
@@ -816,13 +833,21 @@ private fun waveCrestPath(
     progress: Float,
     phase: Float,
     amplitudePx: Float,
+    amplitudeScale: Float = 1f,
+    verticalOffset: Float = 0f,
     sampleStepPx: Float,
     origin: Offset = Offset.Zero
 ): Path = Path().apply {
     val sampleCount = waveSampleCount(width, sampleStepPx)
-    moveTo(origin.x, origin.y + waveY(0f, width, height, progress, phase, amplitudePx))
+    moveTo(
+        origin.x,
+        origin.y + waveY(0f, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset)
+    )
     for (step in 1..sampleCount) {
         val x = width * step / sampleCount
-        lineTo(origin.x + x, origin.y + waveY(x, width, height, progress, phase, amplitudePx))
+        lineTo(
+            origin.x + x,
+            origin.y + waveY(x, width, height, progress, phase, amplitudePx, amplitudeScale, verticalOffset)
+        )
     }
 }
