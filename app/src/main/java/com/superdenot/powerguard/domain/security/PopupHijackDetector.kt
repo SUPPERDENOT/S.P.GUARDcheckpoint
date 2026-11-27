@@ -272,8 +272,7 @@ internal fun sanitizePopupIncidentArchive(
         if (incident.packageName in safePackages || isPopupAlwaysExcludedPackage(incident.packageName)) return@mapNotNull null
         val reasons = incident.reasons.toMutableSet()
         val hasLiteralBrowserRedirectEvidence =
-            PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons &&
-                PopupSignalReason.OVERLAY_PERMISSION in reasons
+            PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons
         if (incident.packageName in systemPackages && !hasLiteralBrowserRedirectEvidence) return@mapNotNull null
         val burstReasons = setOf(PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS)
         if (reasons.any { it in burstReasons }) {
