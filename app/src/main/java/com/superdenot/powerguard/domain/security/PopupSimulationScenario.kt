@@ -18,6 +18,9 @@ internal object PopupSimulationScenario {
         }
         events += ScreenUsageEvent(null, ScreenUsageEventType.SCREEN_INTERACTIVE, nowMs - 2_000L)
         events += ScreenUsageEvent(review, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 500L)
+        events += ScreenUsageEvent(home, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 3_000L)
+        events += ScreenUsageEvent(null, ScreenUsageEventType.SCREEN_INTERACTIVE, nowMs - 2_000L)
+        events += ScreenUsageEvent(review, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 500L)
         val redirectAt = nowMs - 60_000L
         events += ScreenUsageEvent(whatsapp, ScreenUsageEventType.ACTIVITY_RESUMED, redirectAt)
         events += ScreenUsageEvent(redirect, ScreenUsageEventType.ACTIVITY_RESUMED, redirectAt + 1_000)
@@ -28,6 +31,12 @@ internal object PopupSimulationScenario {
                 firstInstallTimeMs = nowMs - 2L * 24L * 60L * 60L * 1000L,
                 hasOverlayPermission = true
             ),
+            review to AppPackageSignals(
+                packageName = review, isMetadataResolved = true, hasLauncherActivity = true,
+                firstInstallTimeMs = nowMs - 2L * 24L * 60L * 60L * 1000L,
+                hasOverlayPermission = true
+            ),
+            home to AppPackageSignals(packageName = home, isHomeLauncher = true),
             review to AppPackageSignals(
                 packageName = review, isMetadataResolved = true, hasLauncherActivity = true,
                 firstInstallTimeMs = nowMs - 2L * 24L * 60L * 60L * 1000L,

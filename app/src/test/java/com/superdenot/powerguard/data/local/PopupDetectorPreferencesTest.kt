@@ -5,6 +5,8 @@ import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -56,6 +58,43 @@ class PopupDetectorPreferencesTest {
         assertEquals("com.example.app35", restored.last().packageName)
         assertEquals(PopupSignalReason.SCREEN_HIJACKING, restored.last().reasons.single())
     }
+
+
+    @Test
+    fun markingSafePurgesMatchingArchivePackageImmediately() {
+        val now = 1_800_000_000_000L
+        val incident = PopupIncident("com.example.safe", 45, PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL), listOf(now))
+        assertTrue(PopupDetectorPreferences(context).appendIncidents(listOf(incident)))
+        assertEquals(1, PopupDetectorPreferences(context).archivedIncidents().size)
+        assertTrue(PopupDetectorPreferences(context).markSafe("com.example.safe"))
+        assertTrue(PopupDetectorPreferences(context).archivedIncidents().isEmpty())
+    }
+
+    @Test
+    fun archiveLoadMigratesLegacyDuplicateExcludedSafeAndInvalidBurstEntries() {
+        val now = 1_800_000_000_000L
+        val prefs = context.getSharedPreferences("spg_popup_detector", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("safe_packages_json", JSONArray().put("com.example.safe").toString())
+            .putString("incident_archive_json", JSONArray().apply {
+                put(legacyIncident("com.example.safe", 45, listOf("NO_LAUNCHER_ICON", "RECENT_INSTALL"), listOf(now)))
+                put(legacyIncident("com.transsion.itel.launcher", 45, listOf("NO_LAUNCHER_ICON", "RECENT_INSTALL"), listOf(now)))
+                put(legacyIncident("com.example.invalidburst", 70,
+                    listOf("BURST_LOOP_2", "NO_LAUNCHER_ICON", "RECENT_INSTALL"), listOf(now - 73L * 60_000L, now)))
+                put(legacyIncident("com.example.duplicate", 45, listOf("NO_LAUNCHER_ICON", "RECENT_INSTALL"), listOf(now - 2)))
+                put(legacyIncident("com.example.duplicate", 45, listOf("NO_LAUNCHER_ICON", "RECENT_INSTALL"), listOf(now - 1)))
+            }.toString()).commit()
+        val migrated = PopupDetectorPreferences(context).archivedIncidents()
+        assertEquals(listOf("com.example.duplicate"), migrated.map { it.packageName })
+        assertEquals(now - 1, migrated.single().lastSeenAtMs)
+        assertEquals(1, JSONArray(prefs.getString("incident_archive_json", "[]")).length())
+    }
+
+    private fun legacyIncident(packageName: String, score: Int, reasons: List<String>, times: List<Long>) =
+        JSONObject().put("packageName", packageName).put("riskScore", score)
+            .put("status", PopupRiskStatus.SUSPICIOUS.name)
+            .put("reasons", JSONArray(reasons)).put("times", JSONArray(times))
 
     @Test
     fun simulatedIncidentsAreNeverPersisted() {
