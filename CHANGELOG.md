@@ -1,3 +1,122 @@
+## 2026-11-27 — Wave gauge sweet-spot tuning
+
+### Changed
+- Increased the front-wave amplitude ratio from 0.028f to 0.038f of the gauge diameter and raised its cap from 4.0dp to 5.2dp.
+- Increased rear-layer maximum elevation from 2.4dp to 2.6dp and rear-wave amplitude ratio from 0.78f to 0.82f.
+- Kept the shared smoothstep envelope, harmonic profile, rear phase direction/offset, liquid gradient, adaptive meniscus, and all other Wave rendering behavior unchanged. No percentage text layout or typography was modified.
+
+### Tests
+- Updated constant assertions for all four tuned values.
+- Updated the front-amplitude ratio/cap expectations (100px diameter → 3.8px; 200px diameter remains capped at 5.2px).
+- Updated the rear elevation midpoint expectation to 2.6dp and both rear-ratio assertions to 0.82f.
+
+### Verification
+- GitHub Actions Run #797 on implementation HEAD `9d81004adf246a187dc771f80ba248249b88cf9c`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. Debug APK Artifact ID `15183580211`; unit-test report Artifact ID `15182539307`. Final documentation-closeout HEAD CI is tracked in PR #15 after its workflow completes.
+- Physical-device visual QA: NOT RUN.
+
+### Protected boundaries
+- No six-theme palette, Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+
+---
+
+## 2026-11-27 — Wave gauge harmonic surface and liquid depth calibration
+
+### Changed
+- Replaced the fractional 1.6-cycle surface with a normalized two-harmonic profile: 0.82 × sin(angle + phase) + 0.18 × sin(2 × angle − phase + 45°). Both harmonics are integer multiples, so the profile is periodic at the 0°/360° boundary.
+- Set front amplitude to 2.8% of the gauge diameter, capped at 4dp. A shared smoothstep envelope is zero at/below 2% and at/above 98%, and reaches full strength from 12% through 88%; it scales front/rear amplitude and rear-layer elevation.
+- Set the rear layer to 0.78x front amplitude, reverse phase with a 135° offset, and 2.4dp maximum elevation.
+- Set rear fill/crest to accent alpha 0.30/0.25 with a 0.75dp crest stroke. The front liquid now uses an accent gradient from alpha 0.95 at the surface to 0.76 at the bottom.
+- Made the 1.2dp front meniscus luminance-adaptive: bright accents use full-opacity accent; darker accents use an 18% white blend at alpha 0.90.
+
+### Tests
+- Added coverage for new amplitude/elevation constants, the 4dp cap, smoothstep endpoints and midpoint, harmonic normalization and 0°/360° continuity, reverse rear phase, layer colors, and dark/bright meniscus selection.
+
+### Verification
+- Source/test implementation CI Run #790 on HEAD `6497bdcf763cd81b42ebc6462b4e888d4f851bb7`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload. Debug APK Artifact ID `15175793190`; unit-test report Artifact ID `15175683365`.
+- Physical-device visual QA: NOT RUN — the CI build does not establish the liquid rendering appearance on device.
+
+### Protected boundaries
+- No six-theme palette, Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+
+---
+
+## 2026-11-27 — Wave gauge back-surface depth polish
+
+### Changed
+- Raised the Wave gauge back-surface baseline by up to 3.5dp above the front surface using a smooth edge taper: zero at/below 2% and at/above 98%, full elevation from 8% through 92%.
+- Set the back-wave amplitude ratio to 1.20x and expressed its phase directly as `rearPhase = -frontPhase + 135°`; the reverse phase remains cycle-equivalent at 0/2π.
+- Kept the rear fill as accent color at 0.38 alpha and added a 0.8dp rear crest line at 0.30 alpha, drawn behind the existing front fill.
+- Preserved the front fill alpha (0.92), front meniscus stroke (1.2dp), and all six theme palettes.
+
+### Tests
+- Added regression coverage for the 3.5dp elevation, smooth taper boundaries and midpoint, 1.20x amplitude ratio, reverse phase direction/135° offset/cycle continuity, and rear fill/crest alpha and stroke tokens.
+
+### Verification
+- Run #781 on source/test HEAD `05cb79935f8bf671a21b280333a1963764ce1a54`: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` ran 393 tests with 1 failure because an alpha assertion expected exact float equality after Compose `Color` 8-bit channel quantization. The focused assertions now use a tolerance while retaining exact packed-color comparisons. Unit-test report artifact ID `15166528990`; APK upload was skipped because the combined Gradle step failed.
+- Run #783 on code/test HEAD `36d6236e2f18f9853890b3190bd6e6a87f7be8a9`: **SUCCESS** — Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, Upload APK, and unit-test report upload all succeeded. APK artifact ID `15166737633`; unit-test report artifact ID `15166837233`.
+- Exact final documentation-closeout HEAD verification and artifact IDs are tracked in PR #15 description after its workflow completes.
+- Physical-device visual QA: NOT RUN; CI does not establish rendered appearance on the target phone.
+
+### Protected boundaries
+- No theme palette tokens, Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, or build number changes.
+
+---
+
+## 2026-11-27 — PR #15 final theme/dialog polish
+
+### Changed
+- Resolved the current draft's preview `ColorScheme` once and applied it to the entire Theme & Gauge configuration dialog, so selection pills, the Midnight dual-tint switch, gauge preview, and Save action use the same draft palette. Basic / System follows the device's current light/dark mode.
+- Added a subtle 12dp bottom fade to `InfoDialogSurface` only while its scroll state can move forward; the fade uses the active `surfaceContainerHigh` token.
+- Replaced the dynamic, ellipsized Status Bar Indicator settings summary with the concise one-line subtitle `Rotasi 2 dtk · W, A/mA, °C, Sumber`.
+
+### Tests
+- Added theme preview ColorScheme regression coverage across the selected packages and Basic / System appearance resolution.
+- Extended InfoDialog visual-token tests to lock the 12dp scroll-fade height.
+
+### Verification
+- Source diff review and protected-boundary review: PASS; no protected files or runtime behavior were changed.
+- Run #777 on intermediate commit `77498eb8a07995c0730f86c1e5e0284b9d6c192c`: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` initially FAILED to compile because the new test omitted the `assertNotEquals` import. The import is corrected in this follow-up.
+- Exact-final-HEAD `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: pending the next PR #15 CI run.
+- Physical-device QA at 360dp / 720p: NOT RUN; CI is not device validation.
+
+### Protected boundaries
+- No theme palette token, Room DB v3, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependency, SDK, app version, or build number changes.
+
+---
+
+## 2026-11-27 — Restore four standalone theme packs (PR #15)
+
+### Added
+- Restored the six selectable theme packages: Basic, Midnight, AMOLED Pure, EV Cockpit, Nordic Frost, and Monochrome.
+- Added AMOLED Pure accents Amber Emas / Putih Bersih; EV Cockpit accents Electric Sky / Volt Lime; Nordic Frost accents Cobalt Steel / Teal; and Monochrome variants Arang Gelap / Kertas Terang.
+- Implemented the exact requested Material 3 background, surface, five surface-container, outlineVariant, primary, onPrimary, onBackground, onSurface, and onSurfaceVariant tokens for all new variants.
+- Rebuilt the package chooser as a responsive two-column grid with compact swatches and selectable cards. The configuration dialog continues to render the live preview from the current draft; changing package/accent/variant updates the preview before saving.
+- Extended theme preference persistence with separate stable pack keys while preserving the existing `basic` and `midnight_violet` values and their stored settings.
+- Theme-package switching preserves the currently selected BatteryGauge model and charging animation.
+
+### Tests
+- Added exact-token coverage for both AMOLED Pure accents, both EV Cockpit accents, both Nordic Frost accents, and both Monochrome variants.
+- Added SharedPreferences round-trip coverage for all eight new accent/variant selections and their gauge/animation settings.
+- Added summary, live-preview configuration, and pack-switch preservation coverage.
+- Existing Midnight token/eye-comfort tests remain intact.
+
+### Accessibility note
+- Nordic Frost / Teal uses the explicitly requested `primary=#0D9488` and `onPrimary=#FFFFFF`; measured contrast is 3.74:1. This is below WCAG AA 4.5:1 for normal-size button text. The requested tokens are retained unchanged and the exception is exposed for review rather than silently altering the specification.
+
+### Protected boundaries
+- No Room DB v3/schema/migrations, sensor acquisition or sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+
+### Verification
+- Branch created from post-PR-14 main HEAD `697925eb7c002410c06e7b9034b0ea8c519ff469`.
+- Source/test implementation and diff review: PASS — exactly nine files changed, limited to theme/configuration, preference persistence, tests, CHANGELOG, and QUALITY_CHECKLIST.
+- GitHub Actions Run #772 on source/test HEAD `2755785cc7d144f05ed637b451cf1c462c1a5655`: SUCCESS — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload. APK Artifact ID `15160093846` (SHA-256 `90be2437282077f114c291a843d31e7dde9e1dcad6acf2828f38f7ebd6efddee`); test report Artifact ID `15160478149`.
+- Earlier Run #771 failed at unit-test compilation because the new tests referenced nonexistent `BatteryGaugeModel.BLOCK`; the source enum's display name `Blok` is `SEGMENTED`. Test references were corrected and Run #772 passed.
+- Final documentation-closeout HEAD CI: pending at checklist commit time; final exact-HEAD result is recorded in the PR #15 delivery report.
+- Physical-device visual QA at 360dp / 720p: NOT RUN; CI does not establish device layout behavior.
+- PR #15 is intended to remain open; no auto-merge.
+
+---
+
 ## 2026-11-26 — Midnight eye-comfort palette recalibration
 
 ### Changed

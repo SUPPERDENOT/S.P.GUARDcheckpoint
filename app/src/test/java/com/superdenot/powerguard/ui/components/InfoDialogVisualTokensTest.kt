@@ -145,6 +145,7 @@ class InfoDialogVisualTokensTest {
         assertEquals(16f, INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP, 0f)
         assertEquals(4f, INFO_DIALOG_SCROLL_TOP_PADDING_DP, 0f)
         assertEquals(12f, INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP, 0f)
+        assertEquals(12f, INFO_DIALOG_SCROLL_FADE_HEIGHT_DP, 0f)
         assertEquals(16f, INFO_DIALOG_FOOTER_HORIZONTAL_PADDING_DP, 0f)
         assertEquals(8f, INFO_DIALOG_FOOTER_TOP_PADDING_DP, 0f)
         assertEquals(12f, INFO_DIALOG_FOOTER_BOTTOM_PADDING_DP, 0f)

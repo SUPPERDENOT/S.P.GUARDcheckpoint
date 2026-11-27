@@ -7,7 +7,6 @@ import com.superdenot.powerguard.ui.CHARGING_SOURCE_CAPABILITY_LABEL
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -162,12 +161,19 @@ class BatteryGaugeSpecTest {
 
     @Test
     fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
-        assertEquals(6.5f, WAVE_AMPLITUDE_DP, 0f)
-        assertEquals(1.6f, WAVE_CYCLES, 0f)
-        assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(2.0943952f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        assertEquals(0.038f, FRONT_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(5.2f, MAX_FRONT_WAVE_AMPLITUDE_DP, 0f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
         assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(3_000, WAVE_CYCLE_DURATION_MILLIS)
+        assertEquals(2.6f, BACK_WAVE_ELEVATION_DP, 0f)
+        assertEquals(0.82f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.75f, WAVE_REAR_CREST_STROKE_DP, 0f)
+        assertEquals(0.25f, WAVE_REAR_CREST_ALPHA, 0f)
+        assertEquals(0.30f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.95f, WAVE_FRONT_SURFACE_ALPHA, 0f)
+        assertEquals(0.76f, WAVE_FRONT_BOTTOM_ALPHA, 0f)
         assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
         assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
         assertEquals(6f, WAVE_COMET_HALO_STROKE_DP, 0f)
@@ -175,11 +181,8 @@ class BatteryGaugeSpecTest {
         assertEquals(3.5f, WAVE_COMET_HEAD_RADIUS_DP, 0f)
         assertEquals(6f, WAVE_COMET_GLOW_RADIUS_DP, 0f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
-        assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
         assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
-        assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
-        assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
     @Test
@@ -251,6 +254,63 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
+    fun waveSmoothstepEnvelopeIsFlatAtZeroAndFullAndFullyDevelopedInTheMiddle() {
+        assertEquals(0f, waveSurfaceEnvelope(-0.1f), 0f)
+        assertEquals(0f, waveSurfaceEnvelope(0f), 0f)
+        assertEquals(0f, waveSurfaceEnvelope(0.02f), 0f)
+        assertEquals(0.5f, waveSurfaceEnvelope(0.07f), 0.000001f)
+        assertEquals(1f, waveSurfaceEnvelope(0.12f), 0f)
+        assertEquals(1f, waveSurfaceEnvelope(0.5f), 0f)
+        assertEquals(1f, waveSurfaceEnvelope(0.88f), 0f)
+        assertEquals(0.5f, waveSurfaceEnvelope(0.93f), 0.000001f)
+        assertEquals(0f, waveSurfaceEnvelope(0.98f), 0f)
+        assertEquals(0f, waveSurfaceEnvelope(1f), 0f)
+        assertEquals(0f, backWaveElevationOffsetDp(0f), 0f)
+        assertEquals(2.6f, backWaveElevationOffsetDp(0.5f), 0f)
+        assertEquals(0f, backWaveElevationOffsetDp(1f), 0f)
+    }
+
+    @Test
+    fun frontWaveAmplitudeUsesDiameterRatioAndFivePointTwoDpMaximum() {
+        assertEquals(3.8f, waveFrontAmplitudePx(100f, 5.2f), 0.000001f)
+        assertEquals(5.2f, waveFrontAmplitudePx(200f, 5.2f), 0f)
+        assertEquals(0f, waveFrontAmplitudePx(-10f, 4f), 0f)
+        assertEquals(0f, waveFrontAmplitudePx(100f, -5.2f), 0f)
+    }
+
+    @Test
+    fun harmonicSurfaceIsNormalizedAndSeamlessAtZeroAndThreeHundredSixtyDegrees() {
+        val phases = listOf(0f, 0.7f, Math.PI.toFloat(), 4.8f)
+        phases.forEach { phase ->
+            val fullTurn = (2f * Math.PI).toFloat()
+            assertEquals(waveHarmonicOffset(0f, phase), waveHarmonicOffset(fullTurn, phase), 0.000001f)
+            assertEquals(
+                waveHarmonicOffset(0f, waveRearPhase(phase)),
+                waveHarmonicOffset(fullTurn, waveRearPhase(phase)),
+                0.000001f
+            )
+        }
+        for (step in 0..720) {
+            val angle = (2f * Math.PI.toFloat()) * step / 720f
+            assertTrue(kotlin.math.abs(waveHarmonicOffset(angle, 0.73f)) <= 1.000001f)
+        }
+    }
+
+    @Test
+    fun backWavePhaseIsOppositeToFrontAndContinuousAcrossTheFullCycle() {
+        assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
+        val start = waveRearPhase(0f)
+        val middle = waveRearPhase(Math.PI.toFloat())
+        val end = waveRearPhase((2f * Math.PI).toFloat())
+        assertEquals(WAVE_REAR_PHASE_OFFSET, start, 0f)
+        assertEquals(Math.toRadians(-45.0).toFloat(), middle, 0.000001f)
+        assertEquals(sin(start), sin(end), 0.000001f)
+        assertEquals(cos(start), cos(end), 0.000001f)
+    }
+
+    @Test
     fun waveLiquidLevelTracksBatteryFractionForChargingIdleAndExactBoundariesAcrossEveryAnimation() {
         listOf(false, true).forEach { isCharging ->
             ChargingArcAnimation.values().forEach { animation ->
@@ -273,24 +333,37 @@ class BatteryGaugeSpecTest {
         val accent = Color(0xFF12B886)
         val layers = waveLayerColors(accent)
         val rearAtZero = waveRearPhase(0f)
-        val rearAtWrap = waveRearPhase(1f)
+        val rearAtWrap = waveRearPhase((2f * Math.PI).toFloat())
         assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(sin(rearAtZero), sin(rearAtWrap), 0.000001f)
         assertEquals(cos(rearAtZero), cos(rearAtWrap), 0.000001f)
-        assertEquals(120f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(1.12f, WAVE_REAR_AMPLITUDE_SCALE, 0f)
-        assertEquals(0.40f, WAVE_REAR_FILL_ALPHA, 0f)
-        assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
-        assertEquals(accent.copy(alpha = 0.40f), layers.rear)
-        assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.92f), layers.frontHighlight)
-        assertEquals(accent, layers.frontBase)
-        assertEquals(lerp(accent, Color.Black, 0.22f).copy(alpha = 0.92f), layers.frontShadow)
-        assertEquals(lerp(accent, Color.White, 0.35f).copy(alpha = 0.75f), layers.meniscus)
-        assertEquals(0.40f, layers.rear.alpha, 0f)
-        assertNotEquals(Color.White, layers.meniscus)
+        assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
+        assertEquals(0.82f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.30f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.25f, WAVE_REAR_CREST_ALPHA, 0f)
+        assertEquals(0.95f, WAVE_FRONT_SURFACE_ALPHA, 0f)
+        assertEquals(0.76f, WAVE_FRONT_BOTTOM_ALPHA, 0f)
+        assertEquals(accent.copy(alpha = 0.30f), layers.rear)
+        assertEquals(accent.copy(alpha = 0.25f), layers.rearCrest)
+        assertEquals(accent.copy(alpha = 0.95f), layers.frontSurface)
+        assertEquals(accent.copy(alpha = 0.76f), layers.frontBottom)
+        assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.95f), layers.frontHighlight)
+        assertEquals(waveMeniscusColor(accent), layers.meniscus)
+        assertEquals(0.30f, layers.rear.alpha, 0.003f)
+        assertEquals(0.25f, layers.rearCrest.alpha, 0.001f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
         assertEquals(50, waveSampleCount(100f, 2f))
         assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
+    }
+
+    @Test
+    fun meniscusColorAdaptsToDarkAndBrightAccentLuminance() {
+        val darkAccent = Color(0xFF252923)
+        val brightAccent = Color(0xFFF8F8F8)
+        assertEquals(lerp(darkAccent, Color.White, 0.18f).copy(alpha = 0.90f), waveMeniscusColor(darkAccent))
+        assertEquals(brightAccent.copy(alpha = 1f), waveMeniscusColor(brightAccent))
+        assertEquals(0.90f, waveMeniscusColor(darkAccent).alpha, 0.003f)
+        assertEquals(1f, waveMeniscusColor(brightAccent).alpha, 0f)
     }
 
     @Test

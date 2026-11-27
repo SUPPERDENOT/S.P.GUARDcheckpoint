@@ -38,6 +38,19 @@ class ThemeGaugeSummaryFormatterTest {
     }
 
     @Test
+    fun formatsAllSixStandaloneThemePackNamesAndSelectedVariants() {
+        val expected = listOf(
+            ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE) to "AMOLED Pure · Putih Bersih",
+            ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME) to "EV Cockpit · Volt Lime",
+            ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL) to "Nordic Frost · Teal",
+            ThemePackConfig.Monochrome(MonochromeVariant.LIGHT_PAPER) to "Monochrome · Kertas Terang"
+        )
+        expected.forEach { (config, summary) ->
+            assertEquals(summary to "Busur · Sweep", ThemeGaugeSummaryFormatter.format(config))
+        }
+    }
+
+    @Test
     fun formatsMidnightAccentInThemeSummary() {
         val expected = mapOf(
             MidnightAccent.VIOLET to "Midnight · Ungu · Satu warna",
@@ -57,21 +70,32 @@ class ThemeGaugeSummaryFormatterTest {
     }
 
     @Test
-    fun liveBasicPreviewCarriesDraftAppearanceAndAccentIntoThemeWrapperConfig() {
-        val draft = ThemePackConfig.Basic(
-            appearanceMode = BasicAppearanceMode.LIGHT,
-            accent = BasicAccent.COBALT,
+    fun livePreviewPreservesEveryThemeVariantAndGaugeSelection() {
+        val configs = listOf(
+            ThemePackConfig.Basic(BasicAppearanceMode.LIGHT, BasicAccent.COBALT, BatteryGaugeModel.WAVE, ChargingArcAnimation.COMET_HEAD),
+            ThemePackConfig.MidnightViolet(false, MidnightAccent.PINK, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.STATIC),
+            ThemePackConfig.AmoledPure(AmoledPureAccent.CLEAN_WHITE, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.SEGMENTED_FLOW),
+            ThemePackConfig.EvCockpit(EvCockpitAccent.VOLT_LIME, BatteryGaugeModel.WAVE, ChargingArcAnimation.COMET_HEAD),
+            ThemePackConfig.NordicFrost(NordicFrostAccent.TEAL, BatteryGaugeModel.CAPSULE, ChargingArcAnimation.STATIC),
+            ThemePackConfig.Monochrome(MonochromeVariant.LIGHT_PAPER, BatteryGaugeModel.SEGMENTED, ChargingArcAnimation.ENERGY_SWEEP)
+        )
+        configs.forEach { config ->
+            assertEquals(config, themePreviewConfig(config))
+        }
+    }
+
+    @Test
+    fun switchingThemePacksRetainsGaugeAndAnimationSettings() {
+        val source = ThemePackConfig.MidnightViolet(
             gaugeModel = BatteryGaugeModel.WAVE,
             chargingAnimation = ChargingArcAnimation.COMET_HEAD
         )
-
-        val preview = themePreviewConfig(draft) as ThemePackConfig.Basic
-
-        assertEquals(BasicAppearanceMode.LIGHT, preview.appearanceMode)
-        assertEquals(BasicAccent.COBALT, preview.accent)
-        assertEquals(BatteryGaugeModel.WAVE, preview.gaugeModel)
-        assertEquals(ChargingArcAnimation.COMET_HEAD, preview.chargingAnimation)
-        assertEquals(basicAccentColor(BasicAccent.COBALT), basicAccentColor(preview.accent))
+        val targets = ThemePackKind.values().map(source::withPack)
+        targets.forEach { target ->
+            assertEquals(BatteryGaugeModel.WAVE, target.gaugeModel)
+            assertEquals(ChargingArcAnimation.COMET_HEAD, target.chargingAnimation)
+        }
+        assertEquals(6, targets.map { it::class }.toSet().size)
     }
 
     @Test
@@ -84,5 +108,7 @@ class ThemeGaugeSummaryFormatterTest {
         assertTrue(hasThemeGaugeUnsavedChanges(saved.copy(dualTintMetrics = false), saved))
         val basic = ThemePackConfig.Basic()
         assertTrue(hasThemeGaugeUnsavedChanges(basic.copy(accent = BasicAccent.COBALT), basic))
+        val amoled = ThemePackConfig.AmoledPure()
+        assertTrue(hasThemeGaugeUnsavedChanges(amoled.copy(accent = AmoledPureAccent.CLEAN_WHITE), amoled))
     }
 }

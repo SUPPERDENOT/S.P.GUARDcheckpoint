@@ -1,3 +1,108 @@
+## 2026-11-27 — Wave gauge sweet-spot tuning
+
+- [x] Scope limited to the four Wave calibration constants, focused Wave unit-test assertions, and required engineering documentation.
+- [x] Front amplitude ratio is 0.038f and cap is 5.2dp; unit tests verify the 100px diameter result (3.8px) and the 5.2px cap.
+- [x] Rear elevation maximum is 2.6dp and rear amplitude ratio is 0.82f; unit tests verify the midpoint elevation and both rear-ratio assertions.
+- [x] Shared smoothstep envelope, integer-harmonic wave profile, phase behavior, meniscus/gradient rendering, percentage text, and all six theme palettes remain unchanged.
+- [x] Room DB v3/schema, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number remain outside the edited file set.
+- [x] Diff review against pre-tuning HEAD `c8482713e80f69700d6e5aa9b6ec96ef1382c1a8`: PASS — exactly four requested files changed; no protected or unrelated paths.
+- [x] CI evidence policy: record the exact final branch HEAD, all required SUCCESS jobs, and latest APK Artifact ID in the PR #15 description after the final workflow succeeds.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #15 merge: HOLD — leave OPEN and do not enable auto-merge.
+
+---
+
+## 2026-11-27 — Wave gauge harmonic surface and liquid depth calibration
+
+- [x] Scope limited to Wave gauge rendering/specification, focused unit tests, and engineering documentation.
+- [x] Existing Wave renderer and prior back-wave implementation inspected; fractional 1.6-cycle profile and non-zero minimum damping were replaced by the requested integer-harmonic profile and shared smoothstep envelope.
+- [x] Front amplitude ratio 0.028f and 4.0dp maximum; rear amplitude ratio 0.78f; rear elevation maximum 2.4dp: source-level implementation.
+- [x] Rear fill/crest alpha 0.30f / 0.25f, crest stroke 0.75dp, front gradient alpha 0.95f → 0.76f, and luminance-adaptive 1.2dp meniscus: source-level implementation.
+- [x] Regression tests added for constants, amplitude cap, envelope boundaries/midpoint, harmonic normalization and cycle continuity, reverse rear phase, layer colors, and dark/bright meniscus.
+- [x] Six theme palettes, Room DB v3/schema, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number are outside the edited file set.
+- [x] Final diff review: PASS — compare against pre-change HEAD shows exactly the five requested source/test/documentation files; no unrelated or protected paths changed.
+- [x] Run #790 on implementation HEAD `6497bdcf763cd81b42ebc6462b4e888d4f851bb7`: `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload all SUCCESS. APK Artifact ID `15175793190`; test report Artifact ID `15175683365`.
+- [x] Exact documentation-closeout HEAD CI: PASS — Run #791 on HEAD `38ea30a91f2a401cdc931086bfec8121d6213495`; Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #15 merge: HOLD — leave OPEN and do not enable auto-merge.
+
+## 2026-11-27 — Wave gauge back-surface depth polish
+
+### Wave back-surface
+- [x] Back baseline elevation is capped at 3.5dp and uses a smoothstep edge taper: 0 at/below 2%, full at 8–92%, and 0 at/above 98%.
+- [x] Back amplitude ratio is 1.20x; phase is `-frontPhase + 135°` with reverse direction `-1f` and cycle-wrap continuity.
+- [x] Rear fill uses accent alpha 0.38; rear crest is 0.8dp / alpha 0.30 and is drawn before the front fill.
+- [x] Front fill alpha 0.92 and front meniscus stroke 1.2dp remain unchanged.
+- [x] Unit tests cover elevation/taper, phase continuity, amplitude ratio, and rear layer tokens.
+- [x] Six theme palettes and gauge-independent app behavior remain unchanged.
+
+### Verification and protected boundaries
+- [x] Diff scope limited to Wave gauge geometry/rendering, focused tests, and required documentation.
+- [x] Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, and build number are untouched.
+- [x] Run #781 source/test result: Anti-Slop UI Audit Gate SUCCESS; `:app:assembleDebug` SUCCESS; 393 unit tests executed with 1 failure caused by exact float comparison against RGBA8-quantized Compose Color alpha. The two alpha assertions now use bounded tolerances; exact packed-color equality assertions remain.
+- [x] Unit-test report artifact from Run #781 uploaded: `15166528990`; APK upload skipped because `testDebugUnitTest` failed.
+- [x] Run #783 on code/test HEAD `36d6236e2f18f9853890b3190bd6e6a87f7be8a9`: Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, Upload APK, and unit-test report upload all SUCCESS.
+- [x] APK artifact ID `15166737633`; unit-test report artifact ID `15166837233`.
+- [x] Exact final documentation-closeout HEAD CI and artifact IDs are tracked in PR #15 description after that workflow completes.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #15 merge: HOLD — remain OPEN and unmerged as requested.
+
+---
+
+## 2026-11-27 — PR #15 final theme/dialog polish
+
+### Draft theme dialog
+- [x] The complete Theme & Gauge configuration dialog is wrapped in the ColorScheme resolved from the current draft; selection pills, dual-tint switch, gauge preview, and Save action share the preview palette.
+- [x] Basic / System preview resolves against the current system dark-mode state.
+- [x] Existing six package palette tokens and saved configuration behavior are unchanged.
+
+### Info dialog and Settings copy
+- [x] `InfoDialogSurface` owns one remembered scroll state and shows a 12dp bottom fade only when `canScrollForward` is true; the fade ends in the active `surfaceContainerHigh` color.
+- [x] Status Bar Indicator subtitle is the requested single-line text: `Rotasi 2 dtk · W, A/mA, °C, Sumber`.
+- [x] Unit tests cover draft ColorScheme selection/system appearance and the 12dp fade-height token.
+
+### Verification and protected boundaries
+- [x] Source scope is limited to theme rendering, the two dialogs, Settings subtitle, focused unit tests, and required documentation.
+- [x] No Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, or build number changes.
+- [x] Run #777 intermediate result: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` FAILED at test compilation because `assertNotEquals` was not imported. The test import is corrected in the next commit.
+- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending the next PR #15 CI run.
+- [ ] Physical-device QA at 360dp / 720p: NOT RUN.
+- [ ] PR #15 merge: HOLD — remain OPEN and unmerged as explicitly requested.
+
+---
+
+## 2026-11-27 — Restore four standalone theme packs (PR #15)
+
+### Theme package and picker
+- [x] Six package variants are modeled: Basic, Midnight, AMOLED Pure, EV Cockpit, Nordic Frost, and Monochrome.
+- [x] The four restored packages expose every requested accent/variant and exact Material 3 palette token.
+- [x] `Pilih Paket Tema` contains six selectable package cards in three proportional two-column rows; cards use compact swatches, a selected state, and bounded scrolling.
+- [x] The configuration screen offers the correct accent/variant controls for each pack.
+- [x] `Pratinjau langsung` is rendered by `PowerGuardTheme(themePreviewConfig(draft))`; changing package/accent/variant changes the preview without persisting until Save.
+- [x] Package switching retains the current gauge model and charging animation.
+- [x] Theme preferences persist all four restored packages and their selected accents/variants; existing Basic and Midnight preference keys remain compatible.
+
+### Shared visual consumers
+- [x] All four BatteryGauge models continue to consume `MaterialTheme.colorScheme.primary`; the selected package determines the active accent.
+- [x] InfoDialogSurface continues to consume Material 3 surface-container and outline tokens; each restored palette defines the required container levels.
+- [x] Package picker cards, selected pills, and action controls consume Material 3 color tokens rather than hard-coded per-screen overrides.
+
+### Verification and known accessibility exception
+- [x] Unit tests assert all requested palette tokens for both AMOLED Pure accents, both EV Cockpit accents, both Nordic Frost accents, and both Monochrome variants.
+- [x] SharedPreferences tests cover persistence round-trips for every new accent/variant and gauge settings.
+- [x] Theme summary, preview config, and package-switch preservation tests cover all six packages.
+- [ ] FAIL — Nordic Frost / Teal has `onPrimary=#FFFFFF` over `primary=#0D9488`, contrast 3.74:1; below 4.5:1 for normal-size button text. Exact user-specified tokens are retained pending design decision.
+- [x] Protected-boundary review: no Room DB v3, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+- [x] Full branch diff crosscheck: PASS — exactly nine changed paths; no protected service, sensor, database, application identity, or Gradle build paths changed.
+- [x] Anti-Slop UI Audit Gate: SUCCESS — Run #772.
+- [x] `:app:testDebugUnitTest`: SUCCESS — Run #772 on source/test HEAD `2755785cc7d144f05ed637b451cf1c462c1a5655`.
+- [x] `:app:assembleDebug`: SUCCESS — same Run #772.
+- [x] Upload APK: SUCCESS — Artifact ID `15160093846`; unit-test report Artifact ID `15160478149`.
+- [ ] Final documentation-closeout HEAD CI: pending at this checklist commit time; final exact-HEAD result is recorded in PR #15 delivery report.
+- [ ] Physical-device visual QA at 360dp / 720p: NOT RUN.
+
+---
+
 ## 2026-11-26 — Midnight eye-comfort palette recalibration
 
 ### Theme token verification
@@ -17,9 +122,9 @@
 - [x] `:app:assembleDebug`: SUCCESS — same exact source/test HEAD and run.
 - [x] Anti-Slop UI Audit Gate: SUCCESS — Run #768.
 - [x] Upload APK: SUCCESS — Artifact ID `15136412249`; unit-test report Artifact ID `15136557090`.
-- [ ] Final documentation-closeout HEAD CI: pending at checklist commit time; exact final HEAD status is tracked in the PR delivery report.
+- [x] Final documentation-closeout HEAD Run #769: SUCCESS — Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, Upload APK, and unit-test report upload; APK Artifact ID `15135917972`.
+- [x] PR #14 Squash Merge to `main`: SUCCESS — merge commit `697925eb7c002410c06e7b9034b0ea8c519ff469`.
 - [ ] Physical-device visual QA: not run; CI does not replace device review.
-- [ ] PR merge: HOLD — no merge or auto-merge.
 
 ---
 
