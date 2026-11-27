@@ -1,24 +1,9 @@
-## 2026-11-27 — PR #17 Calibration and Safe-List Polish
-
-### Changed
-- Recalibrated visible risk bands: 0–44 omitted, 45–74 Perlu Dicek, and 75–100 Mencurigakan. Burst count no longer forces a status independently of the score.
-- Burst clusters require all selected events to fit within 45 minutes and average inter-event gap <=15 minutes. The reason label is “Siklus berulang dalam 45 menit”.
-- Added itel/Transsion and Google launcher, resolver, picker, media, Play services/store, and utility exclusions. FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP packages are excluded except for a literal App A → package → external-browser chain with corroborating overlay AppOp evidence.
-- Mark Safe immediately removes real packages from active results and archived incidents, persists the whitelist, and filters subsequent scans. Simulated items cannot be added permanently.
-- Added a visible Daftar Aman section with original application icon, readable label, package name, and per-package Pulihkan action.
-- Legacy archive loading removes excluded/safe packages, invalid old burst entries, and duplicate packageName entries. Archive merging now deduplicates strictly by packageName.
-- Added status pill badges and ensured Analysis summary and timeline share one PopupDetectorViewModel instance.
-- Added regression coverage for calibrated thresholds, 44/73/466-minute intervals, exact 45-minute clusters, OEM/system exclusions, safe-list purge, archive migration, deduplication, and both simulation status bands.
-
-### Verification
-- Implementation and regression tests are on `feat/on-demand-popup-detector`; exact-HEAD CI and physical-device QA are pending. PR remains open and unmerged.
-
 ## 2026-11-27 — PR #17 On-Demand Popup & Screen-Interruption Detector
 
 ### Added
 - Added a pure Kotlin evaluator for 24-hour Usage Events input, package metadata signals, whitelist filtering, 0–100 risk scoring, and ordered incident results.
 - Added six heuristic families: suspicious app-to-app interruption, suspect-to-browser redirect chain, post-unlock appearance, short A → suspect → A loop, repeated interruption bursts, and resolved package metadata signals (no launcher activity, recent install, overlay AppOp).
-- Burst scoring adds +25 for 2 qualifying interruptions and +45 for 3+; final status always follows the calibrated score thresholds.
+- Burst scoring distinguishes 2 interruptions (+25, at least Perlu Dicek) from 3 or more (+45, forced Mencurigakan), within a rolling 45-minute window and average gap up to 15 minutes.
 - Added Android adapter for UsageStatsManager, PackageManager browser discovery with popular-browser fallbacks, launcher/IME/system-app exclusions, install-time lookup, and overlay AppOp inspection. Unresolved package metadata does not produce a no-launcher-icon claim.
 - Added SharedPreferences JSON storage for a manual safe list and a reboot-persistent archive capped at 30 non-simulated incidents.
 - Added the detector card and timeline to Analisis → Aktivitas Aplikasi, package icons with vector fallback, app-info navigation, safe-list actions, Usage Access guidance, and simulation controls.

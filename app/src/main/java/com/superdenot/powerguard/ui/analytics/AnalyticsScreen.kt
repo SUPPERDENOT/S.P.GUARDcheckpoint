@@ -118,7 +118,7 @@ internal fun isDailyRollupSelected(dateKey: String, selectedDate: LocalDate?): B
 
 
 @Composable
-internal fun AnalyticsScreen(
+fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
     contentPadding: PaddingValues,
     initialSubTab: Int = 0,

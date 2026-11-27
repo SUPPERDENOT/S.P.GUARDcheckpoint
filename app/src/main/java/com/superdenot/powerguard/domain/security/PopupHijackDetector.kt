@@ -61,12 +61,7 @@ private val POPUP_ALWAYS_EXCLUDED_PACKAGES = setOf(
     "com.transsion.applock", "com.transsion.filemanagerx",
     "com.google.android.providers.media.module", "com.google.android.documentsui",
     "com.android.documentsui", "com.google.android.gms", "com.android.vending",
-    "com.google.android.googlequicksearchbox",
-    "com.android.systemui", "com.android.settings", "com.android.packageinstaller",
-    "com.google.android.packageinstaller", "com.android.permissioncontroller",
-    "com.google.android.permissioncontroller", "com.android.dialer", "com.google.android.dialer",
-    "com.android.chrome", "com.brave.browser", "org.mozilla.firefox", "com.opera.browser",
-    "com.sec.android.app.sbrowser", "com.microsoft.emmx", "com.kiwibrowser.browser"
+    "com.google.android.googlequicksearchbox"
 )
 
 object PopupHijackDetector {
@@ -103,8 +98,7 @@ object PopupHijackDetector {
             val current = activityEvents.getOrNull(index)
             val next = activityEvents.getOrNull(index + 1)
             return current?.packageName == packageName && previous?.packageName != null &&
-                previous.packageName != packageName && !signals(previous.packageName!!).isBrowser &&
-                next?.packageName != null &&
+                previous.packageName != packageName && next?.packageName != null &&
                 signals(next.packageName!!).isBrowser &&
                 next.timestampMs - current.timestampMs in 0 until 5_000L
         }
@@ -118,7 +112,9 @@ object PopupHijackDetector {
         val reasonsByPackage = linkedMapOf<String, MutableSet<PopupSignalReason>>()
         val timesByPackage = linkedMapOf<String, MutableSet<Long>>()
         fun record(packageName: String, reason: PopupSignalReason, at: Long, allowSystemBrowserRedirect: Boolean = false) {
-            if (isExcluded(packageName, allowSystemBrowserRedirect)) return
+            if (isExcluded(packageName, allowSystemBrowserRedirect) &&
+                !(allowSystemBrowserRedirect && signals(packageName).isSystemApp && !isExplicitlyExcluded(packageName))
+            ) return
             reasonsByPackage.getOrPut(packageName) { linkedSetOf() } += reason
             timesByPackage.getOrPut(packageName) { linkedSetOf() } += at
         }
@@ -126,7 +122,9 @@ object PopupHijackDetector {
         activityEvents.forEachIndexed { index, current ->
             val packageName = current.packageName ?: return@forEachIndexed
             val literalBrowserRedirect = isLiteralBrowserRedirect(index, packageName)
-            if (isExcluded(packageName, allowSystemBrowserRedirect = literalBrowserRedirect)) return@forEachIndexed
+            if (isExcluded(packageName, allowSystemBrowserRedirect = literalBrowserRedirect) &&
+                !(literalBrowserRedirect && signals(packageName).isSystemApp && !isExplicitlyExcluded(packageName))
+            ) return@forEachIndexed
             val previous = activityEvents.getOrNull(index - 1)
             val next = activityEvents.getOrNull(index + 1)
             val metadata = signals(packageName)
@@ -164,7 +162,8 @@ object PopupHijackDetector {
             val previous = activityEvents.getOrNull(index - 1)
             val literalBrowserRedirect = isLiteralBrowserRedirect(index, pkg)
             if (previous == null || previous.packageName == pkg || isLauncher(previous.packageName) ||
-                isExcluded(pkg, allowSystemBrowserRedirect = literalBrowserRedirect) ||
+                (isExcluded(pkg, allowSystemBrowserRedirect = literalBrowserRedirect) &&
+                    !(literalBrowserRedirect && signals(pkg).isSystemApp && !isExplicitlyExcluded(pkg))) ||
                 (!hasSuspiciousStaticSignal(pkg) && reasonsByPackage[pkg].isNullOrEmpty())
             ) null else pkg to event.timestampMs
         }.groupBy({ it.first }, { it.second })
@@ -256,16 +255,11 @@ internal fun isPopupAlwaysExcludedPackage(packageName: String): Boolean =
 
 internal fun sanitizePopupIncidentArchive(
     incidents: List<PopupIncident>,
-    safePackages: Set<String>,
-    systemPackages: Set<String> = emptySet()
+    safePackages: Set<String>
 ): List<PopupIncident> {
     val cleaned = incidents.mapNotNull { incident ->
         if (incident.packageName in safePackages || isPopupAlwaysExcludedPackage(incident.packageName)) return@mapNotNull null
         val reasons = incident.reasons.toMutableSet()
-        val hasLiteralBrowserRedirectEvidence =
-            PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons &&
-                PopupSignalReason.OVERLAY_PERMISSION in reasons
-        if (incident.packageName in systemPackages && !hasLiteralBrowserRedirectEvidence) return@mapNotNull null
         val burstReasons = setOf(PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS)
         if (reasons.any { it in burstReasons }) {
             val times = incident.eventTimesMs.distinct().sorted()
@@ -286,3 +280,12 @@ internal fun sanitizePopupIncidentArchive(
         .mapNotNull { (_, duplicates) -> duplicates.maxByOrNull { it.lastSeenAtMs } }
         .sortedBy { it.lastSeenAtMs }
 }
+
+internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set<String> {
+    val normalized = packageName.trim()
+    return if (normalized.isEmpty()) current else current + normalized
+}
+internal fun restorePopupSafePackages(): Set<String> = emptySet()
+internal fun capPopupIncidentArchive(incidents: List<PopupIncident>): List<PopupIncident> = incidents.takeLast(30)
+internal fun withoutSimulatedPopupIncidents(incidents: List<PopupIncident>): List<PopupIncident> =
+    incidents.filterNot { it.isSimulated }

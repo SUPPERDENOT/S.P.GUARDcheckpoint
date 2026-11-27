@@ -649,15 +649,8 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues, openPopupDet
 
 @Composable
 fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
-    val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
-        AnalyticsScreen(
-            viewModel = vm,
-            contentPadding = PaddingValues(0.dp),
-            initialSubTab = 0,
-            visibleSubTabs = listOf(0),
-            popupDetectorViewModel = popupDetectorViewModel
-        )
+        AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 0, visibleSubTabs = listOf(0))
     }
 }
 

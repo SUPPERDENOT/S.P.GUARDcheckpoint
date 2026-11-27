@@ -1,7 +1,6 @@
 package com.superdenot.powerguard.data.local
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import org.json.JSONArray
 import org.json.JSONObject
 import com.superdenot.powerguard.domain.security.PopupIncident
@@ -12,8 +11,7 @@ import com.superdenot.powerguard.domain.security.capPopupIncidentArchive
 import com.superdenot.powerguard.domain.security.sanitizePopupIncidentArchive
 
 internal class PopupDetectorPreferences(context: Context) {
-    private val appContext = context.applicationContext
-    private val preferences = appContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun safePackages(): Set<String> = readStringArray(KEY_SAFE_PACKAGES)
 
@@ -64,13 +62,7 @@ internal class PopupDetectorPreferences(context: Context) {
                 )
             }
         }
-        val systemPackages = parsed.asSequence()
-            .filter { isSystemOrUpdatedSystemPackage(it.packageName) }
-            .map { it.packageName }
-            .toSet()
-        val cleaned = capPopupIncidentArchive(
-            sanitizePopupIncidentArchive(parsed, safePackages(), systemPackages)
-        )
+        val cleaned = capPopupIncidentArchive(sanitizePopupIncidentArchive(parsed, safePackages()))
         if (cleaned != parsed) preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleaned)).commit()
         return cleaned
     }
@@ -95,13 +87,6 @@ internal class PopupDetectorPreferences(context: Context) {
                 .put("times", times))
         }
         return json.toString()
-    }
-
-    private fun isSystemOrUpdatedSystemPackage(packageName: String): Boolean {
-        val flags = runCatching {
-            appContext.packageManager.getApplicationInfo(packageName, 0).flags
-        }.getOrNull() ?: return false
-        return flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
     }
 
     private fun readStringArray(key: String): Set<String> {
