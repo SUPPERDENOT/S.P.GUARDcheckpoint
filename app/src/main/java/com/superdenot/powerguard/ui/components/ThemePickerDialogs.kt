@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -66,6 +67,7 @@ import com.superdenot.powerguard.ui.theme.ThemePackConfig
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.hasThemeGaugeUnsavedChanges
 import com.superdenot.powerguard.ui.theme.themePreviewConfig
+import com.superdenot.powerguard.ui.theme.themeColorScheme
 import com.superdenot.powerguard.ui.components.PowerActionButton
 import com.superdenot.powerguard.ui.components.PowerSaveButton
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
@@ -207,9 +209,12 @@ fun ThemePickerDialogs(
     }
 
     if (showConfiguration) {
+        val previewConfig = themePreviewConfig(draft)
+        val previewColorScheme = themeColorScheme(previewConfig, isSystemInDarkTheme())
         val hasUnsavedChanges = hasThemeGaugeUnsavedChanges(draft, config)
         Dialog(onDismissRequest = { showConfiguration = false }) {
-            Surface(
+            MaterialTheme(colorScheme = previewColorScheme) {
+                Surface(
                 modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
@@ -228,7 +233,7 @@ fun ThemePickerDialogs(
                     ) {
                         Text("Pratinjau langsung", style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        PowerGuardTheme(config = themePreviewConfig(draft)) {
+                        PowerGuardTheme(config = previewConfig) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -372,6 +377,7 @@ fun ThemePickerDialogs(
                         ) { Text("Simpan") }
                     }
                 }
+            }
             }
         }
     }
