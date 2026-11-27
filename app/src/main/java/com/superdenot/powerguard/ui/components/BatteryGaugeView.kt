@@ -676,14 +676,10 @@ private fun WaveGauge(
                     sampleStepPx = sampleStepPx,
                     origin = Offset(left, top)
                 )
-                val crestPulse = if (animateEffects && animation == ChargingArcAnimation.ENERGY_SWEEP) {
-                    (0.68f + 0.28f * ((sin(wavePhase * 2f) + 1f) / 2f)).coerceIn(0f, 1f)
-                } else {
-                    0.9f
-                }
+                // Keep the luminance-resolved meniscus alpha intact on bright accents.
                 drawPath(
                     crest,
-                    waveColors.meniscus.copy(alpha = waveColors.meniscus.alpha * crestPulse),
+                    waveColors.meniscus,
                     style = Stroke(WAVE_MENISCUS_STROKE_DP.dp.toPx(), cap = StrokeCap.Round)
                 )
                 drawArc(
