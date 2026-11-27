@@ -6,8 +6,9 @@
 - [x] Rear fill/crest alpha 0.30f / 0.25f, crest stroke 0.75dp, front gradient alpha 0.95f → 0.76f, and luminance-adaptive 1.2dp meniscus: source-level implementation.
 - [x] Regression tests added for constants, amplitude cap, envelope boundaries/midpoint, harmonic normalization and cycle continuity, reverse rear phase, layer colors, and dark/bright meniscus.
 - [x] Six theme palettes, Room DB v3/schema, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number are outside the edited file set.
-- [ ] Final diff review: pending.
-- [ ] testDebugUnitTest, assembleDebug, Anti-Slop UI Audit Gate, and APK upload on exact final HEAD: pending CI.
+- [x] Final diff review: PASS — compare against pre-change HEAD shows exactly the five requested source/test/documentation files; no unrelated or protected paths changed.
+- [x] Run #790 on implementation HEAD `6497bdcf763cd81b42ebc6462b4e888d4f851bb7`: `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload all SUCCESS. APK Artifact ID `15175793190`; test report Artifact ID `15175683365`.
+- [ ] Exact final documentation-closeout HEAD CI: pending the workflow triggered by this documentation update.
 - [ ] Physical-device visual QA: NOT RUN.
 - [ ] PR #15 merge: HOLD — leave OPEN and do not enable auto-merge.
 
