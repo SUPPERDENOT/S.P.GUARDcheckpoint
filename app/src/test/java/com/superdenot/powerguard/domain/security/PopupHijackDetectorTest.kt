@@ -278,10 +278,10 @@ class PopupHijackDetectorTest {
     }
 
 
-    @Test fun archiveMigrationOnlyRetainsSystemPackageWithLiteralRedirectAndOverlayEvidence() {
+    @Test fun archiveMigrationRetainsSystemPackageWithLiteralRedirectWithoutOverlayPermission() {
         val valid = PopupIncident(
             "com.example.system.redirect", 45, PopupRiskStatus.NEEDS_CHECK,
-            listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN, PopupSignalReason.OVERLAY_PERMISSION),
+            listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN, PopupSignalReason.NO_LAUNCHER_ICON),
             listOf(now)
         )
         val invalid = PopupIncident(
