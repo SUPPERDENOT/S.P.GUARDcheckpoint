@@ -7,8 +7,8 @@
 - No permissions, package-visibility declarations, Gradle configuration, Room schema, sensor/sampling, calibration, foreground battery-monitoring lifecycle, or `RECOVERY_HOLD` behavior changed.
 
 ### Verification
-- Source and documentation diff review: pending.
-- Exact-HEAD GitHub Actions CI (Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload): pending.
+- Source and documentation diff review: PASS — five-file diff from baseline contains only the icon resource, tile manifest/service wiring, and required documentation.
+- GitHub Actions Run #856: SUCCESS on source HEAD `6825a43aacb93e913eebd63363703db629dca9ab`; Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload all succeeded. Debug APK Artifact ID `15220856236`; unit-test report Artifact ID `15220451734`.
 - Physical Quick Settings rendering on itel P55 / SystemUI: NOT RUN — CI cannot verify OEM rendering or icon cache behavior.
 
 ## 2026-11-27 — PR #17 Calibration and Safe-List Polish
