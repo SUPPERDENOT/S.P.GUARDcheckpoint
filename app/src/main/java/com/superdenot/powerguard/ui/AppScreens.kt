@@ -627,7 +627,8 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues, openPopupDet
                 contentPadding = PaddingValues(0.dp),
                 initialSubTab = if (openPopupDetectorRequest > 0) 2 else 1,
                 visibleSubTabs = listOf(1, 2),
-                popupDetectorOpenRequest = openPopupDetectorRequest
+                popupDetectorOpenRequest = openPopupDetectorRequest,
+                popupDetectorViewModel = popupDetectorViewModel
             )
         }
     }

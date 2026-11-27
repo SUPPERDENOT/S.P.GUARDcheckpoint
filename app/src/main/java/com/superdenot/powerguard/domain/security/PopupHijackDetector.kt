@@ -98,7 +98,8 @@ object PopupHijackDetector {
             val current = activityEvents.getOrNull(index)
             val next = activityEvents.getOrNull(index + 1)
             return current?.packageName == packageName && previous?.packageName != null &&
-                previous.packageName != packageName && next?.packageName != null &&
+                previous.packageName != packageName && !signals(previous.packageName!!).isBrowser &&
+                next?.packageName != null &&
                 signals(next.packageName!!).isBrowser &&
                 next.timestampMs - current.timestampMs in 0 until 5_000L
         }
