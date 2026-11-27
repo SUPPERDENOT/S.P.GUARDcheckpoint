@@ -73,7 +73,8 @@ import com.superdenot.powerguard.ui.components.PowerSaveButton
 import com.superdenot.powerguard.ui.theme.basicAccentSwatches
 import com.superdenot.powerguard.ui.theme.midnightAccentSwatches
 import com.superdenot.powerguard.ui.components.pressScale
-import com.superdenot.powerguard.ui.components.pressScaleClickable
+import com.superdenot.powerguard.ui.components.InfoLongPressDialog
+import com.superdenot.powerguard.ui.components.infoLongPress
 
 @Composable
 fun ThemePickerDialogs(
@@ -87,14 +88,18 @@ fun ThemePickerDialogs(
 ) {
     var showPackagePicker by remember { mutableStateOf(false) }
     var showConfiguration by remember { mutableStateOf(false) }
+    var showLongPressInfo by remember { mutableStateOf(false) }
     var draft by remember(config) { mutableStateOf(config) }
     val (themeSummary, gaugeSummary) = ThemeGaugeSummaryFormatter.format(config)
 
     Card(
-        modifier = modifier.fillMaxWidth().pressScaleClickable {
-            draft = config
-            showPackagePicker = true
-        },
+        modifier = modifier.fillMaxWidth().infoLongPress(
+            onLongPress = { showLongPressInfo = true },
+            onClick = {
+                draft = config
+                showPackagePicker = true
+            }
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -380,6 +385,13 @@ fun ThemePickerDialogs(
             }
             }
         }
+    }
+    if (showLongPressInfo) {
+        InfoLongPressDialog(
+            title = "Tema & Gauge",
+            body = "Paket tema mengatur palet warna Material 3, sedangkan model gauge dan animasi mengatur tampilan indikator baterai. Perubahan konfigurasi baru disimpan setelah tombol Simpan ditekan.",
+            onDismiss = { showLongPressInfo = false }
+        )
     }
 }
 
