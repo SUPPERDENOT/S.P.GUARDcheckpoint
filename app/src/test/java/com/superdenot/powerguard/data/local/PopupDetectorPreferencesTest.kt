@@ -44,9 +44,9 @@ class PopupDetectorPreferencesTest {
         val incidents = (1..35).map { index ->
             PopupIncident(
                 packageName = "com.example.app$index",
-                riskScore = 45,
+                riskScore = 35,
                 status = PopupRiskStatus.NEEDS_CHECK,
-                reasons = listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
+                reasons = listOf(PopupSignalReason.SCREEN_HIJACKING),
                 eventTimesMs = listOf(now + index)
             )
         }
@@ -56,10 +56,7 @@ class PopupDetectorPreferencesTest {
         assertEquals(30, restored.size)
         assertEquals("com.example.app6", restored.first().packageName)
         assertEquals("com.example.app35", restored.last().packageName)
-        assertEquals(
-            listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
-            restored.last().reasons
-        )
+        assertEquals(PopupSignalReason.SCREEN_HIJACKING, restored.last().reasons.single())
     }
 
 

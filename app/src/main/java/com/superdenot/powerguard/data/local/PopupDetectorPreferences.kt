@@ -1,7 +1,10 @@
 package com.superdenot.powerguard.data.local
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
 import com.superdenot.powerguard.domain.security.PopupIncident
@@ -68,8 +71,9 @@ internal class PopupDetectorPreferences(context: Context) {
             .filter { isSystemOrUpdatedSystemPackage(it.packageName) }
             .map { it.packageName }
             .toSet()
+        val excludedPackages = safePackages() + listOfNotNull(resolveCurrentHomePackage())
         val cleaned = capPopupIncidentArchive(
-            sanitizePopupIncidentArchive(parsed, safePackages(), systemPackages)
+            sanitizePopupIncidentArchive(parsed, excludedPackages, systemPackages)
         )
         if (cleaned != parsed) preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleaned)).commit()
         return cleaned
@@ -95,6 +99,21 @@ internal class PopupDetectorPreferences(context: Context) {
                 .put("times", times))
         }
         return json.toString()
+    }
+
+    private fun resolveCurrentHomePackage(): String? {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                appContext.packageManager.resolveActivity(
+                    intent,
+                    PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong())
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                appContext.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            }?.activityInfo?.packageName
+        }.getOrNull()
     }
 
     private fun isSystemOrUpdatedSystemPackage(packageName: String): Boolean {
