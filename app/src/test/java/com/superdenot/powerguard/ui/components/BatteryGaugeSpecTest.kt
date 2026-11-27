@@ -338,7 +338,7 @@ class BatteryGaugeSpecTest {
         assertEquals(sin(rearAtZero), sin(rearAtWrap), 0.000001f)
         assertEquals(cos(rearAtZero), cos(rearAtWrap), 0.000001f)
         assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(0.78f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.82f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
         assertEquals(0.30f, WAVE_REAR_FILL_ALPHA, 0f)
         assertEquals(0.25f, WAVE_REAR_CREST_ALPHA, 0f)
         assertEquals(0.95f, WAVE_FRONT_SURFACE_ALPHA, 0f)
