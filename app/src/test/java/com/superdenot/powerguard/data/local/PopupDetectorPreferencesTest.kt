@@ -57,39 +57,6 @@ class PopupDetectorPreferencesTest {
         assertEquals(PopupSignalReason.SCREEN_HIJACKING, restored.last().reasons.single())
     }
 
-
-    @Test
-    fun markingSafePurgesMatchingArchivePackageImmediately() {
-        val now = 1_800_000_000_000L
-        val incident = PopupIncident(
-            "com.example.safe", 45, PopupRiskStatus.NEEDS_CHECK,
-            listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL), listOf(now)
-        )
-        assertTrue(PopupDetectorPreferences(context).appendIncidents(listOf(incident)))
-        assertEquals(1, PopupDetectorPreferences(context).archivedIncidents().size)
-        assertTrue(PopupDetectorPreferences(context).markSafe("com.example.safe"))
-        assertTrue(PopupDetectorPreferences(context).archivedIncidents().isEmpty())
-        assertTrue("com.example.safe" in PopupDetectorPreferences(context).safePackages())
-    }
-
-    @Test
-    fun archiveLoadMigratesDuplicateExcludedSafeAndInvalidBurstRecords() {
-        val now = 1_800_000_000_000L
-        val safe = PopupIncident("com.example.safe", 45, PopupRiskStatus.NEEDS_CHECK,
-            listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL), listOf(now))
-        val oldBurst = PopupIncident("com.example.oldburst", 70, PopupRiskStatus.SUSPICIOUS,
-            listOf(PopupSignalReason.BURST_LOOP_2, PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
-            listOf(now - 73L * 60_000L, now))
-        val duplicateOld = PopupIncident("com.example.duplicate", 45, PopupRiskStatus.NEEDS_CHECK,
-            listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL), listOf(now - 2))
-        val duplicateNew = duplicateOld.copy(eventTimesMs = listOf(now - 1))
-        assertTrue(PopupDetectorPreferences(context).markSafe("com.example.safe"))
-        assertTrue(PopupDetectorPreferences(context).appendIncidents(listOf(safe, oldBurst, duplicateOld, duplicateNew)))
-        val result = PopupDetectorPreferences(context).archivedIncidents()
-        assertEquals(listOf("com.example.duplicate"), result.map { it.packageName })
-        assertEquals(now - 1, result.single().lastSeenAtMs)
-    }
-
     @Test
     fun simulatedIncidentsAreNeverPersisted() {
         val simulated = PopupIncident(

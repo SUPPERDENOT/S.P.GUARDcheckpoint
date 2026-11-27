@@ -264,7 +264,7 @@ internal fun sanitizePopupIncidentArchive(
             val validBurst = times.size >= 2 &&
                 times.last() - times.first() <= POPUP_BURST_WINDOW_MS &&
                 (times.last() - times.first()).toDouble() / (times.size - 1) <= POPUP_MAX_AVERAGE_GAP_MS
-            if (!validBurst) reasons.removeAll(burstReasons)
+            if (!validBurst) return@mapNotNull null
         }
         val score = reasons.sumOf { it.points }.coerceIn(0, 100)
         if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
