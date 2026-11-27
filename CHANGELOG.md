@@ -11,7 +11,7 @@
 - Updated the rear elevation midpoint expectation to 2.6dp and both rear-ratio assertions to 0.82f.
 
 ### Verification
-- GitHub Actions exact-HEAD result and latest debug APK Artifact ID: pending.
+- GitHub Actions Run #797 on implementation HEAD `9d81004adf246a187dc771f80ba248249b88cf9c`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. Debug APK Artifact ID `15183580211`; unit-test report Artifact ID `15182539307`. Final documentation-closeout HEAD CI is tracked in PR #15 after its workflow completes.
 - Physical-device visual QA: NOT RUN.
 
 ### Protected boundaries
