@@ -153,10 +153,25 @@ object PopupHijackDetector {
         activityEvents.mapNotNull { it.packageName }.distinct().forEach { pkg ->
             val metadata = signals(pkg)
             if (!metadata.isMetadataResolved || metadata.isSystemApp || isExcluded(pkg)) return@forEach
+            val packageIndex = activityEvents.indexOfFirst { it.packageName == pkg }
+            val previousPackage = activityEvents.getOrNull(packageIndex - 1)?.packageName
+            val launchedDirectlyFromHome = isLauncher(previousPackage)
+            val hasBehavioralEvidence = reasonsByPackage[pkg].orEmpty().any { reason ->
+                reason == PopupSignalReason.SCREEN_HIJACKING ||
+                    reason == PopupSignalReason.BROWSER_REDIRECT_CHAIN ||
+                    reason == PopupSignalReason.POST_UNLOCK_AMBUSH ||
+                    reason == PopupSignalReason.SANDWICH_LOOP ||
+                    reason == PopupSignalReason.BURST_LOOP_2 ||
+                    reason == PopupSignalReason.BURST_LOOP_3_PLUS
+            }
             val lastSeen = activityEvents.lastOrNull { it.packageName == pkg }?.timestampMs ?: nowMs
             if (!metadata.hasLauncherActivity) record(pkg, PopupSignalReason.NO_LAUNCHER_ICON, lastSeen)
-            if (isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs))
+            if (launchedDirectlyFromHome && metadata.hasLauncherActivity && !hasBehavioralEvidence) {
+                return@forEach
+            }
+            if (isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs)) {
                 record(pkg, PopupSignalReason.RECENT_INSTALL, lastSeen)
+            }
             if (metadata.hasOverlayPermission) record(pkg, PopupSignalReason.OVERLAY_PERMISSION, lastSeen)
         }
 
