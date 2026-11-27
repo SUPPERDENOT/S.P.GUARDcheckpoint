@@ -3,6 +3,7 @@ package com.superdenot.powerguard.ui.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.ColorScheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
