@@ -162,16 +162,19 @@ class BatteryGaugeSpecTest {
 
     @Test
     fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
-        assertEquals(6.5f, WAVE_AMPLITUDE_DP, 0f)
-        assertEquals(1.6f, WAVE_CYCLES, 0f)
+        assertEquals(0.028f, FRONT_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(4.0f, MAX_FRONT_WAVE_AMPLITUDE_DP, 0f)
         assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
         assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
         assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(3_000, WAVE_CYCLE_DURATION_MILLIS)
-        assertEquals(3.5f, BACK_WAVE_ELEVATION_DP, 0f)
-        assertEquals(1.20f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
-        assertEquals(0.8f, WAVE_REAR_CREST_STROKE_DP, 0f)
-        assertEquals(0.30f, WAVE_REAR_CREST_ALPHA, 0f)
+        assertEquals(2.4f, BACK_WAVE_ELEVATION_DP, 0f)
+        assertEquals(0.78f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.75f, WAVE_REAR_CREST_STROKE_DP, 0f)
+        assertEquals(0.25f, WAVE_REAR_CREST_ALPHA, 0f)
+        assertEquals(0.30f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.95f, WAVE_FRONT_SURFACE_ALPHA, 0f)
+        assertEquals(0.76f, WAVE_FRONT_BOTTOM_ALPHA, 0f)
         assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
         assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
         assertEquals(6f, WAVE_COMET_HALO_STROKE_DP, 0f)
@@ -179,13 +182,8 @@ class BatteryGaugeSpecTest {
         assertEquals(3.5f, WAVE_COMET_HEAD_RADIUS_DP, 0f)
         assertEquals(6f, WAVE_COMET_GLOW_RADIUS_DP, 0f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
-        assertEquals(0.75f, WAVE_MENISCUS_ALPHA, 0f)
         assertEquals(7, WAVE_BUBBLE_COUNT)
         assertEquals(110f, WAVE_COMET_TAIL_DEGREES, 0f)
-        assertEquals(0.38f, WAVE_REAR_FILL_ALPHA, 0f)
-        assertEquals(0.30f, WAVE_REAR_CREST_ALPHA, 0f)
-        assertEquals(0.8f, WAVE_REAR_CREST_STROKE_DP, 0f)
-        assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
     }
 
     @Test
@@ -257,21 +255,46 @@ class BatteryGaugeSpecTest {
     }
 
     @Test
-    fun backWaveElevationIsThreePointFiveDpAndTapersSmoothlyAtBothBoundaries() {
-        assertEquals(3.5f, BACK_WAVE_ELEVATION_DP, 0f)
-        assertEquals(0f, backWaveElevationTaper(-0.1f), 0f)
-        assertEquals(0f, backWaveElevationTaper(0f), 0f)
-        assertEquals(0f, backWaveElevationTaper(0.02f), 0f)
-        assertEquals(0.5f, backWaveElevationTaper(0.05f), 0.000001f)
-        assertEquals(1f, backWaveElevationTaper(0.08f), 0f)
-        assertEquals(1f, backWaveElevationTaper(0.5f), 0f)
-        assertEquals(1f, backWaveElevationTaper(0.92f), 0f)
-        assertEquals(0.5f, backWaveElevationTaper(0.95f), 0.000001f)
-        assertEquals(0f, backWaveElevationTaper(0.98f), 0f)
-        assertEquals(0f, backWaveElevationTaper(1f), 0f)
+    fun waveSmoothstepEnvelopeIsFlatAtZeroAndFullAndFullyDevelopedInTheMiddle() {
+        assertEquals(0f, waveSurfaceEnvelope(-0.1f), 0f)
+        assertEquals(0f, waveSurfaceEnvelope(0f), 0f)
+        assertEquals(0f, waveSurfaceEnvelope(0.02f), 0f)
+        assertEquals(0.5f, waveSurfaceEnvelope(0.07f), 0.000001f)
+        assertEquals(1f, waveSurfaceEnvelope(0.12f), 0f)
+        assertEquals(1f, waveSurfaceEnvelope(0.5f), 0f)
+        assertEquals(1f, waveSurfaceEnvelope(0.88f), 0f)
+        assertEquals(0.5f, waveSurfaceEnvelope(0.93f), 0.000001f)
+        assertEquals(0f, waveSurfaceEnvelope(0.98f), 0f)
+        assertEquals(0f, waveSurfaceEnvelope(1f), 0f)
         assertEquals(0f, backWaveElevationOffsetDp(0f), 0f)
-        assertEquals(3.5f, backWaveElevationOffsetDp(0.5f), 0f)
+        assertEquals(2.4f, backWaveElevationOffsetDp(0.5f), 0f)
         assertEquals(0f, backWaveElevationOffsetDp(1f), 0f)
+    }
+
+    @Test
+    fun frontWaveAmplitudeUsesDiameterRatioAndFourDpMaximum() {
+        assertEquals(2.8f, waveFrontAmplitudePx(100f, 4f), 0.000001f)
+        assertEquals(4f, waveFrontAmplitudePx(200f, 4f), 0f)
+        assertEquals(0f, waveFrontAmplitudePx(-10f, 4f), 0f)
+        assertEquals(0f, waveFrontAmplitudePx(100f, -4f), 0f)
+    }
+
+    @Test
+    fun harmonicSurfaceIsNormalizedAndSeamlessAtZeroAndThreeHundredSixtyDegrees() {
+        val phases = listOf(0f, 0.7f, Math.PI.toFloat(), 4.8f)
+        phases.forEach { phase ->
+            val fullTurn = (2f * Math.PI).toFloat()
+            assertEquals(waveHarmonicOffset(0f, phase), waveHarmonicOffset(fullTurn, phase), 0.000001f)
+            assertEquals(
+                waveHarmonicOffset(0f, waveRearPhase(phase)),
+                waveHarmonicOffset(fullTurn, waveRearPhase(phase)),
+                0.000001f
+            )
+        }
+        for (step in 0..720) {
+            val angle = (2f * Math.PI.toFloat()) * step / 720f
+            assertTrue(kotlin.math.abs(waveHarmonicOffset(angle, 0.73f)) <= 1.000001f)
+        }
     }
 
     @Test
@@ -316,21 +339,32 @@ class BatteryGaugeSpecTest {
         assertEquals(sin(rearAtZero), sin(rearAtWrap), 0.000001f)
         assertEquals(cos(rearAtZero), cos(rearAtWrap), 0.000001f)
         assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
-        assertEquals(1.20f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
-        assertEquals(0.38f, WAVE_REAR_FILL_ALPHA, 0f)
-        assertEquals(0.92f, WAVE_FRONT_FILL_ALPHA, 0f)
-        assertEquals(accent.copy(alpha = 0.38f), layers.rear)
-        assertEquals(accent.copy(alpha = 0.30f), layers.rearCrest)
-        assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.92f), layers.frontHighlight)
-        assertEquals(accent, layers.frontBase)
-        assertEquals(lerp(accent, Color.Black, 0.22f).copy(alpha = 0.92f), layers.frontShadow)
-        assertEquals(lerp(accent, Color.White, 0.35f).copy(alpha = 0.75f), layers.meniscus)
-        assertEquals(0.38f, layers.rear.alpha, 0.001f)
-        assertEquals(0.30f, layers.rearCrest.alpha, 0.003f)
-        assertNotEquals(Color.White, layers.meniscus)
+        assertEquals(0.78f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(0.30f, WAVE_REAR_FILL_ALPHA, 0f)
+        assertEquals(0.25f, WAVE_REAR_CREST_ALPHA, 0f)
+        assertEquals(0.95f, WAVE_FRONT_SURFACE_ALPHA, 0f)
+        assertEquals(0.76f, WAVE_FRONT_BOTTOM_ALPHA, 0f)
+        assertEquals(accent.copy(alpha = 0.30f), layers.rear)
+        assertEquals(accent.copy(alpha = 0.25f), layers.rearCrest)
+        assertEquals(accent.copy(alpha = 0.95f), layers.frontSurface)
+        assertEquals(accent.copy(alpha = 0.76f), layers.frontBottom)
+        assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.95f), layers.frontHighlight)
+        assertEquals(waveMeniscusColor(accent), layers.meniscus)
+        assertEquals(0.30f, layers.rear.alpha, 0.001f)
+        assertEquals(0.25f, layers.rearCrest.alpha, 0.001f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
         assertEquals(50, waveSampleCount(100f, 2f))
         assertEquals(2f, WAVE_SAMPLE_STEP_DP, 0f)
+    }
+
+    @Test
+    fun meniscusColorAdaptsToDarkAndBrightAccentLuminance() {
+        val darkAccent = Color(0xFF252923)
+        val brightAccent = Color(0xFFF8F8F8)
+        assertEquals(lerp(darkAccent, Color.White, 0.18f).copy(alpha = 0.90f), waveMeniscusColor(darkAccent))
+        assertEquals(brightAccent.copy(alpha = 1f), waveMeniscusColor(brightAccent))
+        assertEquals(0.90f, waveMeniscusColor(darkAccent).alpha, 0.001f)
+        assertEquals(1f, waveMeniscusColor(brightAccent).alpha, 0f)
     }
 
     @Test
