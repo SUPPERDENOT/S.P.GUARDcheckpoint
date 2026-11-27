@@ -161,14 +161,14 @@ class BatteryGaugeSpecTest {
 
     @Test
     fun waveAmplitudeAndMotionGeometryMatchTheFourModeDesign() {
-        assertEquals(0.028f, FRONT_WAVE_AMPLITUDE_RATIO, 0f)
-        assertEquals(4.0f, MAX_FRONT_WAVE_AMPLITUDE_DP, 0f)
+        assertEquals(0.038f, FRONT_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(5.2f, MAX_FRONT_WAVE_AMPLITUDE_DP, 0f)
         assertEquals(135f, WAVE_REAR_PHASE_OFFSET_DEGREES, 0f)
         assertEquals(2.3561945f, WAVE_REAR_PHASE_OFFSET, 0.000001f)
         assertEquals(-1f, WAVE_REAR_DIRECTION, 0f)
         assertEquals(3_000, WAVE_CYCLE_DURATION_MILLIS)
-        assertEquals(2.4f, BACK_WAVE_ELEVATION_DP, 0f)
-        assertEquals(0.78f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
+        assertEquals(2.6f, BACK_WAVE_ELEVATION_DP, 0f)
+        assertEquals(0.82f, BACK_WAVE_AMPLITUDE_RATIO, 0f)
         assertEquals(0.75f, WAVE_REAR_CREST_STROKE_DP, 0f)
         assertEquals(0.25f, WAVE_REAR_CREST_ALPHA, 0f)
         assertEquals(0.30f, WAVE_REAR_FILL_ALPHA, 0f)
@@ -266,16 +266,16 @@ class BatteryGaugeSpecTest {
         assertEquals(0f, waveSurfaceEnvelope(0.98f), 0f)
         assertEquals(0f, waveSurfaceEnvelope(1f), 0f)
         assertEquals(0f, backWaveElevationOffsetDp(0f), 0f)
-        assertEquals(2.4f, backWaveElevationOffsetDp(0.5f), 0f)
+        assertEquals(2.6f, backWaveElevationOffsetDp(0.5f), 0f)
         assertEquals(0f, backWaveElevationOffsetDp(1f), 0f)
     }
 
     @Test
-    fun frontWaveAmplitudeUsesDiameterRatioAndFourDpMaximum() {
-        assertEquals(2.8f, waveFrontAmplitudePx(100f, 4f), 0.000001f)
-        assertEquals(4f, waveFrontAmplitudePx(200f, 4f), 0f)
+    fun frontWaveAmplitudeUsesDiameterRatioAndFivePointTwoDpMaximum() {
+        assertEquals(3.8f, waveFrontAmplitudePx(100f, 5.2f), 0.000001f)
+        assertEquals(5.2f, waveFrontAmplitudePx(200f, 5.2f), 0f)
         assertEquals(0f, waveFrontAmplitudePx(-10f, 4f), 0f)
-        assertEquals(0f, waveFrontAmplitudePx(100f, -4f), 0f)
+        assertEquals(0f, waveFrontAmplitudePx(100f, -5.2f), 0f)
     }
 
     @Test
