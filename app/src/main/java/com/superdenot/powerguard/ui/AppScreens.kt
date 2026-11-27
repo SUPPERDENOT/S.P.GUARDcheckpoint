@@ -126,6 +126,14 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                     PackageManager.PERMISSION_GRANTED
         }
     }
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            notificationPermissionGranted =
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
+    }
     val service by vm.liveState.collectAsState()
     val fallback by vm.fallbackState.collectAsState()
     val running by vm.isServiceRunning.collectAsState()

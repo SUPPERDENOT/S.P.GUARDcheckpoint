@@ -1,7 +1,7 @@
 ## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
 
 ### Follow-up correction
-- Added notification permission to the three-permission readiness summary (POST_NOTIFICATIONS on Android 13+; treated as granted on older Android versions) and refreshes it on dashboard resume. Readiness detail now lists notification permission alongside battery-optimization exemption, Usage Access, and actual background-service state.
+- Added notification permission to the three-permission readiness summary (POST_NOTIFICATIONS on Android 13+; treated as granted on older Android versions). Its state refreshes both when the Activity resumes and when Overview becomes active again after the in-app permission setup flow. Readiness detail lists notification permission alongside battery-optimization exemption, Usage Access, and actual background-service state.
 - Fixed compile blockers found by PR #16 Run #802: imported Overview grid geometry tokens and Compose border/background extensions, and removed the duplicate Compose Role import in the prior fix commit.
 - Aligned the bottom fade and backing surfaces of both long-scroll dialogs to `surfaceContainerHigh`.
 - Extracted the one-line thermal distribution formatter and added tests for populated and unavailable summaries.

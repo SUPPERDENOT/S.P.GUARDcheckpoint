@@ -1,7 +1,7 @@
 ## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
 
 ### Follow-up correction
-- [x] Readiness summary now checks all three setup permissions: POST_NOTIFICATIONS (API 33+), battery-optimization exemption, and Usage Access; notification state refreshes on dashboard resume.
+- [x] Readiness summary now checks all three setup permissions: POST_NOTIFICATIONS (API 33+), battery-optimization exemption, and Usage Access; notification state refreshes on Activity resume and when Overview becomes active after the setup overlay closes.
 - [x] Readiness detail lists each permission separately and the actual background-service state.
 - [x] Kotlin imports reported by Run #802 are corrected; duplicate Compose Role import and stale unused imports are removed.
 - [x] Both long-scroll dialog fades now terminate at the actual `surfaceContainerHigh` backing surface.
