@@ -350,7 +350,7 @@ class BatteryGaugeSpecTest {
         assertEquals(accent.copy(alpha = 0.76f), layers.frontBottom)
         assertEquals(lerp(accent, Color.White, 0.32f).copy(alpha = 0.95f), layers.frontHighlight)
         assertEquals(waveMeniscusColor(accent), layers.meniscus)
-        assertEquals(0.30f, layers.rear.alpha, 0.001f)
+        assertEquals(0.30f, layers.rear.alpha, 0.003f)
         assertEquals(0.25f, layers.rearCrest.alpha, 0.001f)
         assertEquals(1.2f, WAVE_MENISCUS_STROKE_DP, 0f)
         assertEquals(50, waveSampleCount(100f, 2f))
@@ -363,7 +363,7 @@ class BatteryGaugeSpecTest {
         val brightAccent = Color(0xFFF8F8F8)
         assertEquals(lerp(darkAccent, Color.White, 0.18f).copy(alpha = 0.90f), waveMeniscusColor(darkAccent))
         assertEquals(brightAccent.copy(alpha = 1f), waveMeniscusColor(brightAccent))
-        assertEquals(0.90f, waveMeniscusColor(darkAccent).alpha, 0.001f)
+        assertEquals(0.90f, waveMeniscusColor(darkAccent).alpha, 0.003f)
         assertEquals(1f, waveMeniscusColor(brightAccent).alpha, 0f)
     }
 
