@@ -85,6 +85,7 @@ import com.superdenot.powerguard.ui.analytics.AnalyticsScreen
 import com.superdenot.powerguard.ui.components.ProtocolInfoDialog
 import com.superdenot.powerguard.ui.components.InfoDialogSurface
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
+import com.superdenot.powerguard.ui.components.InfoLongPressContentFactory
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.components.InfoBadge
 import com.superdenot.powerguard.ui.components.INFO_BADGE_GAP_DP
@@ -149,13 +150,27 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
     val batteryOpt by vm.isBatteryOptimizationIgnored.collectAsState()
     val usage by vm.hasUsagePermission.collectAsState()
     val currentSessionSamples by vm.currentSessionSamples.collectAsState()
+    var inMemorySessionPeakCurrentMa by remember { mutableIntStateOf(0) }
+    LaunchedEffect(
+        state.isChargingStatusAvailable, state.isCharging, state.isCurrentAvailable, state.currentMa
+    ) {
+        val chargingNow = state.isChargingStatusAvailable && state.isCharging
+        if (!chargingNow) {
+            inMemorySessionPeakCurrentMa = 0
+        } else if (state.isCurrentAvailable) {
+            inMemorySessionPeakCurrentMa = maxOf(
+                inMemorySessionPeakCurrentMa,
+                kotlin.math.abs(state.currentMa.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            )
+        }
+    }
     var longPressInfoTitle by remember { mutableStateOf<String?>(null) }
     var longPressInfoBody by remember { mutableStateOf("") }
     fun showLongPressInfo(title: String, body: String) {
         longPressInfoTitle = title
         longPressInfoBody = body
     }
-    val overviewMetrics = remember(state, currentSessionSamples, healthSummary) {
+    val overviewMetrics = remember(state, currentSessionSamples, healthSummary, inMemorySessionPeakCurrentMa) {
         OverviewMetricsFormatter.format(
             isChargingStatusAvailable = state.isChargingStatusAvailable,
             isCharging = state.isCharging,
@@ -167,7 +182,9 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
             chargingProtocol = state.chargingProtocol,
             healthPercentage = healthSummary?.healthPercentage,
             temperatureCelsius = state.tempCelsius,
-            isTemperatureAvailable = state.isTemperatureAvailable
+            isTemperatureAvailable = state.isTemperatureAvailable,
+            liveCurrentMa = state.currentMa.takeIf { state.isCurrentAvailable },
+            inMemoryPeakCurrentMa = inMemorySessionPeakCurrentMa.takeIf { it > 0 }
         )
     }
     val sohSummary = OverviewMetricsFormatter.formatSohSummary(healthSummary?.healthPercentage)
@@ -746,16 +763,20 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
         }
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = {
-                    showLongPressInfo("Indikator status bar", "Indikator status bar menampilkan parameter baterai yang dipilih pengguna. Komponen ini berbeda dari Monitoring Notification di notification shade.")
-                }),
+                modifier = Modifier.fillMaxWidth().infoLongPress(
+                    onLongPress = {
+                        val info = InfoLongPressContentFactory.statusBarIndicator()
+                        showLongPressInfo(info.title, info.body)
+                    },
+                    onClick = {}
+                ),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(
-                            Modifier.weight(1f).pressScaleClickable { showStatusBarSettingsDialog = true },
+                            Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Text("Indikator status bar", fontWeight = FontWeight.Bold)
