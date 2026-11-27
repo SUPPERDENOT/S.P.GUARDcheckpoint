@@ -1056,6 +1056,17 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    if (chargeGuardScrollState.canScrollForward) {
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(12.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface)
+                                    )
+                                )
+                        )
+                    }
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
