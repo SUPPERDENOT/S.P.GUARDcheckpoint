@@ -1,6 +1,8 @@
 package com.superdenot.powerguard.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -52,6 +54,7 @@ internal const val INFO_DIALOG_HEADER_BOTTOM_PADDING_DP = 8f
 internal const val INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP = 16f
 internal const val INFO_DIALOG_SCROLL_TOP_PADDING_DP = 4f
 internal const val INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP = 12f
+internal const val INFO_DIALOG_SCROLL_FADE_HEIGHT_DP = 12f
 internal const val INFO_DIALOG_SURFACE_CORNER_RADIUS_DP = 20f
 internal const val INFO_DIALOG_SURFACE_BORDER_DP = 1f
 internal const val INFO_DIALOG_SURFACE_TONAL_ELEVATION_DP = 0f
@@ -99,6 +102,7 @@ internal fun InfoDialogSurface(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
+        val scrollState = rememberScrollState()
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).heightIn(max = 560.dp),
             shape = RoundedCornerShape(INFO_DIALOG_SURFACE_CORNER_RADIUS_DP.dp),
@@ -127,20 +131,36 @@ internal fun InfoDialogSurface(
                         Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
-                Column(
+                Box(
                     modifier = Modifier.fillMaxWidth()
                         .weight(1f, fill = false)
                         .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState())
-                        .padding(
-                            start = INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP.dp,
-                            end = INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP.dp,
-                            top = INFO_DIALOG_SCROLL_TOP_PADDING_DP.dp,
-                            bottom = INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP.dp
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    content = content
-                )
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .verticalScroll(scrollState)
+                            .padding(
+                                start = INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP.dp,
+                                end = INFO_DIALOG_SCROLL_HORIZONTAL_PADDING_DP.dp,
+                                top = INFO_DIALOG_SCROLL_TOP_PADDING_DP.dp,
+                                bottom = INFO_DIALOG_SCROLL_BOTTOM_PADDING_DP.dp
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        content = content
+                    )
+                    if (scrollState.canScrollForward) {
+                        Box(
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .height(INFO_DIALOG_SCROLL_FADE_HEIGHT_DP.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    )
+                                )
+                        )
+                    }
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 Row(
                     Modifier.fillMaxWidth().padding(
