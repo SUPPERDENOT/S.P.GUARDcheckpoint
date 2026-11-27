@@ -1,3 +1,22 @@
+## 2026-11-27 — Wave gauge back-surface depth polish
+
+### Wave back-surface
+- [x] Back baseline elevation is capped at 3.5dp and uses a smoothstep edge taper: 0 at/below 2%, full at 8–92%, and 0 at/above 98%.
+- [x] Back amplitude ratio is 1.20x; phase is `-frontPhase + 135°` with reverse direction `-1f` and cycle-wrap continuity.
+- [x] Rear fill uses accent alpha 0.38; rear crest is 0.8dp / alpha 0.30 and is drawn before the front fill.
+- [x] Front fill alpha 0.92 and front meniscus stroke 1.2dp remain unchanged.
+- [x] Unit tests cover elevation/taper, phase continuity, amplitude ratio, and rear layer tokens.
+- [x] Six theme palettes and gauge-independent app behavior remain unchanged.
+
+### Verification and protected boundaries
+- [x] Diff scope limited to Wave gauge geometry/rendering, focused tests, and required documentation.
+- [x] Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, and build number are untouched.
+- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending PR #15 CI.
+- [ ] Physical-device visual QA: NOT RUN.
+- [ ] PR #15 merge: HOLD — remain OPEN and unmerged as requested.
+
+---
+
 ## 2026-11-27 — PR #15 final theme/dialog polish
 
 ### Draft theme dialog
