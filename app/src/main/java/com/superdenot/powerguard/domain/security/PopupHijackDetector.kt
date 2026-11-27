@@ -77,6 +77,12 @@ object PopupHijackDetector {
             appSignals[packageName] ?: AppPackageSignals(packageName = packageName)
         fun isExcluded(packageName: String) = packageName in safePackages || signals(packageName).isExcluded
         fun isLauncher(packageName: String?) = packageName != null && signals(packageName).isHomeLauncher
+        fun hasSuspiciousStaticSignal(packageName: String): Boolean {
+            val metadata = signals(packageName)
+            return metadata.isMetadataResolved && !metadata.isSystemApp &&
+                (!metadata.hasLauncherActivity || metadata.hasOverlayPermission ||
+                    isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs))
+        }
 
         val reasonsByPackage = linkedMapOf<String, MutableSet<PopupSignalReason>>()
         val timesByPackage = linkedMapOf<String, MutableSet<Long>>()
@@ -92,17 +98,14 @@ object PopupHijackDetector {
             val previous = activityEvents.getOrNull(index - 1)
             val next = activityEvents.getOrNull(index + 1)
             val metadata = signals(packageName)
-            val suspiciousStaticSignal = metadata.isMetadataResolved && !metadata.isSystemApp &&
-                (!metadata.hasLauncherActivity || metadata.hasOverlayPermission ||
-                    isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs))
 
             if (previous != null && previous.packageName != packageName &&
-                !isLauncher(previous.packageName) && suspiciousStaticSignal
+                !isLauncher(previous.packageName) && hasSuspiciousStaticSignal(packageName)
             ) record(packageName, PopupSignalReason.SCREEN_HIJACKING, current.timestampMs)
 
             if (previous != null && next != null && previous.packageName != packageName &&
                 next.packageName != packageName && signals(next.packageName.orEmpty()).isBrowser &&
-                next.timestampMs - current.timestampMs in 1 until 5_000L
+                next.timestampMs - current.timestampMs in 0 until 5_000L
             ) record(packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs)
 
             if (previous != null && next != null && previous.packageName == next.packageName &&
@@ -121,8 +124,9 @@ object PopupHijackDetector {
         val interruptions = activityEvents.mapIndexedNotNull { index, event ->
             val pkg = event.packageName ?: return@mapIndexedNotNull null
             val previous = activityEvents.getOrNull(index - 1)
-            if (previous == null || previous.packageName == pkg || isLauncher(previous.packageName) || isExcluded(pkg))
-                null else pkg to event.timestampMs
+            if (previous == null || previous.packageName == pkg || isLauncher(previous.packageName) ||
+                isExcluded(pkg) || (!hasSuspiciousStaticSignal(pkg) && reasonsByPackage[pkg].isNullOrEmpty())
+            ) null else pkg to event.timestampMs
         }.groupBy({ it.first }, { it.second })
 
         interruptions.forEach { (pkg, rawTimes) ->
