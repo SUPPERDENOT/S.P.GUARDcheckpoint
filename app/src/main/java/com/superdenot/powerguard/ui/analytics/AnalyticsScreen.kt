@@ -1023,6 +1023,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
             onRescan = popupDetectorViewModel::scan,
             onMarkSafe = popupDetectorViewModel::markSafe,
             onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
+            onRestoreSafePackage = popupDetectorViewModel::restoreSafePackage,
             onRunSimulation = popupDetectorViewModel::showSimulation,
             onClearSimulation = popupDetectorViewModel::clearSimulation,
             onOpenUsageSettings = {
