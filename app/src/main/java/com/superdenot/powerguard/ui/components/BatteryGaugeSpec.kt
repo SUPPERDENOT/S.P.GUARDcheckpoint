@@ -2,10 +2,12 @@ package com.superdenot.powerguard.ui.components
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import com.superdenot.powerguard.ui.theme.BatterySemanticColors
 import kotlin.math.roundToInt
 import kotlin.math.min
 import kotlin.math.ceil
+import kotlin.math.sin
 
 enum class BatteryGaugeModel(val key: String, val label: String) {
     ARC("arc", "Busur"),
@@ -92,30 +94,29 @@ fun capsuleInnerGeometry(
     )
 }
 
-const val WAVE_AMPLITUDE_DP = 6.5f
-const val WAVE_CYCLES = 1.6f
+const val FRONT_WAVE_AMPLITUDE_RATIO = 0.028f
+const val MAX_FRONT_WAVE_AMPLITUDE_DP = 4.0f
 const val WAVE_CYCLE_DURATION_MILLIS = 3_000
 const val DEFAULT_GAUGE_CYCLE_DURATION_MILLIS = 2_400
 const val WAVE_SAMPLE_STEP_DP = 2f
 const val WAVE_RIM_STROKE_DP = 1.5f
-const val BACK_WAVE_ELEVATION_DP = 3.5f
-const val BACK_WAVE_AMPLITUDE_RATIO = 1.20f
-const val BACK_WAVE_ELEVATION_ZERO_START = 0.02f
-const val BACK_WAVE_ELEVATION_FULL_START = 0.08f
-const val BACK_WAVE_ELEVATION_FULL_END = 0.92f
-const val BACK_WAVE_ELEVATION_ZERO_END = 0.98f
+const val BACK_WAVE_ELEVATION_DP = 2.4f
+const val BACK_WAVE_AMPLITUDE_RATIO = 0.78f
+const val WAVE_ENVELOPE_ZERO_START = 0.02f
+const val WAVE_ENVELOPE_FULL_START = 0.12f
+const val WAVE_ENVELOPE_FULL_END = 0.88f
+const val WAVE_ENVELOPE_ZERO_END = 0.98f
 const val WAVE_REAR_PHASE_OFFSET_DEGREES = 135f
 const val WAVE_REAR_PHASE_OFFSET = 2.3561945f
 const val WAVE_REAR_DIRECTION = -1f
-const val WAVE_REAR_FILL_ALPHA = 0.38f
-const val WAVE_REAR_CREST_ALPHA = 0.30f
-const val WAVE_REAR_CREST_STROKE_DP = 0.8f
-const val WAVE_FRONT_FILL_ALPHA = 0.92f
+const val WAVE_REAR_FILL_ALPHA = 0.30f
+const val WAVE_REAR_CREST_ALPHA = 0.25f
+const val WAVE_REAR_CREST_STROKE_DP = 0.75f
+const val WAVE_FRONT_SURFACE_ALPHA = 0.95f
+const val WAVE_FRONT_BOTTOM_ALPHA = 0.76f
 const val WAVE_FRONT_HIGHLIGHT_BLEND = 0.32f
-const val WAVE_FRONT_SHADOW_BLEND = 0.22f
-const val WAVE_MENISCUS_HIGHLIGHT_BLEND = 0.35f
-const val WAVE_MENISCUS_ALPHA = 0.75f
 const val WAVE_MENISCUS_STROKE_DP = 1.2f
+const val WAVE_SECOND_HARMONIC_PHASE_OFFSET = 0.7853982f
 const val WAVE_BUBBLE_COUNT = 7
 const val WAVE_COMET_TAIL_DEGREES = 110f
 const val WAVE_COMET_HALO_STROKE_DP = 6f
@@ -135,42 +136,58 @@ data class WaveLayerColors(
     val rear: Color,
     val rearCrest: Color,
     val frontHighlight: Color,
-    val frontBase: Color,
-    val frontShadow: Color,
+    val frontSurface: Color,
+    val frontBottom: Color,
     val meniscus: Color
 )
+
+fun waveMeniscusColor(accentColor: Color): Color =
+    if (accentColor.luminance() > 0.75f) {
+        accentColor.copy(alpha = 1f)
+    } else {
+        lerp(accentColor, Color.White, 0.18f).copy(alpha = 0.90f)
+    }
 
 fun waveLayerColors(accentColor: Color): WaveLayerColors = WaveLayerColors(
     rear = accentColor.copy(alpha = WAVE_REAR_FILL_ALPHA),
     rearCrest = accentColor.copy(alpha = WAVE_REAR_CREST_ALPHA),
-    frontHighlight = lerp(accentColor, Color.White, WAVE_FRONT_HIGHLIGHT_BLEND).copy(alpha = WAVE_FRONT_FILL_ALPHA),
-    frontBase = accentColor,
-    frontShadow = lerp(accentColor, Color.Black, WAVE_FRONT_SHADOW_BLEND).copy(alpha = WAVE_FRONT_FILL_ALPHA),
-    meniscus = lerp(accentColor, Color.White, WAVE_MENISCUS_HIGHLIGHT_BLEND)
-        .copy(alpha = WAVE_MENISCUS_ALPHA)
+    frontHighlight = lerp(accentColor, Color.White, WAVE_FRONT_HIGHLIGHT_BLEND).copy(alpha = WAVE_FRONT_SURFACE_ALPHA),
+    frontSurface = accentColor.copy(alpha = WAVE_FRONT_SURFACE_ALPHA),
+    frontBottom = accentColor.copy(alpha = WAVE_FRONT_BOTTOM_ALPHA),
+    meniscus = waveMeniscusColor(accentColor)
 )
 
-/** Smoothly fades rear-wave elevation in/out while keeping the exact empty/full endpoints level. */
-fun backWaveElevationTaper(level: Float): Float {
+/** One level envelope controls both wave amplitudes and rear-layer elevation. */
+fun waveSurfaceEnvelope(level: Float): Float {
     val safeLevel = level.coerceIn(0f, 1f)
     val fadeIn = smoothStep01(
-        (safeLevel - BACK_WAVE_ELEVATION_ZERO_START) /
-            (BACK_WAVE_ELEVATION_FULL_START - BACK_WAVE_ELEVATION_ZERO_START)
+        (safeLevel - WAVE_ENVELOPE_ZERO_START) /
+            (WAVE_ENVELOPE_FULL_START - WAVE_ENVELOPE_ZERO_START)
     )
     val fadeOut = smoothStep01(
-        (safeLevel - BACK_WAVE_ELEVATION_FULL_END) /
-            (BACK_WAVE_ELEVATION_ZERO_END - BACK_WAVE_ELEVATION_FULL_END)
+        (safeLevel - WAVE_ENVELOPE_FULL_END) /
+            (WAVE_ENVELOPE_ZERO_END - WAVE_ENVELOPE_FULL_END)
     )
     return (fadeIn * (1f - fadeOut)).coerceIn(0f, 1f)
 }
-
-fun backWaveElevationOffsetDp(level: Float): Float =
-    BACK_WAVE_ELEVATION_DP * backWaveElevationTaper(level)
 
 private fun smoothStep01(value: Float): Float {
     val t = value.coerceIn(0f, 1f)
     return t * t * (3f - 2f * t)
 }
+
+fun backWaveElevationTaper(level: Float): Float = waveSurfaceEnvelope(level)
+
+fun backWaveElevationOffsetDp(level: Float): Float =
+    BACK_WAVE_ELEVATION_DP * waveSurfaceEnvelope(level)
+
+fun waveFrontAmplitudePx(diameterPx: Float, maxAmplitudePx: Float): Float =
+    min(diameterPx.coerceAtLeast(0f) * FRONT_WAVE_AMPLITUDE_RATIO, maxAmplitudePx.coerceAtLeast(0f))
+
+/** Integer harmonics keep the sampled surface exactly periodic at 360 degrees. */
+fun waveHarmonicOffset(angleRad: Float, phaseRad: Float): Float =
+    0.82f * sin(angleRad + phaseRad) +
+        0.18f * sin(2f * angleRad - phaseRad + WAVE_SECOND_HARMONIC_PHASE_OFFSET)
 
 /** Rear phase runs opposite the front phase; the 0/2π endpoints are cycle-equivalent. */
 fun waveRearPhase(frontPhase: Float): Float =
