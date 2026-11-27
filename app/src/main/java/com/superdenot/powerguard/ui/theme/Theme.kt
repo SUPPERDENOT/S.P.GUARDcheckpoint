@@ -407,12 +407,7 @@ fun midnightAccentSwatches(): List<Color> = listOf(
     MidnightVioletAccent, MidnightPinkAccent, MidnightCyanAccent, MidnightGreenAccent
 )
 
-@Composable
-fun PowerGuardTheme(
-    config: ThemePackConfig = ThemePackConfig.Basic(),
-    content: @Composable () -> Unit
-) {
-    val systemDark = isSystemInDarkTheme()
+internal fun themeColorScheme(config: ThemePackConfig, systemDark: Boolean): ColorScheme {
     val isDark = when (config) {
         is ThemePackConfig.Basic -> when (config.appearanceMode) {
             BasicAppearanceMode.SYSTEM -> systemDark
@@ -426,7 +421,7 @@ fun PowerGuardTheme(
         is ThemePackConfig.Monochrome -> config.variant == MonochromeVariant.DARK_CHARCOAL
     }
 
-    val colorScheme = when (config) {
+    return when (config) {
         is ThemePackConfig.Basic -> {
             val accent = basicAccentColor(config.accent)
             val containers = basicSurfaceContainerPalette(config.accent, isDark)
@@ -490,6 +485,14 @@ fun PowerGuardTheme(
         is ThemePackConfig.NordicFrost -> nordicFrostColorScheme(config.accent)
         is ThemePackConfig.Monochrome -> monochromeColorScheme(config.variant)
     }
+}
+
+@Composable
+fun PowerGuardTheme(
+    config: ThemePackConfig = ThemePackConfig.Basic(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = themeColorScheme(config, isSystemInDarkTheme())
 
     val metricTints = when (config) {
         is ThemePackConfig.MidnightViolet -> BatteryMetricTints(
