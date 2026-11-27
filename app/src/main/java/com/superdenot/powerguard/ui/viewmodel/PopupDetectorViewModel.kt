@@ -151,6 +151,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     it.copy(
                         isScanning = false,
                         hasUsagePermission = result.hasUsagePermission,
+                        hasActivityData = result.hasActivityData,
                         currentIncidents = result.incidents,
                         archivedIncidents = archive,
                         safePackages = safe,
