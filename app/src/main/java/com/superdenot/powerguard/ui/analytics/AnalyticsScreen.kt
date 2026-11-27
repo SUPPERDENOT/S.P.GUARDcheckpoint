@@ -343,6 +343,7 @@ private fun SessionsAndCurveTab(viewModel: PowerGuardViewModel, bottomScrollPadd
                 val delta = presentation.deltaPercent
                 val isExpanded = expandedSessionId == session.id
                 val isSelected = selectedSessionId == session.id
+                val isActive = session.endTime == null
                 val currentDate = SessionPresentationMapper.localDate(session.startTime)
                 val previousDate = visibleSessions.getOrNull(index - 1)?.let { SessionPresentationMapper.localDate(it.startTime) }
                 if (index == 0 || currentDate != previousDate) {
