@@ -58,6 +58,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         archivedIncidents = archive,
                         safePackages = safe,
                         lastScanAtMs = result.scannedAtMs,
+                        errorMessage = if (result.archivePersisted) null else
+                            "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan.",
                         simulationActive = false
                     )
                 }
@@ -122,7 +124,9 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         currentIncidents = result.incidents,
                         archivedIncidents = archive,
                         safePackages = safe,
-                        lastScanAtMs = result.scannedAtMs
+                        lastScanAtMs = result.scannedAtMs,
+                        errorMessage = if (result.archivePersisted) null else
+                            "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
                     )
                 }
             } catch (cancelled: CancellationException) {
