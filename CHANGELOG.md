@@ -1,3 +1,24 @@
+## 2026-11-27 — PR #15 final theme/dialog polish
+
+### Changed
+- Resolved the current draft's preview `ColorScheme` once and applied it to the entire Theme & Gauge configuration dialog, so selection pills, the Midnight dual-tint switch, gauge preview, and Save action use the same draft palette. Basic / System follows the device's current light/dark mode.
+- Added a subtle 12dp bottom fade to `InfoDialogSurface` only while its scroll state can move forward; the fade uses the active `surfaceContainerHigh` token.
+- Replaced the dynamic, ellipsized Status Bar Indicator settings summary with the concise one-line subtitle `Rotasi 2 dtk · W, A/mA, °C, Sumber`.
+
+### Tests
+- Added theme preview ColorScheme regression coverage across the selected packages and Basic / System appearance resolution.
+- Extended InfoDialog visual-token tests to lock the 12dp scroll-fade height.
+
+### Verification
+- Source diff review and protected-boundary review: pending exact final-HEAD CI.
+- `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: pending PR #15 CI on the final pushed HEAD.
+- Physical-device QA at 360dp / 720p: NOT RUN; CI is not device validation.
+
+### Protected boundaries
+- No theme palette token, Room DB v3, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependency, SDK, app version, or build number changes.
+
+---
+
 ## 2026-11-27 — Restore four standalone theme packs (PR #15)
 
 ### Added
