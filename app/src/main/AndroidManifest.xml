@@ -77,7 +77,7 @@
             android:name=".service.PopupCheckTileService"
             android:enabled="true"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@drawable/ic_qs_popup_shield"
             android:label="@string/qs_tile_popup_check_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
