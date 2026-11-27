@@ -109,9 +109,9 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         viewModelScope.launch {
             _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
             try {
-                val result = withContext(Dispatchers.IO) {
-                    repository.markSafe(incident.packageName)
-                    repository.scan()
+                val (safeListSaved, result) = withContext(Dispatchers.IO) {
+                    val saved = repository.markSafe(incident.packageName)
+                    saved to repository.scan()
                 }
                 latestActualIncidents = result.incidents
                 val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
@@ -125,8 +125,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         archivedIncidents = archive,
                         safePackages = safe,
                         lastScanAtMs = result.scannedAtMs,
-                        errorMessage = if (result.archivePersisted) null else
-                            "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
+                        errorMessage = when {
+                            !safeListSaved -> "Aplikasi belum berhasil ditambahkan ke daftar aman."
+                            !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
+                            else -> null
+                        }
                     )
                 }
             } catch (cancelled: CancellationException) {
@@ -144,9 +147,9 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         viewModelScope.launch {
             _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
             try {
-                val result = withContext(Dispatchers.IO) {
-                    repository.restoreSafePackages()
-                    repository.scan()
+                val (safeListRestored, result) = withContext(Dispatchers.IO) {
+                    val restored = repository.restoreSafePackages()
+                    restored to repository.scan()
                 }
                 latestActualIncidents = result.incidents
                 val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
@@ -159,7 +162,12 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         currentIncidents = result.incidents,
                         archivedIncidents = archive,
                         safePackages = safe,
-                        lastScanAtMs = result.scannedAtMs
+                        lastScanAtMs = result.scannedAtMs,
+                        errorMessage = when {
+                            !safeListRestored -> "Daftar aman belum berhasil dipulihkan."
+                            !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
+                            else -> null
+                        }
                     )
                 }
             } catch (cancelled: CancellationException) {
