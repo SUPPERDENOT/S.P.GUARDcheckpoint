@@ -10,8 +10,9 @@
 - Extended InfoDialog visual-token tests to lock the 12dp scroll-fade height.
 
 ### Verification
-- Source diff review and protected-boundary review: pending exact final-HEAD CI.
-- `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: pending PR #15 CI on the final pushed HEAD.
+- Source diff review and protected-boundary review: PASS; no protected files or runtime behavior were changed.
+- Run #777 on intermediate commit `77498eb8a07995c0730f86c1e5e0284b9d6c192c`: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` initially FAILED to compile because the new test omitted the `assertNotEquals` import. The import is corrected in this follow-up.
+- Exact-final-HEAD `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and APK artifact upload: pending the next PR #15 CI run.
 - Physical-device QA at 360dp / 720p: NOT RUN; CI is not device validation.
 
 ### Protected boundaries
