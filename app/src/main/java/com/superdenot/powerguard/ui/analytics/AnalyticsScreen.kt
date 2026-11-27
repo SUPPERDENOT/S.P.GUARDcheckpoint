@@ -947,7 +947,10 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
         item {
             PopupDetectorCard(
                 state = popupDetectorState,
-                onOpenTimeline = { showPopupDetectorSheet = true },
+                onOpenTimeline = {
+                    showPopupDetectorSheet = true
+                    popupDetectorViewModel.scan()
+                },
                 onRescan = popupDetectorViewModel::scan,
                 onInfo = { showPopupDetectorInfo = true },
                 onOpenUsageSettings = {
