@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Refresh
@@ -44,6 +46,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
+import com.superdenot.powerguard.ui.AppDisplayNameFormatter
 import com.superdenot.powerguard.ui.components.InfoDialogSurface
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
@@ -175,6 +178,7 @@ internal fun PopupDetectorSheet(
     onRescan: () -> Unit,
     onMarkSafe: (PopupIncident) -> Unit,
     onRestoreSafeList: () -> Unit,
+    onRestoreSafePackage: (String) -> Unit,
     onRunSimulation: () -> Unit,
     onClearSimulation: () -> Unit,
     onOpenUsageSettings: () -> Unit,
@@ -184,7 +188,7 @@ internal fun PopupDetectorSheet(
     var showSimulatedInfo by remember { mutableStateOf(false) }
     val timeline = remember(state.currentIncidents, state.archivedIncidents) {
         (state.currentIncidents + state.archivedIncidents)
-            .distinctBy { listOf(it.packageName, it.lastSeenAtMs.toString(), it.isSimulated.toString()).joinToString(":") }
+            .distinctBy { it.packageName }
             .sortedByDescending { it.lastSeenAtMs }
     }
     InfoDialogSurface(
@@ -255,6 +259,15 @@ internal fun PopupDetectorSheet(
             )
             TextButton(onClick = onRestoreSafeList) {
                 Text("Pulihkan daftar aman", maxLines = 1, softWrap = false)
+            }
+        }
+        Text("Daftar Aman", style = MaterialTheme.typography.titleSmall)
+        if (state.safePackages.isEmpty()) {
+            Text("Belum ada aplikasi yang ditandai aman.", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            state.safePackages.sorted().forEach { packageName ->
+                PopupSafePackageRow(packageName) { onRestoreSafePackage(packageName) }
             }
         }
         if (timeline.isEmpty()) {
@@ -360,12 +373,21 @@ private fun PopupIncidentCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Text(
-                    if (incident.status == PopupRiskStatus.SUSPICIOUS) "Mencurigakan" else "Perlu Dicek",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (incident.status == PopupRiskStatus.SUSPICIOUS) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.tertiary,
-                )
+                val suspicious = incident.status == PopupRiskStatus.SUSPICIOUS
+                Surface(
+                    color = if (suspicious) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = if (suspicious) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer,
+                    border = BorderStroke(1.dp, if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        if (suspicious) "Mencurigakan" else "Perlu Dicek",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
             Text(
                 "Skor indikasi " + incident.riskScore + "/100 · " + incidentSummary(incident),
@@ -399,6 +421,7 @@ private fun PopupIncidentCard(
                 }
                 Button(
                     onClick = onMarkSafe,
+                    enabled = !incident.isSimulated,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp)
                 ) {
@@ -415,6 +438,39 @@ private fun PopupIncidentCard(
                 " Izin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.",
             onDismiss = { showIncidentInfo = false }
         )
+    }
+}
+
+
+@Composable
+private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
+    val context = LocalContext.current
+    val appLabel = remember(packageName) {
+        val label = runCatching {
+            val info = context.packageManager.getApplicationInfo(packageName, 0)
+            context.packageManager.getApplicationLabel(info).toString()
+        }.getOrNull()
+        AppDisplayNameFormatter.format(packageName, label)
+    }
+    val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+        initialValue = null, key1 = context, key2 = packageName
+    ) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { context.packageManager.getApplicationIcon(packageName).toBitmap().asImageBitmap() }.getOrNull()
+        }
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        if (bitmap != null) Image(bitmap!!, contentDescription = "Ikon $appLabel", modifier = Modifier.size(32.dp))
+        else Icon(Icons.Rounded.Apps, contentDescription = "Ikon aplikasi tidak tersedia",
+            modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(appLabel, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(packageName, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        TextButton(onClick = onRestore, modifier = Modifier.heightIn(min = 48.dp)) { Text("Pulihkan", maxLines = 1, softWrap = false) }
     }
 }
 

@@ -123,7 +123,8 @@ fun AnalyticsScreen(
     contentPadding: PaddingValues,
     initialSubTab: Int = 0,
     visibleSubTabs: List<Int> = listOf(0, 1, 2),
-    popupDetectorOpenRequest: Int = 0
+    popupDetectorOpenRequest: Int = 0,
+    popupDetectorViewModel: PopupDetectorViewModel
 ) {
     val availableTabs = visibleSubTabs.filter { it in 0..2 }.ifEmpty { listOf(0) }
     var selectedSubTab by remember(availableTabs, initialSubTab) {
@@ -192,7 +193,7 @@ fun AnalyticsScreen(
         when (selectedSubTab) {
             0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
             1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
-            2 -> AppUsageTab(viewModel, bottomScrollPadding, popupDetectorOpenRequest)
+            2 -> AppUsageTab(viewModel, bottomScrollPadding, popupDetectorOpenRequest, popupDetectorViewModel)
         }
     }
 }
@@ -914,11 +915,15 @@ private fun SevenDayCycleMiniChart(
 }
 
 @Composable
-private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues, popupDetectorOpenRequest: Int) {
+private fun AppUsageTab(
+    viewModel: PowerGuardViewModel,
+    bottomScrollPadding: PaddingValues,
+    popupDetectorOpenRequest: Int,
+    popupDetectorViewModel: PopupDetectorViewModel
+) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
     val apps by viewModel.appUsageList.collectAsState()
-    val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
     val popupDetectorState by popupDetectorViewModel.uiState.collectAsState()
     var showLongPressInfo by remember { mutableStateOf(false) }
     var showPopupDetectorInfo by remember { mutableStateOf(false) }
@@ -1023,6 +1028,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
             onRescan = popupDetectorViewModel::scan,
             onMarkSafe = popupDetectorViewModel::markSafe,
             onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
+            onRestoreSafePackage = popupDetectorViewModel::restoreSafePackage,
             onRunSimulation = popupDetectorViewModel::showSimulation,
             onClearSimulation = popupDetectorViewModel::clearSimulation,
             onOpenUsageSettings = {
