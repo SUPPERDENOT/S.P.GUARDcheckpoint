@@ -137,10 +137,12 @@ object PopupHijackDetector {
                 next.packageName != packageName && !isLauncher(previous.packageName) &&
                 signals(next.packageName.orEmpty()).isBrowser &&
                 next.timestampMs - current.timestampMs in 0 until 5_000L
-            ) record(
-                packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs,
-                allowSystemBrowserRedirect = true
-            )
+            ) {
+                record(packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs, allowSystemBrowserRedirect = true)
+                if (literalBrowserRedirect && metadata.isSystemApp && metadata.hasOverlayPermission) {
+                    record(packageName, PopupSignalReason.OVERLAY_PERMISSION, current.timestampMs, allowSystemBrowserRedirect = true)
+                }
+            }
 
             if (previous != null && next != null && previous.packageName == next.packageName &&
                 previous.packageName != packageName && next.timestampMs - current.timestampMs in 1_000L..15_000L
