@@ -11,7 +11,8 @@
 
 ### Verification
 - Run #781 on source/test HEAD `05cb79935f8bf671a21b280333a1963764ce1a54`: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` ran 393 tests with 1 failure because an alpha assertion expected exact float equality after Compose `Color` 8-bit channel quantization. The focused assertions now use a tolerance while retaining exact packed-color comparisons. Unit-test report artifact ID `15166528990`; APK upload was skipped because the combined Gradle step failed.
-- Exact-final-HEAD `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and Upload APK: pending the rerun after this test correction.
+- Run #783 on code/test HEAD `36d6236e2f18f9853890b3190bd6e6a87f7be8a9`: **SUCCESS** — Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, Upload APK, and unit-test report upload all succeeded. APK artifact ID `15166737633`; unit-test report artifact ID `15166837233`.
+- Exact final documentation-closeout HEAD verification and artifact IDs are tracked in PR #15 description after its workflow completes.
 - Physical-device visual QA: NOT RUN; CI does not establish rendered appearance on the target phone.
 
 ### Protected boundaries
