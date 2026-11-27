@@ -19,6 +19,7 @@
 ### Tests
 - Added idle/charging presentation tests for the four Overview metrics, SOH/readiness summaries, and 360dp two-column grid width.
 - Added application-label fallback tests, compact history header/selected-rollup tests, and long-press dialog surface-token coverage.
+- Added a source-level UI copy regression test for removal of the old SOH/readiness card headings, Status Bar footer note, repeated per-session instruction, and old curve temperature-distribution heading.
 
 ### Verification
 - Source-level responsive crosscheck: 360dp width budget gives 158dp per metric cell after 18dp side gutters and an 8dp inter-column gap. The outer Overview LazyColumn remains scrollable as a large-font safety fallback.

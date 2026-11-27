@@ -6,6 +6,7 @@
 - [x] Kotlin imports reported by Run #802 are corrected; duplicate Compose Role import and stale unused imports are removed.
 - [x] Both long-scroll dialog fades now terminate at the actual `surfaceContainerHigh` backing surface.
 - [x] Thermal distribution formatting is extracted and covered for populated and unavailable states.
+- [x] `UiCopyRegressionTest` guards against reintroducing the removed SOH/readiness card headings, Status Bar footer note, repeated history instruction, and verbose curve distribution heading.
 - [x] Compact history header regression test matches the concise `Sesi x/y` label.
 - [ ] Exact final-head CI: pending.
 - [ ] Physical-device QA at 360dp / 720p: pending.
