@@ -11,7 +11,7 @@
 - Added coverage for new amplitude/elevation constants, the 4dp cap, smoothstep endpoints and midpoint, harmonic normalization and 0°/360° continuity, reverse rear phase, layer colors, and dark/bright meniscus selection.
 
 ### Verification
-- Source and test implementation: updated on PR #15 branch; exact-head CI result and artifact IDs will be recorded after the final workflow completes.
+- Source/test implementation CI Run #790 on HEAD `6497bdcf763cd81b42ebc6462b4e888d4f851bb7`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload. Debug APK Artifact ID `15175793190`; unit-test report Artifact ID `15175683365`.
 - Physical-device visual QA: NOT RUN — the CI build does not establish the liquid rendering appearance on device.
 
 ### Protected boundaries
