@@ -527,7 +527,6 @@ private fun WaveGauge(
 ) {
     val features = waveAnimationFeatures(animation)
     val waveColors = waveLayerColors(gaugeColor)
-    val waveAmplitudePx = with(LocalDensity.current) { WAVE_AMPLITUDE_DP.dp.toPx() }
     val cometBleed = WAVE_COMET_STYLE.glowRadiusDp.dp
 
     // The drawing surface extends beyond the gauge bounds so the outer comet glow is not clipped.
@@ -538,6 +537,10 @@ private fun WaveGauge(
         ) {
             val bleedPx = WAVE_COMET_STYLE.glowRadiusDp.dp.toPx()
             val diameter = (size.minDimension - bleedPx * 2f).coerceAtLeast(1f)
+            val waveAmplitudePx = waveFrontAmplitudePx(
+                diameterPx = diameter,
+                maxAmplitudePx = MAX_FRONT_WAVE_AMPLITUDE_DP.dp.toPx()
+            )
             val left = (size.width - diameter) / 2f
             val top = (size.height - diameter) / 2f
             val circleTopLeft = Offset(left, top)
@@ -559,9 +562,7 @@ private fun WaveGauge(
 
             drawCircle(trackColor, diameter / 2f, center)
             clipPath(circle) {
-                val rearWaveOffset =
-                    -diameter * 0.012f * sin(liquidProgress * PI).toFloat() -
-                        backWaveElevationOffsetDp(liquidProgress).dp.toPx()
+                val rearWaveOffset = -backWaveElevationOffsetDp(liquidProgress).dp.toPx()
                 val rearPhase = waveRearPhase(wavePhase)
                 val rearWave = waveFillPath(
                     diameter, diameter, liquidProgress, rearPhase,
@@ -597,9 +598,8 @@ private fun WaveGauge(
                     frontWave,
                     Brush.verticalGradient(
                         colors = listOf(
-                            waveColors.frontHighlight,
-                            waveColors.frontBase.copy(alpha = WAVE_FRONT_FILL_ALPHA),
-                            waveColors.frontShadow
+                            waveColors.frontSurface,
+                            waveColors.frontBottom
                         ),
                         startY = fillTop.coerceAtLeast(top),
                         endY = liquidBottom
@@ -683,7 +683,7 @@ private fun WaveGauge(
                 }
                 drawPath(
                     crest,
-                    waveColors.meniscus.copy(alpha = WAVE_MENISCUS_ALPHA * crestPulse),
+                    waveColors.meniscus.copy(alpha = waveColors.meniscus.alpha * crestPulse),
                     style = Stroke(WAVE_MENISCUS_STROKE_DP.dp.toPx(), cap = StrokeCap.Round)
                 )
                 drawArc(
@@ -792,11 +792,11 @@ private fun waveY(
 ): Float {
     val normalized = if (width <= 0f) 0f else x / width
     val level = progress.coerceIn(0f, 1f)
-    val damping = 0.18f + 0.82f * sin(level * PI).toFloat()
-    val amplitude = amplitudePx * damping * amplitudeScale
+    val envelope = waveSurfaceEnvelope(level)
+    val amplitude = amplitudePx * envelope * amplitudeScale
     val baseline = height * (1f - level)
-    return baseline + verticalOffset +
-        amplitude * sin(normalized * (2f * PI).toFloat() * WAVE_CYCLES + phase)
+    val angle = normalized * (2f * PI).toFloat()
+    return baseline + verticalOffset + amplitude * waveHarmonicOffset(angle, phase)
 }
 
 private fun waveFillPath(
