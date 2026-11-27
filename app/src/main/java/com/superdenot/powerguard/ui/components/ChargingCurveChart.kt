@@ -60,6 +60,13 @@ import kotlin.math.roundToInt
 internal fun formatCurveReading(isAvailable: Boolean, value: String): String =
     if (isAvailable) value else "—"
 
+internal fun formatThermalDistributionSummary(summary: ChargingThermalSummary): String =
+    if (summary.hasTemperatureData) {
+        "${summary.safeMinutes}m Aman · ${summary.warmMinutes}m Hangat · ${summary.highMinutes}m Tinggi"
+    } else {
+        "Distribusi suhu tidak tersedia"
+    }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChargingCurveChart(
@@ -373,9 +380,7 @@ internal fun ChargingThermalSummaryPanel(
         shape = RoundedCornerShape(10.dp)
     ) {
         Text(
-            text = if (summary.hasTemperatureData) {
-                "${summary.safeMinutes}m Aman · ${summary.warmMinutes}m Hangat · ${summary.highMinutes}m Tinggi"
-            } else "Distribusi suhu tidak tersedia",
+            text = formatThermalDistributionSummary(summary),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

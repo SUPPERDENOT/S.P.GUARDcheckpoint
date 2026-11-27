@@ -1,5 +1,16 @@
 ## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
 
+### Follow-up correction
+- [x] Readiness summary now checks all three setup permissions: POST_NOTIFICATIONS (API 33+), battery-optimization exemption, and Usage Access; notification state refreshes on dashboard resume.
+- [x] Readiness detail lists each permission separately and the actual background-service state.
+- [x] Kotlin imports reported by Run #802 are corrected; duplicate Compose Role import and stale unused imports are removed.
+- [x] Both long-scroll dialog fades now terminate at the actual `surfaceContainerHigh` backing surface.
+- [x] Thermal distribution formatting is extracted and covered for populated and unavailable states.
+- [x] Compact history header regression test matches the concise `Sesi x/y` label.
+- [ ] Exact final-head CI: pending.
+- [ ] Physical-device QA at 360dp / 720p: pending.
+
+
 - [x] Scope limited to Overview presentation, contextual long-press explanations, app-label formatting, tab copy/layout polish, focused tests, and required documentation.
 - [x] Overview uses one primary gauge/metric row, a two-column grid of four metric summaries, and two one-line detail rows; outer vertical scrolling remains enabled.
 - [x] 360dp horizontal geometry crosscheck: 360dp - 36dp side gutters - 8dp column gap = 316dp content width; each grid cell receives 158dp.

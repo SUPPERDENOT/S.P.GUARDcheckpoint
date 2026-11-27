@@ -1,5 +1,13 @@
 ## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
 
+### Follow-up correction
+- Added notification permission to the three-permission readiness summary (POST_NOTIFICATIONS on Android 13+; treated as granted on older Android versions) and refreshes it on dashboard resume. Readiness detail now lists notification permission alongside battery-optimization exemption, Usage Access, and actual background-service state.
+- Fixed compile blockers found by PR #16 Run #802: imported Overview grid geometry tokens and Compose border/background extensions, and removed the duplicate Compose Role import in the prior fix commit.
+- Aligned the bottom fade and backing surfaces of both long-scroll dialogs to `surfaceContainerHigh`.
+- Extracted the one-line thermal distribution formatter and added tests for populated and unavailable summaries.
+- Updated the compact history header test to the current non-clipping `Sesi x/y` presentation.
+
+
 ### Changed
 - Reworked Overview into a compact primary gauge row, a two-column/four-metric grid, and single-line SOH/System Readiness summary bars. Kept the outer vertical scroll as a font-scale safety fallback.
 - Added haptic combinedClickable long-press explanations using the shared InfoDialogSurface visual wrapper. The SOH and readiness summary bars also open details on tap.

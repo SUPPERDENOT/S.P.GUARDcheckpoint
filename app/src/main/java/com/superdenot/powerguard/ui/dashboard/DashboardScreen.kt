@@ -663,7 +663,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
         Surface(
             modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).heightIn(max = 680.dp).imePadding(),
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp
         ) {
             Column(Modifier.fillMaxWidth().heightIn(max = 680.dp)) {
@@ -732,7 +732,7 @@ fun ReadMoreInfoDialog(onDismiss: () -> Unit) {
                             Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(12.dp)
                                 .background(
                                     Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface)
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainerHigh)
                                     )
                                 )
                         )

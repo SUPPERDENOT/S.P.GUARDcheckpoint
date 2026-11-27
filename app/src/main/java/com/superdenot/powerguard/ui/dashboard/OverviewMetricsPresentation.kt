@@ -137,9 +137,10 @@ internal object OverviewMetricsFormatter {
         monitoringEnabled: Boolean,
         isCharging: Boolean,
         isBatteryOptimizationIgnored: Boolean,
-        hasUsagePermission: Boolean
+        hasUsagePermission: Boolean,
+        hasNotificationPermission: Boolean
     ): String = when {
-        !isBatteryOptimizationIgnored || !hasUsagePermission -> "Perlu Izin"
+        !isBatteryOptimizationIgnored || !hasUsagePermission || !hasNotificationPermission -> "Perlu Izin"
         isServiceRunning -> "Semua Aktif"
         !monitoringEnabled -> "Monitoring OFF"
         !isCharging -> "Siaga"

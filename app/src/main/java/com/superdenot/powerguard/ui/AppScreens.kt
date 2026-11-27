@@ -109,8 +109,22 @@ internal const val CHARGING_SOURCE_CAPABILITY_LABEL = "Kemampuan sumber"
 
 @Composable
 fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isActive: Boolean = true) {
+    val context = LocalContext.current
+    var notificationPermissionGranted by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+        )
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (isActive) vm.refreshPermissionsAndUsage()
+        if (isActive) {
+            vm.refreshPermissionsAndUsage()
+            notificationPermissionGranted =
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
     }
     val service by vm.liveState.collectAsState()
     val fallback by vm.fallbackState.collectAsState()
@@ -154,7 +168,8 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
         monitoringEnabled = monitoringEnabled,
         isCharging = state.isChargingStatusAvailable && state.isCharging,
         isBatteryOptimizationIgnored = batteryOpt,
-        hasUsagePermission = usage
+        hasUsagePermission = usage,
+        hasNotificationPermission = notificationPermissionGranted
     )
 
     val isCriticalThermal = state.isTemperatureAvailable &&
@@ -282,6 +297,7 @@ fun SuperdDashboardScreen(vm: PowerGuardViewModel, padding: PaddingValues, isAct
                     val detail = "Pemantauan Baterai: " + monitoringStatus +
                         "\nOptimasi baterai: " + (if (batteryOpt) "Diizinkan" else "Belum diizinkan") +
                         "\nAkses penggunaan: " + (if (usage) "Diizinkan" else "Belum diizinkan") +
+                        "\nNotifikasi pemantauan: " + (if (notificationPermissionGranted) "Diizinkan" else "Belum diizinkan") +
                         "\nStatus layanan latar belakang: " + (if (running) "Aktif" else "Tidak berjalan")
                     showLongPressInfo("Kesiapan Sistem", detail)
                 }
@@ -869,7 +885,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
             Surface(
                 modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).imePadding(),
                 shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = 6.dp
             ) {
                 Column(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
@@ -1064,7 +1080,7 @@ fun SettingsScreen(vm: PowerGuardViewModel, padding: PaddingValues, onOpenPermis
                             Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(12.dp)
                                 .background(
                                     Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface)
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainerHigh)
                                     )
                                 )
                         )

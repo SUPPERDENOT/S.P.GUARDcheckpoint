@@ -47,8 +47,9 @@ class OverviewMetricsPresentationTest {
     fun compactSummaryRowsReflectServiceAndPermissionState() {
         assertEquals("88,9%", OverviewMetricsFormatter.formatSohSummary(88.9f))
         assertEquals("Belum tersedia", OverviewMetricsFormatter.formatSohSummary(null))
-        assertEquals("Semua Aktif", OverviewMetricsFormatter.formatReadinessSummary(true, true, true, true, true))
-        assertEquals("Perlu Izin", OverviewMetricsFormatter.formatReadinessSummary(false, true, true, false, true))
+        assertEquals("Semua Aktif", OverviewMetricsFormatter.formatReadinessSummary(true, true, true, true, true, true))
+        assertEquals("Perlu Izin", OverviewMetricsFormatter.formatReadinessSummary(false, true, true, false, true, true))
+        assertEquals("Perlu Izin", OverviewMetricsFormatter.formatReadinessSummary(true, true, true, true, true, false))
     }
 
     @Test
