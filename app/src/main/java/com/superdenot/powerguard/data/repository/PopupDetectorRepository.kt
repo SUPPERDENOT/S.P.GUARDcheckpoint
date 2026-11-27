@@ -102,7 +102,9 @@ internal class PopupDetectorRepository(context: Context) {
 
     private fun resolveBrowserPackages(): Set<String> {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
-        val resolved = queryActivities(intent).mapNotNull { it.activityInfo?.packageName }.toSet()
+        val resolved = runCatching {
+            queryActivities(intent).mapNotNull { it.activityInfo?.packageName }.toSet()
+        }.getOrDefault(emptySet())
         return resolved + FALLBACK_BROWSER_PACKAGES
     }
 
@@ -151,7 +153,7 @@ internal class PopupDetectorRepository(context: Context) {
         }
         val firstInstallTime = runCatching { getPackageInfo(packageName).firstInstallTime }.getOrNull()
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(packageName)
-        val hasLauncher = runCatching { queryActivities(launcherIntent).isNotEmpty() }.getOrDefault(false)
+        val hasLauncher = runCatching { queryActivities(launcherIntent).isNotEmpty() }.getOrDefault(true)
         val isSystem = appInfo.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
         val overlayAllowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             runCatching {
