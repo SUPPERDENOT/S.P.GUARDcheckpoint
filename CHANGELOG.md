@@ -10,8 +10,8 @@
 - Added regression coverage for the 3.5dp elevation, smooth taper boundaries and midpoint, 1.20x amplitude ratio, reverse phase direction/135° offset/cycle continuity, and rear fill/crest alpha and stroke tokens.
 
 ### Verification
-- Source/diff review: pending exact final-HEAD CI.
-- `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and Upload APK: pending PR #15 CI on the final pushed HEAD.
+- Run #781 on source/test HEAD `05cb79935f8bf671a21b280333a1963764ce1a54`: Anti-Slop UI Audit Gate SUCCESS and `:app:assembleDebug` SUCCESS; `:app:testDebugUnitTest` ran 393 tests with 1 failure because an alpha assertion expected exact float equality after Compose `Color` 8-bit channel quantization. The focused assertions now use a tolerance while retaining exact packed-color comparisons. Unit-test report artifact ID `15166528990`; APK upload was skipped because the combined Gradle step failed.
+- Exact-final-HEAD `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and Upload APK: pending the rerun after this test correction.
 - Physical-device visual QA: NOT RUN; CI does not establish rendered appearance on the target phone.
 
 ### Protected boundaries
