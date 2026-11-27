@@ -13,7 +13,9 @@
 - [x] Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, and build number are untouched.
 - [x] Run #781 source/test result: Anti-Slop UI Audit Gate SUCCESS; `:app:assembleDebug` SUCCESS; 393 unit tests executed with 1 failure caused by exact float comparison against RGBA8-quantized Compose Color alpha. The two alpha assertions now use bounded tolerances; exact packed-color equality assertions remain.
 - [x] Unit-test report artifact from Run #781 uploaded: `15166528990`; APK upload skipped because `testDebugUnitTest` failed.
-- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending rerun after the test correction.
+- [x] Run #783 on code/test HEAD `36d6236e2f18f9853890b3190bd6e6a87f7be8a9`: Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, Upload APK, and unit-test report upload all SUCCESS.
+- [x] APK artifact ID `15166737633`; unit-test report artifact ID `15166837233`.
+- [x] Exact final documentation-closeout HEAD CI and artifact IDs are tracked in PR #15 description after that workflow completes.
 - [ ] Physical-device visual QA: NOT RUN.
 - [ ] PR #15 merge: HOLD — remain OPEN and unmerged as requested.
 
