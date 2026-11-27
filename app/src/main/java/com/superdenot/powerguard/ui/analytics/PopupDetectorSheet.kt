@@ -330,11 +330,20 @@ private fun PopupIncidentCard(
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                bitmap?.let { image ->
-                    Image(image, contentDescription = "Ikon " + popupDisplayName(context, incident), modifier = Modifier.size(36.dp))
-                } ?: run {
-                    Icon(Icons.Rounded.Apps, contentDescription = "Ikon aplikasi tidak tersedia",
-                        modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                val loadedBitmap = bitmap
+                if (loadedBitmap != null) {
+                    Image(
+                        loadedBitmap,
+                        contentDescription = "Ikon " + popupDisplayName(context, incident),
+                        modifier = Modifier.size(36.dp)
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.Apps,
+                        contentDescription = "Ikon aplikasi tidak tersedia",
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
