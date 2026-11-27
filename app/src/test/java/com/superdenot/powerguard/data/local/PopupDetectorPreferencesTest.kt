@@ -1,7 +1,7 @@
 package com.superdenot.powerguard.data.local
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import com.superdenot.powerguard.PowerGuardTestApplication
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
@@ -11,15 +11,17 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [34], application = PowerGuardTestApplication::class, manifest = Config.NONE)
 class PopupDetectorPreferencesTest {
-    private val context = ApplicationProvider.getApplicationContext<Context>()
+    private lateinit var context: Context
 
     @Before
     fun clearPreferences() {
+        context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("spg_popup_detector", Context.MODE_PRIVATE)
             .edit().clear().commit()
     }
