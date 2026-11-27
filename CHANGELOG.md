@@ -1,3 +1,23 @@
+## 2026-11-27 — PR #16 focused polish: live peak current, app labels, and long-press consistency
+
+### Changed
+- Overview peak current now resolves the maximum valid current across persisted active-session samples, the current live reading, and an in-memory session high-water mark. The in-memory value resets when charging is no longer reported; unavailable current remains unavailable rather than being fabricated.
+- Expanded the application-name fallback dictionary for Google, YouTube, Gmail, Google Maps, Chrome, Google Play Store, Shopee, Gojek, and Tokopedia.
+- Status Bar Indicator card now reserves settings navigation for the explicit **Atur indikator** action; tapping the card body/title does not open the settings dialog. Long-press retains haptic feedback and opens the shared explanation dialog.
+- Added long-press help to the header status pill. Its explanation separates Android charging status from actual background-monitoring service state.
+
+### Tests and verification
+- Added regression tests for live peak current when no persisted sample exists, maximum selection across persisted/live/in-memory values, and the Google package fallback.
+- Added unit tests for the shared long-press explanation content used by the Status Bar Indicator card and header status pill. Interaction wiring (combinedClickable + HapticFeedbackType.LongPress) is source-reviewed through the shared modifier.
+- Android unit tests, debug build, Anti-Slop UI Audit Gate, and APK artifact upload: PENDING — run after this commit.
+- Physical-device interaction and display QA on itel P55: NOT RUN.
+
+### Protected boundaries
+- No intended changes to AndroidManifest/package visibility, Room DB v3, sensor acquisition or sampling cadence, calibration default 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number.
+- PR #16 remains OPEN and UNMERGED; do not merge without explicit approval.
+
+---
+
 ## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
 
 ### Follow-up correction
