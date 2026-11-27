@@ -104,7 +104,8 @@ object PopupHijackDetector {
             ) record(packageName, PopupSignalReason.SCREEN_HIJACKING, current.timestampMs)
 
             if (previous != null && next != null && previous.packageName != packageName &&
-                next.packageName != packageName && signals(next.packageName.orEmpty()).isBrowser &&
+                next.packageName != packageName && !isLauncher(previous.packageName) &&
+                signals(next.packageName.orEmpty()).isBrowser &&
                 next.timestampMs - current.timestampMs in 0 until 5_000L
             ) record(packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs)
 
@@ -139,8 +140,9 @@ object PopupHijackDetector {
                 if (window.size > bestWindow.size) bestWindow = window.toList()
             }
             if (bestWindow.size >= 2) {
-                val averageGap = (bestWindow.last() - bestWindow.first()) / (bestWindow.size - 1)
-                if (averageGap <= POPUP_MAX_AVERAGE_GAP_MS) {
+                val totalGap = bestWindow.last() - bestWindow.first()
+                val maxAllowedTotalGap = POPUP_MAX_AVERAGE_GAP_MS * (bestWindow.size - 1)
+                if (totalGap <= maxAllowedTotalGap) {
                     val reason = if (bestWindow.size >= 3) PopupSignalReason.BURST_LOOP_3_PLUS
                         else PopupSignalReason.BURST_LOOP_2
                     bestWindow.forEach { record(pkg, reason, it) }
@@ -177,7 +179,8 @@ object PopupHijackDetector {
     }
 
     private fun isRecentlyInstalled(firstInstallTimeMs: Long?, nowMs: Long): Boolean =
-        firstInstallTimeMs != null && firstInstallTimeMs in (nowMs - POPUP_RECENT_INSTALL_MS)..nowMs
+        firstInstallTimeMs != null && firstInstallTimeMs > nowMs - POPUP_RECENT_INSTALL_MS &&
+            firstInstallTimeMs <= nowMs
 }
 
 internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set<String> {
