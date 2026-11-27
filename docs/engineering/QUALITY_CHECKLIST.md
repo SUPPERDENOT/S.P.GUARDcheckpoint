@@ -20,9 +20,10 @@
 - [x] Long visible notes and repeated history instructions removed; daily chart selection highlights its matching rollup instead of rendering a duplicate detail card.
 - [x] Dialog scroll fades use a conditional 12dp gradient; new surfaces use MaterialTheme.colorScheme tokens and contain no emoji or hardcoded hex colors.
 - [x] Protected boundaries unchanged: AndroidManifest, Room DB v3/schema, sensor/sampling, default calibration 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number.
-- [ ] Automated tests and Anti-Slop UI Audit Gate: pending exact final PR #16 HEAD CI.
-- [ ] Physical-device visual QA at 360dp / 720p: pending; source geometry crosscheck is not a substitute for device testing.
-- [ ] PR #16 merge: HOLD — leave OPEN and do not enable auto-merge.
+- [x] Run #805 on source/test HEAD `aa2d0f799ee5a9fe26459d29812bcc67a2667f5a`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload all SUCCESS; APK Artifact ID `15187717785`; test report Artifact ID `15188480260`.
+- [ ] Exact documentation-closeout HEAD CI: pending the next PR workflow; record exact HEAD, run URL, all SUCCESS gates, and final APK Artifact ID in PR #16 description.
+- [ ] Physical-device visual QA at 360dp / 720p: NOT RUN; source geometry crosscheck is not a substitute for device testing.
+- [x] PR #16 remains OPEN and UNMERGED; auto-merge is not enabled.
 
 ---
 

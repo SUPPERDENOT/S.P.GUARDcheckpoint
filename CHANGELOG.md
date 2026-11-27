@@ -21,8 +21,10 @@
 - Added application-label fallback tests, compact history header/selected-rollup tests, and long-press dialog surface-token coverage.
 
 ### Verification
-- Source-level responsive crosscheck: 360dp width budget gives 158dp per metric cell after 18dp side gutters and an 8dp inter-column gap. Physical-device QA is pending.
-- CI on the exact final PR #16 HEAD: pending; record the final workflow run and APK Artifact ID in the PR description after all required gates succeed.
+- Source-level responsive crosscheck: 360dp width budget gives 158dp per metric cell after 18dp side gutters and an 8dp inter-column gap. The outer Overview LazyColumn remains scrollable as a large-font safety fallback.
+- GitHub Actions Run #805 on source/test HEAD `aa2d0f799ee5a9fe26459d29812bcc67a2667f5a`: **SUCCESS** — Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, Upload APK, and unit-test report upload. Debug APK Artifact ID `15187717785`; unit-test report Artifact ID `15188480260`.
+- The documentation-closeout commit triggers a final exact-HEAD CI run; its run URL, final HEAD, and APK Artifact ID are recorded in the PR #16 delivery description after completion.
+- Physical-device QA at 360dp / 720p: NOT RUN; source geometry and CI do not replace it.
 
 ### Protected boundaries
 - AndroidManifest (including package visibility), Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number remain unchanged.
