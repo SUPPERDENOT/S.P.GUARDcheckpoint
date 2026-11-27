@@ -129,6 +129,9 @@ fun AnalyticsScreen(
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
     }
+    LaunchedEffect(popupDetectorOpenRequest) {
+        if (popupDetectorOpenRequest > 0 && 2 in availableTabs) selectedSubTab = 2
+    }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
         bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()

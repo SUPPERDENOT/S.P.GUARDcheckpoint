@@ -54,15 +54,37 @@ import com.superdenot.powerguard.ui.theme.StatusErrorRed
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 
 class MainActivity : ComponentActivity() {
+    private val popupDetectorOpenRequests = mutableIntStateOf(0)
+
+    companion object {
+        const val EXTRA_OPEN_POPUP_DETECTOR = "com.superdenot.powerguard.extra.OPEN_POPUP_DETECTOR"
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_OPEN_POPUP_DETECTOR, false)) {
+            popupDetectorOpenRequests.intValue += 1
+            intent.removeExtra(EXTRA_OPEN_POPUP_DETECTOR)
+        }
+    }
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent?.getBooleanExtra(EXTRA_OPEN_POPUP_DETECTOR, false) == true) {
+            popupDetectorOpenRequests.intValue += 1
+            intent.removeExtra(EXTRA_OPEN_POPUP_DETECTOR)
+        }
         setContent {
             val vm: PowerGuardViewModel = viewModel()
             val themePackConfig by vm.themePackConfig.collectAsState()
             PowerGuardTheme(config = themePackConfig) {
                 val context = LocalContext.current
                 var currentTab by remember { mutableIntStateOf(0) }
+                val popupDetectorRequest = popupDetectorOpenRequests.intValue
+                LaunchedEffect(popupDetectorRequest) {
+                    if (popupDetectorRequest > 0) currentTab = 2
+                }
                 var headerLongPressInfo by remember { mutableStateOf<InfoLongPressContent?>(null) }
                 val setupPrefs = remember { context.getSharedPreferences("spg_initial_setup", 0) }
                 var showPermissionSetup by remember { mutableStateOf(!setupPrefs.getBoolean("completed", false)) }
@@ -207,7 +229,7 @@ class MainActivity : ComponentActivity() {
                     when (currentTab) {
                         0 -> SuperdDashboardScreen(vm, padding, isActive = !showPermissionSetup)
                         1 -> ChargingScreen(vm, padding)
-                        2 -> InsightsScreen(vm, padding)
+                        2 -> InsightsScreen(vm, padding, openPopupDetectorRequest = popupDetectorRequest)
                         3 -> HistoryScreen(vm, padding)
                         else -> SettingsScreen(vm, padding, onOpenPermissionSetup = { showPermissionSetup = true })
                     }

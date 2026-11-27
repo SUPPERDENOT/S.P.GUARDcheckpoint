@@ -579,7 +579,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 }
 
 @Composable
-fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
+fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues, openPopupDetectorRequest: Int = 0) {
     val health by vm.latestHealth.collectAsState()
     val healthSummary = remember(health) {
         health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
@@ -618,7 +618,13 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         Box(Modifier.weight(1f)) {
-            AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 1, visibleSubTabs = listOf(1, 2))
+            AnalyticsScreen(
+                viewModel = vm,
+                contentPadding = PaddingValues(0.dp),
+                initialSubTab = if (openPopupDetectorRequest > 0) 2 else 1,
+                visibleSubTabs = listOf(1, 2),
+                popupDetectorOpenRequest = openPopupDetectorRequest
+            )
         }
     }
     if (showLongPressInfo) {
