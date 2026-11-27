@@ -309,8 +309,9 @@ private fun PopupIncidentCard(
     var showIncidentInfo by remember { mutableStateOf(false) }
     val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
         initialValue = null,
-        key1 = incident.packageName,
-        key2 = incident.isSimulated
+        key1 = context,
+        key2 = incident.packageName,
+        key3 = incident.isSimulated
     ) {
         value = if (incident.isSimulated) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching {
