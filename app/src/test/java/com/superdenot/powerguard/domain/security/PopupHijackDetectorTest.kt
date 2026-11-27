@@ -169,6 +169,21 @@ class PopupHijackDetectorTest {
         assertEquals(PopupRiskStatus.SUSPICIOUS, incident.status)
     }
 
+    @Test fun launcherOpenedAppWithOnlyWeakInAppSignalsIsNotFlagged() {
+        val launcher = "com.example.home"
+        val recentInstall = now - 2L * 24L * 60L * 60L * 1000L
+        val result = PopupHijackDetector.evaluate(
+            listOf(event(launcher, now - 5_000), event(suspect, now - 1_000)),
+            mapOf(
+                launcher to AppPackageSignals(launcher, isHomeLauncher = true),
+                suspect to resolved(suspect, launcher = true, overlay = true, installAt = recentInstall)
+            ),
+            emptySet(),
+            now
+        )
+        assertTrue(result.isEmpty())
+    }
+
     private fun sandwichEvents(count: Int, intervalMs: Long): List<ScreenUsageEvent> {
         val output = mutableListOf<ScreenUsageEvent>()
         repeat(count) { index ->
