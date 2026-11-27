@@ -1,9 +1,6 @@
 package com.superdenot.powerguard.ui.analytics
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -47,6 +44,7 @@ import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
 import com.superdenot.powerguard.ui.components.InfoDialogSurface
+import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.viewmodel.PopupDetectorUiState
 import java.text.SimpleDateFormat
@@ -299,8 +297,8 @@ private fun PopupIncidentCard(
     }
     Card(
         modifier = Modifier.fillMaxWidth().infoLongPress(
-            onLongPress = {},
-            onClick = {}
+            onLongPress = { showIncidentInfo = true },
+            onClick = { showIncidentInfo = true }
         ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -379,7 +377,7 @@ private fun PopupIncidentCard(
         }
     }
     if (showIncidentInfo) {
-        com.superdenot.powerguard.ui.components.InfoLongPressDialog(
+        InfoLongPressDialog(
             title = popupDisplayName(context, incident),
             body = "Pola yang teramati berasal dari riwayat perpindahan aktivitas Android. Izin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.",
             onDismiss = { showIncidentInfo = false }
