@@ -908,6 +908,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
     val apps by viewModel.appUsageList.collectAsState()
+    var showLongPressInfo by remember { mutableStateOf(false) }
 
     LazyColumn(
         contentPadding = bottomScrollPadding,
@@ -925,6 +926,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
         if (!hasPerm) {
             item {
                 Card(
+                    modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = { showLongPressInfo = true }),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -955,9 +957,9 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
         } else {
             items(apps, key = { it.packageName }) { app ->
                 Card(
+                    modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = { showLongPressInfo = true }),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -967,11 +969,11 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val appDisplayName = remember(app.packageName) {
-                            runCatching {
+                            val systemLabel = runCatching {
                                 val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
                                 context.packageManager.getApplicationLabel(applicationInfo).toString()
-                                    .takeIf { it.isNotBlank() } ?: app.packageName
-                            }.getOrDefault(app.packageName)
+                            }.getOrNull()
+                            AppDisplayNameFormatter.format(app.packageName, systemLabel)
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(appDisplayName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -993,5 +995,12 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 }
             }
         }
+    }
+    if (showLongPressInfo) {
+        InfoLongPressDialog(
+            title = "Aktivitas Aplikasi",
+            body = "Nama utama berasal dari label PackageManager bila tersedia. Jika Android membatasi package visibility atau label tidak terbaca, SPG memakai formatter nama paket yang dikenal. Baris kedua selalu mempertahankan package name asli. Data penggunaan berasal dari Usage Access Android.",
+            onDismiss = { showLongPressInfo = false }
+        )
     }
 }
