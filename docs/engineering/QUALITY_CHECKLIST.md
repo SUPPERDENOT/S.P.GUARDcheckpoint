@@ -6,9 +6,8 @@
 - [x] `onTileAdded()` and `onStartListening()` refresh the icon before `updateTile()`; existing click/navigation behavior is preserved.
 - [x] No new permission or `QUERY_ALL_PACKAGES`; no Gradle/dependency/SDK/app version changes.
 - [x] Protected P0 boundaries (Room DB v3, sensor/sampling, calibration 1x, foreground battery monitoring, and `RECOVERY_HOLD`) remain outside the diff.
-- [ ] Exact-HEAD `testDebugUnitTest` — pending CI.
-- [ ] Exact-HEAD `assembleDebug` and APK upload — pending CI.
-- [ ] Exact-HEAD Anti-Slop UI Audit Gate and unit-test report upload — pending CI.
+- [x] GitHub Actions Run #856 SUCCESS on source HEAD `6825a43aacb93e913eebd63363703db629dca9ab`: `testDebugUnitTest` and `assembleDebug` completed successfully; Anti-Slop UI Audit Gate and both artifact uploads succeeded.
+- [x] Debug APK Artifact ID `15220856236`; unit-test report Artifact ID `15220451734`.
 - [ ] Physical Quick Settings icon rendering and cache refresh on itel P55 — NOT RUN.
 
 ## 2026-11-27 — PR #17 Calibration / Safe-List Polish
