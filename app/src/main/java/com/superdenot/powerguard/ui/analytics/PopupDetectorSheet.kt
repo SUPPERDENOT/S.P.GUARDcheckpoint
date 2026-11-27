@@ -63,6 +63,7 @@ internal fun PopupDetectorCard(
     val suspects = state.currentIncidents.take(3)
     val statusText = when {
         state.isScanning -> "Sedang memindai..."
+        state.simulationActive -> state.currentIncidents.size.toString() + " item Uji Simulasi"
         !state.hasUsagePermission -> "Akses Penggunaan belum aktif"
         !state.hasActivityData -> "Data aktivitas belum tersedia"
         state.currentIncidents.isEmpty() && state.archivedIncidents.isNotEmpty() -> "Tidak ada indikasi baru"
@@ -116,6 +117,12 @@ internal fun PopupDetectorCard(
             } else if (state.hasUsagePermission && !state.hasActivityData && !state.isScanning) {
                 Text(
                     "Belum ada riwayat perpindahan aktivitas yang dapat dinilai pada periode ini.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (!state.hasUsagePermission && state.simulationActive) {
+                Text(
+                    "Item yang tampil berasal dari simulasi. Aktifkan Akses Penggunaan untuk memindai aktivitas nyata.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -187,6 +194,7 @@ internal fun PopupDetectorSheet(
     ) {
         Text(
             when {
+                state.simulationActive -> "Mode Uji Simulasi aktif. Item contoh tidak berasal dari aktivitas perangkat."
                 !state.hasUsagePermission -> "Akses Penggunaan belum aktif. Pemindaian nyata belum tersedia."
                 state.isScanning -> "Sedang membaca jejak aktivitas aplikasi..."
                 !state.hasActivityData -> "Belum ada riwayat perpindahan aktivitas yang dapat dinilai."
