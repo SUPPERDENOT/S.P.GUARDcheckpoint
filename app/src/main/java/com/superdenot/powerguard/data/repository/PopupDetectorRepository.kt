@@ -49,7 +49,7 @@ internal class PopupDetectorRepository(context: Context) {
         val homePackage = resolveHomePackage()
         val keyboardPackage = Settings.Secure.getString(
             appContext.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
-        )?.let(android.content.ComponentName::unflattenFromString)?.packageName
+        )?.let { android.content.ComponentName.unflattenFromString(it)?.packageName }
         val dialerPackage = runCatching {
             (appContext.getSystemService(Context.TELECOM_SERVICE) as? TelecomManager)?.defaultDialerPackage
         }.getOrNull()

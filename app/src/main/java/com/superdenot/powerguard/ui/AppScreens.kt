@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
@@ -101,6 +102,7 @@ import com.superdenot.powerguard.ui.theme.InstrumentGraphite
 import com.superdenot.powerguard.service.LiveStatusBarRenderer
 import com.superdenot.powerguard.ui.components.ChargingThermalSummaryPanel
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
+import com.superdenot.powerguard.ui.viewmodel.PopupDetectorViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
@@ -580,6 +582,8 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues, openPopupDetectorRequest: Int = 0) {
+    val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
+    LaunchedEffect(Unit) { popupDetectorViewModel.scan() }
     val health by vm.latestHealth.collectAsState()
     val healthSummary = remember(health) {
         health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }

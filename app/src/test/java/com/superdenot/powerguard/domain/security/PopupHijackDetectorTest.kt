@@ -136,6 +136,39 @@ class PopupHijackDetectorTest {
         assertTrue(withoutSimulatedPopupIncidents(simulated).isEmpty())
     }
 
+    @Test fun keyguardHiddenIsAlsoAnUnlockSignal() {
+        val result = PopupHijackDetector.evaluate(
+            listOf(
+                event(appA, now - 20_000),
+                event(null, now - 2_000, ScreenUsageEventType.KEYGUARD_HIDDEN),
+                event(suspect, now - 500)
+            ), emptyMap(), emptySet(), now
+        )
+        assertTrue(PopupSignalReason.POST_UNLOCK_AMBUSH in result.single().reasons)
+    }
+
+    @Test fun launcherBetweenAppsPreventsScreenHijackTransitionScore() {
+        val launcher = "com.example.home"
+        val result = PopupHijackDetector.evaluate(
+            listOf(event(appA, now - 8_000), event(launcher, now - 4_000), event(suspect, now - 1_000)),
+            mapOf(
+                launcher to AppPackageSignals(launcher, isHomeLauncher = true),
+                suspect to resolved(suspect, overlay = true)
+            ),
+            emptySet(),
+            now
+        )
+        assertFalse(result.any { PopupSignalReason.SCREEN_HIJACKING in it.reasons })
+    }
+
+    @Test fun burstAverageGapAtFifteenMinutesIsIncluded() {
+        val incident = PopupHijackDetector.evaluate(
+            sandwichEvents(3, 15L * 60L * 1000L), emptyMap(), emptySet(), now
+        ).single()
+        assertTrue(PopupSignalReason.BURST_LOOP_3_PLUS in incident.reasons)
+        assertEquals(PopupRiskStatus.SUSPICIOUS, incident.status)
+    }
+
     private fun sandwichEvents(count: Int, intervalMs: Long): List<ScreenUsageEvent> {
         val output = mutableListOf<ScreenUsageEvent>()
         repeat(count) { index ->

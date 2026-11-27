@@ -1012,7 +1012,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
     if (showPopupDetectorInfo) {
         InfoLongPressDialog(
             title = "Detektor Pop-up & Pembajak Layar",
-            body = "Detektor membaca riwayat perpindahan aktivitas dan status layar Android selama 24 jam terakhir. Skor merupakan heuristik; Usage Events tidak membuktikan jendela overlay benar-benar tampil atau memastikan suatu aplikasi adalah malware. Pemindaian berjalan hanya saat tab ini dibuka, tombol Pindai Ulang digunakan, atau tile Cek Pop-up diketuk.",
+            body = "Detektor membaca riwayat perpindahan aktivitas dan status layar Android selama 24 jam terakhir. Skor merupakan heuristik; Riwayat aktivitas tidak membuktikan jendela overlay benar-benar tampil atau memastikan suatu aplikasi adalah malware. Pemindaian berjalan hanya saat tab ini dibuka, tombol Pindai Ulang digunakan, atau tile Cek Pop-up diketuk.",
             onDismiss = { showPopupDetectorInfo = false }
         )
     }
