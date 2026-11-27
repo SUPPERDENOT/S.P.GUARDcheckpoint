@@ -8,7 +8,7 @@
 - [x] Six theme palettes, Room DB v3/schema, sensor/sampling, calibration default 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number are outside the edited file set.
 - [x] Final diff review: PASS — compare against pre-change HEAD shows exactly the five requested source/test/documentation files; no unrelated or protected paths changed.
 - [x] Run #790 on implementation HEAD `6497bdcf763cd81b42ebc6462b4e888d4f851bb7`: `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, APK upload, and unit-test report upload all SUCCESS. APK Artifact ID `15175793190`; test report Artifact ID `15175683365`.
-- [ ] Exact final documentation-closeout HEAD CI: pending the workflow triggered by this documentation update.
+- [x] Exact documentation-closeout HEAD CI: PASS — Run #791 on HEAD `38ea30a91f2a401cdc931086bfec8121d6213495`; Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS.
 - [ ] Physical-device visual QA: NOT RUN.
 - [ ] PR #15 merge: HOLD — leave OPEN and do not enable auto-merge.
 
