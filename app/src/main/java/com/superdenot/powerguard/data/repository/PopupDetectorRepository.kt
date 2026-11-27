@@ -66,7 +66,13 @@ internal class PopupDetectorRepository(context: Context) {
             nowMs = nowMs
         )
         val archivePersisted = preferences.appendIncidents(incidents)
-        return PopupDetectorScanResult(true, events.isNotEmpty(), archivePersisted, incidents, nowMs)
+        return PopupDetectorScanResult(
+            hasUsagePermission = true,
+            hasActivityData = events.any { it.eventType == ScreenUsageEventType.ACTIVITY_RESUMED },
+            archivePersisted = archivePersisted,
+            incidents = incidents,
+            scannedAtMs = nowMs
+        )
     }
 
     fun archivedIncidents(): List<PopupIncident> = preferences.archivedIncidents()
