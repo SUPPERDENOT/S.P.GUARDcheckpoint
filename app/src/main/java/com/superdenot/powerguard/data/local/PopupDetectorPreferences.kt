@@ -8,6 +8,7 @@ import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
 import com.superdenot.powerguard.domain.security.addPopupSafePackage
 import com.superdenot.powerguard.domain.security.capPopupIncidentArchive
+import com.superdenot.powerguard.domain.security.sanitizePopupIncidentArchive
 
 internal class PopupDetectorPreferences(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
@@ -16,6 +17,15 @@ internal class PopupDetectorPreferences(context: Context) {
 
     fun markSafe(packageName: String): Boolean {
         val next = addPopupSafePackage(safePackages(), packageName)
+        val cleanedArchive = sanitizePopupIncidentArchive(archivedIncidents(), next)
+        return preferences.edit()
+            .putString(KEY_SAFE_PACKAGES, JSONArray(next.toList()).toString())
+            .putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleanedArchive))
+            .commit()
+    }
+
+    fun restoreSafePackage(packageName: String): Boolean {
+        val next = safePackages() - packageName
         return preferences.edit().putString(KEY_SAFE_PACKAGES, JSONArray(next.toList()).toString()).commit()
     }
 
@@ -24,7 +34,7 @@ internal class PopupDetectorPreferences(context: Context) {
     fun archivedIncidents(): List<PopupIncident> {
         val json = runCatching { JSONArray(preferences.getString(KEY_INCIDENT_ARCHIVE, "[]")) }.getOrNull()
             ?: return emptyList()
-        return buildList {
+        val parsed = buildList {
             for (index in 0 until json.length()) {
                 val item = json.optJSONObject(index) ?: continue
                 val reasons = item.optJSONArray("reasons") ?: JSONArray()
@@ -52,28 +62,31 @@ internal class PopupDetectorPreferences(context: Context) {
                 )
             }
         }
+        val cleaned = capPopupIncidentArchive(sanitizePopupIncidentArchive(parsed, safePackages()))
+        if (cleaned != parsed) preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleaned)).commit()
+        return cleaned
     }
 
     fun appendIncidents(incidents: List<PopupIncident>): Boolean {
         val newItems = incidents.filterNot { it.isSimulated }
         if (newItems.isEmpty()) return true
-        val merged = (archivedIncidents() + newItems)
-            .distinctBy { listOf(it.packageName, it.lastSeenAtMs.toString(), it.reasons.map { reason -> reason.name }.sorted().joinToString()).joinToString(":") }
-            .let(::capPopupIncidentArchive)
+        val merged = capPopupIncidentArchive(sanitizePopupIncidentArchive(archivedIncidents() + newItems, safePackages()))
+        return preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(merged)).commit()
+    }
+
+    private fun serializeArchive(incidents: List<PopupIncident>): String {
         val json = JSONArray()
-        merged.forEach { incident ->
+        incidents.forEach { incident ->
             val reasons = JSONArray().apply { incident.reasons.forEach { put(it.name) } }
             val times = JSONArray().apply { incident.eventTimesMs.forEach { put(it) } }
-            json.put(
-                JSONObject()
-                    .put("packageName", incident.packageName)
-                    .put("riskScore", incident.riskScore)
-                    .put("status", incident.status.name)
-                    .put("reasons", reasons)
-                    .put("times", times)
-            )
+            json.put(JSONObject()
+                .put("packageName", incident.packageName)
+                .put("riskScore", incident.riskScore)
+                .put("status", incident.status.name)
+                .put("reasons", reasons)
+                .put("times", times))
         }
-        return preferences.edit().putString(KEY_INCIDENT_ARCHIVE, json.toString()).commit()
+        return json.toString()
     }
 
     private fun readStringArray(key: String): Set<String> {

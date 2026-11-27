@@ -78,6 +78,7 @@ internal class PopupDetectorRepository(context: Context) {
     fun archivedIncidents(): List<PopupIncident> = preferences.archivedIncidents()
     fun safePackages(): Set<String> = preferences.safePackages()
     fun markSafe(packageName: String): Boolean = preferences.markSafe(packageName)
+    fun restoreSafePackage(packageName: String): Boolean = preferences.restoreSafePackage(packageName)
     fun restoreSafePackages(): Boolean = preferences.restoreSafePackages()
 
     private fun readUsageEvents(nowMs: Long): List<ScreenUsageEvent> {

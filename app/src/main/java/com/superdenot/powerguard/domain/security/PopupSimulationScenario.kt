@@ -5,6 +5,7 @@ internal object PopupSimulationScenario {
         val whatsapp = "com.whatsapp"
         val popup = "com.superd.simulated.popup"
         val redirect = "com.superd.simulated.redirect"
+        val review = "com.superd.simulated.review"
         val chrome = "com.android.chrome"
         val twoMinutes = 2L * 60L * 1000L
         val events = mutableListOf<ScreenUsageEvent>()
@@ -15,6 +16,8 @@ internal object PopupSimulationScenario {
             events += ScreenUsageEvent(popup, ScreenUsageEventType.ACTIVITY_RESUMED, at + 2_000)
             events += ScreenUsageEvent(whatsapp, ScreenUsageEventType.ACTIVITY_RESUMED, at + 7_000)
         }
+        events += ScreenUsageEvent(null, ScreenUsageEventType.SCREEN_INTERACTIVE, nowMs - 2_000L)
+        events += ScreenUsageEvent(review, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 500L)
         val redirectAt = nowMs - 60_000L
         events += ScreenUsageEvent(whatsapp, ScreenUsageEventType.ACTIVITY_RESUMED, redirectAt)
         events += ScreenUsageEvent(redirect, ScreenUsageEventType.ACTIVITY_RESUMED, redirectAt + 1_000)
@@ -22,6 +25,11 @@ internal object PopupSimulationScenario {
         val signals = mapOf(
             popup to AppPackageSignals(
                 packageName = popup, isMetadataResolved = true, hasLauncherActivity = false,
+                firstInstallTimeMs = nowMs - 2L * 24L * 60L * 60L * 1000L,
+                hasOverlayPermission = true
+            ),
+            review to AppPackageSignals(
+                packageName = review, isMetadataResolved = true, hasLauncherActivity = true,
                 firstInstallTimeMs = nowMs - 2L * 24L * 60L * 60L * 1000L,
                 hasOverlayPermission = true
             ),

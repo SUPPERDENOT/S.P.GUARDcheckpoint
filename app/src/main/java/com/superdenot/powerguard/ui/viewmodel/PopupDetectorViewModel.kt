@@ -46,7 +46,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
             _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
             try {
                 val result = withContext(Dispatchers.IO) { repository.scan() }
-                latestActualIncidents = result.incidents
+                latestActualIncidents = result.incidents.distinctBy { it.packageName }
                 val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                 val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                 _uiState.update {
@@ -81,7 +81,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         val simulated = PopupSimulationScenario.evaluate(System.currentTimeMillis())
         _uiState.update {
             it.copy(
-                currentIncidents = latestActualIncidents + simulated,
+                currentIncidents = (latestActualIncidents + simulated).distinctBy { it.packageName },
                 simulationActive = true,
                 errorMessage = null
             )
@@ -106,12 +106,26 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
             }
             return
         }
+        latestActualIncidents = latestActualIncidents.filterNot { it.packageName == incident.packageName }
+        _uiState.update { state ->
+            state.copy(
+                currentIncidents = state.currentIncidents.filterNot { it.packageName == incident.packageName },
+                archivedIncidents = state.archivedIncidents.filterNot { it.packageName == incident.packageName },
+                safePackages = state.safePackages + incident.packageName,
+                errorMessage = null,
+                simulationActive = false
+            )
+        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
+            _uiState.update { it.copy(isScanning = true) }
             try {
                 val (safeListSaved, result) = withContext(Dispatchers.IO) {
                     val saved = repository.markSafe(incident.packageName)
-                    saved to repository.scan()
+                    saved to if (saved) repository.scan() else null
+                }
+                if (result == null) {
+                    _uiState.update { it.copy(isScanning = false, errorMessage = "Aplikasi belum berhasil ditambahkan ke daftar aman.") }
+                    return@launch
                 }
                 latestActualIncidents = result.incidents
                 val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
@@ -140,6 +154,20 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     it.copy(isScanning = false, errorMessage = "Daftar aman gagal diperbarui.")
                 }
             }
+        }
+    }
+
+    fun restoreSafePackage(packageName: String) {
+        viewModelScope.launch {
+            val restored = withContext(Dispatchers.IO) { repository.restoreSafePackage(packageName) }
+            val safe = withContext(Dispatchers.IO) { repository.safePackages() }
+            _uiState.update {
+                it.copy(
+                    safePackages = safe,
+                    errorMessage = if (restored) null else "Aplikasi belum berhasil dipulihkan dari daftar aman."
+                )
+            }
+            if (restored) scan()
         }
     }
 

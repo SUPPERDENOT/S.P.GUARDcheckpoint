@@ -32,8 +32,8 @@ enum class PopupSignalReason(val points: Int, val userLabel: String) {
     BROWSER_REDIRECT_CHAIN(30, "Muncul sebelum aplikasi membuka browser"),
     POST_UNLOCK_AMBUSH(25, "Muncul segera setelah layar dibuka"),
     SANDWICH_LOOP(20, "Muncul singkat lalu kembali ke aplikasi sebelumnya"),
-    BURST_LOOP_2(25, "Muncul berulang sedikitnya 2 kali dalam 45 menit"),
-    BURST_LOOP_3_PLUS(45, "Muncul berulang sedikitnya 3 kali dalam 45 menit"),
+    BURST_LOOP_2(25, "Siklus berulang dalam 45 menit"),
+    BURST_LOOP_3_PLUS(45, "Siklus berulang dalam 45 menit"),
     NO_LAUNCHER_ICON(30, "Tidak memiliki ikon menu aplikasi"),
     RECENT_INSTALL(15, "Baru dipasang dalam 14 hari terakhir"),
     OVERLAY_PERMISSION(15, "Memiliki izin tampil di atas aplikasi lain")
@@ -53,6 +53,16 @@ internal const val POPUP_LOOKBACK_MS = 24L * 60L * 60L * 1000L
 internal const val POPUP_BURST_WINDOW_MS = 45L * 60L * 1000L
 internal const val POPUP_MAX_AVERAGE_GAP_MS = 15L * 60L * 1000L
 internal const val POPUP_RECENT_INSTALL_MS = 14L * 24L * 60L * 60L * 1000L
+internal const val POPUP_NEEDS_CHECK_THRESHOLD = 45
+internal const val POPUP_SUSPICIOUS_THRESHOLD = 75
+private val POPUP_ALWAYS_EXCLUDED_PACKAGES = setOf(
+    "com.transsion.itel.launcher", "com.transsion.hilauncher", "com.transsion.XOSLauncher",
+    "com.transsion.resolver", "com.transsion.screencapture", "com.transsion.camera",
+    "com.transsion.applock", "com.transsion.filemanagerx",
+    "com.google.android.providers.media.module", "com.google.android.documentsui",
+    "com.android.documentsui", "com.google.android.gms", "com.android.vending",
+    "com.google.android.googlequicksearchbox"
+)
 
 object PopupHijackDetector {
     fun evaluate(
@@ -75,8 +85,23 @@ object PopupHijackDetector {
 
         fun signals(packageName: String) =
             appSignals[packageName] ?: AppPackageSignals(packageName = packageName)
-        fun isExcluded(packageName: String) = packageName in safePackages || signals(packageName).isExcluded
+        fun isExplicitlyExcluded(packageName: String) =
+            packageName in POPUP_ALWAYS_EXCLUDED_PACKAGES || packageName.contains("photopicker", ignoreCase = true)
+        fun isExcluded(packageName: String, allowSystemBrowserRedirect: Boolean = false): Boolean {
+            val metadata = signals(packageName)
+            return packageName in safePackages || metadata.isExcluded || isExplicitlyExcluded(packageName) ||
+                (metadata.isSystemApp && !allowSystemBrowserRedirect)
+        }
         fun isLauncher(packageName: String?) = packageName != null && signals(packageName).isHomeLauncher
+        fun isLiteralBrowserRedirect(index: Int, packageName: String): Boolean {
+            val previous = activityEvents.getOrNull(index - 1)
+            val current = activityEvents.getOrNull(index)
+            val next = activityEvents.getOrNull(index + 1)
+            return current?.packageName == packageName && previous?.packageName != null &&
+                previous.packageName != packageName && next?.packageName != null &&
+                signals(next.packageName!!).isBrowser &&
+                next.timestampMs - current.timestampMs in 0 until 5_000L
+        }
         fun hasSuspiciousStaticSignal(packageName: String): Boolean {
             val metadata = signals(packageName)
             return metadata.isMetadataResolved && !metadata.isSystemApp &&
@@ -86,15 +111,20 @@ object PopupHijackDetector {
 
         val reasonsByPackage = linkedMapOf<String, MutableSet<PopupSignalReason>>()
         val timesByPackage = linkedMapOf<String, MutableSet<Long>>()
-        fun record(packageName: String, reason: PopupSignalReason, at: Long) {
-            if (isExcluded(packageName)) return
+        fun record(packageName: String, reason: PopupSignalReason, at: Long, allowSystemBrowserRedirect: Boolean = false) {
+            if (isExcluded(packageName, allowSystemBrowserRedirect) &&
+                !(allowSystemBrowserRedirect && signals(packageName).isSystemApp && !isExplicitlyExcluded(packageName))
+            ) return
             reasonsByPackage.getOrPut(packageName) { linkedSetOf() } += reason
             timesByPackage.getOrPut(packageName) { linkedSetOf() } += at
         }
 
         activityEvents.forEachIndexed { index, current ->
             val packageName = current.packageName ?: return@forEachIndexed
-            if (isExcluded(packageName)) return@forEachIndexed
+            val literalBrowserRedirect = isLiteralBrowserRedirect(index, packageName)
+            if (isExcluded(packageName, allowSystemBrowserRedirect = literalBrowserRedirect) &&
+                !(literalBrowserRedirect && signals(packageName).isSystemApp && !isExplicitlyExcluded(packageName))
+            ) return@forEachIndexed
             val previous = activityEvents.getOrNull(index - 1)
             val next = activityEvents.getOrNull(index + 1)
             val metadata = signals(packageName)
@@ -107,7 +137,10 @@ object PopupHijackDetector {
                 next.packageName != packageName && !isLauncher(previous.packageName) &&
                 signals(next.packageName.orEmpty()).isBrowser &&
                 next.timestampMs - current.timestampMs in 0 until 5_000L
-            ) record(packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs)
+            ) record(
+                packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs,
+                allowSystemBrowserRedirect = true
+            )
 
             if (previous != null && next != null && previous.packageName == next.packageName &&
                 previous.packageName != packageName && next.timestampMs - current.timestampMs in 1_000L..15_000L
@@ -125,28 +158,35 @@ object PopupHijackDetector {
         val interruptions = activityEvents.mapIndexedNotNull { index, event ->
             val pkg = event.packageName ?: return@mapIndexedNotNull null
             val previous = activityEvents.getOrNull(index - 1)
+            val literalBrowserRedirect = isLiteralBrowserRedirect(index, pkg)
             if (previous == null || previous.packageName == pkg || isLauncher(previous.packageName) ||
-                isExcluded(pkg) || (!hasSuspiciousStaticSignal(pkg) && reasonsByPackage[pkg].isNullOrEmpty())
+                (isExcluded(pkg, allowSystemBrowserRedirect = literalBrowserRedirect) &&
+                    !(literalBrowserRedirect && signals(pkg).isSystemApp && !isExplicitlyExcluded(pkg))) ||
+                (!hasSuspiciousStaticSignal(pkg) && reasonsByPackage[pkg].isNullOrEmpty())
             ) null else pkg to event.timestampMs
         }.groupBy({ it.first }, { it.second })
 
         interruptions.forEach { (pkg, rawTimes) ->
             val times = rawTimes.distinct().sorted()
-            var bestWindow = emptyList<Long>()
-            var start = 0
+            var bestValidWindow = emptyList<Long>()
             for (end in times.indices) {
-                while (times[end] - times[start] > POPUP_BURST_WINDOW_MS) start++
-                val window = times.subList(start, end + 1)
-                if (window.size > bestWindow.size) bestWindow = window.toList()
-            }
-            if (bestWindow.size >= 2) {
-                val totalGap = bestWindow.last() - bestWindow.first()
-                val maxAllowedTotalGap = POPUP_MAX_AVERAGE_GAP_MS * (bestWindow.size - 1)
-                if (totalGap <= maxAllowedTotalGap) {
-                    val reason = if (bestWindow.size >= 3) PopupSignalReason.BURST_LOOP_3_PLUS
-                        else PopupSignalReason.BURST_LOOP_2
-                    bestWindow.forEach { record(pkg, reason, it) }
+                var start = end
+                while (start >= 0 && times[end] - times[start] <= POPUP_BURST_WINDOW_MS) {
+                    val window = times.subList(start, end + 1)
+                    if (window.size >= 2) {
+                        val totalGap = window.last() - window.first()
+                        val averageGap = totalGap.toDouble() / (window.size - 1)
+                        if (averageGap <= POPUP_MAX_AVERAGE_GAP_MS && window.size > bestValidWindow.size) {
+                            bestValidWindow = window.toList()
+                        }
+                    }
+                    start--
                 }
+            }
+            if (bestValidWindow.size >= 2) {
+                val reason = if (bestValidWindow.size >= 3) PopupSignalReason.BURST_LOOP_3_PLUS
+                    else PopupSignalReason.BURST_LOOP_2
+                bestValidWindow.forEach { record(pkg, reason, it) }
             }
         }
 
@@ -177,12 +217,11 @@ object PopupHijackDetector {
 
         return reasonsByPackage.mapNotNull { (pkg, reasons) ->
             val score = reasons.sumOf { it.points }.coerceIn(0, 100)
-            val burst3 = PopupSignalReason.BURST_LOOP_3_PLUS in reasons
-            if (score < 20) return@mapNotNull null
+            if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
             PopupIncident(
                 packageName = pkg,
                 riskScore = score,
-                status = if (burst3 || score >= 60) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_CHECK,
+                status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_CHECK,
                 reasons = reasons.toList().sortedByDescending { it.points },
                 eventTimesMs = timesByPackage[pkg].orEmpty().toList().sorted(),
                 isSimulated = isSimulated
@@ -205,5 +244,46 @@ internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set
 internal fun restorePopupSafePackages(): Set<String> = emptySet()
 internal fun capPopupIncidentArchive(incidents: List<PopupIncident>): List<PopupIncident> =
     incidents.takeLast(30)
+internal fun withoutSimulatedPopupIncidents(incidents: List<PopupIncident>): List<PopupIncident> =
+    incidents.filterNot { it.isSimulated }
+
+
+internal fun isPopupAlwaysExcludedPackage(packageName: String): Boolean =
+    packageName in POPUP_ALWAYS_EXCLUDED_PACKAGES || packageName.contains("photopicker", ignoreCase = true)
+
+internal fun sanitizePopupIncidentArchive(
+    incidents: List<PopupIncident>,
+    safePackages: Set<String>
+): List<PopupIncident> {
+    val cleaned = incidents.mapNotNull { incident ->
+        if (incident.packageName in safePackages || isPopupAlwaysExcludedPackage(incident.packageName)) return@mapNotNull null
+        val reasons = incident.reasons.toMutableSet()
+        val burstReasons = setOf(PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS)
+        if (reasons.any { it in burstReasons }) {
+            val times = incident.eventTimesMs.distinct().sorted()
+            val validBurst = times.size >= 2 &&
+                times.last() - times.first() <= POPUP_BURST_WINDOW_MS &&
+                (times.last() - times.first()).toDouble() / (times.size - 1) <= POPUP_MAX_AVERAGE_GAP_MS
+            if (!validBurst) reasons.removeAll(burstReasons)
+        }
+        val score = reasons.sumOf { it.points }.coerceIn(0, 100)
+        if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
+        incident.copy(
+            riskScore = score,
+            status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_CHECK,
+            reasons = reasons.toList().sortedByDescending { it.points }
+        )
+    }
+    return cleaned.groupBy { it.packageName }
+        .mapNotNull { (_, duplicates) -> duplicates.maxByOrNull { it.lastSeenAtMs } }
+        .sortedBy { it.lastSeenAtMs }
+}
+
+internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set<String> {
+    val normalized = packageName.trim()
+    return if (normalized.isEmpty()) current else current + normalized
+}
+internal fun restorePopupSafePackages(): Set<String> = emptySet()
+internal fun capPopupIncidentArchive(incidents: List<PopupIncident>): List<PopupIncident> = incidents.takeLast(30)
 internal fun withoutSimulatedPopupIncidents(incidents: List<PopupIncident>): List<PopupIncident> =
     incidents.filterNot { it.isSimulated }
