@@ -1,3 +1,24 @@
+## 2026-11-27 — Wave gauge harmonic surface and liquid depth calibration
+
+### Changed
+- Replaced the fractional 1.6-cycle surface with a normalized two-harmonic profile: 0.82 × sin(angle + phase) + 0.18 × sin(2 × angle − phase + 45°). Both harmonics are integer multiples, so the profile is periodic at the 0°/360° boundary.
+- Set front amplitude to 2.8% of the gauge diameter, capped at 4dp. A shared smoothstep envelope is zero at/below 2% and at/above 98%, and reaches full strength from 12% through 88%; it scales front/rear amplitude and rear-layer elevation.
+- Set the rear layer to 0.78x front amplitude, reverse phase with a 135° offset, and 2.4dp maximum elevation.
+- Set rear fill/crest to accent alpha 0.30/0.25 with a 0.75dp crest stroke. The front liquid now uses an accent gradient from alpha 0.95 at the surface to 0.76 at the bottom.
+- Made the 1.2dp front meniscus luminance-adaptive: bright accents use full-opacity accent; darker accents use an 18% white blend at alpha 0.90.
+
+### Tests
+- Added coverage for new amplitude/elevation constants, the 4dp cap, smoothstep endpoints and midpoint, harmonic normalization and 0°/360° continuity, reverse rear phase, layer colors, and dark/bright meniscus selection.
+
+### Verification
+- Source and test implementation: updated on PR #15 branch; exact-head CI result and artifact IDs will be recorded after the final workflow completes.
+- Physical-device visual QA: NOT RUN — the CI build does not establish the liquid rendering appearance on device.
+
+### Protected boundaries
+- No six-theme palette, Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+
+---
+
 ## 2026-11-27 — Wave gauge back-surface depth polish
 
 ### Changed
