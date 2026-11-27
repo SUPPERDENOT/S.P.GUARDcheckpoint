@@ -924,9 +924,6 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
     var showPopupDetectorInfo by remember { mutableStateOf(false) }
     var showPopupDetectorSheet by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        popupDetectorViewModel.scan()
-    }
     LaunchedEffect(popupDetectorOpenRequest) {
         if (popupDetectorOpenRequest > 0) {
             showPopupDetectorSheet = true
