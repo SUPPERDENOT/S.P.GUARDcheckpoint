@@ -1,3 +1,26 @@
+## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
+
+### Changed
+- Reworked Overview into a compact primary gauge row, a two-column/four-metric grid, and single-line SOH/System Readiness summary bars. Kept the outer vertical scroll as a font-scale safety fallback.
+- Added haptic combinedClickable long-press explanations using the shared InfoDialogSurface visual wrapper. The SOH and readiness summary bars also open details on tap.
+- Added compact ETA, session peak-current, source-capability profile, cell-condition, SOH summary, and readiness formatters. Idle/discharging ETA remains "Estimasi aktif" because the current model does not expose a validated discharge-time estimate. Source capability is shown only from existing Android/sysfs detector labels; no unsupported exact adapter wattage is inferred. Cell summary uses available SOH and temperature only; no separate CS metric or calibrated-state claim is invented.
+- Replaced long visible SOH/thermal/Status Bar notes with contextual dialogs; reduced thermal distribution to one line. Removed the repeated per-session curve instruction and duplicate daily-cycle detail card; selected dates now highlight the corresponding rollup with "Dipilih".
+- App activity now prefers PackageManager.getApplicationLabel() and falls back to known human-readable package labels while retaining the original package name as the subtitle.
+- Added conditional 12dp bottom fades to the Charge Guard and application Info scroll dialogs.
+
+### Tests
+- Added idle/charging presentation tests for the four Overview metrics, SOH/readiness summaries, and 360dp two-column grid width.
+- Added application-label fallback tests, compact history header/selected-rollup tests, and long-press dialog surface-token coverage.
+
+### Verification
+- Source-level responsive crosscheck: 360dp width budget gives 158dp per metric cell after 18dp side gutters and an 8dp inter-column gap. Physical-device QA is pending.
+- CI on the exact final PR #16 HEAD: pending; record the final workflow run and APK Artifact ID in the PR description after all required gates succeed.
+
+### Protected boundaries
+- AndroidManifest (including package visibility), Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number remain unchanged.
+
+---
+
 ## 2026-11-27 — Wave gauge sweet-spot tuning
 
 ### Changed

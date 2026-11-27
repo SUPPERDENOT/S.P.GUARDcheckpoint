@@ -1,3 +1,20 @@
+## 2026-11-27 — Compact Overview, long-press explanations, and tab polish
+
+- [x] Scope limited to Overview presentation, contextual long-press explanations, app-label formatting, tab copy/layout polish, focused tests, and required documentation.
+- [x] Overview uses one primary gauge/metric row, a two-column grid of four metric summaries, and two one-line detail rows; outer vertical scrolling remains enabled.
+- [x] 360dp horizontal geometry crosscheck: 360dp - 36dp side gutters - 8dp column gap = 316dp content width; each grid cell receives 158dp.
+- [x] Idle/discharging ETA does not invent a remaining-time estimate; source capability displays existing detector metadata only; no exact adapter maximum is inferred; cell condition uses SOH/temperature only and does not claim an unavailable CS metric or calibrated state.
+- [x] Long-press interactions use combinedClickable and HapticFeedbackType.LongPress; SOH/System Readiness rows open detail dialogs on tap and long-press.
+- [x] App usage labels use PackageManager.getApplicationLabel() with known package-name fallback; original package name remains visible as the subtitle; no package-visibility manifest permission added.
+- [x] Long visible notes and repeated history instructions removed; daily chart selection highlights its matching rollup instead of rendering a duplicate detail card.
+- [x] Dialog scroll fades use a conditional 12dp gradient; new surfaces use MaterialTheme.colorScheme tokens and contain no emoji or hardcoded hex colors.
+- [x] Protected boundaries unchanged: AndroidManifest, Room DB v3/schema, sensor/sampling, default calibration 1x, foreground monitoring P0/lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, and build number.
+- [ ] Automated tests and Anti-Slop UI Audit Gate: pending exact final PR #16 HEAD CI.
+- [ ] Physical-device visual QA at 360dp / 720p: pending; source geometry crosscheck is not a substitute for device testing.
+- [ ] PR #16 merge: HOLD — leave OPEN and do not enable auto-merge.
+
+---
+
 ## 2026-11-27 — Wave gauge sweet-spot tuning
 
 - [x] Scope limited to the four Wave calibration constants, focused Wave unit-test assertions, and required engineering documentation.
