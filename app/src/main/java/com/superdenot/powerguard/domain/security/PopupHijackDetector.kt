@@ -176,8 +176,10 @@ object PopupHijackDetector {
         firstInstallTimeMs != null && firstInstallTimeMs in (nowMs - POPUP_RECENT_INSTALL_MS)..nowMs
 }
 
-internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set<String> =
-    current + packageName.trim().takeIf { it.isNotEmpty() }.orEmpty()
+internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set<String> {
+    val normalized = packageName.trim()
+    return if (normalized.isEmpty()) current else current + normalized
+}
 internal fun restorePopupSafePackages(): Set<String> = emptySet()
 internal fun capPopupIncidentArchive(incidents: List<PopupIncident>): List<PopupIncident> =
     incidents.takeLast(30)

@@ -58,7 +58,8 @@ internal fun PopupDetectorCard(
     state: PopupDetectorUiState,
     onOpenTimeline: () -> Unit,
     onRescan: () -> Unit,
-    onInfo: () -> Unit
+    onInfo: () -> Unit,
+    onOpenUsageSettings: () -> Unit
 ) {
     val suspects = state.currentIncidents.take(3)
     val statusText = when {
@@ -124,6 +125,10 @@ internal fun PopupDetectorCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                OutlinedButton(
+                    onClick = onOpenUsageSettings,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                ) { Text("Buka Akses Penggunaan", maxLines = 1) }
             }
             state.errorMessage?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -143,7 +148,7 @@ internal fun PopupDetectorCard(
                 }
                 Button(
                     onClick = onRescan,
-                    enabled = !state.isScanning && state.hasUsagePermission,
+                    enabled = !state.isScanning,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
@@ -286,6 +291,7 @@ private fun PopupIncidentCard(
     onMarkSafe: () -> Unit
 ) {
     val context = LocalContext.current
+    var showIncidentInfo by remember { mutableStateOf(false) }
     val bitmap = remember(context, incident.packageName, incident.isSimulated) {
         if (incident.isSimulated) null else runCatching {
             context.packageManager.getApplicationIcon(incident.packageName).toBitmap().asImageBitmap()
@@ -371,6 +377,13 @@ private fun PopupIncidentCard(
                 }
             }
         }
+    }
+    if (showIncidentInfo) {
+        com.superdenot.powerguard.ui.components.InfoLongPressDialog(
+            title = popupDisplayName(context, incident),
+            body = "Pola yang teramati berasal dari riwayat perpindahan aktivitas Android. Izin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.",
+            onDismiss = { showIncidentInfo = false }
+        )
     }
 }
 

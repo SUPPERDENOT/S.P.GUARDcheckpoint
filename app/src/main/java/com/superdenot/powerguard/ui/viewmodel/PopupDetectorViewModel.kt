@@ -27,7 +27,7 @@ internal data class PopupDetectorUiState(
     val simulationActive: Boolean = false
 )
 
-class PopupDetectorViewModel(application: Application) : AndroidViewModel(application) {
+internal class PopupDetectorViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PopupDetectorRepository(application)
     private val _uiState = MutableStateFlow(
         PopupDetectorUiState(
@@ -46,13 +46,15 @@ class PopupDetectorViewModel(application: Application) : AndroidViewModel(applic
             try {
                 val result = withContext(Dispatchers.IO) { repository.scan() }
                 latestActualIncidents = result.incidents
+                val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
+                val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                 _uiState.update {
                     it.copy(
                         isScanning = false,
                         hasUsagePermission = result.hasUsagePermission,
                         currentIncidents = result.incidents,
-                        archivedIncidents = withContext(Dispatchers.IO) { repository.archivedIncidents() },
-                        safePackages = withContext(Dispatchers.IO) { repository.safePackages() },
+                        archivedIncidents = archive,
+                        safePackages = safe,
                         lastScanAtMs = result.scannedAtMs,
                         simulationActive = false
                     )
