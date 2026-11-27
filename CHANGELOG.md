@@ -9,7 +9,10 @@
 ### Tests and verification
 - Added regression tests for live peak current when no persisted sample exists, maximum selection across persisted/live/in-memory values, and the Google package fallback.
 - Added unit tests for the shared long-press explanation content used by the Status Bar Indicator card and header status pill. Interaction wiring (combinedClickable + HapticFeedbackType.LongPress) is source-reviewed through the shared modifier.
-- Android unit tests, debug build, Anti-Slop UI Audit Gate, and APK artifact upload: PENDING — run after this commit.
+- Android unit tests and debug build: PASS — GitHub Actions Run #817, exact source HEAD `d42f9e12a8b96e5d5da2a73458a639ada2eb0186`; `testDebugUnitTest` and `assembleDebug` completed with `BUILD SUCCESSFUL`.
+- Anti-Slop UI Audit Gate: PASS — Run #817.
+- Debug APK artifact: PASS — ID `15193268756`; unit-test report artifact: PASS — ID `15192759388`.
+- Workflow Run #817: https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/45990237369
 - Physical-device interaction and display QA on itel P55: NOT RUN.
 
 ### Protected boundaries
