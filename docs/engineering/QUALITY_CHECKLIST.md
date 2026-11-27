@@ -11,7 +11,9 @@
 ### Verification and protected boundaries
 - [x] Diff scope limited to Wave gauge geometry/rendering, focused tests, and required documentation.
 - [x] Room DB v3, sensor/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, and build number are untouched.
-- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending PR #15 CI.
+- [x] Run #781 source/test result: Anti-Slop UI Audit Gate SUCCESS; `:app:assembleDebug` SUCCESS; 393 unit tests executed with 1 failure caused by exact float comparison against RGBA8-quantized Compose Color alpha. The two alpha assertions now use bounded tolerances; exact packed-color equality assertions remain.
+- [x] Unit-test report artifact from Run #781 uploaded: `15166528990`; APK upload skipped because `testDebugUnitTest` failed.
+- [ ] Exact-final-HEAD Anti-Slop UI Audit Gate, `:app:testDebugUnitTest`, `:app:assembleDebug`, and Upload APK: pending rerun after the test correction.
 - [ ] Physical-device visual QA: NOT RUN.
 - [ ] PR #15 merge: HOLD — remain OPEN and unmerged as requested.
 
