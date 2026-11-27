@@ -1,3 +1,34 @@
+## 2026-11-27 — PR #17 On-Demand Popup Detector (verification in progress)
+
+- [x] Base verified: branch `feat/on-demand-popup-detector` created from exact `main` HEAD `9c88a8c5d9b30a86b415375152015c83122b9a12`; branch is 0 commits behind base.
+- [x] Required repository docs read: `AGENTS.md`, Development Standards, Quality Checklist, `DESIGN.md`, Anti-Slop Policy, Android Engineering Guide, Android Skills Index, and ChatGPT Workflow.
+- [x] Relevant supplied source skills reviewed: `android-dev`, `android-testing`, `android-ux`, Compose, and Anti-Slop UI / human guidance.
+- [x] Existing CI inspected: `.github/workflows/android-ci.yml` runs the existing `Anti-Slop UI Audit Gate` via `bash scripts/ui-audit.sh`; no duplicate workflow or script added.
+- [x] Pure Kotlin detector separated from Android UsageStatsManager / PackageManager adapter.
+- [x] Six heuristic groups implemented with score cap 0–100; burst 2x and 3x+ behavior is distinct, with a 15-minute average-gap boundary test.
+- [x] False-positive exclusions include browser packages, document/media pickers, active HOME launcher, active IME, installer, permission controller, SystemUI, dialer, Settings, self package, and user whitelist.
+- [x] No-launcher-icon scoring is gated on successfully resolved package metadata and non-system status.
+- [x] SharedPreferences JSON safe list and 30-item non-simulated incident archive implemented; Robolectric persistence tests added.
+- [x] Simulation scenario is in-memory and excluded from persistent archive.
+- [x] Quick Settings service uses the required binding permission, exported=true, API 34 PendingIntent path and pre-34 fallback; MainActivity handles the extra in onCreate and onNewIntent.
+- [x] Manifest review: only the PopupCheckTileService component was added; no QUERY_ALL_PACKAGES or new uses-permission declaration.
+- [x] Gradle review: compileSdk remains 35; no dependency or Gradle configuration change.
+- [x] Protected-area source scope review: Room schema, sensor/sampling engine, calibration defaults, BatteryMonitorService lifecycle, RECOVERY_HOLD, and app identity files are not part of the intended diff.
+- [ ] Run `:app:testDebugUnitTest` and `:app:assembleDebug` on exact final branch HEAD — pending CI.
+- [ ] Anti-Slop UI Audit Gate — pending CI.
+- [ ] Review exact final diff and workflow output — pending.
+- [ ] Physical layout / interaction check on itel P55 at 360dp / 720p — NOT RUN.
+- [ ] Quick Settings tile runtime verification on physical device — NOT RUN.
+
+### UI self-crosscheck (source-level only)
+- [x] New UI uses Material 3 color-scheme tokens; no literal hex color or emoji added.
+- [x] Timeline reuses InfoDialogSurface (surfaceContainerHigh, 20dp radius, outlineVariant border, zero tonal elevation, existing 12dp scroll fade).
+- [x] Detector card and suspect rows use the existing combinedClickable long-press helper with haptic feedback.
+- [x] Main actions and per-suspect actions use weighted one-row buttons with single-line ellipsis.
+- [x] Loading, no-permission, no-activity-data, clean-scan, incident, simulation, and error states are represented.
+- [ ] Actual 360dp / 720p visual and touch-target behavior — NOT RUN.
+
+
 ## 2026-11-27 — PR #16 focused polish follow-up
 
 - [x] Baseline verified: PR #16 OPEN / UNMERGED; branch feat/compact-overview-and-longpress-info at parent 5225e8a8bc09314afc2446014909fc260d77fa1e; base remains 97a2710ce61f4842f45ad8663ba0f64b0e5d750c.

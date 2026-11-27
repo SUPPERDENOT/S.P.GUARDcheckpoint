@@ -1,3 +1,25 @@
+## 2026-11-27 — PR #17 On-Demand Popup & Screen-Interruption Detector
+
+### Added
+- Added a pure Kotlin evaluator for 24-hour Usage Events input, package metadata signals, whitelist filtering, 0–100 risk scoring, and ordered incident results.
+- Added six heuristic families: suspicious app-to-app interruption, suspect-to-browser redirect chain, post-unlock appearance, short A → suspect → A loop, repeated interruption bursts, and resolved package metadata signals (no launcher activity, recent install, overlay AppOp).
+- Burst scoring distinguishes 2 interruptions (+25, at least Perlu Dicek) from 3 or more (+45, forced Mencurigakan), within a rolling 45-minute window and average gap up to 15 minutes.
+- Added Android adapter for UsageStatsManager, PackageManager browser discovery with popular-browser fallbacks, launcher/IME/system-app exclusions, install-time lookup, and overlay AppOp inspection. Unresolved package metadata does not produce a no-launcher-icon claim.
+- Added SharedPreferences JSON storage for a manual safe list and a reboot-persistent archive capped at 30 non-simulated incidents.
+- Added the detector card and timeline to Analisis → Aktivitas Aplikasi, package icons with vector fallback, app-info navigation, safe-list actions, Usage Access guidance, and simulation controls.
+- Added an on-demand Quick Settings tile labelled Cek Pop-up. It opens MainActivity directly into the detector timeline and returns to Tile.STATE_INACTIVE.
+- Added pure JUnit4 detector coverage and Robolectric persistence tests using existing test dependencies.
+
+### Guardrails and limitations
+- The evaluator runs only when the Analisis screen is entered, the tile opens the detector, or the user requests another scan. No detector service, worker, polling loop, new dependency, Room migration, or new runtime permission was added.
+- AndroidManifest.xml only registers PopupCheckTileService with BIND_QUICK_SETTINGS_TILE and exported=true; QUERY_ALL_PACKAGES and additional uses-permission entries were not added.
+- Usage Events record activity transitions and screen/keyguard state; they do not prove that an overlay window was actually displayed or that an app is malware. Results are heuristic indications, not definitive adware diagnoses.
+- Browser discovery is best-effort through ACTION_VIEW queryIntentActivities plus known-package fallbacks; Android package visibility may limit enumeration. Unresolved app metadata is not treated as evidence of a missing launcher icon.
+
+### Verification
+- Source implementation and tests are present on feat/on-demand-popup-detector. CI execution, final diff review, and physical-device verification are pending.
+- No changes to Room DB v3, battery sensor/sampling logic, calibration defaults, foreground monitoring lifecycle, RECOVERY_HOLD, applicationId, compileSdk, or Gradle dependencies are intended.
+
 ## 2026-11-27 — PR #16 focused polish: live peak current, app labels, and long-press consistency
 
 ### Changed
