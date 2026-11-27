@@ -1,3 +1,22 @@
+## 2026-11-27 — PR #17 Calibration / Safe-List Polish
+
+- [x] Risk bands are 0–44 omitted, 45–74 Perlu Dicek, and 75–100 Mencurigakan; burst count does not force a status.
+- [x] Burst candidates require a <=45-minute cluster and average gap <=15 minutes; tests cover 44, 73, and 466 minutes plus exact 45-minute / 15-minute boundaries.
+- [x] Explicit itel/Transsion and Google OEM packages and package names containing photopicker are excluded.
+- [x] FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP packages are excluded except for literal App A → package → external-browser redirect with a real overlay AppOp signal.
+- [x] Mark Safe removes a real package from active and archived state, persists it, and subsequent scans skip it; simulated items cannot be permanently whitelisted.
+- [x] Daftar Aman lists app icon, readable app label, package name, and per-item Pulihkan action.
+- [x] Archive load migration removes safe/excluded packages, invalid old burst entries, and duplicate packageName records; merge deduplicates by packageName.
+- [x] Analysis summary and timeline use the same PopupDetectorViewModel instance.
+- [ ] Exact-HEAD `testDebugUnitTest`, `assembleDebug`, Anti-Slop UI Audit Gate, and APK upload — pending.
+- [ ] Physical itel P55 360dp / 720p visual, touch, safe-list, and Quick Settings verification — NOT RUN.
+
+### UI self-crosscheck
+- [x] Status badges use pill Surface, MaterialTheme error/tertiary container tokens, 1dp semantic border, labelSmall, and 8dp × 3dp inner padding.
+- [x] App label/package column uses weight(1f); status pill is single-line and non-wrapping.
+- [x] Safe-list rows use original PackageManager icon and readable app label with package fallback.
+- [ ] 360dp / 720p physical layout and touch-target validation — NOT RUN.
+
 ## 2026-11-27 — PR #17 On-Demand Popup Detector (verification in progress)
 
 - [x] Base verified: branch `feat/on-demand-popup-detector` created from exact `main` HEAD `9c88a8c5d9b30a86b415375152015c83122b9a12`; branch is 0 commits behind base.
