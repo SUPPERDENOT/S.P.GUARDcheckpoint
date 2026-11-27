@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 internal data class PopupDetectorUiState(
     val isScanning: Boolean = false,
     val hasUsagePermission: Boolean = false,
+    val hasActivityData: Boolean = false,
     val currentIncidents: List<PopupIncident> = emptyList(),
     val archivedIncidents: List<PopupIncident> = emptyList(),
     val safePackages: Set<String> = emptySet(),
@@ -52,6 +53,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     it.copy(
                         isScanning = false,
                         hasUsagePermission = result.hasUsagePermission,
+                        hasActivityData = result.hasActivityData,
                         currentIncidents = result.incidents,
                         archivedIncidents = archive,
                         safePackages = safe,
@@ -116,6 +118,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     it.copy(
                         isScanning = false,
                         hasUsagePermission = result.hasUsagePermission,
+                        hasActivityData = result.hasActivityData,
                         currentIncidents = result.incidents,
                         archivedIncidents = archive,
                         safePackages = safe,

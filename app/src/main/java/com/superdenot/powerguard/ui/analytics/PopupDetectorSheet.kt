@@ -63,6 +63,7 @@ internal fun PopupDetectorCard(
     val statusText = when {
         state.isScanning -> "Sedang memindai..."
         !state.hasUsagePermission -> "Akses Penggunaan belum aktif"
+        !state.hasActivityData -> "Data aktivitas belum tersedia"
         state.currentIncidents.isEmpty() && state.archivedIncidents.isNotEmpty() -> "Tidak ada indikasi baru"
         state.currentIncidents.isEmpty() -> "Layar Aman"
         else -> state.currentIncidents.size.toString() + " indikasi perlu diperiksa"
@@ -112,9 +113,9 @@ internal fun PopupDetectorCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-            } else if (state.hasUsagePermission && !state.isScanning) {
+            } else if (state.hasUsagePermission && !state.hasActivityData && !state.isScanning) {
                 Text(
-                    "Belum ada pola yang memenuhi ambang pemeriksaan pada pemindaian terakhir.",
+                    "Belum ada riwayat perpindahan aktivitas yang dapat dinilai pada periode ini.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -187,6 +188,7 @@ internal fun PopupDetectorSheet(
             when {
                 !state.hasUsagePermission -> "Akses Penggunaan belum aktif. Pemindaian nyata belum tersedia."
                 state.isScanning -> "Sedang membaca jejak aktivitas aplikasi..."
+                !state.hasActivityData -> "Belum ada riwayat perpindahan aktivitas yang dapat dinilai."
                 state.currentIncidents.isEmpty() -> "Tidak ada indikasi yang memenuhi ambang pemeriksaan."
                 else -> state.currentIncidents.size.toString() + " aplikasi memiliki indikasi untuk diperiksa."
             },

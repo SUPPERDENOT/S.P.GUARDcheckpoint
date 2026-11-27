@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit
 
 internal data class PopupDetectorScanResult(
     val hasUsagePermission: Boolean,
+    val hasActivityData: Boolean,
     val incidents: List<PopupIncident>,
     val scannedAtMs: Long
 )
@@ -43,7 +44,7 @@ internal class PopupDetectorRepository(context: Context) {
     }
 
     fun scan(nowMs: Long = System.currentTimeMillis()): PopupDetectorScanResult {
-        if (!hasUsagePermission()) return PopupDetectorScanResult(false, emptyList(), nowMs)
+        if (!hasUsagePermission()) return PopupDetectorScanResult(false, false, emptyList(), nowMs)
         val events = readUsageEvents(nowMs)
         val browserPackages = resolveBrowserPackages()
         val homePackage = resolveHomePackage()
@@ -64,7 +65,7 @@ internal class PopupDetectorRepository(context: Context) {
             nowMs = nowMs
         )
         preferences.appendIncidents(incidents)
-        return PopupDetectorScanResult(true, incidents, nowMs)
+        return PopupDetectorScanResult(true, events.isNotEmpty(), incidents, nowMs)
     }
 
     fun archivedIncidents(): List<PopupIncident> = preferences.archivedIncidents()
