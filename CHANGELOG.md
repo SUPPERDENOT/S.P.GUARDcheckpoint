@@ -1,3 +1,24 @@
+## 2026-11-27 — Wave gauge sweet-spot tuning
+
+### Changed
+- Increased the front-wave amplitude ratio from 0.028f to 0.038f of the gauge diameter and raised its cap from 4.0dp to 5.2dp.
+- Increased rear-layer maximum elevation from 2.4dp to 2.6dp and rear-wave amplitude ratio from 0.78f to 0.82f.
+- Kept the shared smoothstep envelope, harmonic profile, rear phase direction/offset, liquid gradient, adaptive meniscus, and all other Wave rendering behavior unchanged. No percentage text layout or typography was modified.
+
+### Tests
+- Updated constant assertions for all four tuned values.
+- Updated the front-amplitude ratio/cap expectations (100px diameter → 3.8px; 200px diameter remains capped at 5.2px).
+- Updated the rear elevation midpoint expectation to 2.6dp and both rear-ratio assertions to 0.82f.
+
+### Verification
+- GitHub Actions exact-HEAD result and latest debug APK Artifact ID: pending.
+- Physical-device visual QA: NOT RUN.
+
+### Protected boundaries
+- No six-theme palette, Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, RECOVERY_HOLD, applicationId, Gradle dependencies, SDK, app version, or build number changes.
+
+---
+
 ## 2026-11-27 — Wave gauge harmonic surface and liquid depth calibration
 
 ### Changed
