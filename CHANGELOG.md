@@ -1,3 +1,24 @@
+## 2026-11-27 — Wave gauge back-surface depth polish
+
+### Changed
+- Raised the Wave gauge back-surface baseline by up to 3.5dp above the front surface using a smooth edge taper: zero at/below 2% and at/above 98%, full elevation from 8% through 92%.
+- Set the back-wave amplitude ratio to 1.20x and expressed its phase directly as `rearPhase = -frontPhase + 135°`; the reverse phase remains cycle-equivalent at 0/2π.
+- Kept the rear fill as accent color at 0.38 alpha and added a 0.8dp rear crest line at 0.30 alpha, drawn behind the existing front fill.
+- Preserved the front fill alpha (0.92), front meniscus stroke (1.2dp), and all six theme palettes.
+
+### Tests
+- Added regression coverage for the 3.5dp elevation, smooth taper boundaries and midpoint, 1.20x amplitude ratio, reverse phase direction/135° offset/cycle continuity, and rear fill/crest alpha and stroke tokens.
+
+### Verification
+- Source/diff review: pending exact final-HEAD CI.
+- `:app:testDebugUnitTest`, `:app:assembleDebug`, Anti-Slop UI Audit Gate, and Upload APK: pending PR #15 CI on the final pushed HEAD.
+- Physical-device visual QA: NOT RUN; CI does not establish rendered appearance on the target phone.
+
+### Protected boundaries
+- No theme palette tokens, Room DB v3/schema, sensor acquisition/sampling, default calibration 1x, foreground monitoring P0/service lifecycle, `RECOVERY_HOLD`, `applicationId`, Gradle dependencies, SDK, app version, or build number changes.
+
+---
+
 ## 2026-11-27 — PR #15 final theme/dialog polish
 
 ### Changed
