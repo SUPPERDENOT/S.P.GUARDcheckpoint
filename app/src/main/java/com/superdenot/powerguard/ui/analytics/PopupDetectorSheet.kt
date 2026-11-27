@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Refresh
@@ -36,9 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.core.graphics.drawable.toBitmap
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
@@ -75,7 +76,7 @@ internal fun PopupDetectorCard(
         ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shape = RoundedCornerShape(16.dp)
+        shape = MaterialTheme.shapes.large
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -86,7 +87,6 @@ internal fun PopupDetectorCard(
                     Text(
                         "Detektor Pop-up & Pembajak Layar",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -95,7 +95,7 @@ internal fun PopupDetectorCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = if (state.currentIncidents.isEmpty()) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
                 }
                 if (state.isScanning) {
@@ -311,7 +311,7 @@ private fun PopupIncidentCard(
         ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shape = RoundedCornerShape(14.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -325,7 +325,6 @@ private fun PopupIncidentCard(
                     Text(
                         popupDisplayName(context, incident) + if (incident.isSimulated) " · Uji Simulasi" else "",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -342,7 +341,6 @@ private fun PopupIncidentCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = if (incident.status == PopupRiskStatus.SUSPICIOUS) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.tertiary,
-                    fontWeight = FontWeight.SemiBold
                 )
             }
             Text(
