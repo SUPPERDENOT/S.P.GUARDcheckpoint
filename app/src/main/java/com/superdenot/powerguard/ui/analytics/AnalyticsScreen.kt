@@ -111,6 +111,9 @@ internal fun formatSessionLevelRange(startLevel: Int, endLevel: Int?): String =
 internal fun formatCurveSessionCount(visibleCount: Int, totalCount: Int): String =
     "Sesi $visibleCount/$totalCount"
 
+internal fun isDailyRollupSelected(dateKey: String, selectedDate: LocalDate?): Boolean =
+    selectedDate?.toString() == dateKey
+
 
 @Composable
 fun AnalyticsScreen(
@@ -813,7 +816,7 @@ private fun CyclesAndRollupTab(viewModel: PowerGuardViewModel, bottomScrollPaddi
                             Text(DailyCycleTrend.formatDateLabel(rollup.dateKey, today),
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            if (selectedDate?.toString() == rollup.dateKey) {
+                            if (isDailyRollupSelected(rollup.dateKey, selectedDate)) {
                                 Surface(color = MaterialTheme.colorScheme.primaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                     shape = RoundedCornerShape(50.dp)) {
