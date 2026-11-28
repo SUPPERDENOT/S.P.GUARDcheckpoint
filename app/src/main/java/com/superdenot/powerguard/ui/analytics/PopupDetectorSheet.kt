@@ -445,22 +445,19 @@ internal fun PopupDetectorSheet(
 private fun popupAppLabel(incident: PopupIncident): String {
     val context = LocalContext.current
     return androidx.compose.runtime.produceState(
-        initialValue = popupDisplayName(incident.packageName, incident.isSimulated, null),
+        initialValue = popupDisplayName(incident.packageName, null),
         key1 = context,
-        key2 = incident.packageName,
-        key3 = incident.isSimulated
+        key2 = incident.packageName
     ) {
-        value = if (incident.isSimulated) {
-            popupDisplayName(incident.packageName, true, null)
-        } else {
-            val label = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                runCatching {
-                    val info = context.packageManager.getApplicationInfo(incident.packageName, 0)
-                    context.packageManager.getApplicationLabel(info).toString()
-                }.getOrNull()
+        val label = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val info = context.packageManager.getApplicationInfo(incident.packageName, 0)
+                context.packageManager.getApplicationLabel(info).toString()
+            } catch (_: PackageManager.NameNotFoundException) {
+                null
             }
-            popupDisplayName(incident.packageName, false, label)
         }
+        value = popupDisplayName(incident.packageName, label)
     }.value
 }
 
@@ -564,7 +561,6 @@ private fun PopupIncidentCard(
                     label = "Tandai Aman",
                     contentDescription = "Tandai ${incident.packageName} sebagai aplikasi aman",
                     onClick = onMarkSafe,
-                    enabled = !incident.isSimulated,
                     primary = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -760,13 +756,8 @@ private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
     }
 }
 
-private fun popupDisplayName(packageName: String, isSimulated: Boolean, label: String?): String {
-    if (isSimulated) {
-        return if (packageName.contains("redirect")) "Simulasi Pengalihan Browser"
-            else "Simulasi Pop-up"
-    }
-    return AppDisplayNameFormatter.format(packageName, label)
-}
+private fun popupDisplayName(packageName: String, label: String?): String =
+    AppDisplayNameFormatter.format(packageName, label)
 
 private fun incidentSummary(incident: PopupIncident): String {
     val times = incident.eventTimesMs.distinct().sorted()
