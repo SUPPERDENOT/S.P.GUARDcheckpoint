@@ -153,11 +153,13 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
             _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
             throw cancelled
         } catch (security: SecurityException) {
+            latestRawScanReport = emptyList()
             _uiState.update {
                 it.copy(
                     isScanning = false,
                     isLoadingArchive = false,
                     hasUsagePermission = false,
+                    currentIncidents = emptyList(),
                     errorMessage = "Akses Penggunaan ditolak Android. Aktifkan kembali izin lalu pindai ulang."
                 )
             }
@@ -241,10 +243,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
+                    latestRawScanReport = emptyList()
                     val safe = runCatching { repository.safePackages() }
                         .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
-                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                        reconcilePopupDetectorSafeList(it, safe, emptyList()).copy(
                             isScanning = false,
                             isLoadingArchive = false,
                             hasUsagePermission = false,
@@ -307,10 +310,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
+                    latestRawScanReport = emptyList()
                     val safe = runCatching { repository.safePackages() }
                         .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
-                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                        reconcilePopupDetectorSafeList(it, safe, emptyList()).copy(
                             isScanning = false,
                             isLoadingArchive = false,
                             hasUsagePermission = false,
@@ -369,10 +373,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
+                    latestRawScanReport = emptyList()
                     val safe = runCatching { repository.safePackages() }
                         .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
-                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                        reconcilePopupDetectorSafeList(it, safe, emptyList()).copy(
                             isScanning = false,
                             isLoadingArchive = false,
                             hasUsagePermission = false,
