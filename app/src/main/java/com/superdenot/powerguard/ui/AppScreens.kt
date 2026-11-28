@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
@@ -101,6 +102,7 @@ import com.superdenot.powerguard.ui.theme.InstrumentGraphite
 import com.superdenot.powerguard.service.LiveStatusBarRenderer
 import com.superdenot.powerguard.ui.components.ChargingThermalSummaryPanel
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
+import com.superdenot.powerguard.ui.viewmodel.PopupDetectorViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import java.util.Locale
@@ -543,7 +545,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "RINGKASAN SESI",
+                        "RINGKASAN SESI PENGISIAN",
                         color = CyanFastCharge,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -579,7 +581,16 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 }
 
 @Composable
-fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
+fun InsightsScreen(
+    vm: PowerGuardViewModel,
+    padding: PaddingValues,
+    openPopupDetectorRequest: Int = 0,
+    onConsumeOpenPopupDetector: () -> Unit = {}
+) {
+    val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
+    LaunchedEffect(Unit) {
+        if (openPopupDetectorRequest == 0) popupDetectorViewModel.scan()
+    }
     val health by vm.latestHealth.collectAsState()
     val healthSummary = remember(health) {
         health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
@@ -618,7 +629,15 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             }
         }
         Box(Modifier.weight(1f)) {
-            AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 1, visibleSubTabs = listOf(1, 2))
+            AnalyticsScreen(
+                viewModel = vm,
+                contentPadding = PaddingValues(0.dp),
+                initialSubTab = if (openPopupDetectorRequest > 0) 2 else 1,
+                visibleSubTabs = listOf(1, 2),
+                popupDetectorOpenRequest = openPopupDetectorRequest,
+                popupDetectorViewModel = popupDetectorViewModel,
+                onConsumeOpenPopupDetector = onConsumeOpenPopupDetector
+            )
         }
     }
     if (showLongPressInfo) {
@@ -638,8 +657,15 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 
 @Composable
 fun HistoryScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
+    val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
     Column(Modifier.fillMaxSize().padding(padding).padding(top = 8.dp)) {
-        AnalyticsScreen(viewModel = vm, contentPadding = PaddingValues(0.dp), initialSubTab = 0, visibleSubTabs = listOf(0))
+        AnalyticsScreen(
+            viewModel = vm,
+            contentPadding = PaddingValues(0.dp),
+            initialSubTab = 0,
+            visibleSubTabs = listOf(0),
+            popupDetectorViewModel = popupDetectorViewModel
+        )
     }
 }
 

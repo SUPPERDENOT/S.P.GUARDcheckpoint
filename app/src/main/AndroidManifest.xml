@@ -2,6 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <!-- Izin Foreground Service & Pengecualian Optimasi Baterai -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -72,6 +83,18 @@
             android:name=".receiver.ChargeGuardAlertDismissReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <service
+            android:name=".service.PopupCheckTileService"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@drawable/ic_qs_popup_shield"
+            android:label="@string/qs_tile_popup_check_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
     </application>
 </manifest>

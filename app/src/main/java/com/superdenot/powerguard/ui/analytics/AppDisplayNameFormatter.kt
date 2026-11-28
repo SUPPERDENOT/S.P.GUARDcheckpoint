@@ -3,6 +3,12 @@ package com.superdenot.powerguard.ui.analytics
 import java.util.Locale
 
 internal object AppDisplayNameFormatter {
+    private val genericPackageSegments = setOf(
+        "android", "app", "mobile", "client", "id", "co", "lite", "pro",
+        "free", "plus", "ui", "viewer", "player", "service"
+    )
+    private val fallbackAliases = mapOf("github" to "GitHub")
+
     private val knownLabels = mapOf(
         "com.whatsapp" to "WhatsApp",
         "com.whatsapp.w4b" to "WhatsApp Business",
@@ -25,12 +31,17 @@ internal object AppDisplayNameFormatter {
 
     fun format(packageName: String, systemLabel: String?): String {
         val label = systemLabel?.trim().orEmpty()
-        if (label.isNotEmpty() && label != packageName && !label.startsWith("com.")) return label
+        if (label.isNotEmpty() && label != packageName && !label.startsWith("com.") &&
+            label.lowercase(Locale.ROOT) !in genericPackageSegments
+        ) return label
         return knownLabels[packageName] ?: readablePackageFallback(packageName)
     }
 
     private fun readablePackageFallback(packageName: String): String {
-        val segment = packageName.substringAfterLast('.').ifBlank { packageName }
+        val segments = packageName.split('.').filter(String::isNotBlank)
+        val segment = segments.asReversed().firstOrNull {
+            it.lowercase(Locale.ROOT) !in genericPackageSegments
+        } ?: packageName.substringAfterLast('.').ifBlank { packageName }
         val words = segment
             .replace(Regex("([a-z])([A-Z])")) { match ->
                 match.groupValues[1] + " " + match.groupValues[2]
@@ -40,7 +51,8 @@ internal object AppDisplayNameFormatter {
             .trim()
             .split(Regex("\\s+"))
             .filter(String::isNotBlank)
-        return words.joinToString(" ") { word ->
+        val normalizedSegment = segment.lowercase(Locale.ROOT)
+        return fallbackAliases[normalizedSegment] ?: words.joinToString(" ") { word ->
             word.lowercase(Locale.ROOT).replaceFirstChar { char -> char.titlecase(Locale.ROOT) }
         }.ifBlank { "Aplikasi tidak dikenal" }
     }

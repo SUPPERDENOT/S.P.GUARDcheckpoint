@@ -1,3 +1,165 @@
+## 2026-11-28 — PR #17 Quick Settings one-shot trigger and UI polish
+
+### Changed
+- Replaced the persistent popup-detector request counter with a monotonic, consumable one-shot trigger. Both `onCreate` and `onNewIntent` read and immediately remove the tile extra; `AnalyticsScreen` opens the detector, starts the scan, and acknowledges the matching request.
+- Added deterministic regression tests proving a consumed tile request cannot be delivered again and an old acknowledgement cannot consume a newer request.
+- Balanced the three Lini Masa filter slots to 0.82 / 1.15 / 1.03 in a single non-scrolling row with 6dp spacing. Each capsule renders at 36dp inside a 48dp clickable target, with compact horizontal padding and single-line labels.
+- Reduced the empty Timeline viewport cap to 180dp so the dialog wraps more tightly when no incidents are present. Reset Filter already uses the shared 36dp capsule / 48dp target helper and remains on that implementation.
+- Reused the detector's asynchronous real-app-icon loader for the 24-hour app-usage rows; PackageManager label lookup now also runs on Dispatchers.IO.
+- Added a trailing accessible information cue to the popup-detector card header; tapping the card opens the heuristic explanation, while the explicit Lihat Lini Masa action opens the timeline. Replaced the Quick Settings tile artwork with a monochrome shield-radar VectorDrawable.
+- Renamed the Charging tab header to **RINGKASAN SESI PENGISIAN**. No charging-protocol or fast-charging claims were added.
+
+### Verification
+- Source-level diff review: complete; reviewed the one-shot request flow, screen ownership, accessibility hit bounds, icon path, and protected-scope diff.
+- GitHub Actions **#948** on exact final code commit `747c52f`: **Build and Unit Tests PASS**; Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`. Debug APK and unit-test report artifacts uploaded.
+- GitHub Actions **#948**: **Anti-Slop UI Audit Gate PASS**; the exact `bash scripts/ui-audit.sh` check completed successfully.
+- Intermediate runs #943–#947 exposed compile-time issues during callback wiring and chip accessibility iteration; the fixes are included in final commit `747c52f`, and exact-HEAD run #948 passed.
+- Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN; CI executed the same Gradle task set using the installed Gradle 8.9 executable rather than the wrapper.
+- Local `bash scripts/ui-audit.sh`: NOT RUN separately; the exact script passed in CI.
+- Physical-device Quick Settings, modal lifecycle, 360dp filter layout, and icon rendering: NOT RUN.
+
+### Protected boundaries
+- No Battery Monitoring lifecycle, sensor/sampling, Room schema, calibration, `RECOVERY_HOLD`, dependency, SDK, package, app-version, or build-number changes.
+
+## 2026-11-28 — PR #17 real app icons, Safe List dialog, compact controls, and rapid-transition detector
+
+### Changed
+- Added narrow Android package-visibility queries for launcher activities and HTTPS handlers; no `QUERY_ALL_PACKAGES` permission.
+- App icons are loaded asynchronously through `PackageManager.getApplicationIcon()` on `Dispatchers.IO`, keyed by package name. The generic icon is reserved for `NameNotFoundException`; suspect/timeline and Safe List rows use the same icon path.
+- Risk capsules now use the semantic Error palette for **Mencurigakan** and the shared amber theme token for **Perlu Dicek**, including dot, text, tint, and border.
+- Replaced the inline Safe List accordion with a separate Dialog containing app icons, labels, package names, per-app Pulihkan, and Pulihkan Semua. Removed production simulation actions from the detector modal.
+- Compact action pills render at 36dp while retaining a 48dp outer interactive target. Timeline filters use a weighted, non-scrolling row without count text in the chip labels.
+- Tightened detector evidence: screen-hijack and A→B→A sandwich evidence requires rapid entry/exit transitions <=3,500ms; browser redirect chains require both app→middle-app and middle-app→browser transitions <=3,500ms. Repeated interruption clusters must fit within five minutes with an average gap <=2.5 minutes. Home/Recent Apps surfaces are excluded when UsageStatsManager exposes them.
+- Added regression coverage for 40–349 minute manual opens, direct messaging-to-browser navigation, Home/Recent Apps launches, rapid-transition boundaries, and five-minute burst boundaries.
+
+### Verification
+- Source-level diff review: complete; reviewed all 10 files changed relative to the PR #17 development-branch base.
+- GitHub Actions run **#941** on code commit `a5e4fc6`: **Build and Unit Tests PASS**. Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`; build completed successfully and debug APK plus unit-test report artifacts were uploaded.
+- GitHub Actions run **#941**: **Anti-Slop UI Audit Gate PASS**; `bash scripts/ui-audit.sh` completed successfully.
+- Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN; the connected environment verified the same Gradle tasks through the repository's CI workflow, using the installed Gradle 8.9 executable rather than the wrapper.
+- Local `bash scripts/ui-audit.sh`: NOT RUN separately; the exact script passed in CI.
+- Physical-device visual and interaction QA: NOT RUN.
+- Recent Apps launch-origin limitation: Android Usage Events do not guarantee a dedicated Recent Apps origin event. The detector excludes a recorded SystemUI/OEM launcher surface transition; if Android omits that transition, the origin cannot be proven from UsageStatsManager alone.
+- Protected battery-monitoring lifecycle, Room schema, sensor/sampling, calibration, `RECOVERY_HOLD`, Gradle/dependencies/SDK, app identity, and versioning are outside this change.
+
+## 2026-11-28 — PR #17 detector attribution, state reconciliation, and Timeline risk filters
+
+### Changed
+- Added pure deterministic `PopupHijackDetector.evaluateEvents(...)`; repository evaluation now calls this method, while `evaluate(...)` remains as a compatibility wrapper.
+- Foreground history uses the immediately preceding transition via `lastOrNull`; consecutive resumed events from the same package are collapsed and ignored as internal Activity transitions.
+- Added a 10-second Home Launcher grace window for legitimate app launches.
+- Browser redirect attribution is limited to a non-launcher, non-browser triggering package in an App A → trigger → browser sequence, with the browser opening within `REDIRECT_WINDOW_MS = 5 seconds`. A direct app → browser transition is not assumed to be an automatic redirect, avoiding ordinary link-navigation false positives. Browser packages themselves remain excluded.
+- Added strict package/event deduplication with a 5-second event deduplication window. Simulated entries and safe-list packages are excluded from both suspect summaries and Timeline state. Archive ordering remains chronological after deduplication.
+- Renamed the two risk states to `SUSPICIOUS` and `NEEDS_REVIEW`; legacy JSON `NEEDS_CHECK` records migrate to `NEEDS_REVIEW`.
+- Added `TimelineRiskFilter` (`ALL`, `SUSPICIOUS`, `NEEDS_REVIEW`) and derived `suspects`, `timelineEvents`, counts, and `filteredTimelineEvents` to `PopupDetectorUiState`.
+- Scan, Mark Safe, restore-one, and restore-all remain serialized by one Mutex. The latest raw scan snapshot is cached; safe-list mutations update safe packages and the raw incident list in one StateFlow copy so derived suspects/Timeline reconcile immediately.
+- Cancellation is rethrown. `SecurityException` maps to `hasUsagePermission = false`; failures reset scanning flags and reconcile the safe list against persisted state.
+- Rebuilt the popup Timeline dialog around a keyed `LazyColumn`, horizontal Material 3 filter chips, zero-match empty state, and Reset Filter action. Chips and buttons have 48dp minimum height and explicit accessibility descriptions. Risk status capsules use a pill shape, status dot, and semantic color roles.
+- App labels continue to resolve asynchronously through `produceState` + `Dispatchers.IO`, keyed by package name.
+
+### Tests added or updated
+- Same-package Activity transitions do not create popup incidents.
+- Multi-Activity pause selection and fast-burst duration use the final matching pause event.
+- Browser redirect chain attribution, direct browser-navigation false-positive guard, and launcher grace boundary.
+- Duplicate burst timestamps coalesce; simulated and safe-list entries are excluded.
+- Timeline filter counts and all three filter modes; concurrent safe-list reconciliation and cached-entry restoration.
+- Legacy `NEEDS_CHECK` archive status migrates to `NEEDS_REVIEW`.
+
+### Verification
+- Local `./gradlew testDebugUnitTest` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment.
+- Exact-HEAD GitHub Actions Run #931 (`e060d35325b9cb9461d8574d921554bf3bcffe2b`): `testDebugUnitTest` and `assembleDebug` **SUCCESS**; Anti-Slop UI Audit Gate (`bash scripts/ui-audit.sh`) **SUCCESS**. [Workflow](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/46118951758).
+- Physical-device verification: NOT RUN.
+- No AndroidManifest.xml, Room DB v3, BatteryMonitorService, battery sensor/sampling, or P0 charging-protocol/source files changed. No merge to `main`.
+
+## 2026-11-28 — PR #17 multi-activity timing and UI-thread PackageManager follow-up
+
+### Changed
+- Popup interruption duration now uses the last matching ACTIVITY_PAUSED event before the previous app resumes, so intermediate activity transitions inside the suspect package do not incorrectly fail the 2-second return check.
+- Serialized scan, Mark Safe, restore-one, and restore-all operations with a shared coroutine Mutex. Safe-list mutations run a fresh scan after any in-flight scan completes rather than being dropped or overlapping.
+- If Mark Safe persistence returns false, the optimistic UI state is reconciled against a fresh scan and persisted safe/archive state; an explanatory error remains visible. Restore-one now handles cancellation separately from other exceptions and resets the scanning state on failure.
+- Popup incident-card and safe-list app labels now resolve through produceState on Dispatchers.IO. The incident-card display-name helper is pure, removing synchronous PackageManager label IPC from composition.
+
+### Verification
+- Added a regression test with two internal activity transitions before returning to the previous app; it asserts that the final pause yields the measured interruption duration.
+- Local `./gradlew testDebugUnitTest assembleDebug` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment. Intermediate Actions Run #881 on pre-correction HEAD `6e988fae2324f999da1808bb81256b2722be945b` passed Anti-Slop UI Audit but failed Kotlin compilation because the compact incident summary still called the old display-name helper signature. Corrected in `5b46e087a0e5d8cadee5d2fdbee8bdf6e47f0ff1`; exact-HEAD CI pending.
+- Physical-device verification: NOT RUN.
+- AndroidManifest.xml, Room DB v3, BatteryMonitorService, and P0 charging-protocol/source paths are outside the change.
+- No merge to main.
+
+## 2026-11-28 — PR #17 final detector polish
+
+### Changed
+- Collapsed the Daftar Aman section by default; its app count remains visible and the app rows plus Pulihkan Semua are revealed only on demand.
+- Tightened established launcher-app scoring (launcher icon, installed at least 14 days, no SYSTEM_ALERT_WINDOW): only a literal browser redirect chain or at least three 1–6 second interruptions within 30 minutes, with average gaps no greater than 10 minutes, can reach the visible threshold. Fast interruptions also require the previous app to resume within 2 seconds after the suspect activity pauses.
+- Added persisted interruption-duration evidence and archive re-evaluation. Legacy established-launcher entries without current qualifying redirect/fast-burst evidence are removed during archive load; unverified legacy burst durations are not treated as proof.
+- Package-name fallback skips generic trailing segments and ignores generic PackageManager labels; `com.github.android` resolves to GitHub even when the returned label is `Android`.
+- Browser redirect scoring is restricted to the literal non-browser App A → suspect → browser sequence. A validated-evidence bit is persisted; legacy redirect reasons without that proof are not trusted for established launchers or system packages.
+- Archive read/merge operations are serialized while package metadata is re-evaluated off the UI thread.
+- Detail-dialog indicators render as separate bullet lines. Existing simulation tests continue to assert both score bands; the UI source keeps Tandai Aman disabled for simulated items.
+- Archive PackageManager metadata re-evaluation runs on Dispatchers.IO rather than the UI thread. Unknown/zero install timestamps are not treated as proof that an app is established.
+
+### Verification
+- Unit tests added for normal WhatsApp/GitHub/HRMS multitasking, qualifying and non-qualifying interruption durations, browser redirect threshold, archive sanitization, GitHub fallback formatting, and JSON duration persistence.
+- Intermediate GitHub Actions Run #864 on code/test HEAD `feca66934d137fec06d7a5245fce6a9943164de8`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS. APK Artifact ID `15245385508`; test-report Artifact ID `15245031505`.
+- Final exact-HEAD CI after the install-age and background archive-loading follow-up: pending.
+- Debug APK artifact for the final exact HEAD: pending.
+- Physical itel P55 360dp / 720p re-test: NOT RUN after this source update.
+- Protected P0 paths and AndroidManifest are outside this change.
+
+## 2026-11-28 — PR #17 Quick Settings Shield Icon
+
+### Changed
+- Added a transparent-background 24dp monochrome VectorDrawable, `ic_qs_popup_shield.xml`, combining a thin pop-up frame and a central protective shield with a transparent exclamation-mark cutout.
+- Updated the `PopupCheckTileService` manifest icon to `@drawable/ic_qs_popup_shield`.
+- Added `onTileAdded()` handling and refresh the tile icon before `updateTile()` in both `onTileAdded()` and `onStartListening()`, replacing the launcher-icon fallback at tile refresh time.
+- No permissions, package-visibility declarations, Gradle configuration, Room schema, sensor/sampling, calibration, foreground battery-monitoring lifecycle, or `RECOVERY_HOLD` behavior changed.
+
+### Verification
+- Source and documentation diff review: PASS — five-file diff from baseline contains only the icon resource, tile manifest/service wiring, and required documentation.
+- GitHub Actions Run #856: SUCCESS on source HEAD `6825a43aacb93e913eebd63363703db629dca9ab`; Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload all succeeded. Debug APK Artifact ID `15220856236`; unit-test report Artifact ID `15220451734`.
+- Physical Quick Settings rendering on itel P55 / SystemUI: NOT RUN — CI cannot verify OEM rendering or icon cache behavior.
+
+## 2026-11-27 — PR #17 Calibration and Safe-List Polish
+
+### Changed
+- Recalibrated visible risk bands: 0–44 omitted, 45–74 Perlu Dicek, and 75–100 Mencurigakan. Burst count no longer forces a status independently of the score.
+- Burst clusters require all selected events to fit within 45 minutes and average inter-event gap <=15 minutes. The reason label is “Siklus berulang dalam 45 menit”.
+- Added itel/Transsion and Google launcher, resolver, picker, media, Play services/store, and utility exclusions. FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP packages are excluded except for a literal App A → package → external-browser chain when the literal three-step browser redirect is present; the normal >=45 visibility threshold still applies.
+- Mark Safe immediately removes real packages from active results and archived incidents, persists the whitelist, and filters subsequent scans. Simulated items cannot be added permanently.
+- Added a visible Daftar Aman section with original application icon, readable label, package name, and per-package Pulihkan action.
+- Added a conservative score guard for established launcher apps (installed >=14 days, no overlay permission): weak post-unlock / sandwich combinations cannot reach the visible risk list without a valid burst or browser redirect. The active HOME package is resolved with ACTION_MAIN + CATEGORY_HOME and is also removed during archive migration.
+- Legacy archive migration additionally checks FLAG_SYSTEM / FLAG_UPDATED_SYSTEM_APP via PackageManager; the literal browser-chain exception does not require overlay AppOp evidence; the normal risk-score threshold still applies.
+- Legacy archive loading removes excluded/safe packages, invalid old burst entries, and duplicate packageName entries. Archive merging now deduplicates strictly by packageName.
+- Added status pill badges and ensured Analysis summary and timeline share one PopupDetectorViewModel instance.
+- Added regression coverage for calibrated thresholds, 44/73/466-minute intervals, exact 45-minute clusters, OEM/system exclusions, safe-list purge, archive migration, deduplication, and both simulation status bands.
+
+### Verification
+- GitHub Actions Run #846 SUCCESS on implementation HEAD `2c0bf724109b9681bd9c2fc4f31bb3cbedec0ca5`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, debug APK upload, and unit-test report upload all passed. Debug APK Artifact ID `15213563223`; unit-test report Artifact ID `15213702957`.
+- Physical itel P55 360dp / 720p interaction and Quick Settings runtime QA remain NOT RUN. PR remains open and unmerged.
+
+## 2026-11-27 — PR #17 On-Demand Popup & Screen-Interruption Detector
+
+### Added
+- Added a pure Kotlin evaluator for 24-hour Usage Events input, package metadata signals, whitelist filtering, 0–100 risk scoring, and ordered incident results.
+- Added six heuristic families: suspicious app-to-app interruption, suspect-to-browser redirect chain, post-unlock appearance, short A → suspect → A loop, repeated interruption bursts, and resolved package metadata signals (no launcher activity, recent install, overlay AppOp).
+- Burst scoring adds +25 for 2 qualifying interruptions and +45 for 3+; final status always follows the calibrated score thresholds.
+- Added Android adapter for UsageStatsManager, PackageManager browser discovery with popular-browser fallbacks, launcher/IME/system-app exclusions, install-time lookup, and overlay AppOp inspection. Unresolved package metadata does not produce a no-launcher-icon claim.
+- Added SharedPreferences JSON storage for a manual safe list and a reboot-persistent archive capped at 30 non-simulated incidents.
+- Added the detector card and timeline to Analisis → Aktivitas Aplikasi, package icons with vector fallback, app-info navigation, safe-list actions, Usage Access guidance, and simulation controls.
+- Added an on-demand Quick Settings tile labelled Cek Pop-up. It opens MainActivity directly into the detector timeline and returns to Tile.STATE_INACTIVE.
+- Added pure JUnit4 detector coverage and Robolectric persistence tests using existing test dependencies.
+
+### Guardrails and limitations
+- The evaluator runs only when the Analisis screen is entered, the tile opens the detector, or the user requests another scan. No detector service, worker, polling loop, new dependency, Room migration, or new runtime permission was added.
+- AndroidManifest.xml only registers PopupCheckTileService with BIND_QUICK_SETTINGS_TILE and exported=true; QUERY_ALL_PACKAGES and additional uses-permission entries were not added.
+- Usage Events record activity transitions and screen/keyguard state; they do not prove that an overlay window was actually displayed or that an app is malware. Results are heuristic indications, not definitive adware diagnoses.
+- Browser discovery is best-effort through ACTION_VIEW queryIntentActivities plus known-package fallbacks; Android package visibility may limit enumeration. Unresolved app metadata is not treated as evidence of a missing launcher icon.
+
+### Verification
+- Source implementation and tests are present on feat/on-demand-popup-detector. GitHub Actions Run #827 passed on source HEAD `382a5c705b002fe9f5adbb51473ffc424ce2b207`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, and both artifact uploads succeeded. Debug APK Artifact ID `15201462713`; unit-test report Artifact ID `15202417277`.
+- Final diff review confirms no Gradle/dependency, Room, sensor/sampling, calibration, foreground battery service, RECOVERY_HOLD, or applicationId changes. Physical itel P55 / 360dp / 720p and Quick Settings runtime verification remain pending.
+- No changes to Room DB v3, battery sensor/sampling logic, calibration defaults, foreground monitoring lifecycle, RECOVERY_HOLD, applicationId, compileSdk, or Gradle dependencies are intended.
+
 ## 2026-11-27 — PR #16 focused polish: live peak current, app labels, and long-press consistency
 
 ### Changed

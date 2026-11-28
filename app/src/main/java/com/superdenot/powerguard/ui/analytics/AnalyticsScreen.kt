@@ -1,6 +1,7 @@
 package com.superdenot.powerguard.ui.analytics
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -77,6 +78,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.superdenot.powerguard.data.local.entity.ChargingSessionEntity
 import com.superdenot.powerguard.domain.analytics.HistorySessionFilter
 import com.superdenot.powerguard.domain.analytics.HistorySessionFilterMatcher
@@ -89,6 +91,7 @@ import com.superdenot.powerguard.domain.analytics.DailyCycleTrend
 import com.superdenot.powerguard.domain.analytics.DailyCycleTrendPoint
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
+import com.superdenot.powerguard.ui.viewmodel.PopupDetectorViewModel
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
@@ -115,15 +118,27 @@ internal fun isDailyRollupSelected(dateKey: String, selectedDate: LocalDate?): B
 
 
 @Composable
-fun AnalyticsScreen(
+internal fun AnalyticsScreen(
     viewModel: PowerGuardViewModel,
     contentPadding: PaddingValues,
     initialSubTab: Int = 0,
-    visibleSubTabs: List<Int> = listOf(0, 1, 2)
+    visibleSubTabs: List<Int> = listOf(0, 1, 2),
+    popupDetectorOpenRequest: Int = 0,
+    popupDetectorViewModel: PopupDetectorViewModel,
+    onConsumeOpenPopupDetector: () -> Unit = {}
 ) {
     val availableTabs = visibleSubTabs.filter { it in 0..2 }.ifEmpty { listOf(0) }
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
+    }
+    var showPopupDetectorSheet by remember { mutableStateOf(false) }
+    LaunchedEffect(popupDetectorOpenRequest) {
+        if (popupDetectorOpenRequest > 0) {
+            if (2 in availableTabs) selectedSubTab = 2
+            showPopupDetectorSheet = true
+            popupDetectorViewModel.scan()
+            onConsumeOpenPopupDetector()
+        }
     }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
@@ -185,7 +200,14 @@ fun AnalyticsScreen(
         when (selectedSubTab) {
             0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
             1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
-            2 -> AppUsageTab(viewModel, bottomScrollPadding)
+            2 -> AppUsageTab(
+                viewModel = viewModel,
+                bottomScrollPadding = bottomScrollPadding,
+                popupDetectorViewModel = popupDetectorViewModel,
+                showPopupDetectorSheet = showPopupDetectorSheet,
+                onShowPopupDetectorSheet = { showPopupDetectorSheet = true },
+                onDismissPopupDetectorSheet = { showPopupDetectorSheet = false }
+            )
         }
     }
 }
@@ -907,11 +929,20 @@ private fun SevenDayCycleMiniChart(
 }
 
 @Composable
-private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: PaddingValues) {
+private fun AppUsageTab(
+    viewModel: PowerGuardViewModel,
+    bottomScrollPadding: PaddingValues,
+    popupDetectorViewModel: PopupDetectorViewModel,
+    showPopupDetectorSheet: Boolean,
+    onShowPopupDetectorSheet: () -> Unit,
+    onDismissPopupDetectorSheet: () -> Unit
+) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
     val apps by viewModel.appUsageList.collectAsState()
+    val popupDetectorState by popupDetectorViewModel.uiState.collectAsState()
     var showLongPressInfo by remember { mutableStateOf(false) }
+    var showPopupDetectorInfo by remember { mutableStateOf(false) }
 
     LazyColumn(
         contentPadding = bottomScrollPadding,
@@ -926,30 +957,22 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
             )
         }
 
-        if (!hasPerm) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = { showLongPressInfo = true }),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Diperlukan untuk menampilkan aplikasi aktif selama 24 jam terakhir.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        PowerActionButton(
-                            onClick = {
-                                runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
-                            }
-                        ) {
-                            Text("Buka Pengaturan Izin", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
+        item {
+            PopupDetectorCard(
+                state = popupDetectorState,
+                onOpenTimeline = {
+                    onShowPopupDetectorSheet()
+                    popupDetectorViewModel.scan()
+                },
+                onRescan = popupDetectorViewModel::scan,
+                onInfo = { showPopupDetectorInfo = true },
+                onOpenUsageSettings = {
+                    runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
                 }
-            }
-        } else if (apps.isEmpty()) {
+            )
+        }
+
+        if (hasPerm && apps.isEmpty()) {
             item {
                 Text(
                     text = "Tidak ada aktivitas aplikasi signifikan dalam 24 jam terakhir.",
@@ -957,7 +980,7 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else {
+        } else if (hasPerm) {
             items(apps, key = { it.packageName }) { app ->
                 Card(
                     modifier = Modifier.fillMaxWidth().infoLongPress(onLongPress = { showLongPressInfo = true }),
@@ -968,16 +991,24 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val appDisplayName = remember(app.packageName) {
-                            val systemLabel = runCatching {
-                                val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
-                                context.packageManager.getApplicationLabel(applicationInfo).toString()
-                            }.getOrNull()
-                            AppDisplayNameFormatter.format(app.packageName, systemLabel)
+                        val appDisplayName by androidx.compose.runtime.produceState(
+                            initialValue = AppDisplayNameFormatter.format(app.packageName, null),
+                            key1 = app.packageName
+                        ) {
+                            value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                val systemLabel = try {
+                                    val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
+                                    context.packageManager.getApplicationLabel(applicationInfo).toString()
+                                } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+                                    null
+                                }
+                                AppDisplayNameFormatter.format(app.packageName, systemLabel)
+                            }
                         }
+                        PopupAppIcon(app.packageName, appDisplayName, Modifier.size(40.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(appDisplayName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
@@ -998,6 +1029,36 @@ private fun AppUsageTab(viewModel: PowerGuardViewModel, bottomScrollPadding: Pad
                 }
             }
         }
+    }
+    if (showPopupDetectorInfo) {
+        PopupDetectorInfoDialog(
+            title = "Detektor Pop-up & Pembajak Layar",
+            body = "Detektor membaca riwayat perpindahan aktivitas dan status layar Android selama 24 jam terakhir. Skor merupakan heuristik; Riwayat aktivitas tidak membuktikan jendela overlay benar-benar tampil atau memastikan suatu aplikasi adalah malware. Pemindaian berjalan hanya saat tab ini dibuka, tombol Pindai Ulang digunakan, atau tile Cek Pop-up diketuk.",
+            onDismiss = { showPopupDetectorInfo = false }
+        )
+    }
+    if (showPopupDetectorSheet) {
+        PopupDetectorSheet(
+            state = popupDetectorState,
+            onDismiss = onDismissPopupDetectorSheet,
+            onRescan = popupDetectorViewModel::scan,
+            onMarkSafe = popupDetectorViewModel::markSafe,
+            onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
+            onRestoreSafePackage = popupDetectorViewModel::restoreSafePackage,
+            onOpenUsageSettings = {
+                runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+            },
+            onOpenAppDetails = { packageName ->
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:" + packageName)
+                        }
+                    )
+                }
+            },
+            onSelectTimelineFilter = popupDetectorViewModel::setTimelineFilter
+        )
     }
     if (showLongPressInfo) {
         InfoLongPressDialog(

@@ -47,6 +47,7 @@ import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.components.InfoLongPressContent
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.dashboard.selectDashboardLiveState
+import com.superdenot.powerguard.ui.analytics.PopupDetectorOpenTrigger
 import com.superdenot.powerguard.ui.theme.PowerGuardTheme
 import com.superdenot.powerguard.ui.theme.EmeraldCharge
 import com.superdenot.powerguard.ui.theme.StatusReadyGreen
@@ -54,15 +55,41 @@ import com.superdenot.powerguard.ui.theme.StatusErrorRed
 import com.superdenot.powerguard.ui.viewmodel.PowerGuardViewModel
 
 class MainActivity : ComponentActivity() {
+    private val popupDetectorOpenTrigger = mutableStateOf(PopupDetectorOpenTrigger())
+
+    companion object {
+        const val EXTRA_OPEN_POPUP_DETECTOR = "com.superdenot.powerguard.extra.OPEN_POPUP_DETECTOR"
+    }
+
+    private fun consumePopupDetectorLaunchExtra(source: Intent?): Boolean {
+        val shouldOpen = source?.getBooleanExtra(EXTRA_OPEN_POPUP_DETECTOR, false) == true
+        source?.removeExtra(EXTRA_OPEN_POPUP_DETECTOR)
+        return shouldOpen
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (consumePopupDetectorLaunchExtra(intent)) {
+            popupDetectorOpenTrigger.value = popupDetectorOpenTrigger.value.issue()
+        }
+    }
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (consumePopupDetectorLaunchExtra(intent)) {
+            popupDetectorOpenTrigger.value = popupDetectorOpenTrigger.value.issue()
+        }
         setContent {
             val vm: PowerGuardViewModel = viewModel()
             val themePackConfig by vm.themePackConfig.collectAsState()
             PowerGuardTheme(config = themePackConfig) {
                 val context = LocalContext.current
                 var currentTab by remember { mutableIntStateOf(0) }
+                val popupDetectorRequest = popupDetectorOpenTrigger.value.pendingRequestId
+                LaunchedEffect(popupDetectorRequest) {
+                    if (popupDetectorRequest > 0) currentTab = 2
+                }
                 var headerLongPressInfo by remember { mutableStateOf<InfoLongPressContent?>(null) }
                 val setupPrefs = remember { context.getSharedPreferences("spg_initial_setup", 0) }
                 var showPermissionSetup by remember { mutableStateOf(!setupPrefs.getBoolean("completed", false)) }
@@ -207,7 +234,15 @@ class MainActivity : ComponentActivity() {
                     when (currentTab) {
                         0 -> SuperdDashboardScreen(vm, padding, isActive = !showPermissionSetup)
                         1 -> ChargingScreen(vm, padding)
-                        2 -> InsightsScreen(vm, padding)
+                        2 -> InsightsScreen(
+                            vm,
+                            padding,
+                            openPopupDetectorRequest = popupDetectorRequest,
+                            onConsumeOpenPopupDetector = {
+                                popupDetectorOpenTrigger.value =
+                                    popupDetectorOpenTrigger.value.consume(popupDetectorRequest)
+                            }
+                        )
                         3 -> HistoryScreen(vm, padding)
                         else -> SettingsScreen(vm, padding, onOpenPermissionSetup = { showPermissionSetup = true })
                     }
