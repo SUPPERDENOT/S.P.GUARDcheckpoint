@@ -52,7 +52,7 @@ class PopupHijackDetectorTest {
     @Test fun postUnlockAmbushWithinThreeSecondsIsDetected() {
         val result = PopupHijackDetector.evaluateEvents(
             listOf(event(null, now - 2_000, ScreenUsageEventType.SCREEN_INTERACTIVE), event(suspect, now - 500)),
-            mapOf(suspect to resolved(suspect, launcher = false, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)),
+            mapOf(suspect to resolved(suspect, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)),
             emptySet(), now
         )
         assertEquals(55, result.single().riskScore)
@@ -614,7 +614,7 @@ class PopupHijackDetectorTest {
             listOf(event(home, now - 5_000L), event(suspect, now - 1_000L)),
             mapOf(
                 home to AppPackageSignals(home, isHomeLauncher = true),
-                suspect to resolved(suspect, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)
+                suspect to resolved(suspect, launcher = false, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)
             ),
             emptySet(),
             now
