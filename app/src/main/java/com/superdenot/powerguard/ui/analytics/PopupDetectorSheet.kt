@@ -355,6 +355,24 @@ private fun PopupIncidentCard(
 ) {
     val context = LocalContext.current
     var showIncidentInfo by remember { mutableStateOf(false) }
+    val appLabel by androidx.compose.runtime.produceState(
+        initialValue = popupDisplayName(incident.packageName, incident.isSimulated, null),
+        key1 = context,
+        key2 = incident.packageName,
+        key3 = incident.isSimulated
+    ) {
+        value = if (incident.isSimulated) {
+            popupDisplayName(incident.packageName, true, null)
+        } else {
+            val label = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val info = context.packageManager.getApplicationInfo(incident.packageName, 0)
+                    context.packageManager.getApplicationLabel(info).toString()
+                }.getOrNull()
+            }
+            popupDisplayName(incident.packageName, false, label)
+        }
+    }
     val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
         initialValue = null,
         key1 = context,
@@ -382,7 +400,7 @@ private fun PopupIncidentCard(
                 if (loadedBitmap != null) {
                     Image(
                         loadedBitmap,
-                        contentDescription = "Ikon " + popupDisplayName(context, incident),
+                        contentDescription = "Ikon " + appLabel,
                         modifier = Modifier.size(36.dp)
                     )
                 } else {
@@ -395,7 +413,7 @@ private fun PopupIncidentCard(
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        popupDisplayName(context, incident) + if (incident.isSimulated) " · Uji Simulasi" else "",
+                        appLabel + if (incident.isSimulated) " · Uji Simulasi" else "",
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -467,7 +485,7 @@ private fun PopupIncidentCard(
     }
     if (showIncidentInfo) {
         InfoLongPressDialog(
-            title = popupDisplayName(context, incident),
+            title = appLabel,
             body = buildString {
                 append("Pola yang teramati berasal dari riwayat perpindahan aktivitas Android.")
                 if (incident.reasons.isNotEmpty()) {
@@ -487,12 +505,18 @@ private fun PopupIncidentCard(
 @Composable
 private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
     val context = LocalContext.current
-    val appLabel = remember(packageName) {
-        val label = runCatching {
-            val info = context.packageManager.getApplicationInfo(packageName, 0)
-            context.packageManager.getApplicationLabel(info).toString()
-        }.getOrNull()
-        AppDisplayNameFormatter.format(packageName, label)
+    val appLabel by androidx.compose.runtime.produceState(
+        initialValue = AppDisplayNameFormatter.format(packageName, null),
+        key1 = context,
+        key2 = packageName
+    ) {
+        val label = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val info = context.packageManager.getApplicationInfo(packageName, 0)
+                context.packageManager.getApplicationLabel(info).toString()
+            }.getOrNull()
+        }
+        value = AppDisplayNameFormatter.format(packageName, label)
     }
     val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
         initialValue = null, key1 = context, key2 = packageName
@@ -516,16 +540,12 @@ private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
     }
 }
 
-private fun popupDisplayName(context: Context, incident: PopupIncident): String {
-    if (incident.isSimulated) {
-        return if (incident.packageName.contains("redirect")) "Simulasi Pengalihan Browser"
+private fun popupDisplayName(packageName: String, isSimulated: Boolean, label: String?): String {
+    if (isSimulated) {
+        return if (packageName.contains("redirect")) "Simulasi Pengalihan Browser"
             else "Simulasi Pop-up"
     }
-    val label = runCatching {
-        val info = context.packageManager.getApplicationInfo(incident.packageName, 0)
-        context.packageManager.getApplicationLabel(info).toString()
-    }.getOrNull()
-    return AppDisplayNameFormatter.format(incident.packageName, label)
+    return AppDisplayNameFormatter.format(packageName, label)
 }
 
 private fun incidentSummary(incident: PopupIncident): String {
