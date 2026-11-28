@@ -43,6 +43,6 @@ internal object PopupSimulationScenario {
             ),
             chrome to AppPackageSignals(packageName = chrome, isBrowser = true)
         )
-        return PopupHijackDetector.evaluate(events, signals, emptySet(), nowMs, isSimulated = true)
+        return PopupHijackDetector.evaluateEvents(events, signals, emptySet(), nowMs, isSimulated = true)
     }
 }
