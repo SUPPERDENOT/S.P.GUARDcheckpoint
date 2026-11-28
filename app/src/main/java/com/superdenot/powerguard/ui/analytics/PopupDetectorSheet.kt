@@ -623,7 +623,7 @@ private fun PopupIncidentCard(
         }
     }
     if (showIncidentInfo) {
-        PopupIncidentInfoDialog(
+        PopupDetectorInfoDialog(
             title = appLabel,
             body = buildString {
                 append("Pola yang teramati berasal dari riwayat perpindahan aktivitas Android.")
