@@ -58,7 +58,6 @@ import androidx.core.graphics.drawable.toBitmap
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
-import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.viewmodel.PopupDetectorUiState
 import com.superdenot.powerguard.ui.viewmodel.TimelineRiskFilter
@@ -624,7 +623,7 @@ private fun PopupIncidentCard(
         }
     }
     if (showIncidentInfo) {
-        InfoLongPressDialog(
+        PopupIncidentInfoDialog(
             title = appLabel,
             body = buildString {
                 append("Pola yang teramati berasal dari riwayat perpindahan aktivitas Android.")
@@ -641,6 +640,39 @@ private fun PopupIncidentCard(
     }
 }
 
+
+@Composable
+private fun PopupIncidentInfoDialog(
+    title: String,
+    body: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).heightIn(max = 560.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(body, style = MaterialTheme.typography.bodyMedium)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.heightIn(min = 48.dp).semantics {
+                            contentDescription = "Tutup penjelasan aplikasi"
+                        }
+                    ) { Text("Mengerti") }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
