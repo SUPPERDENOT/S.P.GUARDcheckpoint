@@ -200,6 +200,7 @@ internal fun PopupDetectorSheet(
             when {
                 state.simulationActive -> "Mode Uji Simulasi aktif. Item contoh tidak berasal dari aktivitas perangkat."
                 !state.hasUsagePermission -> "Akses Penggunaan belum aktif. Pemindaian nyata belum tersedia."
+                state.isLoadingArchive -> "Memuat dan memeriksa arsip deteksi..."
                 state.isScanning -> "Sedang membaca jejak aktivitas aplikasi..."
                 !state.hasActivityData -> "Belum ada riwayat perpindahan aktivitas yang dapat dinilai."
                 state.currentIncidents.isEmpty() -> "Tidak ada indikasi yang memenuhi ambang pemeriksaan."
@@ -303,11 +304,13 @@ internal fun PopupDetectorSheet(
             }
         }
         if (timeline.isEmpty()) {
-            Text(
-                "Belum ada insiden tersimpan. Jalankan pemindaian atau aktifkan Uji Simulasi untuk mencoba tampilan.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (!state.isLoadingArchive) {
+                Text(
+                    "Belum ada insiden tersimpan. Jalankan pemindaian atau aktifkan Uji Simulasi untuk mencoba tampilan.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         } else {
             timeline.forEach { incident ->
                 PopupIncidentCard(
