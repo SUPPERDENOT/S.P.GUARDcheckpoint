@@ -241,9 +241,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
-                    val safe = withContext(Dispatchers.IO) {
-                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
-                    }
+                    val safe = runCatching { repository.safePackages() }
+                        .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
                         reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
@@ -253,9 +252,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         )
                     }
                 } catch (_: Exception) {
-                    val safe = withContext(Dispatchers.IO) {
-                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
-                    }
+                    val safe = runCatching { repository.safePackages() }
+                        .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
                         reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
@@ -309,9 +307,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
-                    val safe = withContext(Dispatchers.IO) {
-                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
-                    }
+                    val safe = runCatching { repository.safePackages() }
+                        .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
                         reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
@@ -321,9 +318,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         )
                     }
                 } catch (_: Exception) {
-                    val safe = withContext(Dispatchers.IO) {
-                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
-                    }
+                    val safe = runCatching { repository.safePackages() }
+                        .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
                         reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
@@ -373,9 +369,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
-                    val safe = withContext(Dispatchers.IO) {
-                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
-                    }
+                    val safe = runCatching { repository.safePackages() }
+                        .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
                         reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
@@ -385,9 +380,8 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         )
                     }
                 } catch (_: Exception) {
-                    val safe = withContext(Dispatchers.IO) {
-                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
-                    }
+                    val safe = runCatching { repository.safePackages() }
+                        .getOrDefault(_uiState.value.safePackages)
                     _uiState.update {
                         reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
