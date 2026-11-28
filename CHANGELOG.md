@@ -1,3 +1,23 @@
+## 2026-11-28 — PR #17 real app icons, Safe List dialog, compact controls, and rapid-transition detector
+
+### Changed
+- Added narrow Android package-visibility queries for launcher activities and HTTPS handlers; no `QUERY_ALL_PACKAGES` permission.
+- App icons are loaded asynchronously through `PackageManager.getApplicationIcon()` on `Dispatchers.IO`, keyed by package name. The generic icon is reserved for `NameNotFoundException`; suspect/timeline and Safe List rows use the same icon path.
+- Risk capsules now use the semantic Error palette for **Mencurigakan** and the shared amber theme token for **Perlu Dicek**, including dot, text, tint, and border.
+- Replaced the inline Safe List accordion with a separate Dialog containing app icons, labels, package names, per-app Pulihkan, and Pulihkan Semua. Removed production simulation actions from the detector modal.
+- Compact action pills render at 36dp while retaining a 48dp outer interactive target. Timeline filters use a weighted, non-scrolling row without count text in the chip labels.
+- Tightened detector evidence: screen-hijack transitions require a <=3,500ms foreground transition; repeated interruption clusters must fit within five minutes with an average gap <=2.5 minutes. Rapid Home/Recent Apps surface transitions are excluded when UsageStatsManager exposes them. Browser redirect recognition is also bounded to 3,500ms.
+- Added regression coverage for 40–349 minute manual opens, direct messaging-to-browser navigation, Home/Recent Apps launches, rapid-transition boundaries, and five-minute burst boundaries.
+
+### Verification
+- Source-level diff review: pending.
+- Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN in this GitHub-connected environment.
+- Local `bash scripts/ui-audit.sh`: NOT RUN in this GitHub-connected environment.
+- Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate: pending.
+- Physical-device visual and interaction QA: NOT RUN.
+- Recent Apps launch-origin limitation: Android Usage Events do not guarantee a dedicated Recent Apps origin event. The detector excludes a recorded SystemUI/OEM launcher surface transition; if Android omits that transition, the origin cannot be proven from UsageStatsManager alone.
+- Protected battery-monitoring lifecycle, Room schema, sensor/sampling, calibration, `RECOVERY_HOLD`, Gradle/dependencies/SDK, app identity, and versioning are outside this change.
+
 ## 2026-11-28 — PR #17 detector attribution, state reconciliation, and Timeline risk filters
 
 ### Changed

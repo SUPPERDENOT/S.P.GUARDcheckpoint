@@ -1029,8 +1029,6 @@ private fun AppUsageTab(
             onMarkSafe = popupDetectorViewModel::markSafe,
             onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
             onRestoreSafePackage = popupDetectorViewModel::restoreSafePackage,
-            onRunSimulation = popupDetectorViewModel::showSimulation,
-            onClearSimulation = popupDetectorViewModel::clearSimulation,
             onOpenUsageSettings = {
                 runCatching { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
             },

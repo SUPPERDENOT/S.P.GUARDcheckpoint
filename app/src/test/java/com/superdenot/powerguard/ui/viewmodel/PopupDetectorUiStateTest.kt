@@ -39,6 +39,24 @@ class PopupDetectorUiStateTest {
     )
 
     @Test
+    fun safeListStateCountAndTimelineExclusionStayConsistent() {
+        val safePackage = "com.example.safe"
+        val visiblePackage = "com.example.visible"
+        val raw = listOf(
+            incident(safePackage, PopupRiskStatus.NEEDS_REVIEW),
+            incident(visiblePackage, PopupRiskStatus.SUSPICIOUS)
+        )
+        val state = PopupDetectorUiState(
+            currentIncidents = raw,
+            safePackages = setOf(safePackage)
+        )
+        assertEquals(1, state.safePackages.size)
+        assertEquals(listOf(visiblePackage), state.timelineEvents.map { it.packageName })
+        assertEquals(1, state.suspiciousCount)
+        assertEquals(0, state.needsReviewCount)
+    }
+
+    @Test
     fun timelineRiskFiltersExposeAccurateCountsAndFilteredEntries() {
         val suspicious = incident("com.example.suspicious", PopupRiskStatus.SUSPICIOUS)
         val review = incident("com.example.review", PopupRiskStatus.NEEDS_REVIEW)

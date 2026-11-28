@@ -52,20 +52,24 @@ data class PopupIncident(
     val occurrenceCount: Int get() = eventTimesMs.distinct().size
 }
 internal const val POPUP_LOOKBACK_MS = 24L * 60L * 60L * 1000L
-internal const val POPUP_BURST_WINDOW_MS = 45L * 60L * 1000L
-internal const val POPUP_MAX_AVERAGE_GAP_MS = 15L * 60L * 1000L
-internal const val POPUP_FAST_BURST_WINDOW_MS = 30L * 60L * 1000L
-internal const val POPUP_FAST_MAX_AVERAGE_GAP_MS = 10L * 60L * 1000L
+internal const val POPUP_BURST_WINDOW_MS = 5L * 60L * 1000L
+internal const val POPUP_MAX_AVERAGE_GAP_MS = 2L * 60L * 1000L + 30_000L
+internal const val POPUP_FAST_BURST_WINDOW_MS = 5L * 60L * 1000L
+internal const val POPUP_FAST_MAX_AVERAGE_GAP_MS = 2L * 60L * 1000L + 30_000L
 internal const val POPUP_FAST_MIN_DURATION_MS = 1_000L
 internal const val POPUP_FAST_MAX_DURATION_MS = 6_000L
 internal const val POPUP_FAST_RETURN_GRACE_MS = 2_000L
-internal const val REDIRECT_WINDOW_MS = 5_000L
+internal const val REDIRECT_WINDOW_MS = 3_500L
+internal const val POPUP_RAPID_TRANSITION_WINDOW_MS = 3_500L
 internal const val LAUNCHER_GRACE_WINDOW_MS = 10_000L
 internal const val POPUP_EVENT_DEDUP_WINDOW_MS = 5_000L
 internal const val POPUP_RECENT_INSTALL_MS = 14L * 24L * 60L * 60L * 1000L
 internal const val POPUP_NEEDS_REVIEW_THRESHOLD = 45
 internal const val POPUP_SUSPICIOUS_THRESHOLD = 75
 private data class PopupInterruptionEvidence(val timestampMs: Long, val durationMs: Long?)
+private val POPUP_RECENTS_SURFACE_PACKAGES = setOf(
+    "com.android.systemui", "com.transsion.itel.launcher", "com.transsion.hilauncher", "com.transsion.XOSLauncher"
+)
 private val POPUP_ALWAYS_EXCLUDED_PACKAGES = setOf(
     "com.transsion.itel.launcher", "com.transsion.hilauncher", "com.transsion.XOSLauncher",
     "com.transsion.resolver", "com.transsion.screencapture", "com.transsion.camera",
@@ -109,13 +113,17 @@ object PopupHijackDetector {
                 (metadata.isSystemApp && !allowSystemBrowserRedirect)
         }
         fun isLauncher(packageName: String?) = packageName != null && signals(packageName).isHomeLauncher
+        fun isUserNavigationSurface(packageName: String?) = packageName != null && (
+            signals(packageName).isHomeLauncher || signals(packageName).isSystemUi ||
+                packageName in POPUP_RECENTS_SURFACE_PACKAGES
+            )
         fun isRapidBrowserRedirectTrigger(index: Int, packageName: String): Boolean {
             val current = activityEvents.getOrNull(index) ?: return false
             val previous = activityEvents.take(index).lastOrNull() ?: return false
             val next = activityEvents.drop(index + 1).firstOrNull() ?: return false
             return current.packageName == packageName &&
                 previous.packageName != packageName &&
-                !isLauncher(previous.packageName) &&
+                !isUserNavigationSurface(previous.packageName) &&
                 !signals(previous.packageName.orEmpty()).isBrowser &&
                 !isLauncher(packageName) &&
                 !signals(packageName).isBrowser &&
@@ -163,7 +171,9 @@ object PopupHijackDetector {
             val metadata = signals(packageName)
 
             if (previous != null && previous.packageName != packageName &&
-                !isLauncher(previous.packageName) && hasSuspiciousStaticSignal(packageName)
+                !isUserNavigationSurface(previous.packageName) &&
+                current.timestampMs - previous.timestampMs in 0L..POPUP_RAPID_TRANSITION_WINDOW_MS &&
+                hasSuspiciousStaticSignal(packageName)
             ) record(packageName, PopupSignalReason.SCREEN_HIJACKING, current.timestampMs)
 
             // Attribute the browser launch to the app that was foreground immediately before it.
@@ -176,7 +186,9 @@ object PopupHijackDetector {
             }
 
             if (previous != null && next != null && previous.packageName == next.packageName &&
-                previous.packageName != packageName && next.timestampMs - current.timestampMs in 1_000L..15_000L
+                previous.packageName != packageName &&
+                !isUserNavigationSurface(previous.packageName) &&
+                next.timestampMs - current.timestampMs in 1_000L..POPUP_RAPID_TRANSITION_WINDOW_MS
             ) record(packageName, PopupSignalReason.SANDWICH_LOOP, current.timestampMs)
 
             val unlockEvent = ordered.lastOrNull {
@@ -184,7 +196,8 @@ object PopupHijackDetector {
                     it.eventType == ScreenUsageEventType.KEYGUARD_HIDDEN) && it.timestampMs <= current.timestampMs
             }
             if (unlockEvent != null && current.timestampMs - unlockEvent.timestampMs in 0 until 3_000L &&
-                (previous == null || previous.timestampMs < unlockEvent.timestampMs) && !metadata.isHomeLauncher
+                (previous == null || previous.timestampMs < unlockEvent.timestampMs) &&
+                !isUserNavigationSurface(previous?.packageName) && !metadata.isHomeLauncher
             ) record(packageName, PopupSignalReason.POST_UNLOCK_AMBUSH, current.timestampMs)
         }
 
@@ -198,7 +211,7 @@ object PopupHijackDetector {
             val fastDurationMs = if (
                 previous != null && next != null &&
                 previous.packageName != pkg && next.packageName == previous.packageName &&
-                !isLauncher(previous.packageName)
+                !isUserNavigationSurface(previous.packageName)
             ) {
                 val pauseEvent = ordered.lastOrNull {
                     it.packageName == pkg &&
@@ -213,7 +226,7 @@ object PopupHijackDetector {
                 }
             } else null
 
-            if (previous == null || previous.packageName == pkg || isLauncher(previous.packageName) ||
+            if (previous == null || previous.packageName == pkg || isUserNavigationSurface(previous.packageName) ||
                 isExcluded(pkg, allowSystemBrowserRedirect = browserRedirectTrigger) ||
                 (!hasSuspiciousStaticSignal(pkg) && reasonsByPackage[pkg].isNullOrEmpty() && fastDurationMs == null)
             ) null else pkg to PopupInterruptionEvidence(event.timestampMs, fastDurationMs)

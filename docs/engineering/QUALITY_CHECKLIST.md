@@ -1,3 +1,21 @@
+## 2026-11-28 — PR #17 UI and detector accuracy follow-up
+
+- [x] Read `QUALITY_CHECKLIST.md`, `scripts/ui-audit.sh`, `AGENTS.md`, Development Standards, Anti-Slop Policy, `DESIGN.md`, Android Engineering Guide, Skills Index, and ChatGPT Workflow before implementation.
+- [x] Read the relevant Android Skills: `android-dev`, `android-testing`, `android-ux`, Compose, Compose accessibility/list-scrolling references, and Anti-Slop UI/Human skills.
+- [x] Added launcher and HTTPS intent queries without `QUERY_ALL_PACKAGES`.
+- [x] App icon resolution is asynchronous and package-keyed; only `NameNotFoundException` uses the generic icon fallback.
+- [x] Mencurigakan and Perlu Dicek use distinct semantic red and amber capsule colors.
+- [x] Safe List is a dedicated Dialog; inline accordion and production simulation actions are removed.
+- [x] Compact action visuals are 36dp with 48dp interactive bounds; Timeline filters are weighted and non-scrolling.
+- [x] Detector scoring uses <=3,500ms rapid transitions and <=5-minute burst windows; Home/recorded Recent Apps surfaces are excluded.
+- [x] Added detector and UI-state regression tests for normal app switching, browser navigation, navigation surfaces, burst boundaries, and Safe List count.
+- [ ] Source diff review — pending final review.
+- [ ] Local `./gradlew --no-daemon testDebugUnitTest assembleDebug` — NOT RUN in connected GitHub-only environment.
+- [ ] Local `bash scripts/ui-audit.sh` — NOT RUN in connected GitHub-only environment.
+- [ ] Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate — pending.
+- [ ] Physical-device UI/runtime verification at 360dp / 720p — NOT RUN.
+- [x] No battery-monitoring lifecycle, Room schema, sensor/sampling, calibration, `RECOVERY_HOLD`, Gradle/dependency/SDK, application identity, or versioning changes.
+
 ## 2026-11-28 — PR #17 detector attribution, safe-list reconciliation, and Timeline filters
 
 - [x] Pure deterministic `evaluateEvents(...)` entry point is independent of UsageStatsManager and Context; repository adapter calls it.

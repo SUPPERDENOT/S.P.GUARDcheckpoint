@@ -2,10 +2,9 @@ package com.superdenot.powerguard.ui.analytics
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,10 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.pm.PackageManager
+import com.superdenot.powerguard.ui.theme.AmberThermal
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -76,7 +79,6 @@ internal fun PopupDetectorCard(
     val suspects = state.suspects.take(3)
     val statusText = when {
         state.isScanning -> "Sedang memindai..."
-        state.simulationActive -> "Mode uji simulasi aktif (data contoh tidak ditampilkan)"
         !state.hasUsagePermission -> "Akses Penggunaan belum aktif"
         !state.hasActivityData -> "Data aktivitas belum tersedia"
         suspects.isEmpty() && state.archivedIncidents.isNotEmpty() -> "Tidak ada indikasi baru"
@@ -119,23 +121,24 @@ internal fun PopupDetectorCard(
             }
             if (suspects.isNotEmpty()) {
                 suspects.forEach { incident ->
-                    Text(
-                        popupAppLabel(incident) + " · " + incidentSummary(incident),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val appLabel = popupAppLabel(incident)
+                        PopupAppIcon(incident.packageName, appLabel, Modifier.size(28.dp))
+                        Text(
+                            appLabel + " · " + incidentSummary(incident),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             } else if (state.hasUsagePermission && !state.hasActivityData && !state.isScanning) {
                 Text(
                     "Belum ada riwayat perpindahan aktivitas yang dapat dinilai pada periode ini.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else if (!state.hasUsagePermission && state.simulationActive) {
-                Text(
-                    "Item yang tampil berasal dari simulasi. Aktifkan Akses Penggunaan untuk memindai aktivitas nyata.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -159,29 +162,22 @@ internal fun PopupDetectorCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
+                CompactActionButton(
+                    label = "Lihat Lini Masa",
+                    contentDescription = "Buka Lini Masa detektor pop-up",
                     onClick = onOpenTimeline,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                        contentDescription = "Buka Lini Masa detektor pop-up"
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Rounded.Timeline, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(5.dp))
-                    Text("Lihat Lini Masa", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
-                Button(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.Timeline
+                )
+                CompactActionButton(
+                    label = "Pindai Ulang",
+                    contentDescription = "Pindai ulang aktivitas aplikasi",
                     onClick = onRescan,
                     enabled = !state.isScanning && !state.isLoadingArchive,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                        contentDescription = "Pindai ulang aktivitas aplikasi"
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(5.dp))
-                    Text("Pindai Ulang", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
+                    primary = true,
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.Refresh
+                )
             }
         }
     }
@@ -195,13 +191,11 @@ internal fun PopupDetectorSheet(
     onMarkSafe: (PopupIncident) -> Unit,
     onRestoreSafeList: () -> Unit,
     onRestoreSafePackage: (String) -> Unit,
-    onRunSimulation: () -> Unit,
-    onClearSimulation: () -> Unit,
     onOpenUsageSettings: () -> Unit,
     onOpenAppDetails: (String) -> Unit,
     onSelectTimelineFilter: (TimelineRiskFilter) -> Unit
 ) {
-    var showSafeList by remember { mutableStateOf(false) }
+    var showSafeListDialog by remember { mutableStateOf(false) }
     val safePackages = remember(state.safePackages) { state.safePackages.sorted() }
     val timeline = state.filteredTimelineEvents
 
@@ -226,6 +220,25 @@ internal fun PopupDetectorSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CompactActionButton(
+                            label = "Daftar Aman (${safePackages.size})",
+                            contentDescription = "Buka Daftar Aman, ${safePackages.size} aplikasi",
+                            onClick = { showSafeListDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactActionButton(
+                            label = "Pindai Ulang",
+                            contentDescription = "Pindai ulang aktivitas aplikasi",
+                            onClick = onRescan,
+                            enabled = !state.isScanning && !state.isLoadingArchive && state.hasUsagePermission,
+                            primary = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 420.dp),
@@ -237,7 +250,6 @@ internal fun PopupDetectorSheet(
                     item(key = "scan-summary") {
                         Text(
                             when {
-                                state.simulationActive -> "Mode simulasi aktif. Data contoh tidak dimasukkan ke daftar aplikasi atau Lini Masa."
                                 !state.hasUsagePermission -> "Akses Penggunaan belum aktif. Pemindaian nyata belum tersedia."
                                 state.isLoadingArchive -> "Memuat dan memeriksa arsip deteksi..."
                                 state.isScanning -> "Sedang membaca jejak aktivitas aplikasi..."
@@ -265,111 +277,7 @@ internal fun PopupDetectorSheet(
                             }
                         }
                     }
-                    item(key = "scan-actions") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedButton(
-                                onClick = onRunSimulation,
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                                    contentDescription = "Aktifkan mode uji simulasi"
-                                },
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                            ) {
-                                Text("Uji Simulasi", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                            }
-                            if (state.simulationActive) {
-                                Button(
-                                    onClick = onClearSimulation,
-                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                                        contentDescription = "Matikan mode uji simulasi"
-                                    },
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                                ) {
-                                    Text("Hapus Simulasi", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                                }
-                            } else {
-                                Button(
-                                    onClick = onRescan,
-                                    enabled = !state.isScanning && !state.isLoadingArchive && state.hasUsagePermission,
-                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                                        contentDescription = "Pindai ulang aktivitas aplikasi"
-                                    },
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                                ) {
-                                    Text("Pindai Ulang", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                                }
-                            }
-                        }
-                    }
-                    item(key = "safe-list-header") {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                            shape = MaterialTheme.shapes.medium,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text("Daftar Aman", style = MaterialTheme.typography.titleSmall)
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    shape = CircleShape
-                                ) {
-                                    Text(
-                                        "${state.safePackages.size} aplikasi",
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                }
-                                Spacer(Modifier.weight(1f))
-                                TextButton(
-                                    onClick = { showSafeList = !showSafeList },
-                                    modifier = Modifier.heightIn(min = 48.dp).semantics {
-                                        contentDescription = if (showSafeList) "Sembunyikan daftar aplikasi aman"
-                                            else "Lihat daftar aplikasi aman"
-                                    }
-                                ) {
-                                    Text(if (showSafeList) "Sembunyikan" else "Lihat", maxLines = 1, softWrap = false)
-                                }
-                            }
-                        }
-                    }
-                    if (showSafeList) {
-                        item(key = "safe-list-restore-all") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = onRestoreSafeList,
-                                    enabled = state.safePackages.isNotEmpty() && !state.isLoadingArchive && !state.isScanning,
-                                    modifier = Modifier.heightIn(min = 48.dp).semantics {
-                                        contentDescription = "Pulihkan semua aplikasi dari daftar aman"
-                                    }
-                                ) { Text("Pulihkan Semua", maxLines = 1, softWrap = false) }
-                            }
-                        }
-                        if (safePackages.isEmpty()) {
-                            item(key = "safe-list-empty") {
-                                Text(
-                                    "Belum ada aplikasi yang ditandai aman.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else {
-                            items(safePackages, key = { "safe-$it" }) { packageName ->
-                                PopupSafePackageRow(packageName) { onRestoreSafePackage(packageName) }
-                            }
-                        }
-                    }
-                    item(key = "timeline-section-title") {
+                    item(key = "timeline-section-title") {                    item(key = "timeline-section-title") {
                         Text(
                             "Lini Masa",
                             style = MaterialTheme.typography.titleSmall,
@@ -378,30 +286,30 @@ internal fun PopupDetectorSheet(
                     }
                     item(key = "timeline-filter-chips") {
                         Row(
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             FilterChip(
                                 selected = state.timelineFilter == TimelineRiskFilter.ALL,
                                 onClick = { onSelectTimelineFilter(TimelineRiskFilter.ALL) },
-                                label = { Text("Semua (${state.timelineEvents.size})", maxLines = 1, softWrap = false) },
-                                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                                label = { Text("Semua", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) },
+                                modifier = Modifier.weight(0.75f).heightIn(min = 48.dp).semantics {
                                     contentDescription = "Filter semua insiden, ${state.timelineEvents.size} aplikasi"
                                 }
                             )
                             FilterChip(
                                 selected = state.timelineFilter == TimelineRiskFilter.SUSPICIOUS,
                                 onClick = { onSelectTimelineFilter(TimelineRiskFilter.SUSPICIOUS) },
-                                label = { Text("Mencurigakan (${state.suspiciousCount})", maxLines = 1, softWrap = false) },
-                                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                                label = { Text("Mencurigakan", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) },
+                                modifier = Modifier.weight(1.35f).heightIn(min = 48.dp).semantics {
                                     contentDescription = "Filter Mencurigakan, ${state.suspiciousCount} aplikasi"
                                 }
                             )
                             FilterChip(
                                 selected = state.timelineFilter == TimelineRiskFilter.NEEDS_REVIEW,
                                 onClick = { onSelectTimelineFilter(TimelineRiskFilter.NEEDS_REVIEW) },
-                                label = { Text("Perlu Dicek (${state.needsReviewCount})", maxLines = 1, softWrap = false) },
-                                modifier = Modifier.heightIn(min = 48.dp).semantics {
+                                label = { Text("Perlu Dicek", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) },
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
                                     contentDescription = "Filter Perlu Dicek, ${state.needsReviewCount} aplikasi"
                                 }
                             )
@@ -421,12 +329,12 @@ internal fun PopupDetectorSheet(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (state.timelineFilter != TimelineRiskFilter.ALL) {
-                                    TextButton(
+                                    CompactActionButton(
+                                        label = "Reset Filter",
+                                        contentDescription = "Reset filter Lini Masa ke Semua",
                                         onClick = { onSelectTimelineFilter(TimelineRiskFilter.ALL) },
-                                        modifier = Modifier.heightIn(min = 48.dp).semantics {
-                                            contentDescription = "Reset filter Lini Masa ke Semua"
-                                        }
-                                    ) { Text("Reset Filter") }
+                                        modifier = Modifier.width(120.dp)
+                                    )
                                 }
                             }
                         }
@@ -456,6 +364,77 @@ internal fun PopupDetectorSheet(
                             contentDescription = "Tutup Lini Masa detektor pop-up"
                         }
                     ) { Text("Mengerti") }
+                }
+            }
+        }
+    }
+    if (showSafeListDialog) {
+        Dialog(onDismissRequest = { showSafeListDialog = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).heightIn(max = 520.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                tonalElevation = 0.dp
+            ) {
+                Column(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Daftar Aman", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "${safePackages.size} aplikasi diizinkan",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        CompactActionButton(
+                            label = "Pulihkan Semua",
+                            contentDescription = "Pulihkan semua aplikasi dari Daftar Aman",
+                            onClick = {
+                                onRestoreSafeList()
+                                showSafeListDialog = false
+                            },
+                            enabled = safePackages.isNotEmpty() && !state.isLoadingArchive && !state.isScanning,
+                            primary = true,
+                            modifier = Modifier.width(132.dp)
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (safePackages.isEmpty()) {
+                            item(key = "safe-list-empty") {
+                                Text(
+                                    "Belum ada aplikasi yang ditandai aman.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            items(safePackages, key = { "safe-$it" }) { packageName ->
+                                PopupSafePackageRow(packageName) { onRestoreSafePackage(packageName) }
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { showSafeListDialog = false },
+                            modifier = Modifier.heightIn(min = 48.dp).semantics {
+                                contentDescription = "Tutup Daftar Aman"
+                            }
+                        ) { Text("Tutup", maxLines = 1, softWrap = false) }
+                    }
                 }
             }
         }
@@ -494,18 +473,6 @@ private fun PopupIncidentCard(
     val context = LocalContext.current
     var showIncidentInfo by remember { mutableStateOf(false) }
     val appLabel = popupAppLabel(incident)
-    val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
-        initialValue = null,
-        key1 = context,
-        key2 = incident.packageName,
-        key3 = incident.isSimulated
-    ) {
-        value = if (incident.isSimulated) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching {
-                context.packageManager.getApplicationIcon(incident.packageName).toBitmap().asImageBitmap()
-            }.getOrNull()
-        }
-    }
     Card(
         modifier = Modifier.fillMaxWidth().infoLongPress(
             onLongPress = { showIncidentInfo = true },
@@ -517,24 +484,10 @@ private fun PopupIncidentCard(
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                val loadedBitmap = bitmap
-                if (loadedBitmap != null) {
-                    Image(
-                        loadedBitmap,
-                        contentDescription = "Ikon " + appLabel,
-                        modifier = Modifier.size(36.dp)
-                    )
-                } else {
-                    Icon(
-                        Icons.Rounded.Apps,
-                        contentDescription = "Ikon aplikasi tidak tersedia",
-                        modifier = Modifier.size(36.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                PopupAppIcon(incident.packageName, appLabel, Modifier.size(36.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        appLabel + if (incident.isSimulated) " · Uji Simulasi" else "",
+                        appLabel,
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -548,14 +501,15 @@ private fun PopupIncidentCard(
                     )
                 }
                 val suspicious = incident.status == PopupRiskStatus.SUSPICIOUS
+                val badgeAccent = if (suspicious) MaterialTheme.colorScheme.error else AmberThermal
                 Surface(
                     modifier = Modifier.semantics(mergeDescendants = true) {
                         contentDescription = if (suspicious) "Status risiko: Mencurigakan"
                             else "Status risiko: Perlu Dicek"
                     },
-                    color = if (suspicious) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = if (suspicious) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer,
-                    border = BorderStroke(1.dp, if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
+                    color = if (suspicious) MaterialTheme.colorScheme.errorContainer else AmberThermal.copy(alpha = 0.12f),
+                    contentColor = if (suspicious) MaterialTheme.colorScheme.onErrorContainer else AmberThermal,
+                    border = BorderStroke(1.dp, badgeAccent),
                     shape = CircleShape
                 ) {
                     Row(
@@ -565,7 +519,7 @@ private fun PopupIncidentCard(
                     ) {
                         Box(
                             Modifier.size(7.dp).clip(CircleShape).background(
-                                if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                                badgeAccent
                             )
                         )
                         Text(
@@ -600,25 +554,20 @@ private fun PopupIncidentCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
+                CompactActionButton(
+                    label = "Info & Hapus",
+                    contentDescription = "Buka detail aplikasi ${incident.packageName}",
                     onClick = onInfoAndRemove,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                        contentDescription = "Buka detail aplikasi ${incident.packageName}"
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp)
-                ) {
-                    Text("Info & Hapus", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
-                Button(
+                    modifier = Modifier.weight(1f)
+                )
+                CompactActionButton(
+                    label = "Tandai Aman",
+                    contentDescription = "Tandai ${incident.packageName} sebagai aplikasi aman",
                     onClick = onMarkSafe,
                     enabled = !incident.isSimulated,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                        contentDescription = "Tandai ${incident.packageName} sebagai aplikasi aman"
-                    },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp)
-                ) {
-                    Text("Tandai Aman", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                }
+                    primary = true,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -675,45 +624,124 @@ internal fun PopupDetectorInfoDialog(
 }
 
 @Composable
+private fun PopupAppIcon(packageName: String, appLabel: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val icon by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+        initialValue = null,
+        key1 = packageName
+    ) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                context.packageManager.getApplicationIcon(packageName).toBitmap().asImageBitmap()
+            } catch (_: PackageManager.NameNotFoundException) {
+                null
+            }
+        }
+    }
+    if (icon != null) {
+        Image(icon!!, contentDescription = "Ikon $appLabel", modifier = modifier)
+    } else {
+        Icon(
+            Icons.Rounded.Apps,
+            contentDescription = "Ikon aplikasi tidak ditemukan",
+            modifier = modifier,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun CompactActionButton(
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    primary: Boolean = false,
+    icon: ImageVector? = null
+) {
+    Box(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .semantics(mergeDescendants = true) { this.contentDescription = contentDescription }
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().height(36.dp),
+            shape = CircleShape,
+            color = when {
+                !enabled -> MaterialTheme.colorScheme.surfaceVariant
+                primary -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.surfaceContainerLow
+            },
+            contentColor = when {
+                !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                primary -> MaterialTheme.colorScheme.onPrimary
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+            border = if (primary) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (icon != null) {
+                    Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(5.dp))
+                }
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
     val context = LocalContext.current
     val appLabel by androidx.compose.runtime.produceState(
         initialValue = AppDisplayNameFormatter.format(packageName, null),
-        key1 = context,
-        key2 = packageName
+        key1 = packageName
     ) {
         val label = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching {
+            try {
                 val info = context.packageManager.getApplicationInfo(packageName, 0)
                 context.packageManager.getApplicationLabel(info).toString()
-            }.getOrNull()
+            } catch (_: PackageManager.NameNotFoundException) {
+                null
+            }
         }
         value = AppDisplayNameFormatter.format(packageName, label)
     }
-    val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
-        initialValue = null, key1 = context, key2 = packageName
-    ) {
-        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching { context.packageManager.getApplicationIcon(packageName).toBitmap().asImageBitmap() }.getOrNull()
-        }
-    }
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        if (bitmap != null) Image(bitmap!!, contentDescription = "Ikon $appLabel", modifier = Modifier.size(32.dp))
-        else Icon(Icons.Rounded.Apps, contentDescription = "Ikon aplikasi tidak tersedia",
-            modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        PopupAppIcon(packageName, appLabel, Modifier.size(36.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(appLabel, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(packageName, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                packageName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-        TextButton(
+        CompactActionButton(
+            label = "Pulihkan",
+            contentDescription = "Pulihkan $packageName dari daftar aman",
             onClick = onRestore,
-            modifier = Modifier.heightIn(min = 48.dp).semantics {
-                contentDescription = "Pulihkan $packageName dari daftar aman"
-            }
-        ) { Text("Pulihkan", maxLines = 1, softWrap = false) }
+            modifier = Modifier.width(88.dp)
+        )
     }
 }
 
@@ -754,7 +782,7 @@ private fun reasonDisplayLabel(reason: PopupSignalReason): String = when (reason
     PopupSignalReason.BROWSER_REDIRECT_CHAIN -> "Diikuti pembukaan browser"
     PopupSignalReason.POST_UNLOCK_AMBUSH -> "Muncul setelah layar dibuka"
     PopupSignalReason.SANDWICH_LOOP -> "Menyela lalu kembali ke aplikasi sebelumnya"
-    PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS -> "Siklus berulang dalam 45 menit"
+    PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS -> "Siklus berulang dalam 5 menit"
 }
 
 private fun formatPopupTime(timestampMs: Long): String =
