@@ -182,7 +182,7 @@ object PopupHijackDetector {
                 previous.packageName != pkg && next.packageName == previous.packageName &&
                 !isLauncher(previous.packageName)
             ) {
-                val pauseEvent = ordered.firstOrNull {
+                val pauseEvent = ordered.lastOrNull {
                     it.packageName == pkg &&
                         it.eventType == ScreenUsageEventType.ACTIVITY_PAUSED &&
                         it.timestampMs > event.timestampMs &&
