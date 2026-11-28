@@ -7,11 +7,11 @@
 - [x] Mencurigakan and Perlu Dicek use distinct semantic red and amber capsule colors.
 - [x] Safe List is a dedicated Dialog; inline accordion and production simulation actions are removed.
 - [x] Compact action visuals are 36dp with 48dp interactive bounds; Timeline filters are weighted and non-scrolling.
-- [x] Detector scoring uses <=3,500ms rapid transitions and <=5-minute burst windows; Home/recorded Recent Apps surfaces are excluded.
-- [x] Added detector and UI-state regression tests for normal app switching, browser navigation, navigation surfaces, burst boundaries, and Safe List count.
+- [x] Screen-hijack, sandwich-loop, and browser-redirect chains require rapid entry/exit transitions <=3,500ms; burst clusters are limited to <=5 minutes with <=2.5-minute average gaps. Home/recorded Recent Apps surfaces are excluded.
+- [x] Added regression tests for manual opens after 40–349 minutes, single opens after a 40-minute foreground gap, direct messaging-to-browser navigation, rapid redirect boundaries, Home/Recent Apps surfaces, burst boundaries, and Safe List count.
 - [x] Source diff review complete across all 10 changed files; battery-monitoring lifecycle and protected architecture remain unchanged.
-- [x] GitHub Actions #938, final commit `f809263`: Build and Unit Tests PASS; Gradle 8.9 ran `gradle --no-daemon testDebugUnitTest assembleDebug`; debug APK and unit-test reports uploaded.
-- [x] GitHub Actions #938: Anti-Slop UI Audit Gate PASS; `bash scripts/ui-audit.sh` passed.
+- [x] GitHub Actions #941, code commit `a5e4fc6`: Build and Unit Tests PASS; Gradle 8.9 ran `gradle --no-daemon testDebugUnitTest assembleDebug`; debug APK and unit-test reports uploaded.
+- [x] GitHub Actions #941: Anti-Slop UI Audit Gate PASS; `bash scripts/ui-audit.sh` passed.
 - [ ] Local `./gradlew --no-daemon testDebugUnitTest assembleDebug` — NOT RUN; CI executed the same Gradle tasks with the installed Gradle 8.9 executable.
 - [ ] Local `bash scripts/ui-audit.sh` — NOT RUN separately; verified by CI.
 - [ ] Physical-device UI/runtime verification at 360dp / 720p — NOT RUN.

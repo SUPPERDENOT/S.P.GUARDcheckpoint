@@ -6,13 +6,13 @@
 - Risk capsules now use the semantic Error palette for **Mencurigakan** and the shared amber theme token for **Perlu Dicek**, including dot, text, tint, and border.
 - Replaced the inline Safe List accordion with a separate Dialog containing app icons, labels, package names, per-app Pulihkan, and Pulihkan Semua. Removed production simulation actions from the detector modal.
 - Compact action pills render at 36dp while retaining a 48dp outer interactive target. Timeline filters use a weighted, non-scrolling row without count text in the chip labels.
-- Tightened detector evidence: screen-hijack transitions require a <=3,500ms foreground transition; repeated interruption clusters must fit within five minutes with an average gap <=2.5 minutes. Rapid Home/Recent Apps surface transitions are excluded when UsageStatsManager exposes them. Browser redirect recognition is also bounded to 3,500ms.
+- Tightened detector evidence: screen-hijack and A→B→A sandwich evidence requires rapid entry/exit transitions <=3,500ms; browser redirect chains require both app→middle-app and middle-app→browser transitions <=3,500ms. Repeated interruption clusters must fit within five minutes with an average gap <=2.5 minutes. Home/Recent Apps surfaces are excluded when UsageStatsManager exposes them.
 - Added regression coverage for 40–349 minute manual opens, direct messaging-to-browser navigation, Home/Recent Apps launches, rapid-transition boundaries, and five-minute burst boundaries.
 
 ### Verification
 - Source-level diff review: complete; reviewed all 10 files changed relative to the PR #17 development-branch base.
-- GitHub Actions run **#938** on final commit `f809263`: **Build and Unit Tests PASS**. Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`; debug APK and unit-test report artifacts uploaded.
-- GitHub Actions run **#938**: **Anti-Slop UI Audit Gate PASS**; `bash scripts/ui-audit.sh` completed successfully.
+- GitHub Actions run **#941** on code commit `a5e4fc6`: **Build and Unit Tests PASS**. Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`; build completed successfully and debug APK plus unit-test report artifacts were uploaded.
+- GitHub Actions run **#941**: **Anti-Slop UI Audit Gate PASS**; `bash scripts/ui-audit.sh` completed successfully.
 - Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN; the connected environment verified the same Gradle tasks through the repository's CI workflow, using the installed Gradle 8.9 executable rather than the wrapper.
 - Local `bash scripts/ui-audit.sh`: NOT RUN separately; the exact script passed in CI.
 - Physical-device visual and interaction QA: NOT RUN.
