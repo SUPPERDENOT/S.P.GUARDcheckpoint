@@ -25,7 +25,8 @@ internal data class PopupDetectorScanResult(
     val hasActivityData: Boolean,
     val archivePersisted: Boolean,
     val incidents: List<PopupIncident>,
-    val scannedAtMs: Long
+    val scannedAtMs: Long,
+    val rawIncidents: List<PopupIncident> = incidents
 )
 
 internal class PopupDetectorRepository(context: Context) {
@@ -59,19 +60,22 @@ internal class PopupDetectorRepository(context: Context) {
         val signals = events.mapNotNull { it.packageName }.distinct().associateWith { packageName ->
             resolveSignals(packageName, browserPackages, homePackage, keyboardPackage, dialerPackage)
         }
-        val incidents = PopupHijackDetector.evaluateEvents(
+        val rawIncidents = PopupHijackDetector.evaluateEvents(
             events = events,
             appSignals = signals,
-            safePackages = preferences.safePackages(),
+            safePackages = emptySet(),
             nowMs = nowMs
         )
+        val safePackages = preferences.safePackages()
+        val incidents = rawIncidents.filterNot { it.packageName in safePackages }
         val archivePersisted = preferences.appendIncidents(incidents)
         return PopupDetectorScanResult(
             hasUsagePermission = true,
             hasActivityData = events.any { it.eventType == ScreenUsageEventType.ACTIVITY_RESUMED },
             archivePersisted = archivePersisted,
             incidents = incidents,
-            scannedAtMs = nowMs
+            scannedAtMs = nowMs,
+            rawIncidents = rawIncidents
         )
     }
 
