@@ -131,6 +131,9 @@ internal fun AnalyticsScreen(
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
     }
+    LaunchedEffect(popupDetectorOpenRequest) {
+        if (popupDetectorOpenRequest > 0 && 2 in availableTabs) selectedSubTab = 2
+    }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
         bottom = 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -191,7 +194,13 @@ internal fun AnalyticsScreen(
         when (selectedSubTab) {
             0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
             1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
-            2 -> AppUsageTab(viewModel, bottomScrollPadding, popupDetectorOpenRequest, popupDetectorViewModel)
+            2 -> AppUsageTab(
+                viewModel,
+                bottomScrollPadding,
+                popupDetectorOpenRequest,
+                popupDetectorViewModel,
+                onConsumeOpenPopupDetector
+            )
         }
     }
 }
@@ -917,7 +926,8 @@ private fun AppUsageTab(
     viewModel: PowerGuardViewModel,
     bottomScrollPadding: PaddingValues,
     popupDetectorOpenRequest: Int,
-    popupDetectorViewModel: PopupDetectorViewModel
+    popupDetectorViewModel: PopupDetectorViewModel,
+    onConsumeOpenPopupDetector: () -> Unit
 ) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
@@ -929,7 +939,6 @@ private fun AppUsageTab(
 
     LaunchedEffect(popupDetectorOpenRequest) {
         if (popupDetectorOpenRequest > 0) {
-            if (2 in availableTabs) selectedSubTab = 2
             showPopupDetectorSheet = true
             popupDetectorViewModel.scan()
             onConsumeOpenPopupDetector()
