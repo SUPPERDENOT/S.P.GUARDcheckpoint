@@ -185,6 +185,7 @@ internal fun PopupDetectorSheet(
     onOpenSystemApps: () -> Unit
 ) {
     var showSimulatedInfo by remember { mutableStateOf(false) }
+    var showSafeList by remember { mutableStateOf(false) }
     val timeline = remember(state.currentIncidents, state.archivedIncidents) {
         (state.currentIncidents + state.archivedIncidents)
             .distinctBy { it.packageName }
@@ -240,33 +241,65 @@ internal fun PopupDetectorSheet(
                 }
             }
         }
-        Text(
-            "Pulihkan daftar aman menghapus tanda aman manual. Pengecualian komponen sistem tetap otomatis.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = MaterialTheme.shapes.medium,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
-            Text(
-                "Daftar aman: " + state.safePackages.size + " aplikasi",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            TextButton(onClick = onRestoreSafeList) {
-                Text("Pulihkan daftar aman", maxLines = 1, softWrap = false)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Daftar Aman", style = MaterialTheme.typography.titleSmall)
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        state.safePackages.size.toString() + " aplikasi",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(
+                    onClick = { showSafeList = !showSafeList },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Text(if (showSafeList) "Sembunyikan" else "Lihat", maxLines = 1, softWrap = false)
+                }
             }
         }
-        Text("Daftar Aman", style = MaterialTheme.typography.titleSmall)
-        if (state.safePackages.isEmpty()) {
-            Text("Belum ada aplikasi yang ditandai aman.", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            state.safePackages.sorted().forEach { packageName ->
-                PopupSafePackageRow(packageName) { onRestoreSafePackage(packageName) }
+        if (showSafeList) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onRestoreSafeList,
+                    enabled = state.safePackages.isNotEmpty(),
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Text("Pulihkan Semua", maxLines = 1, softWrap = false)
+                }
+            }
+            if (state.safePackages.isEmpty()) {
+                Text(
+                    "Belum ada aplikasi yang ditandai aman.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                state.safePackages.sorted().forEach { packageName ->
+                    PopupSafePackageRow(packageName) { onRestoreSafePackage(packageName) }
+                }
             }
         }
         if (timeline.isEmpty()) {
@@ -432,9 +465,16 @@ private fun PopupIncidentCard(
     if (showIncidentInfo) {
         InfoLongPressDialog(
             title = popupDisplayName(context, incident),
-            body = "Pola yang teramati berasal dari riwayat perpindahan aktivitas Android. " +
-                incident.reasons.joinToString(" ") { it.userLabel } +
-                " Izin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.",
+            body = buildString {
+                append("Pola yang teramati berasal dari riwayat perpindahan aktivitas Android.")
+                if (incident.reasons.isNotEmpty()) {
+                    append("\n\n")
+                    append(incident.reasons.joinToString("\n") {
+                        "• " + it.userLabel.trim().trimEnd('.', ',', ';') + "."
+                    })
+                }
+                append("\n\nIzin overlay dan metadata paket merupakan sinyal tambahan, bukan bukti bahwa jendela iklan benar-benar tampil atau bahwa aplikasi adalah malware. Tandai Aman jika aplikasi ini memang Anda kenal.")
+            },
             onDismiss = { showIncidentInfo = false }
         )
     }
