@@ -44,7 +44,7 @@ class PopupHijackDetectorTest {
             mapOf(suspect to resolved(suspect, overlay = true), browser to resolved(browser, browser = true)), emptySet(), now
         )
         assertEquals(suspect, result.single().packageName)
-        assertEquals(80, result.single().riskScore)
+        assertEquals(95, result.single().riskScore)
         assertEquals(PopupRiskStatus.SUSPICIOUS, result.single().status)
         assertFalse(result.any { it.packageName == browser })
     }
@@ -260,7 +260,7 @@ class PopupHijackDetectorTest {
                 browser to resolved(browser, browser = true)), emptySet(), now
         )
         assertEquals(systemPackage, result.single().packageName)
-        assertEquals(45, result.single().riskScore)
+        assertEquals(60, result.single().riskScore)
         assertTrue(PopupSignalReason.BROWSER_REDIRECT_CHAIN in result.single().reasons)
     }
 
