@@ -9,10 +9,11 @@
 - [x] Compact action visuals are 36dp with 48dp interactive bounds; Timeline filters are weighted and non-scrolling.
 - [x] Detector scoring uses <=3,500ms rapid transitions and <=5-minute burst windows; Home/recorded Recent Apps surfaces are excluded.
 - [x] Added detector and UI-state regression tests for normal app switching, browser navigation, navigation surfaces, burst boundaries, and Safe List count.
-- [ ] Source diff review — pending final review.
-- [ ] Local `./gradlew --no-daemon testDebugUnitTest assembleDebug` — NOT RUN in connected GitHub-only environment.
-- [ ] Local `bash scripts/ui-audit.sh` — NOT RUN in connected GitHub-only environment.
-- [ ] Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate — pending.
+- [x] Source diff review complete across all 10 changed files; battery-monitoring lifecycle and protected architecture remain unchanged.
+- [x] GitHub Actions #938, final commit `f809263`: Build and Unit Tests PASS; Gradle 8.9 ran `gradle --no-daemon testDebugUnitTest assembleDebug`; debug APK and unit-test reports uploaded.
+- [x] GitHub Actions #938: Anti-Slop UI Audit Gate PASS; `bash scripts/ui-audit.sh` passed.
+- [ ] Local `./gradlew --no-daemon testDebugUnitTest assembleDebug` — NOT RUN; CI executed the same Gradle tasks with the installed Gradle 8.9 executable.
+- [ ] Local `bash scripts/ui-audit.sh` — NOT RUN separately; verified by CI.
 - [ ] Physical-device UI/runtime verification at 360dp / 720p — NOT RUN.
 - [x] No battery-monitoring lifecycle, Room schema, sensor/sampling, calibration, `RECOVERY_HOLD`, Gradle/dependency/SDK, application identity, or versioning changes.
 

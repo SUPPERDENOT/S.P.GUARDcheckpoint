@@ -10,10 +10,11 @@
 - Added regression coverage for 40–349 minute manual opens, direct messaging-to-browser navigation, Home/Recent Apps launches, rapid-transition boundaries, and five-minute burst boundaries.
 
 ### Verification
-- Source-level diff review: pending.
-- Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN in this GitHub-connected environment.
-- Local `bash scripts/ui-audit.sh`: NOT RUN in this GitHub-connected environment.
-- Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate: pending.
+- Source-level diff review: complete; reviewed all 10 files changed relative to the PR #17 development-branch base.
+- GitHub Actions run **#938** on final commit `f809263`: **Build and Unit Tests PASS**. Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`; debug APK and unit-test report artifacts uploaded.
+- GitHub Actions run **#938**: **Anti-Slop UI Audit Gate PASS**; `bash scripts/ui-audit.sh` completed successfully.
+- Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN; the connected environment verified the same Gradle tasks through the repository's CI workflow, using the installed Gradle 8.9 executable rather than the wrapper.
+- Local `bash scripts/ui-audit.sh`: NOT RUN separately; the exact script passed in CI.
 - Physical-device visual and interaction QA: NOT RUN.
 - Recent Apps launch-origin limitation: Android Usage Events do not guarantee a dedicated Recent Apps origin event. The detector excludes a recorded SystemUI/OEM launcher surface transition; if Android omits that transition, the origin cannot be proven from UsageStatsManager alone.
 - Protected battery-monitoring lifecycle, Room schema, sensor/sampling, calibration, `RECOVERY_HOLD`, Gradle/dependencies/SDK, app identity, and versioning are outside this change.
