@@ -189,9 +189,6 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                             simulationActive = previousState.simulationActive
                         )
                     }
-                    if (!saved && latestActualIncidents.isEmpty()) {
-                        latestActualIncidents = previousActualIncidents
-                    }
                 } catch (cancelled: CancellationException) {
                     latestActualIncidents = previousActualIncidents
                     _uiState.value = previousState.copy(isScanning = false, isLoadingArchive = false)
@@ -294,7 +291,5 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
             }
         }
     }
-
-}
 
 }
