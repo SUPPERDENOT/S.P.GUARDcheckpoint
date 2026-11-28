@@ -545,7 +545,7 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "RINGKASAN SESI",
+                        "RINGKASAN SESI PENGISIAN",
                         color = CyanFastCharge,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
@@ -581,9 +581,16 @@ fun ChargingScreen(vm: PowerGuardViewModel, padding: PaddingValues) {
 }
 
 @Composable
-fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues, openPopupDetectorRequest: Int = 0) {
+fun InsightsScreen(
+    vm: PowerGuardViewModel,
+    padding: PaddingValues,
+    openPopupDetectorRequest: Int = 0,
+    onConsumeOpenPopupDetector: () -> Unit = {}
+) {
     val popupDetectorViewModel: PopupDetectorViewModel = viewModel()
-    LaunchedEffect(Unit) { popupDetectorViewModel.scan() }
+    LaunchedEffect(Unit) {
+        if (openPopupDetectorRequest == 0) popupDetectorViewModel.scan()
+    }
     val health by vm.latestHealth.collectAsState()
     val healthSummary = remember(health) {
         health?.let { BatteryHealthSummaryMapper.map(it.estimatedCapacityMah, it.healthPercentage, it.designCapacityMah) }
@@ -628,7 +635,8 @@ fun InsightsScreen(vm: PowerGuardViewModel, padding: PaddingValues, openPopupDet
                 initialSubTab = if (openPopupDetectorRequest > 0) 2 else 1,
                 visibleSubTabs = listOf(1, 2),
                 popupDetectorOpenRequest = openPopupDetectorRequest,
-                popupDetectorViewModel = popupDetectorViewModel
+                popupDetectorViewModel = popupDetectorViewModel,
+                onConsumeOpenPopupDetector = onConsumeOpenPopupDetector
             )
         }
     }

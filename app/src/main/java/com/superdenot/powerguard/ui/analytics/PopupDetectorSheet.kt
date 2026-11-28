@@ -25,7 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Timeline
-import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -118,6 +118,12 @@ internal fun PopupDetectorCard(
                     Text("24 jam", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = "Informasi heuristik detektor pop-up",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             if (suspects.isNotEmpty()) {
                 suspects.forEach { incident ->
@@ -241,7 +247,8 @@ internal fun PopupDetectorSheet(
                     }
                 }
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 420.dp),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .heightIn(max = if (timeline.isEmpty()) 180.dp else 420.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp
                     ),
@@ -287,31 +294,28 @@ internal fun PopupDetectorSheet(
                     item(key = "timeline-filter-chips") {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            FilterChip(
+                            TimelineFilterChip(
+                                label = "Semua",
                                 selected = state.timelineFilter == TimelineRiskFilter.ALL,
-                                onClick = { onSelectTimelineFilter(TimelineRiskFilter.ALL) },
-                                label = { Text("Semua", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) },
-                                modifier = Modifier.weight(0.75f).heightIn(min = 48.dp).semantics {
-                                    contentDescription = "Filter semua insiden, ${state.timelineEvents.size} aplikasi"
-                                }
+                                contentDescription = "Filter semua insiden, ${state.timelineEvents.size} aplikasi",
+                                modifier = Modifier.weight(0.82f),
+                                onClick = { onSelectTimelineFilter(TimelineRiskFilter.ALL) }
                             )
-                            FilterChip(
+                            TimelineFilterChip(
+                                label = "Mencurigakan",
                                 selected = state.timelineFilter == TimelineRiskFilter.SUSPICIOUS,
-                                onClick = { onSelectTimelineFilter(TimelineRiskFilter.SUSPICIOUS) },
-                                label = { Text("Mencurigakan", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) },
-                                modifier = Modifier.weight(1.35f).heightIn(min = 48.dp).semantics {
-                                    contentDescription = "Filter Mencurigakan, ${state.suspiciousCount} aplikasi"
-                                }
+                                contentDescription = "Filter Mencurigakan, ${state.suspiciousCount} aplikasi",
+                                modifier = Modifier.weight(1.15f),
+                                onClick = { onSelectTimelineFilter(TimelineRiskFilter.SUSPICIOUS) }
                             )
-                            FilterChip(
+                            TimelineFilterChip(
+                                label = "Perlu Dicek",
                                 selected = state.timelineFilter == TimelineRiskFilter.NEEDS_REVIEW,
-                                onClick = { onSelectTimelineFilter(TimelineRiskFilter.NEEDS_REVIEW) },
-                                label = { Text("Perlu Dicek", style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false) },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
-                                    contentDescription = "Filter Perlu Dicek, ${state.needsReviewCount} aplikasi"
-                                }
+                                contentDescription = "Filter Perlu Dicek, ${state.needsReviewCount} aplikasi",
+                                modifier = Modifier.weight(1.03f),
+                                onClick = { onSelectTimelineFilter(TimelineRiskFilter.NEEDS_REVIEW) }
                             )
                         }
                     }
@@ -619,13 +623,60 @@ internal fun PopupDetectorInfoDialog(
     }
 }
 
+@Composable
+private fun TimelineFilterChip(
+    label: String,
+    selected: Boolean,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = contentDescription
+                this.selected = selected
+            }
+            .clickable(role = Role.Checkbox, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().height(36.dp),
+            shape = CircleShape,
+            color = if (selected) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                else MaterialTheme.colorScheme.onSurface,
+            border = BorderStroke(
+                1.dp,
+                if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
 private data class PopupAppIconResult(
     val bitmap: androidx.compose.ui.graphics.ImageBitmap?,
     val packageNotFound: Boolean
 )
 
 @Composable
-private fun PopupAppIcon(packageName: String, appLabel: String, modifier: Modifier = Modifier) {
+internal fun PopupAppIcon(packageName: String, appLabel: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val iconResult by androidx.compose.runtime.produceState<PopupAppIconResult?>(
         initialValue = null,

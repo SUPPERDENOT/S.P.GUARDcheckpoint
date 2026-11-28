@@ -1,3 +1,23 @@
+## 2026-11-28 — PR #17 Quick Settings one-shot trigger and UI polish
+
+### Changed
+- Replaced the persistent popup-detector request counter with a monotonic, consumable one-shot trigger. Both `onCreate` and `onNewIntent` read and immediately remove the tile extra; `AnalyticsScreen` opens the detector, starts the scan, and acknowledges the matching request.
+- Added deterministic regression tests proving a consumed tile request cannot be delivered again and an old acknowledgement cannot consume a newer request.
+- Balanced the three Lini Masa filter slots to 0.82 / 1.15 / 1.03 in a single non-scrolling row with 6dp spacing. Each capsule renders at 36dp inside a 48dp clickable target, with compact horizontal padding and single-line labels.
+- Reduced the empty Timeline viewport cap to 180dp so the dialog wraps more tightly when no incidents are present. Reset Filter already uses the shared 36dp capsule / 48dp target helper and remains on that implementation.
+- Reused the detector's asynchronous real-app-icon loader for the 24-hour app-usage rows; PackageManager label lookup now also runs on Dispatchers.IO.
+- Added a trailing accessible information cue to the popup-detector card header and replaced the Quick Settings tile artwork with a monochrome shield-radar VectorDrawable.
+- Renamed the Charging tab header to **RINGKASAN SESI PENGISIAN**. No charging-protocol or fast-charging claims were added.
+
+### Verification
+- Source-level diff review: pending exact-HEAD review.
+- Regression tests, `./gradlew --no-daemon testDebugUnitTest assembleDebug`, and `bash scripts/ui-audit.sh`: pending GitHub Actions on the resulting branch commit.
+- Local Gradle wrapper and UI audit execution: NOT RUN in the connected GitHub-only environment.
+- Physical-device Quick Settings, modal lifecycle, 360dp filter layout, and icon rendering: NOT RUN.
+
+### Protected boundaries
+- No Battery Monitoring lifecycle, sensor/sampling, Room schema, calibration, `RECOVERY_HOLD`, dependency, SDK, package, app-version, or build-number changes.
+
 ## 2026-11-28 — PR #17 real app icons, Safe List dialog, compact controls, and rapid-transition detector
 
 ### Changed

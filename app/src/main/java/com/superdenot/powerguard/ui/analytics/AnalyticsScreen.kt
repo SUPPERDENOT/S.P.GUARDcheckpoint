@@ -124,14 +124,12 @@ internal fun AnalyticsScreen(
     initialSubTab: Int = 0,
     visibleSubTabs: List<Int> = listOf(0, 1, 2),
     popupDetectorOpenRequest: Int = 0,
-    popupDetectorViewModel: PopupDetectorViewModel
+    popupDetectorViewModel: PopupDetectorViewModel,
+    onConsumeOpenPopupDetector: () -> Unit = {}
 ) {
     val availableTabs = visibleSubTabs.filter { it in 0..2 }.ifEmpty { listOf(0) }
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
-    }
-    LaunchedEffect(popupDetectorOpenRequest) {
-        if (popupDetectorOpenRequest > 0 && 2 in availableTabs) selectedSubTab = 2
     }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
@@ -931,8 +929,10 @@ private fun AppUsageTab(
 
     LaunchedEffect(popupDetectorOpenRequest) {
         if (popupDetectorOpenRequest > 0) {
+            if (2 in availableTabs) selectedSubTab = 2
             showPopupDetectorSheet = true
             popupDetectorViewModel.scan()
+            onConsumeOpenPopupDetector()
         }
     }
 
@@ -983,16 +983,24 @@ private fun AppUsageTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val appDisplayName = remember(app.packageName) {
-                            val systemLabel = runCatching {
-                                val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
-                                context.packageManager.getApplicationLabel(applicationInfo).toString()
-                            }.getOrNull()
-                            AppDisplayNameFormatter.format(app.packageName, systemLabel)
+                        val appDisplayName by androidx.compose.runtime.produceState(
+                            initialValue = AppDisplayNameFormatter.format(app.packageName, null),
+                            key1 = app.packageName
+                        ) {
+                            value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                val systemLabel = try {
+                                    val applicationInfo = context.packageManager.getApplicationInfo(app.packageName, 0)
+                                    context.packageManager.getApplicationLabel(applicationInfo).toString()
+                                } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+                                    null
+                                }
+                                AppDisplayNameFormatter.format(app.packageName, systemLabel)
+                            }
                         }
+                        PopupAppIcon(app.packageName, appDisplayName, Modifier.size(40.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(appDisplayName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(

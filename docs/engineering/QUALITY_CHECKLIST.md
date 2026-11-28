@@ -1,3 +1,21 @@
+## 2026-11-28 — PR #17 Quick Settings one-shot trigger and UI polish
+
+- [x] Re-read `QUALITY_CHECKLIST.md` and `scripts/ui-audit.sh` before editing; retained the 48dp interactive-target rule and centralized theme-token policy.
+- [x] `onCreate` and `onNewIntent` consume the tile launch extra once and remove it immediately.
+- [x] MainActivity stores a monotonic request token; AnalyticsScreen opens the modal, starts one scan, then acknowledges the matching token.
+- [x] Regression tests cover repeated consumption and stale acknowledgements against a newer tile request.
+- [x] Timeline filter slots use 0.82 / 1.15 / 1.03 weights, 6dp spacing, 36dp visual capsules, and 48dp clickable bounds.
+- [x] Empty Timeline viewport is capped at 180dp; Reset Filter continues using the shared 36dp / 48dp compact-action helper.
+- [x] 24-hour app-usage rows reuse asynchronous real app icons; PackageManager work is performed on Dispatchers.IO.
+- [x] Popup-detector explanation card has an accessible trailing Info cue; Quick Settings artwork is a monochrome shield-radar vector.
+- [x] Charging summary label now reads `RINGKASAN SESI PENGISIAN`; no unsupported charging-protocol claims introduced.
+- [x] Source-level diff review complete; no protected Battery Monitoring or architecture paths changed.
+- [ ] Exact-HEAD GitHub Actions `testDebugUnitTest assembleDebug` — pending.
+- [ ] Exact-HEAD GitHub Actions `bash scripts/ui-audit.sh` — pending.
+- [ ] Local `./gradlew --no-daemon testDebugUnitTest assembleDebug` and local UI audit — NOT RUN in this connected GitHub-only environment.
+- [ ] Physical-device Quick Settings, modal lifecycle, 360dp layout, and icon QA — NOT RUN.
+- [x] No Battery Monitoring lifecycle, sensor/sampling, Room schema, calibration, `RECOVERY_HOLD`, dependencies, SDK, package, app version, or build number changes.
+
 ## 2026-11-28 — PR #17 UI and detector accuracy follow-up
 
 - [x] Read `QUALITY_CHECKLIST.md`, `scripts/ui-audit.sh`, `AGENTS.md`, Development Standards, Anti-Slop Policy, `DESIGN.md`, Android Engineering Guide, Skills Index, and ChatGPT Workflow before implementation.
