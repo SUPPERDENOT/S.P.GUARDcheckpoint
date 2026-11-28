@@ -574,6 +574,25 @@ class PopupHijackDetectorTest {
     }
 
     @Test
+    fun browserRedirectOutsideTheFiveSecondWindowIsNotAttributed() {
+        val result = PopupHijackDetector.evaluateEvents(
+            listOf(
+                event(appA, now - 8_000L),
+                event(suspect, now - 5_001L),
+                event(browser, now)
+            ),
+            mapOf(
+                appA to resolved(appA),
+                suspect to resolved(suspect),
+                browser to resolved(browser, browser = true)
+            ),
+            emptySet(),
+            now
+        )
+        assertTrue(result.none { PopupSignalReason.BROWSER_REDIRECT_CHAIN in it.reasons })
+    }
+
+    @Test
     fun directBrowserOpenFromExistingAppIsNotAssumedToBeAutomaticRedirect() {
         val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 1_000L), event(browser, now - 500L)),
@@ -592,7 +611,7 @@ class PopupHijackDetectorTest {
     fun launcherGraceWindowExemptsLegitimateAppLaunchAndHasStrictBoundary() {
         val launcher = "com.example.home"
         val previous = event(launcher, now - 10_000L)
-        val withinGrace = event(suspect, now - 1L)
+        val withinGrace = event(suspect, now)
         val outsideGrace = event(suspect, now + 1L)
         val signals = mapOf(launcher to AppPackageSignals(launcher, isHomeLauncher = true))
 
