@@ -487,6 +487,25 @@ class PopupHijackDetectorTest {
     @Test
     fun githubAndroidPackageUsesGitHubFallbackLabel() {
         assertEquals("GitHub", AppDisplayNameFormatter.format("com.github.android", null))
+        assertEquals("GitHub", AppDisplayNameFormatter.format("com.github.android", "Android"))
+    }
+
+    @Test
+    fun browserToSuspectToBrowserIsNotAnAppToBrowserRedirectChain() {
+        val result = PopupHijackDetector.evaluate(
+            listOf(
+                event(browser, now - 10_000L),
+                event(suspect, now - 4_000L),
+                event(browser, now - 1_500L)
+            ),
+            mapOf(
+                browser to resolved(browser, browser = true),
+                suspect to resolved(suspect)
+            ),
+            emptySet(),
+            now
+        )
+        assertFalse(result.any { it.packageName == suspect && it.riskScore >= 45 })
     }
 
     private fun sandwichEvents(count: Int, intervalMs: Long): List<ScreenUsageEvent> {
