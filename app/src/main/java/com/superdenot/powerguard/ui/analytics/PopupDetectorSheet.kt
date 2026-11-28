@@ -623,30 +623,45 @@ internal fun PopupDetectorInfoDialog(
     }
 }
 
+private data class PopupAppIconResult(
+    val bitmap: androidx.compose.ui.graphics.ImageBitmap?,
+    val packageNotFound: Boolean
+)
+
 @Composable
 private fun PopupAppIcon(packageName: String, appLabel: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val icon by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+    val iconResult by androidx.compose.runtime.produceState<PopupAppIconResult?>(
         initialValue = null,
         key1 = packageName
     ) {
         value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                context.packageManager.getApplicationIcon(packageName).toBitmap().asImageBitmap()
+                PopupAppIconResult(
+                    bitmap = context.packageManager.getApplicationIcon(packageName).toBitmap().asImageBitmap(),
+                    packageNotFound = false
+                )
             } catch (_: PackageManager.NameNotFoundException) {
-                null
+                PopupAppIconResult(bitmap = null, packageNotFound = true)
             }
         }
     }
-    if (icon != null) {
-        Image(icon!!, contentDescription = "Ikon $appLabel", modifier = modifier)
-    } else {
-        Icon(
-            Icons.Rounded.Apps,
-            contentDescription = "Ikon aplikasi tidak ditemukan",
-            modifier = modifier,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    when (val result = iconResult) {
+        null -> Spacer(modifier)
+        else -> when {
+            result.packageNotFound -> Icon(
+                Icons.Rounded.Apps,
+                contentDescription = "Ikon aplikasi tidak ditemukan",
+                modifier = modifier,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            result.bitmap != null -> Image(
+                result.bitmap,
+                contentDescription = "Ikon $appLabel",
+                modifier = modifier
+            )
+            else -> Spacer(modifier)
+        }
     }
 }
 
