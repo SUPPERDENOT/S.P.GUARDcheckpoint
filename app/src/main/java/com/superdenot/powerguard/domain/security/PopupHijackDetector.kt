@@ -120,10 +120,9 @@ object PopupHijackDetector {
         }
         fun launchedFromHomeWithinGrace(index: Int, packageName: String): Boolean {
             val current = activityEvents.getOrNull(index) ?: return false
-            val previous = activityEvents.take(index).lastOrNull() ?: return false
+            val previous = activityEvents.take(index).lastOrNull()
             return current.packageName == packageName &&
-                isLauncher(previous.packageName) &&
-                current.timestampMs - previous.timestampMs in 0L..LAUNCHER_GRACE_WINDOW_MS
+                isPopupLauncherGraceTransition(previous, current, appSignals)
         }
         fun hasSuspiciousStaticSignal(packageName: String): Boolean {
             val metadata = signals(packageName)
@@ -335,6 +334,16 @@ object PopupHijackDetector {
     private fun isRecentlyInstalled(firstInstallTimeMs: Long?, nowMs: Long): Boolean =
         firstInstallTimeMs != null && firstInstallTimeMs > nowMs - POPUP_RECENT_INSTALL_MS &&
             firstInstallTimeMs <= nowMs
+}
+
+internal fun isPopupLauncherGraceTransition(
+    previous: ScreenUsageEvent?,
+    current: ScreenUsageEvent,
+    appSignals: Map<String, AppPackageSignals>
+): Boolean {
+    val previousPackage = previous?.packageName ?: return false
+    return appSignals[previousPackage]?.isHomeLauncher == true &&
+        current.timestampMs - previous.timestampMs in 0L..LAUNCHER_GRACE_WINDOW_MS
 }
 
 internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set<String> {
