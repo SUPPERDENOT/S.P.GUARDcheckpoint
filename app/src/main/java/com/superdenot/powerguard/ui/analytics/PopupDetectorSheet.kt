@@ -109,7 +109,7 @@ internal fun PopupDetectorCard(
                     Text(
                         statusText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (state.currentIncidents.isEmpty()) MaterialTheme.colorScheme.primary
+                        color = if (suspects.isEmpty()) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
