@@ -61,6 +61,8 @@ internal class PopupDetectorPreferences(context: Context) {
                 val parsedDurations = buildList {
                     for (durationIndex in 0 until durations.length()) add(durations.optLong(durationIndex))
                 }
+                val hasValidatedBrowserRedirectEvidence =
+                    item.optBoolean("validatedBrowserRedirect", false)
                 val status = runCatching { PopupRiskStatus.valueOf(item.optString("status")) }
                     .getOrDefault(PopupRiskStatus.NEEDS_CHECK)
                 val packageName = item.optString("packageName").takeIf { it.isNotBlank() } ?: continue
@@ -71,7 +73,8 @@ internal class PopupDetectorPreferences(context: Context) {
                         status = status,
                         reasons = parsedReasons,
                         eventTimesMs = parsedTimes,
-                        eventDurationsMs = parsedDurations
+                        eventDurationsMs = parsedDurations,
+                        hasValidatedBrowserRedirectEvidence = hasValidatedBrowserRedirectEvidence
                     )
                 )
             }
@@ -113,7 +116,8 @@ internal class PopupDetectorPreferences(context: Context) {
                 .put("status", incident.status.name)
                 .put("reasons", reasons)
                 .put("times", times)
-                .put("durations", durations))
+                .put("durations", durations)
+                .put("validatedBrowserRedirect", incident.hasValidatedBrowserRedirectEvidence))
         }
         return json.toString()
     }
