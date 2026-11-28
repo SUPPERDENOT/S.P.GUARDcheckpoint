@@ -43,9 +43,11 @@ internal class PopupDetectorPreferences(context: Context) {
     fun archivedIncidents(): List<PopupIncident> {
         val json = runCatching { JSONArray(preferences.getString(KEY_INCIDENT_ARCHIVE, "[]")) }.getOrNull()
             ?: return emptyList()
+        var migratedLegacyStatus = false
         val parsed = buildList {
             for (index in 0 until json.length()) {
                 val item = json.optJSONObject(index) ?: continue
+                if (item.optString("status") == "NEEDS_CHECK") migratedLegacyStatus = true
                 val reasons = item.optJSONArray("reasons") ?: JSONArray()
                 val times = item.optJSONArray("times") ?: JSONArray()
                 val parsedReasons = buildList {
@@ -95,7 +97,7 @@ internal class PopupDetectorPreferences(context: Context) {
         val cleaned = capPopupIncidentArchive(
             sanitizePopupIncidentArchive(parsed, excludedPackages, systemPackages, establishedLauncherPackages)
         )
-        if (cleaned != parsed) preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleaned)).commit()
+        if (cleaned != parsed || migratedLegacyStatus) preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleaned)).commit()
         return cleaned
     }
 
