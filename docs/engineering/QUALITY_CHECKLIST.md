@@ -16,7 +16,7 @@
 - [x] Unit tests cover same-package transitions, multi-Activity pause timing, browser attribution, launcher grace, deduplication, filter modes/counts, concurrent safe-list reconciliation, cached restoration, and legacy status migration.
 - [ ] Local `./gradlew testDebugUnitTest` — NOT RUN in this connected GitHub-only environment.
 - [ ] Local `bash scripts/ui-audit.sh` — NOT RUN in this connected GitHub-only environment.
-- [ ] Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate — pending.
+- [x] Exact-HEAD GitHub Actions Run #931 (`e060d35325b9cb9461d8574d921554bf3bcffe2b`): `testDebugUnitTest` and `assembleDebug` SUCCESS; Anti-Slop UI Audit Gate (`bash scripts/ui-audit.sh`) SUCCESS. [Workflow](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/46118951758).
 - [ ] Physical-device UI and runtime verification — NOT RUN.
 - [x] No AndroidManifest.xml, Room DB v3, BatteryMonitorService, battery sensor/sampling, or P0 charging-protocol/source files changed.
 

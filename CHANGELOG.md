@@ -23,7 +23,7 @@
 
 ### Verification
 - Local `./gradlew testDebugUnitTest` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment.
-- Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate: pending.
+- Exact-HEAD GitHub Actions Run #931 (`e060d35325b9cb9461d8574d921554bf3bcffe2b`): `testDebugUnitTest` and `assembleDebug` **SUCCESS**; Anti-Slop UI Audit Gate (`bash scripts/ui-audit.sh`) **SUCCESS**. [Workflow](https://github.com/SUPPERDENOT/S.P.GUARDcheckpoint/actions/runs/46118951758).
 - Physical-device verification: NOT RUN.
 - No AndroidManifest.xml, Room DB v3, BatteryMonitorService, battery sensor/sampling, or P0 charging-protocol/source files changed. No merge to `main`.
 
