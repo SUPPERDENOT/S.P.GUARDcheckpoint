@@ -3,6 +3,10 @@ package com.superdenot.powerguard.ui.analytics
 import java.util.Locale
 
 internal object AppDisplayNameFormatter {
+    private val genericPackageSegments = setOf(
+        "android", "app", "mobile", "client", "id", "co", "lite", "pro",
+        "free", "plus", "ui", "viewer", "player", "service"
+    )
     private val fallbackAliases = mapOf("github" to "GitHub")
 
     private val knownLabels = mapOf(
@@ -27,18 +31,16 @@ internal object AppDisplayNameFormatter {
 
     fun format(packageName: String, systemLabel: String?): String {
         val label = systemLabel?.trim().orEmpty()
-        if (label.isNotEmpty() && label != packageName && !label.startsWith("com.")) return label
+        if (label.isNotEmpty() && label != packageName && !label.startsWith("com.") &&
+            label.lowercase(Locale.ROOT) !in genericPackageSegments
+        ) return label
         return knownLabels[packageName] ?: readablePackageFallback(packageName)
     }
 
     private fun readablePackageFallback(packageName: String): String {
-        val genericTrailingSegments = setOf(
-            "android", "app", "mobile", "client", "id", "co", "lite", "pro",
-            "free", "plus", "ui", "viewer", "player", "service"
-        )
         val segments = packageName.split('.').filter(String::isNotBlank)
         val segment = segments.asReversed().firstOrNull {
-            it.lowercase(Locale.ROOT) !in genericTrailingSegments
+            it.lowercase(Locale.ROOT) !in genericPackageSegments
         } ?: packageName.substringAfterLast('.').ifBlank { packageName }
         val words = segment
             .replace(Regex("([a-z])([A-Z])")) { match ->
