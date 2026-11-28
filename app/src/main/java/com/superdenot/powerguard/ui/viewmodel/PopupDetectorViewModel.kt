@@ -117,11 +117,14 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         }
     }
 
-    fun scan() {
+    fun runScan() {
         viewModelScope.launch {
             scanMutex.withLock { runScanLocked() }
         }
     }
+
+    /** Compatibility entry point used by existing UI and Quick Settings call sites. */
+    fun scan() = runScan()
 
     /** runScan is serialized with add/remove safe-list operations through the same scanMutex. */
     private suspend fun runScanLocked() {
@@ -194,8 +197,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         }
     }
 
-    /** Adds a package to the safe list; equivalent to addToSafeList in the feature contract. */
-    fun markSafe(incident: PopupIncident) {
+    /** Compatibility entry point for the existing UI callback. */
+    fun markSafe(incident: PopupIncident) = addToSafeList(incident)
+
+    /** Adds a package to the safe list; serialized with scans and removals. */
+    fun addToSafeList(incident: PopupIncident) {
         if (incident.isSimulated) return
         viewModelScope.launch {
             scanMutex.withLock {
@@ -262,8 +268,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         }
     }
 
-    /** Removes one package from the safe list; equivalent to removeFromSafeList. */
-    fun restoreSafePackage(packageName: String) {
+    /** Compatibility entry point for the existing UI callback. */
+    fun restoreSafePackage(packageName: String) = removeFromSafeList(packageName)
+
+    /** Removes one package from the safe list; serialized with scans and additions. */
+    fun removeFromSafeList(packageName: String) {
         viewModelScope.launch {
             scanMutex.withLock {
                 _uiState.update { current ->
