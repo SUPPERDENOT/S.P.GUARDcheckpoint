@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal data class PopupDetectorUiState(
@@ -63,41 +65,46 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
 
     private var latestActualIncidents: List<PopupIncident> = emptyList()
 
+    private val scanMutex = Mutex()
+
     fun scan() {
-        if (_uiState.value.isScanning) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
-            try {
-                val result = withContext(Dispatchers.IO) { repository.scan() }
-                latestActualIncidents = result.incidents.distinctBy { it.packageName }
-                val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
-                val safe = withContext(Dispatchers.IO) { repository.safePackages() }
-                _uiState.update {
-                    it.copy(
-                        isScanning = false,
-                        isLoadingArchive = false,
-                        hasUsagePermission = result.hasUsagePermission,
-                        hasActivityData = result.hasActivityData,
-                        currentIncidents = result.incidents,
-                        archivedIncidents = archive,
-                        safePackages = safe,
-                        lastScanAtMs = result.scannedAtMs,
-                        errorMessage = if (result.archivePersisted) null else
-                            "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan.",
-                        simulationActive = false
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
-                throw cancelled
-            } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isScanning = false,
-                        isLoadingArchive = false,
-                        errorMessage = "Pemindaian belum dapat diselesaikan. Periksa akses penggunaan lalu coba lagi."
-                    )
-                }
+            scanMutex.withLock { performScanLocked() }
+        }
+    }
+
+    private suspend fun performScanLocked() {
+        _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
+        try {
+            val result = withContext(Dispatchers.IO) { repository.scan() }
+            latestActualIncidents = result.incidents.distinctBy { it.packageName }
+            val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
+            val safe = withContext(Dispatchers.IO) { repository.safePackages() }
+            _uiState.update {
+                it.copy(
+                    isScanning = false,
+                    isLoadingArchive = false,
+                    hasUsagePermission = result.hasUsagePermission,
+                    hasActivityData = result.hasActivityData,
+                    currentIncidents = result.incidents,
+                    archivedIncidents = archive,
+                    safePackages = safe,
+                    lastScanAtMs = result.scannedAtMs,
+                    errorMessage = if (result.archivePersisted) null else
+                        "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan.",
+                    simulationActive = false
+                )
+            }
+        } catch (cancelled: CancellationException) {
+            _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
+            throw cancelled
+        } catch (_: Exception) {
+            _uiState.update {
+                it.copy(
+                    isScanning = false,
+                    isLoadingArchive = false,
+                    errorMessage = "Pemindaian belum dapat diselesaikan. Periksa akses penggunaan lalu coba lagi."
+                )
             }
         }
     }
@@ -131,60 +138,71 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
             }
             return
         }
-        latestActualIncidents = latestActualIncidents.filterNot { it.packageName == incident.packageName }
-        _uiState.update { state ->
-            state.copy(
-                isLoadingArchive = false,
-                currentIncidents = state.currentIncidents.filterNot { it.packageName == incident.packageName },
-                archivedIncidents = state.archivedIncidents.filterNot { it.packageName == incident.packageName },
-                safePackages = state.safePackages + incident.packageName,
-                errorMessage = null,
-                simulationActive = false
-            )
-        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isScanning = true) }
-            try {
-                val (safeListSaved, result) = withContext(Dispatchers.IO) {
-                    val saved = repository.markSafe(incident.packageName)
-                    saved to if (saved) repository.scan() else null
-                }
-                if (result == null) {
-                    _uiState.update {
-                        it.copy(
-                            isScanning = false,
-                            isLoadingArchive = false,
-                            errorMessage = "Aplikasi belum berhasil ditambahkan ke daftar aman."
-                        )
-                    }
-                    return@launch
-                }
-                latestActualIncidents = result.incidents
-                val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
-                val safe = withContext(Dispatchers.IO) { repository.safePackages() }
+            scanMutex.withLock {
+                val previousState = _uiState.value
+                val previousActualIncidents = latestActualIncidents
                 _uiState.update {
                     it.copy(
-                        isScanning = false,
+                        isScanning = true,
                         isLoadingArchive = false,
-                        hasUsagePermission = result.hasUsagePermission,
-                        hasActivityData = result.hasActivityData,
-                        currentIncidents = result.incidents,
-                        archivedIncidents = archive,
-                        safePackages = safe,
-                        lastScanAtMs = result.scannedAtMs,
-                        errorMessage = when {
-                            !safeListSaved -> "Aplikasi belum berhasil ditambahkan ke daftar aman."
-                            !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
-                            else -> null
-                        }
+                        currentIncidents = it.currentIncidents.filterNot { item ->
+                            !item.isSimulated && item.packageName == incident.packageName
+                        },
+                        archivedIncidents = it.archivedIncidents.filterNot { item ->
+                            item.packageName == incident.packageName
+                        },
+                        safePackages = it.safePackages + incident.packageName,
+                        errorMessage = null,
+                        simulationActive = false
                     )
                 }
-            } catch (cancelled: CancellationException) {
-                _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
-                throw cancelled
-            } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal diperbarui.")
+                try {
+                    val saved = withContext(Dispatchers.IO) {
+                        repository.markSafe(incident.packageName)
+                    }
+                    // Do not drop the rescan if another scan was already active.
+                    val result = withContext(Dispatchers.IO) { repository.scan() }
+                    latestActualIncidents = result.incidents.distinctBy { it.packageName }
+                    val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
+                    val safe = withContext(Dispatchers.IO) { repository.safePackages() }
+                    _uiState.update { state ->
+                        val simulatedItems = if (previousState.simulationActive) {
+                            previousState.currentIncidents.filter { it.isSimulated }
+                        } else {
+                            emptyList()
+                        }
+                        state.copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            hasUsagePermission = result.hasUsagePermission,
+                            hasActivityData = result.hasActivityData,
+                            currentIncidents = (result.incidents + simulatedItems).distinctBy { it.packageName },
+                            archivedIncidents = archive,
+                            safePackages = safe,
+                            lastScanAtMs = result.scannedAtMs,
+                            errorMessage = when {
+                                !saved -> "Aplikasi belum berhasil ditambahkan ke daftar aman."
+                                !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
+                                else -> null
+                            },
+                            simulationActive = previousState.simulationActive
+                        )
+                    }
+                    if (!saved && latestActualIncidents.isEmpty()) {
+                        latestActualIncidents = previousActualIncidents
+                    }
+                } catch (cancelled: CancellationException) {
+                    latestActualIncidents = previousActualIncidents
+                    _uiState.value = previousState.copy(isScanning = false, isLoadingArchive = false)
+                    throw cancelled
+                } catch (_: Exception) {
+                    latestActualIncidents = previousActualIncidents
+                    _uiState.value = previousState.copy(
+                        isScanning = false,
+                        isLoadingArchive = false,
+                        errorMessage = "Daftar aman gagal diperbarui."
+                    )
                 }
             }
         }
@@ -192,54 +210,91 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
 
     fun restoreSafePackage(packageName: String) {
         viewModelScope.launch {
-            val restored = withContext(Dispatchers.IO) { repository.restoreSafePackage(packageName) }
-            val safe = withContext(Dispatchers.IO) { repository.safePackages() }
-            _uiState.update {
-                it.copy(
-                    safePackages = safe,
-                    errorMessage = if (restored) null else "Aplikasi belum berhasil dipulihkan dari daftar aman."
-                )
+            scanMutex.withLock {
+                _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
+                try {
+                    val (restored, result) = withContext(Dispatchers.IO) {
+                        val didRestore = repository.restoreSafePackage(packageName)
+                        didRestore to repository.scan()
+                    }
+                    latestActualIncidents = result.incidents.distinctBy { it.packageName }
+                    val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
+                    val safe = withContext(Dispatchers.IO) { repository.safePackages() }
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            hasUsagePermission = result.hasUsagePermission,
+                            hasActivityData = result.hasActivityData,
+                            currentIncidents = result.incidents,
+                            archivedIncidents = archive,
+                            safePackages = safe,
+                            lastScanAtMs = result.scannedAtMs,
+                            errorMessage = when {
+                                !restored -> "Aplikasi belum berhasil dipulihkan dari daftar aman."
+                                !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
+                                else -> null
+                            },
+                            simulationActive = false
+                        )
+                    }
+                } catch (cancelled: CancellationException) {
+                    _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
+                    throw cancelled
+                } catch (_: Exception) {
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            errorMessage = "Aplikasi gagal dipulihkan dari daftar aman."
+                        )
+                    }
+                }
             }
-            if (restored) scan()
         }
     }
 
     fun restoreSafeList() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
-            try {
-                val (safeListRestored, result) = withContext(Dispatchers.IO) {
-                    val restored = repository.restoreSafePackages()
-                    restored to repository.scan()
-                }
-                latestActualIncidents = result.incidents
-                val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
-                val safe = withContext(Dispatchers.IO) { repository.safePackages() }
-                _uiState.update {
-                    it.copy(
-                        isScanning = false,
-                        isLoadingArchive = false,
-                        hasUsagePermission = result.hasUsagePermission,
-                        hasActivityData = result.hasActivityData,
-                        currentIncidents = result.incidents,
-                        archivedIncidents = archive,
-                        safePackages = safe,
-                        lastScanAtMs = result.scannedAtMs,
-                        errorMessage = when {
-                            !safeListRestored -> "Daftar aman belum berhasil dipulihkan."
-                            !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
-                            else -> null
-                        }
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
-                throw cancelled
-            } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal dipulihkan.")
+            scanMutex.withLock {
+                _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
+                try {
+                    val (safeListRestored, result) = withContext(Dispatchers.IO) {
+                        val restored = repository.restoreSafePackages()
+                        restored to repository.scan()
+                    }
+                    latestActualIncidents = result.incidents.distinctBy { it.packageName }
+                    val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
+                    val safe = withContext(Dispatchers.IO) { repository.safePackages() }
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            hasUsagePermission = result.hasUsagePermission,
+                            hasActivityData = result.hasActivityData,
+                            currentIncidents = result.incidents,
+                            archivedIncidents = archive,
+                            safePackages = safe,
+                            lastScanAtMs = result.scannedAtMs,
+                            errorMessage = when {
+                                !safeListRestored -> "Daftar aman belum berhasil dipulihkan."
+                                !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
+                                else -> null
+                            }
+                        )
+                    }
+                } catch (cancelled: CancellationException) {
+                    _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
+                    throw cancelled
+                } catch (_: Exception) {
+                    _uiState.update {
+                        it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal dipulihkan.")
+                    }
                 }
             }
         }
     }
+
+}
+
 }
