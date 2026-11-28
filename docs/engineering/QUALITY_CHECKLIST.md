@@ -10,8 +10,8 @@
 - [x] Tapping the popup-detector card opens its heuristic explanation; the trailing Info cue is accessible and the separate Lihat Lini Masa action still opens the timeline. Quick Settings artwork is a monochrome shield-radar vector.
 - [x] Charging summary label now reads `RINGKASAN SESI PENGISIAN`; no unsupported charging-protocol claims introduced.
 - [x] Source-level diff review complete; no protected Battery Monitoring or architecture paths changed.
-- [ ] Exact-HEAD GitHub Actions `testDebugUnitTest assembleDebug` — pending.
-- [ ] Exact-HEAD GitHub Actions `bash scripts/ui-audit.sh` — pending.
+- [x] Exact-HEAD GitHub Actions #948 on `747c52f`: Build and Unit Tests PASS; Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`; debug APK and unit-test report artifacts uploaded.
+- [x] Exact-HEAD GitHub Actions #948: Anti-Slop UI Audit Gate PASS; `bash scripts/ui-audit.sh` completed successfully.
 - [ ] Local `./gradlew --no-daemon testDebugUnitTest assembleDebug` and local UI audit — NOT RUN in this connected GitHub-only environment.
 - [ ] Physical-device Quick Settings, modal lifecycle, 360dp layout, and icon QA — NOT RUN.
 - [x] No Battery Monitoring lifecycle, sensor/sampling, Room schema, calibration, `RECOVERY_HOLD`, dependencies, SDK, package, app version, or build number changes.

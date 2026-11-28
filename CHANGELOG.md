@@ -10,9 +10,12 @@
 - Renamed the Charging tab header to **RINGKASAN SESI PENGISIAN**. No charging-protocol or fast-charging claims were added.
 
 ### Verification
-- Source-level diff review: pending exact-HEAD review.
-- Regression tests, `./gradlew --no-daemon testDebugUnitTest assembleDebug`, and `bash scripts/ui-audit.sh`: pending GitHub Actions on the resulting branch commit.
-- Local Gradle wrapper and UI audit execution: NOT RUN in the connected GitHub-only environment.
+- Source-level diff review: complete; reviewed the one-shot request flow, screen ownership, accessibility hit bounds, icon path, and protected-scope diff.
+- GitHub Actions **#948** on exact final code commit `747c52f`: **Build and Unit Tests PASS**; Gradle 8.9 executed `gradle --no-daemon testDebugUnitTest assembleDebug`. Debug APK and unit-test report artifacts uploaded.
+- GitHub Actions **#948**: **Anti-Slop UI Audit Gate PASS**; the exact `bash scripts/ui-audit.sh` check completed successfully.
+- Intermediate runs #943–#947 exposed compile-time issues during callback wiring and chip accessibility iteration; the fixes are included in final commit `747c52f`, and exact-HEAD run #948 passed.
+- Local `./gradlew --no-daemon testDebugUnitTest assembleDebug`: NOT RUN; CI executed the same Gradle task set using the installed Gradle 8.9 executable rather than the wrapper.
+- Local `bash scripts/ui-audit.sh`: NOT RUN separately; the exact script passed in CI.
 - Physical-device Quick Settings, modal lifecycle, 360dp filter layout, and icon rendering: NOT RUN.
 
 ### Protected boundaries
