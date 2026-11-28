@@ -574,7 +574,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test
-    fun rapidBrowserOpenIsAttributedToImmediatelyPrecedingTriggeringApp() {
+    fun directBrowserOpenFromExistingAppIsNotAssumedToBeAutomaticRedirect() {
         val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 1_000L), event(browser, now - 500L)),
             mapOf(
@@ -584,9 +584,8 @@ class PopupHijackDetectorTest {
             emptySet(),
             now
         )
-        assertEquals(listOf(appA), result.map { it.packageName })
-        assertTrue(PopupSignalReason.BROWSER_REDIRECT_CHAIN in result.single().reasons)
-        assertEquals(PopupRiskStatus.NEEDS_REVIEW, result.single().status)
+        assertTrue(result.isEmpty())
+        assertFalse(result.any { it.packageName == browser })
     }
 
     @Test
