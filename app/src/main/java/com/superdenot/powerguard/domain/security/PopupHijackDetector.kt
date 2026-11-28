@@ -301,7 +301,7 @@ object PopupHijackDetector {
             PopupIncident(
                 packageName = pkg,
                 riskScore = score,
-                status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_CHECK,
+                status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_REVIEW,
                 reasons = reasons.toList().sortedByDescending { it.points },
                 eventTimesMs = incidentTimes,
                 isSimulated = isSimulated,
@@ -442,7 +442,7 @@ internal fun sanitizePopupIncidentArchive(
         if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
         incident.copy(
             riskScore = score,
-            status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_CHECK,
+            status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_REVIEW,
             reasons = reasons.toList().sortedByDescending { it.points },
             hasValidatedBrowserRedirectEvidence = hasValidatedBrowserRedirectEvidence
         )
