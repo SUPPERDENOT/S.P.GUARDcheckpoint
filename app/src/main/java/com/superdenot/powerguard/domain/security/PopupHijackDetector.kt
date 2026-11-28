@@ -45,7 +45,8 @@ data class PopupIncident(
     val reasons: List<PopupSignalReason>,
     val eventTimesMs: List<Long>,
     val isSimulated: Boolean = false,
-    val eventDurationsMs: List<Long> = emptyList()
+    val eventDurationsMs: List<Long> = emptyList(),
+    val hasValidatedBrowserRedirectEvidence: Boolean = false
 ) {
     val lastSeenAtMs: Long get() = eventTimesMs.maxOrNull() ?: 0L
     val occurrenceCount: Int get() = eventTimesMs.distinct().size
@@ -290,7 +291,9 @@ object PopupHijackDetector {
                 reasons = reasons.toList().sortedByDescending { it.points },
                 eventTimesMs = incidentTimes,
                 isSimulated = isSimulated,
-                eventDurationsMs = incidentDurations
+                eventDurationsMs = incidentDurations,
+                hasValidatedBrowserRedirectEvidence =
+                    PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons
             )
         }.sortedWith(
             compareByDescending<PopupIncident> { it.status == PopupRiskStatus.SUSPICIOUS }
@@ -335,9 +338,13 @@ internal fun sanitizePopupIncidentArchive(
     val cleaned = incidents.mapNotNull { incident ->
         if (incident.packageName in safePackages || isPopupAlwaysExcludedPackage(incident.packageName)) return@mapNotNull null
         val reasons = incident.reasons.toMutableSet()
-        val hasLiteralBrowserRedirectEvidence =
-            PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons
-        if (incident.packageName in systemPackages && !hasLiteralBrowserRedirectEvidence) return@mapNotNull null
+        val hasValidatedBrowserRedirectEvidence =
+            incident.hasValidatedBrowserRedirectEvidence &&
+                PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons
+        if (PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons && !hasValidatedBrowserRedirectEvidence) {
+            reasons.remove(PopupSignalReason.BROWSER_REDIRECT_CHAIN)
+        }
+        if (incident.packageName in systemPackages && !hasValidatedBrowserRedirectEvidence) return@mapNotNull null
 
         val times = incident.eventTimesMs.distinct().sorted()
         val durationByTime = incident.eventTimesMs.zip(incident.eventDurationsMs).toMap()
@@ -351,7 +358,7 @@ internal fun sanitizePopupIncidentArchive(
         val burstReasons = setOf(PopupSignalReason.BURST_LOOP_2, PopupSignalReason.BURST_LOOP_3_PLUS)
 
         if (isEstablishedLauncher) {
-            if (!hasLiteralBrowserRedirectEvidence &&
+            if (!hasValidatedBrowserRedirectEvidence &&
                 !(PopupSignalReason.BURST_LOOP_3_PLUS in reasons && validFastBurst)
             ) return@mapNotNull null
             if (reasons.any { it in burstReasons } && !validFastBurst) {
@@ -370,7 +377,8 @@ internal fun sanitizePopupIncidentArchive(
         incident.copy(
             riskScore = score,
             status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_CHECK,
-            reasons = reasons.toList().sortedByDescending { it.points }
+            reasons = reasons.toList().sortedByDescending { it.points },
+            hasValidatedBrowserRedirectEvidence = hasValidatedBrowserRedirectEvidence
         )
     }
     return cleaned.groupBy { it.packageName }
