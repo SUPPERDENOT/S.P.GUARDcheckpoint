@@ -6,7 +6,8 @@
 - [x] Archive load re-evaluates installed-package launcher, install-age, overlay, safe-list, and system-exclusion signals. Legacy launcher false positives without qualifying evidence are removed; missing legacy duration evidence is not assumed valid.
 - [x] PackageManager archive metadata checks execute on Dispatchers.IO; unknown or zero install timestamps are not treated as proof of an established app.
 - [x] Fallback formatter skips generic trailing package segments and generic PackageManager labels; com.github.android resolves to GitHub.
-- [x] Browser redirect scoring requires a literal non-browser App A → suspect → browser chain; archive read/merge operations are serialized.
+- [x] Browser redirect scoring requires a literal non-browser App A → suspect → browser chain. Validated redirect evidence is persisted; unverified legacy redirect reasons are discarded for established launchers and system packages.
+- [x] Archive read/merge operations are serialized while package metadata is re-evaluated on Dispatchers.IO.
 - [x] Detail-dialog reasons are separate bullet lines; existing simulation tests assert both score bands, and the UI source keeps Tandai Aman disabled for simulated items.
 - [x] Unit tests added for WhatsApp/GitHub/HRMS normal multitasking, valid/invalid fast bursts, redirect threshold, archive cleanup, formatter fallback, and JSON duration round-trip.
 - [x] No AndroidManifest, Room DB v3, BatteryMonitorService, sensor/sampling, calibration 1x, RECOVERY_HOLD, Gradle/dependency/SDK, app ID, version, or build-number changes.
