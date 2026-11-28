@@ -372,6 +372,65 @@ class PopupHijackDetectorTest {
     }
 
     @Test
+    fun establishedLauncherAppFastBurstIncludesExactThirtyMinuteAndTenMinuteBoundaries() {
+        val events = mutableListOf<ScreenUsageEvent>()
+        repeat(4) { index ->
+            val popupAt = now - (3 - index) * 10L * 60_000L - 3_000L
+            events += event(appA, popupAt - 1_000L)
+            events += event(suspect, popupAt)
+            events += pause(suspect, popupAt + 2_000L)
+            events += event(appA, popupAt + 2_100L)
+        }
+        val incident = PopupHijackDetector.evaluate(
+            events,
+            mapOf(appA to resolved(appA), suspect to resolved(suspect)),
+            emptySet(),
+            now
+        ).single { it.packageName == suspect }
+        assertTrue(incident.riskScore >= 45)
+        assertTrue(PopupSignalReason.BURST_LOOP_3_PLUS in incident.reasons)
+    }
+
+    @Test
+    fun establishedLauncherAppFastBurstAboveTenMinuteAverageIsNotFlagged() {
+        val events = mutableListOf<ScreenUsageEvent>()
+        repeat(3) { index ->
+            val popupAt = now - (2 - index) * (10L * 60_000L + 1_000L) - 3_000L
+            events += event(appA, popupAt - 1_000L)
+            events += event(suspect, popupAt)
+            events += pause(suspect, popupAt + 2_000L)
+            events += event(appA, popupAt + 2_100L)
+        }
+        val result = PopupHijackDetector.evaluate(
+            events,
+            mapOf(appA to resolved(appA), suspect to resolved(suspect)),
+            emptySet(),
+            now
+        )
+        assertFalse(result.any { it.packageName == suspect && it.riskScore >= 45 })
+    }
+
+    @Test
+    fun unknownInstallAgeDoesNotUseEstablishedLauncherSuppression() {
+        val events = mutableListOf<ScreenUsageEvent>()
+        repeat(3) { index ->
+            val previousAt = now - (3 - index) * 5L * 60_000L
+            val popupAt = previousAt + 1_000L
+            events += event(appA, previousAt)
+            events += event(suspect, popupAt)
+            events += pause(suspect, popupAt + 8_000L)
+            events += event(appA, popupAt + 8_100L)
+        }
+        val result = PopupHijackDetector.evaluate(
+            events,
+            mapOf(appA to resolved(appA), suspect to resolved(suspect, installAt = null)),
+            emptySet(),
+            now
+        )
+        assertTrue(result.any { it.packageName == suspect && it.riskScore >= 45 })
+    }
+
+    @Test
     fun establishedLauncherAppBrowserRedirectMeetsVisibleThreshold() {
         val result = PopupHijackDetector.evaluate(
             listOf(
