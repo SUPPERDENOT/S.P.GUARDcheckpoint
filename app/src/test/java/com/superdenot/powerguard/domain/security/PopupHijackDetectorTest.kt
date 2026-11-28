@@ -308,6 +308,31 @@ class PopupHijackDetectorTest {
     }
 
     @Test
+    fun internalActivityTransitionsUseLastPauseBeforeReturningToPreviousApp() {
+        val events = listOf(
+            event(appA, now - 20_000L),
+            event(suspect, now - 19_000L),
+            pause(suspect, now - 18_000L),
+            event(suspect, now - 17_000L),
+            pause(suspect, now - 14_000L),
+            event(appA, now - 13_000L),
+            event(suspect, now - 8_000L),
+            pause(suspect, now - 6_000L),
+            event(appA, now - 5_000L)
+        )
+        val incident = PopupHijackDetector.evaluate(
+            events,
+            mapOf(suspect to resolved(suspect, overlay = true)),
+            emptySet(),
+            now
+        ).single { it.packageName == suspect }
+
+        // The first pause is too early; the final pause is only 1 second before returning.
+        assertEquals(listOf(5_000L, 2_000L), incident.eventDurationsMs.filter { it > 0L })
+        assertTrue(PopupSignalReason.BURST_LOOP_2 in incident.reasons)
+    }
+
+    @Test
     fun establishedLauncherAppsWithNormalMultitaskingStayBelowVisibleRisk() {
         val home = "com.example.home"
         val packages = listOf("com.whatsapp", "com.github.android", "com.example.hrms")
