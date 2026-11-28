@@ -157,7 +157,7 @@ internal fun PopupDetectorCard(
                 }
                 Button(
                     onClick = onRescan,
-                    enabled = !state.isScanning,
+                    enabled = !state.isScanning && !state.isLoadingArchive,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
@@ -234,7 +234,7 @@ internal fun PopupDetectorSheet(
             } else {
                 Button(
                     onClick = onRescan,
-                    enabled = !state.isScanning && state.hasUsagePermission,
+                    enabled = !state.isScanning && !state.isLoadingArchive && state.hasUsagePermission,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
@@ -285,7 +285,7 @@ internal fun PopupDetectorSheet(
             ) {
                 TextButton(
                     onClick = onRestoreSafeList,
-                    enabled = state.safePackages.isNotEmpty(),
+                    enabled = state.safePackages.isNotEmpty() && !state.isLoadingArchive && !state.isScanning,
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {
                     Text("Pulihkan Semua", maxLines = 1, softWrap = false)
