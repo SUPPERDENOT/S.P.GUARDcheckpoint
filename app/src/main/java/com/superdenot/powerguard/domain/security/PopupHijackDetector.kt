@@ -111,8 +111,12 @@ object PopupHijackDetector {
         fun isLauncher(packageName: String?) = packageName != null && signals(packageName).isHomeLauncher
         fun isRapidBrowserRedirectTrigger(index: Int, packageName: String): Boolean {
             val current = activityEvents.getOrNull(index) ?: return false
+            val previous = activityEvents.take(index).lastOrNull() ?: return false
             val next = activityEvents.drop(index + 1).firstOrNull() ?: return false
             return current.packageName == packageName &&
+                previous.packageName != packageName &&
+                !isLauncher(previous.packageName) &&
+                !signals(previous.packageName.orEmpty()).isBrowser &&
                 !isLauncher(packageName) &&
                 !signals(packageName).isBrowser &&
                 signals(next.packageName.orEmpty()).isBrowser &&
