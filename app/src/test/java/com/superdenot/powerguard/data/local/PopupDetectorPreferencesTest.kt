@@ -130,6 +130,26 @@ class PopupDetectorPreferencesTest {
     }
 
     @Test
+    fun legacyNeedsCheckStatusMigratesToNeedsReview() {
+        val now = 1_800_000_000_000L
+        val prefs = context.getSharedPreferences("spg_popup_detector", Context.MODE_PRIVATE)
+        prefs.edit().putString(
+            "incident_archive_json",
+            JSONArray().put(
+                JSONObject()
+                    .put("packageName", "com.example.legacy")
+                    .put("riskScore", 45)
+                    .put("status", "NEEDS_CHECK")
+                    .put("reasons", JSONArray().put("NO_LAUNCHER_ICON").put("RECENT_INSTALL"))
+                    .put("times", JSONArray().put(now))
+            ).toString()
+        ).commit()
+
+        val migrated = PopupDetectorPreferences(context).archivedIncidents()
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, migrated.single().status)
+    }
+
+    @Test
     fun simulatedIncidentsAreNeverPersisted() {
         val simulated = PopupIncident(
             packageName = "com.superd.simulated.popup",
