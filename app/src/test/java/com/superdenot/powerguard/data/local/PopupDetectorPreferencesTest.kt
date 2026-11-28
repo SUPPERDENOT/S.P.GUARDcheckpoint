@@ -147,6 +147,8 @@ class PopupDetectorPreferencesTest {
 
         val migrated = PopupDetectorPreferences(context).archivedIncidents()
         assertEquals(PopupRiskStatus.NEEDS_REVIEW, migrated.single().status)
+        val persisted = JSONArray(prefs.getString("incident_archive_json", "[]"))
+        assertEquals("NEEDS_REVIEW", persisted.getJSONObject(0).getString("status"))
     }
 
     @Test
