@@ -4,12 +4,14 @@
 - [x] Established launcher apps (launcher icon, install age >=14 days, no SYSTEM_ALERT_WINDOW) require a literal browser redirect or >=3 measured 1–6 second interruptions within <=30 minutes and average gaps <=10 minutes to reach >=45. Fast interruptions also require the previous app to resume within 2 seconds after the suspect activity pauses.
 - [x] Detector captures ACTIVITY_PAUSED duration evidence; fast-burst duration data is persisted with the JSON archive.
 - [x] Archive load re-evaluates installed-package launcher, install-age, overlay, safe-list, and system-exclusion signals. Legacy launcher false positives without qualifying evidence are removed; missing legacy duration evidence is not assumed valid.
+- [x] PackageManager archive metadata checks execute on Dispatchers.IO; unknown or zero install timestamps are not treated as proof of an established app.
 - [x] Fallback formatter skips generic trailing package segments; com.github.android resolves to GitHub.
-- [x] Detail-dialog reasons are separate bullet lines; simulation risk-band assertions and simulated-item safe-action restriction remain in the regression suite.
+- [x] Detail-dialog reasons are separate bullet lines; existing simulation tests assert both score bands, and the UI source keeps Tandai Aman disabled for simulated items.
 - [x] Unit tests added for WhatsApp/GitHub/HRMS normal multitasking, valid/invalid fast bursts, redirect threshold, archive cleanup, formatter fallback, and JSON duration round-trip.
 - [x] No AndroidManifest, Room DB v3, BatteryMonitorService, sensor/sampling, calibration 1x, RECOVERY_HOLD, Gradle/dependency/SDK, app ID, version, or build-number changes.
-- [ ] Source diff review and exact-HEAD CI — pending.
-- [ ] Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, and Upload APK — pending exact-HEAD workflow.
+- [x] Intermediate Run #864 on HEAD `feca66934d137fec06d7a5245fce6a9943164de8`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS. APK Artifact ID `15245385508`; test-report Artifact ID `15245031505`.
+- [ ] Final source diff review and exact-HEAD CI after the install-age/background-loading follow-up — pending.
+- [ ] Final Anti-Slop UI Audit Gate, testDebugUnitTest, assembleDebug, and Upload APK — pending exact-HEAD workflow.
 - [ ] Physical itel P55 360dp / 720p UI and runtime re-test — NOT RUN.
 
 ## 2026-11-28 — PR #17 Quick Settings Shield Icon
