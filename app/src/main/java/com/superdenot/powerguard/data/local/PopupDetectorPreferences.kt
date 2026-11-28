@@ -150,7 +150,9 @@ internal class PopupDetectorPreferences(context: Context) {
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .setPackage(packageName)
             val hasLauncher = runCatching { queryActivities(launcherIntent).isNotEmpty() }.getOrDefault(false)
-            if (!hasLauncher || firstInstallTime > nowMs - POPUP_RECENT_INSTALL_MS) return@filterTo false
+            if (!hasLauncher || firstInstallTime <= 0L ||
+                firstInstallTime > nowMs - POPUP_RECENT_INSTALL_MS
+            ) return@filterTo false
 
             val overlayMode = runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
