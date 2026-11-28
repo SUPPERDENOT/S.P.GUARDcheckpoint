@@ -377,8 +377,8 @@ internal fun deduplicatePopupIncidents(
                 val last = deduplicatedEvents.lastOrNull()
                 if (last == null || event.first - last.first > dedupWindowMs) {
                     deduplicatedEvents += event
-                } else if (event.second > last.second) {
-                    deduplicatedEvents[deduplicatedEvents.lastIndex] = last.first to event.second
+                } else {
+                    deduplicatedEvents[deduplicatedEvents.lastIndex] = event.first to maxOf(last.second, event.second)
                 }
             }
             val score = reasons.sumOf { it.points }.coerceIn(0, 100)
