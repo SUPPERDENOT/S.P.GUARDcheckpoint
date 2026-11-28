@@ -124,6 +124,7 @@ object PopupHijackDetector {
             return current.packageName == packageName &&
                 previous.packageName != packageName &&
                 !isUserNavigationSurface(previous.packageName) &&
+                current.timestampMs - previous.timestampMs in 0L..REDIRECT_WINDOW_MS &&
                 !signals(previous.packageName.orEmpty()).isBrowser &&
                 !isLauncher(packageName) &&
                 !signals(packageName).isBrowser &&
@@ -188,6 +189,7 @@ object PopupHijackDetector {
             if (previous != null && next != null && previous.packageName == next.packageName &&
                 previous.packageName != packageName &&
                 !isUserNavigationSurface(previous.packageName) &&
+                current.timestampMs - previous.timestampMs in 0L..POPUP_RAPID_TRANSITION_WINDOW_MS &&
                 next.timestampMs - current.timestampMs in 1_000L..POPUP_RAPID_TRANSITION_WINDOW_MS
             ) record(packageName, PopupSignalReason.SANDWICH_LOOP, current.timestampMs)
 

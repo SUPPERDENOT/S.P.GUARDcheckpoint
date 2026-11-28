@@ -40,12 +40,12 @@ class PopupHijackDetectorTest {
 
     @Test fun browserRedirectScoresMiddlePackageNotBrowser() {
         val result = PopupHijackDetector.evaluateEvents(
-            listOf(event(appA, now - 10_000), event(suspect, now - 4_000), event(browser, now - 1_500)),
+            listOf(event(appA, now - 6_500), event(suspect, now - 4_000), event(browser, now - 1_500)),
             mapOf(suspect to resolved(suspect, overlay = true), browser to resolved(browser, browser = true)), emptySet(), now
         )
         assertEquals(suspect, result.single().packageName)
-        assertEquals(60, result.single().riskScore)
-        assertEquals(PopupRiskStatus.NEEDS_REVIEW, result.single().status)
+        assertEquals(95, result.single().riskScore)
+        assertEquals(PopupRiskStatus.SUSPICIOUS, result.single().status)
         assertFalse(result.any { it.packageName == browser })
     }
 
@@ -681,6 +681,23 @@ class PopupHijackDetectorTest {
             emptySet(),
             now
         )
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun singleManualAppOpenAfterFortyMinuteForegroundGapDoesNotCreateRapidLoopEvidence() {
+        val result = PopupHijackDetector.evaluateEvents(
+            listOf(
+                event(appA, now - 40L * 60_000L),
+                event(suspect, now - 3_500L),
+                event(appA, now - 500L)
+            ),
+            mapOf(suspect to resolved(suspect, overlay = true)),
+            emptySet(),
+            now
+        )
+        assertTrue(result.none { PopupSignalReason.SCREEN_HIJACKING in it.reasons })
+        assertTrue(result.none { PopupSignalReason.SANDWICH_LOOP in it.reasons })
         assertTrue(result.isEmpty())
     }
 
