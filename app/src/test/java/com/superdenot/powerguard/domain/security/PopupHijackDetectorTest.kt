@@ -608,6 +608,21 @@ class PopupHijackDetectorTest {
     }
 
     @Test
+    fun legitimateLauncherToAppTransitionWithinGraceDoesNotCreateIncident() {
+        val home = "com.example.home"
+        val result = PopupHijackDetector.evaluateEvents(
+            listOf(event(home, now - 5_000L), event(suspect, now - 1_000L)),
+            mapOf(
+                home to AppPackageSignals(home, isHomeLauncher = true),
+                suspect to resolved(suspect, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)
+            ),
+            emptySet(),
+            now
+        )
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
     fun launcherGraceWindowExemptsLegitimateAppLaunchAndHasStrictBoundary() {
         val launcher = "com.example.home"
         val previous = event(launcher, now - 10_000L)
