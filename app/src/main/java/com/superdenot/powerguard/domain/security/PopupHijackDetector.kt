@@ -26,7 +26,7 @@ data class AppPackageSignals(
         isSettings || isSelf || isDocumentPicker
 }
 
-enum class PopupRiskStatus { NEEDS_CHECK, SUSPICIOUS }
+enum class PopupRiskStatus { NEEDS_REVIEW, SUSPICIOUS }
 enum class PopupSignalReason(val points: Int, val userLabel: String) {
     SCREEN_HIJACKING(35, "Muncul menyela aplikasi lain tanpa kembali ke layar utama"),
     BROWSER_REDIRECT_CHAIN(45, "Muncul sebelum aplikasi membuka browser"),
@@ -59,6 +59,9 @@ internal const val POPUP_FAST_MAX_AVERAGE_GAP_MS = 10L * 60L * 1000L
 internal const val POPUP_FAST_MIN_DURATION_MS = 1_000L
 internal const val POPUP_FAST_MAX_DURATION_MS = 6_000L
 internal const val POPUP_FAST_RETURN_GRACE_MS = 2_000L
+internal const val REDIRECT_WINDOW_MS = 5_000L
+internal const val LAUNCHER_GRACE_WINDOW_MS = 10_000L
+internal const val POPUP_EVENT_DEDUP_WINDOW_MS = 5_000L
 internal const val POPUP_RECENT_INSTALL_MS = 14L * 24L * 60L * 60L * 1000L
 internal const val POPUP_NEEDS_CHECK_THRESHOLD = 45
 internal const val POPUP_SUSPICIOUS_THRESHOLD = 75
@@ -78,7 +81,7 @@ private val POPUP_ALWAYS_EXCLUDED_PACKAGES = setOf(
 )
 
 object PopupHijackDetector {
-    fun evaluate(
+    fun evaluateEvents(
         events: List<ScreenUsageEvent>,
         appSignals: Map<String, AppPackageSignals>,
         safePackages: Set<String>,
@@ -106,16 +109,21 @@ object PopupHijackDetector {
                 (metadata.isSystemApp && !allowSystemBrowserRedirect)
         }
         fun isLauncher(packageName: String?) = packageName != null && signals(packageName).isHomeLauncher
-        fun isLiteralBrowserRedirect(index: Int, packageName: String): Boolean {
-            val previous = activityEvents.getOrNull(index - 1)
-            val current = activityEvents.getOrNull(index)
-            val next = activityEvents.getOrNull(index + 1)
-            return current?.packageName == packageName && previous?.packageName != null &&
-                previous.packageName != packageName && !isLauncher(previous.packageName) &&
-                !signals(previous.packageName!!).isBrowser &&
-                next?.packageName != null &&
-                signals(next.packageName!!).isBrowser &&
-                next.timestampMs - current.timestampMs in 0 until 5_000L
+        fun isRapidBrowserRedirectTrigger(index: Int, packageName: String): Boolean {
+            val current = activityEvents.getOrNull(index) ?: return false
+            val next = activityEvents.drop(index + 1).firstOrNull() ?: return false
+            return current.packageName == packageName &&
+                !isLauncher(packageName) &&
+                !signals(packageName).isBrowser &&
+                signals(next.packageName.orEmpty()).isBrowser &&
+                next.timestampMs - current.timestampMs in 0L..REDIRECT_WINDOW_MS
+        }
+        fun launchedFromHomeWithinGrace(index: Int, packageName: String): Boolean {
+            val current = activityEvents.getOrNull(index) ?: return false
+            val previous = activityEvents.take(index).lastOrNull() ?: return false
+            return current.packageName == packageName &&
+                isLauncher(previous.packageName) &&
+                current.timestampMs - previous.timestampMs in 0L..LAUNCHER_GRACE_WINDOW_MS
         }
         fun hasSuspiciousStaticSignal(packageName: String): Boolean {
             val metadata = signals(packageName)
@@ -142,17 +150,22 @@ object PopupHijackDetector {
 
         activityEvents.forEachIndexed { index, current ->
             val packageName = current.packageName ?: return@forEachIndexed
-            val literalBrowserRedirect = isLiteralBrowserRedirect(index, packageName)
-            if (isExcluded(packageName, allowSystemBrowserRedirect = literalBrowserRedirect)) return@forEachIndexed
-            val previous = activityEvents.getOrNull(index - 1)
-            val next = activityEvents.getOrNull(index + 1)
+            // Use the immediately preceding foreground transition, not an earlier event from the same package.
+            val previous = activityEvents.take(index).lastOrNull()
+            val next = activityEvents.drop(index + 1).firstOrNull()
+            if (previous?.packageName == packageName) return@forEachIndexed
+            if (launchedFromHomeWithinGrace(index, packageName)) return@forEachIndexed
+            val browserRedirectTrigger = isRapidBrowserRedirectTrigger(index, packageName)
+            if (isExcluded(packageName, allowSystemBrowserRedirect = browserRedirectTrigger)) return@forEachIndexed
             val metadata = signals(packageName)
 
             if (previous != null && previous.packageName != packageName &&
                 !isLauncher(previous.packageName) && hasSuspiciousStaticSignal(packageName)
             ) record(packageName, PopupSignalReason.SCREEN_HIJACKING, current.timestampMs)
 
-            if (literalBrowserRedirect) {
+            // Attribute the browser launch to the app that was foreground immediately before it.
+            // Browser packages themselves remain excluded from incident attribution.
+            if (browserRedirectTrigger) {
                 record(packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs, allowSystemBrowserRedirect = true)
                 if (metadata.isSystemApp && metadata.hasOverlayPermission) {
                     record(packageName, PopupSignalReason.OVERLAY_PERMISSION, current.timestampMs, allowSystemBrowserRedirect = true)
@@ -174,9 +187,11 @@ object PopupHijackDetector {
 
         val interruptions = activityEvents.mapIndexedNotNull { index, event ->
             val pkg = event.packageName ?: return@mapIndexedNotNull null
-            val previous = activityEvents.getOrNull(index - 1)
-            val next = activityEvents.getOrNull(index + 1)
-            val literalBrowserRedirect = isLiteralBrowserRedirect(index, pkg)
+            val previous = activityEvents.take(index).lastOrNull()
+            val next = activityEvents.drop(index + 1).firstOrNull()
+            val browserRedirectTrigger = isRapidBrowserRedirectTrigger(index, pkg)
+            val launchedFromHome = launchedFromHomeWithinGrace(index, pkg)
+            if (previous?.packageName == pkg || launchedFromHome) return@mapIndexedNotNull null
             val fastDurationMs = if (
                 previous != null && next != null &&
                 previous.packageName != pkg && next.packageName == previous.packageName &&
@@ -196,7 +211,7 @@ object PopupHijackDetector {
             } else null
 
             if (previous == null || previous.packageName == pkg || isLauncher(previous.packageName) ||
-                isExcluded(pkg, allowSystemBrowserRedirect = literalBrowserRedirect) ||
+                isExcluded(pkg, allowSystemBrowserRedirect = browserRedirectTrigger) ||
                 (!hasSuspiciousStaticSignal(pkg) && reasonsByPackage[pkg].isNullOrEmpty() && fastDurationMs == null)
             ) null else pkg to PopupInterruptionEvidence(event.timestampMs, fastDurationMs)
         }.groupBy({ it.first }, { it.second })
@@ -247,8 +262,7 @@ object PopupHijackDetector {
             val metadata = signals(pkg)
             if (!metadata.isMetadataResolved || metadata.isSystemApp || isExcluded(pkg)) return@forEach
             val packageIndex = activityEvents.indexOfFirst { it.packageName == pkg }
-            val previousPackage = activityEvents.getOrNull(packageIndex - 1)?.packageName
-            val launchedDirectlyFromHome = isLauncher(previousPackage)
+            val launchedDirectlyFromHome = packageIndex >= 0 && launchedFromHomeWithinGrace(packageIndex, pkg)
             val hasBehavioralEvidence = reasonsByPackage[pkg].orEmpty().any { reason ->
                 reason == PopupSignalReason.SCREEN_HIJACKING ||
                     reason == PopupSignalReason.BROWSER_REDIRECT_CHAIN ||
@@ -301,6 +315,14 @@ object PopupHijackDetector {
         )
     }
 
+    fun evaluate(
+        events: List<ScreenUsageEvent>,
+        appSignals: Map<String, AppPackageSignals>,
+        safePackages: Set<String>,
+        nowMs: Long,
+        isSimulated: Boolean = false
+    ): List<PopupIncident> = evaluateEvents(events, appSignals, safePackages, nowMs, isSimulated)
+
     private fun isEstablishedLauncherApp(metadata: AppPackageSignals, nowMs: Long): Boolean =
         metadata.isMetadataResolved &&
             metadata.hasLauncherActivity &&
@@ -322,6 +344,50 @@ internal fun addPopupSafePackage(current: Set<String>, packageName: String): Set
 internal fun restorePopupSafePackages(): Set<String> = emptySet()
 internal fun capPopupIncidentArchive(incidents: List<PopupIncident>): List<PopupIncident> =
     incidents.takeLast(30)
+internal fun deduplicatePopupIncidents(
+    incidents: List<PopupIncident>,
+    safePackages: Set<String> = emptySet(),
+    dedupWindowMs: Long = POPUP_EVENT_DEDUP_WINDOW_MS
+): List<PopupIncident> {
+    return incidents.asSequence()
+        .filterNot { it.isSimulated || it.packageName in safePackages }
+        .groupBy { it.packageName }
+        .map { (packageName, packageIncidents) ->
+            val reasons = packageIncidents.flatMap { it.reasons }.distinct().sortedByDescending { it.points }
+            val eventPairs = packageIncidents.flatMap { incident ->
+                incident.eventTimesMs.mapIndexed { index, timestamp ->
+                    timestamp to (incident.eventDurationsMs.getOrNull(index) ?: 0L)
+                }
+            }.sortedBy { it.first }
+            val deduplicatedEvents = mutableListOf<Pair<Long, Long>>()
+            eventPairs.forEach { event ->
+                val last = deduplicatedEvents.lastOrNull()
+                if (last == null || event.first - last.first > dedupWindowMs) {
+                    deduplicatedEvents += event
+                } else if (event.second > last.second) {
+                    deduplicatedEvents[deduplicatedEvents.lastIndex] = last.first to event.second
+                }
+            }
+            val score = reasons.sumOf { it.points }.coerceIn(0, 100)
+            PopupIncident(
+                packageName = packageName,
+                riskScore = score,
+                status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_REVIEW,
+                reasons = reasons,
+                eventTimesMs = deduplicatedEvents.map { it.first },
+                eventDurationsMs = deduplicatedEvents.map { it.second },
+                hasValidatedBrowserRedirectEvidence = packageIncidents.any {
+                    it.hasValidatedBrowserRedirectEvidence
+                }
+            )
+        }
+        .sortedWith(
+            compareByDescending<PopupIncident> { it.status == PopupRiskStatus.SUSPICIOUS }
+                .thenByDescending { it.riskScore }
+                .thenByDescending { it.lastSeenAtMs }
+        )
+}
+
 internal fun withoutSimulatedPopupIncidents(incidents: List<PopupIncident>): List<PopupIncident> =
     incidents.filterNot { it.isSimulated }
 
@@ -381,7 +447,5 @@ internal fun sanitizePopupIncidentArchive(
             hasValidatedBrowserRedirectEvidence = hasValidatedBrowserRedirectEvidence
         )
     }
-    return cleaned.groupBy { it.packageName }
-        .mapNotNull { (_, duplicates) -> duplicates.maxByOrNull { it.lastSeenAtMs } }
-        .sortedBy { it.lastSeenAtMs }
+    return deduplicatePopupIncidents(cleaned, safePackages, POPUP_EVENT_DEDUP_WINDOW_MS)
 }
