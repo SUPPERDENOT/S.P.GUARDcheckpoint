@@ -109,7 +109,7 @@ internal fun PopupDetectorCard(
             if (suspects.isNotEmpty()) {
                 suspects.forEach { incident ->
                     Text(
-                        popupDisplayName(LocalContext.current, incident) + " · " + incidentSummary(incident),
+                        popupAppLabel(incident) + " · " + incidentSummary(incident),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
@@ -348,14 +348,9 @@ internal fun PopupDetectorSheet(
 }
 
 @Composable
-private fun PopupIncidentCard(
-    incident: PopupIncident,
-    onInfoAndRemove: () -> Unit,
-    onMarkSafe: () -> Unit
-) {
+private fun popupAppLabel(incident: PopupIncident): String {
     val context = LocalContext.current
-    var showIncidentInfo by remember { mutableStateOf(false) }
-    val appLabel by androidx.compose.runtime.produceState(
+    return androidx.compose.runtime.produceState(
         initialValue = popupDisplayName(incident.packageName, incident.isSimulated, null),
         key1 = context,
         key2 = incident.packageName,
@@ -372,7 +367,18 @@ private fun PopupIncidentCard(
             }
             popupDisplayName(incident.packageName, false, label)
         }
-    }
+    }.value
+}
+
+@Composable
+private fun PopupIncidentCard(
+    incident: PopupIncident,
+    onInfoAndRemove: () -> Unit,
+    onMarkSafe: () -> Unit
+) {
+    val context = LocalContext.current
+    var showIncidentInfo by remember { mutableStateOf(false) }
+    val appLabel = popupAppLabel(incident)
     val bitmap by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(
         initialValue = null,
         key1 = context,
