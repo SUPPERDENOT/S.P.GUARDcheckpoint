@@ -8,7 +8,7 @@
 
 ### Verification
 - Added a regression test with two internal activity transitions before returning to the previous app; it asserts that the final pause yields the measured interruption duration.
-- Local `./gradlew testDebugUnitTest assembleDebug` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment; exact-HEAD GitHub Actions verification pending.
+- Local `./gradlew testDebugUnitTest assembleDebug` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment. Intermediate Actions Run #881 on pre-correction HEAD `6e988fae2324f999da1808bb81256b2722be945b` passed Anti-Slop UI Audit but failed Kotlin compilation because the compact incident summary still called the old display-name helper signature. Corrected in `5b46e087a0e5d8cadee5d2fdbee8bdf6e47f0ff1`; exact-HEAD CI pending.
 - Physical-device verification: NOT RUN.
 - AndroidManifest.xml, Room DB v3, BatteryMonitorService, and P0 charging-protocol/source paths are outside the change.
 - No merge to main.
