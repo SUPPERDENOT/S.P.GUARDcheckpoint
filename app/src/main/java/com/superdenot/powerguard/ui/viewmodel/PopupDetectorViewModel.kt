@@ -299,8 +299,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
+                    val safe = withContext(Dispatchers.IO) {
+                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
+                    }
                     _uiState.update {
-                        it.copy(
+                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
                             isLoadingArchive = false,
                             hasUsagePermission = false,
@@ -308,8 +311,15 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         )
                     }
                 } catch (_: Exception) {
+                    val safe = withContext(Dispatchers.IO) {
+                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
+                    }
                     _uiState.update {
-                        it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Aplikasi gagal dipulihkan dari daftar aman.")
+                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            errorMessage = "Aplikasi gagal dipulihkan dari daftar aman."
+                        )
                     }
                 }
             }
@@ -353,8 +363,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
                 } catch (security: SecurityException) {
+                    val safe = withContext(Dispatchers.IO) {
+                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
+                    }
                     _uiState.update {
-                        it.copy(
+                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
                             isScanning = false,
                             isLoadingArchive = false,
                             hasUsagePermission = false,
@@ -362,8 +375,15 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                         )
                     }
                 } catch (_: Exception) {
+                    val safe = withContext(Dispatchers.IO) {
+                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
+                    }
                     _uiState.update {
-                        it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal dipulihkan.")
+                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            errorMessage = "Daftar aman gagal dipulihkan."
+                        )
                     }
                 }
             }
