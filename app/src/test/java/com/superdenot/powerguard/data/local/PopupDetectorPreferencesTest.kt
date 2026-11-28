@@ -45,7 +45,7 @@ class PopupDetectorPreferencesTest {
             PopupIncident(
                 packageName = "com.example.app$index",
                 riskScore = 45,
-                status = PopupRiskStatus.NEEDS_CHECK,
+                status = PopupRiskStatus.NEEDS_REVIEW,
                 reasons = listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
                 eventTimesMs = listOf(now + index)
             )
@@ -66,7 +66,7 @@ class PopupDetectorPreferencesTest {
     @Test
     fun markingSafePurgesMatchingArchivePackageImmediately() {
         val now = 1_800_000_000_000L
-        val incident = PopupIncident("com.example.safe", 45, PopupRiskStatus.NEEDS_CHECK,
+        val incident = PopupIncident("com.example.safe", 45, PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL), listOf(now))
         assertTrue(PopupDetectorPreferences(context).appendIncidents(listOf(incident)))
         assertEquals(1, PopupDetectorPreferences(context).archivedIncidents().size)
@@ -104,7 +104,7 @@ class PopupDetectorPreferencesTest {
         val incident = PopupIncident(
             packageName = "com.example.popup",
             riskScore = 65,
-            status = PopupRiskStatus.NEEDS_CHECK,
+            status = PopupRiskStatus.NEEDS_REVIEW,
             reasons = listOf(PopupSignalReason.SANDWICH_LOOP, PopupSignalReason.BURST_LOOP_3_PLUS),
             eventTimesMs = listOf(1_000L, 301_000L, 601_000L),
             eventDurationsMs = listOf(1_000L, 4_000L, 6_000L)
@@ -119,7 +119,7 @@ class PopupDetectorPreferencesTest {
         val incident = PopupIncident(
             packageName = "com.example.redirect",
             riskScore = 45,
-            status = PopupRiskStatus.NEEDS_CHECK,
+            status = PopupRiskStatus.NEEDS_REVIEW,
             reasons = listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN),
             eventTimesMs = listOf(1_000L),
             hasValidatedBrowserRedirectEvidence = true
