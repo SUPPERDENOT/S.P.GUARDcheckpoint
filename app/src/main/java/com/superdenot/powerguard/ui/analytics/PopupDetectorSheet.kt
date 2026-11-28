@@ -642,7 +642,7 @@ private fun PopupIncidentCard(
 
 
 @Composable
-private fun PopupIncidentInfoDialog(
+internal fun PopupDetectorInfoDialog(
     title: String,
     body: String,
     onDismiss: () -> Unit
