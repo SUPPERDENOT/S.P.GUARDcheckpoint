@@ -77,15 +77,15 @@ internal fun PopupDetectorCard(
     onInfo: () -> Unit,
     onOpenUsageSettings: () -> Unit
 ) {
-    val suspects = state.currentIncidents.take(3)
+    val suspects = state.suspects.take(3)
     val statusText = when {
         state.isScanning -> "Sedang memindai..."
-        state.simulationActive -> state.currentIncidents.size.toString() + " item Uji Simulasi"
+        state.simulationActive -> "Mode uji simulasi aktif (data contoh tidak ditampilkan)"
         !state.hasUsagePermission -> "Akses Penggunaan belum aktif"
         !state.hasActivityData -> "Data aktivitas belum tersedia"
-        state.currentIncidents.isEmpty() && state.archivedIncidents.isNotEmpty() -> "Tidak ada indikasi baru"
-        state.currentIncidents.isEmpty() -> "Layar Aman"
-        else -> state.currentIncidents.size.toString() + " indikasi perlu diperiksa"
+        suspects.isEmpty() && state.archivedIncidents.isNotEmpty() -> "Tidak ada indikasi baru"
+        suspects.isEmpty() -> "Layar Aman"
+        else -> suspects.size.toString() + " indikasi perlu diperiksa"
     }
     Card(
         modifier = Modifier.fillMaxWidth().infoLongPress(
@@ -547,18 +547,32 @@ private fun PopupIncidentCard(
                 }
                 val suspicious = incident.status == PopupRiskStatus.SUSPICIOUS
                 Surface(
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = if (suspicious) "Status risiko: Mencurigakan"
+                            else "Status risiko: Perlu Dicek"
+                    },
                     color = if (suspicious) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = if (suspicious) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer,
                     border = BorderStroke(1.dp, if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
-                    shape = RoundedCornerShape(999.dp)
+                    shape = CircleShape
                 ) {
-                    Text(
-                        if (suspicious) "Mencurigakan" else "Perlu Dicek",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            Modifier.size(7.dp).clip(CircleShape).background(
+                                if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                            )
+                        )
+                        Text(
+                            if (suspicious) "Mencurigakan" else "Perlu Dicek",
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
             Text(
@@ -586,7 +600,9 @@ private fun PopupIncidentCard(
             ) {
                 OutlinedButton(
                     onClick = onInfoAndRemove,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                        contentDescription = "Buka detail aplikasi ${incident.packageName}"
+                    },
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp)
                 ) {
                     Text("Info & Hapus", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
@@ -594,7 +610,9 @@ private fun PopupIncidentCard(
                 Button(
                     onClick = onMarkSafe,
                     enabled = !incident.isSimulated,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                        contentDescription = "Tandai ${incident.packageName} sebagai aplikasi aman"
+                    },
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 8.dp)
                 ) {
                     Text("Tandai Aman", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
@@ -655,7 +673,12 @@ private fun PopupSafePackageRow(packageName: String, onRestore: () -> Unit) {
             Text(packageName, style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        TextButton(onClick = onRestore, modifier = Modifier.heightIn(min = 48.dp)) { Text("Pulihkan", maxLines = 1, softWrap = false) }
+        TextButton(
+            onClick = onRestore,
+            modifier = Modifier.heightIn(min = 48.dp).semantics {
+                contentDescription = "Pulihkan $packageName dari daftar aman"
+            }
+        ) { Text("Pulihkan", maxLines = 1, softWrap = false) }
     }
 }
 
