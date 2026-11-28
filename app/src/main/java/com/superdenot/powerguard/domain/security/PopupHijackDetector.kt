@@ -57,6 +57,7 @@ internal const val POPUP_FAST_BURST_WINDOW_MS = 30L * 60L * 1000L
 internal const val POPUP_FAST_MAX_AVERAGE_GAP_MS = 10L * 60L * 1000L
 internal const val POPUP_FAST_MIN_DURATION_MS = 1_000L
 internal const val POPUP_FAST_MAX_DURATION_MS = 6_000L
+internal const val POPUP_FAST_RETURN_GRACE_MS = 2_000L
 internal const val POPUP_RECENT_INSTALL_MS = 14L * 24L * 60L * 60L * 1000L
 internal const val POPUP_NEEDS_CHECK_THRESHOLD = 45
 internal const val POPUP_SUSPICIOUS_THRESHOLD = 75
@@ -183,11 +184,14 @@ object PopupHijackDetector {
                 previous.packageName != pkg && next.packageName == previous.packageName &&
                 !isLauncher(previous.packageName)
             ) {
-                ordered.firstOrNull {
+                val pauseEvent = ordered.firstOrNull {
                     it.packageName == pkg &&
                         it.eventType == ScreenUsageEventType.ACTIVITY_PAUSED &&
                         it.timestampMs > event.timestampMs &&
                         it.timestampMs <= next.timestampMs
+                }
+                pauseEvent?.takeIf {
+                    next.timestampMs - it.timestampMs in 0L..POPUP_FAST_RETURN_GRACE_MS
                 }?.timestampMs?.minus(event.timestampMs)?.takeIf {
                     it in POPUP_FAST_MIN_DURATION_MS..POPUP_FAST_MAX_DURATION_MS
                 }
