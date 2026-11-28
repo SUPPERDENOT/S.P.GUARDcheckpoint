@@ -1,3 +1,17 @@
+## 2026-11-28 — PR #17 multi-activity and PackageManager threading follow-up
+
+- [x] Fast interruption duration selects the last matching ACTIVITY_PAUSED event before the previous app resumes.
+- [x] Regression test covers two internal activity transitions within one suspect package and verifies the final pause is used for the <=2-second return window.
+- [x] Scan, Mark Safe, restore-one, and restore-all operations share a coroutine Mutex so a rescan waits for any earlier scan instead of being skipped or overlapping.
+- [x] Mark Safe reconciles optimistic UI state against a fresh scan and persisted safe/archive state when repository persistence returns false.
+- [x] restoreSafePackage handles CancellationException separately and catches ordinary failures while resetting the scanning state.
+- [x] PopupIncidentCard and PopupSafePackageRow resolve application labels via produceState + Dispatchers.IO; synchronous PackageManager label lookup is removed from composition.
+- [ ] Local `./gradlew testDebugUnitTest assembleDebug` — NOT RUN in this connected GitHub-only environment; exact-HEAD CI pending.
+- [ ] Local `bash scripts/ui-audit.sh` — NOT RUN in this connected GitHub-only environment; exact-HEAD CI pending.
+- [ ] Exact-HEAD GitHub Actions unit tests, assembleDebug, and Anti-Slop UI Audit Gate — pending.
+- [ ] Physical-device runtime/UI verification — NOT RUN.
+- [x] No AndroidManifest.xml, Room DB v3, BatteryMonitorService, or P0 source/protocol files changed.
+
 ## 2026-11-28 — PR #17 final detector polish
 
 - [x] Daftar Aman is collapsed by default; count is visible and list rows plus Pulihkan Semua are only rendered when expanded.
