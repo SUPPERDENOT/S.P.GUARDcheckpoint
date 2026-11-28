@@ -4,6 +4,7 @@ import java.util.Locale
 
 internal object AppDisplayNameFormatter {
     private val knownLabels = mapOf(
+        "com.github.android" to "GitHub",
         "com.whatsapp" to "WhatsApp",
         "com.whatsapp.w4b" to "WhatsApp Business",
         "com.mobile.legends" to "Mobile Legends",
@@ -30,7 +31,14 @@ internal object AppDisplayNameFormatter {
     }
 
     private fun readablePackageFallback(packageName: String): String {
-        val segment = packageName.substringAfterLast('.').ifBlank { packageName }
+        val genericTrailingSegments = setOf(
+            "android", "app", "mobile", "client", "id", "co", "lite", "pro",
+            "free", "plus", "ui", "viewer", "player", "service"
+        )
+        val segments = packageName.split('.').filter(String::isNotBlank)
+        val segment = segments.asReversed().firstOrNull {
+            it.lowercase(Locale.ROOT) !in genericTrailingSegments
+        } ?: packageName.substringAfterLast('.').ifBlank { packageName }
         val words = segment
             .replace(Regex("([a-z])([A-Z])")) { match ->
                 match.groupValues[1] + " " + match.groupValues[2]
