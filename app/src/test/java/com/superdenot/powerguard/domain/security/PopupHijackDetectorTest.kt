@@ -555,6 +555,75 @@ class PopupHijackDetectorTest {
         assertFalse(result.any { it.packageName == suspect && it.riskScore >= 45 })
     }
 
+    @Test
+    fun samePackageActivityTransitionsDoNotCreatePopupIncidents() {
+        val events = listOf(
+            event(suspect, now - 3_000L),
+            pause(suspect, now - 2_500L),
+            event(suspect, now - 2_000L),
+            pause(suspect, now - 1_500L),
+            event(suspect, now - 1_000L)
+        )
+        val result = PopupHijackDetector.evaluateEvents(
+            events,
+            mapOf(suspect to resolved(suspect, overlay = true)),
+            emptySet(),
+            now
+        )
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun rapidBrowserOpenIsAttributedToImmediatelyPrecedingTriggeringApp() {
+        val result = PopupHijackDetector.evaluateEvents(
+            listOf(event(appA, now - 1_000L), event(browser, now - 500L)),
+            mapOf(
+                appA to resolved(appA),
+                browser to resolved(browser, browser = true)
+            ),
+            emptySet(),
+            now
+        )
+        assertEquals(listOf(appA), result.map { it.packageName })
+        assertTrue(PopupSignalReason.BROWSER_REDIRECT_CHAIN in result.single().reasons)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, result.single().status)
+    }
+
+    @Test
+    fun launcherGraceWindowExemptsLegitimateAppLaunchAndHasStrictBoundary() {
+        val launcher = "com.example.home"
+        val previous = event(launcher, now - 10_000L)
+        val withinGrace = event(suspect, now - 1L)
+        val outsideGrace = event(suspect, now + 1L)
+        val signals = mapOf(launcher to AppPackageSignals(launcher, isHomeLauncher = true))
+
+        assertTrue(isPopupLauncherGraceTransition(previous, withinGrace, signals))
+        assertFalse(isPopupLauncherGraceTransition(previous, outsideGrace, signals))
+    }
+
+    @Test
+    fun timelineDeduplicationCoalescesDuplicateBurstEventsAndDropsMocksAndSafePackages() {
+        val first = PopupIncident(
+            packageName = "com.example.repeat",
+            riskScore = 45,
+            status = PopupRiskStatus.NEEDS_REVIEW,
+            reasons = listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
+            eventTimesMs = listOf(1_000L, 8_000L),
+            eventDurationsMs = listOf(1_000L, 3_000L)
+        )
+        val duplicate = first.copy(eventTimesMs = listOf(1_200L, 9_000L))
+        val simulated = first.copy(packageName = "com.example.mock", isSimulated = true)
+        val safe = first.copy(packageName = "com.example.safe")
+        val result = deduplicatePopupIncidents(
+            listOf(first, duplicate, simulated, safe),
+            safePackages = setOf("com.example.safe")
+        )
+
+        assertEquals(listOf("com.example.repeat"), result.map { it.packageName })
+        assertEquals(listOf(1_000L, 8_000L), result.single().eventTimesMs)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, result.single().status)
+    }
+
     private fun sandwichEvents(count: Int, intervalMs: Long): List<ScreenUsageEvent> {
         val output = mutableListOf<ScreenUsageEvent>()
         repeat(count) { index ->
