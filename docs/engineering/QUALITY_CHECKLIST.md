@@ -1,3 +1,25 @@
+## 2026-11-28 — PR #17 detector attribution, safe-list reconciliation, and Timeline filters
+
+- [x] Pure deterministic `evaluateEvents(...)` entry point is independent of UsageStatsManager and Context; repository adapter calls it.
+- [x] Foreground transitions use the immediately preceding event via `lastOrNull`; same-package Activity transitions are coalesced and ignored.
+- [x] Home Launcher grace is explicit and tested at the 10-second boundary.
+- [x] Browser redirect is attributed to the non-launcher/non-browser trigger in the App A → trigger → browser chain within the 5-second redirect window; direct app → browser navigation is not automatically accused.
+- [x] Strict deduplication coalesces repeated package events within 5 seconds and excludes simulated/mock and safe-list packages from suspect summaries and Timeline entries.
+- [x] Risk classification is limited to `SUSPICIOUS` and `NEEDS_REVIEW`; legacy `NEEDS_CHECK` archive data is migrated.
+- [x] `TimelineRiskFilter` exposes ALL / SUSPICIOUS / NEEDS_REVIEW; counts and filtered entries are derived from the same deduplicated Timeline snapshot.
+- [x] Safe-list updates reconcile cached raw scan incidents and safe packages in one StateFlow update; scan/add/remove operations use one Mutex.
+- [x] CancellationException is rethrown; SecurityException clears `hasUsagePermission`; scan flags reset on failures.
+- [x] Timeline uses keyed LazyColumn items, horizontal FilterChip row, zero-match empty state, and Reset Filter.
+- [x] Filter chips and popup detector buttons use minHeight 48dp and explicit contentDescription semantics.
+- [x] Status badges use capsule shape, a colored status dot, and Material color-scheme contrast roles.
+- [x] App labels are resolved asynchronously through produceState + Dispatchers.IO, keyed by package name.
+- [x] Unit tests cover same-package transitions, multi-Activity pause timing, browser attribution, launcher grace, deduplication, filter modes/counts, concurrent safe-list reconciliation, cached restoration, and legacy status migration.
+- [ ] Local `./gradlew testDebugUnitTest` — NOT RUN in this connected GitHub-only environment.
+- [ ] Local `bash scripts/ui-audit.sh` — NOT RUN in this connected GitHub-only environment.
+- [ ] Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate — pending.
+- [ ] Physical-device UI and runtime verification — NOT RUN.
+- [x] No AndroidManifest.xml, Room DB v3, BatteryMonitorService, battery sensor/sampling, or P0 charging-protocol/source files changed.
+
 ## 2026-11-28 — PR #17 multi-activity and PackageManager threading follow-up
 
 - [x] Fast interruption duration selects the last matching ACTIVITY_PAUSED event before the previous app resumes.
