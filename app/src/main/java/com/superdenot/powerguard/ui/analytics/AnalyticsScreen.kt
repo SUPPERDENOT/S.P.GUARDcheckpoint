@@ -131,8 +131,14 @@ internal fun AnalyticsScreen(
     var selectedSubTab by remember(availableTabs, initialSubTab) {
         mutableIntStateOf(if (initialSubTab in availableTabs) initialSubTab else availableTabs.first())
     }
+    var showPopupDetectorSheet by remember { mutableStateOf(false) }
     LaunchedEffect(popupDetectorOpenRequest) {
-        if (popupDetectorOpenRequest > 0 && 2 in availableTabs) selectedSubTab = 2
+        if (popupDetectorOpenRequest > 0) {
+            if (2 in availableTabs) selectedSubTab = 2
+            showPopupDetectorSheet = true
+            popupDetectorViewModel.scan()
+            onConsumeOpenPopupDetector()
+        }
     }
     val subTabs = listOf("Sesi & Kurva", "Siklus Harian", "Aktivitas Aplikasi")
     val bottomScrollPadding = PaddingValues(
@@ -195,11 +201,12 @@ internal fun AnalyticsScreen(
             0 -> SessionsAndCurveTab(viewModel, bottomScrollPadding)
             1 -> CyclesAndRollupTab(viewModel, bottomScrollPadding)
             2 -> AppUsageTab(
-                viewModel,
-                bottomScrollPadding,
-                popupDetectorOpenRequest,
-                popupDetectorViewModel,
-                onConsumeOpenPopupDetector
+                viewModel = viewModel,
+                bottomScrollPadding = bottomScrollPadding,
+                popupDetectorViewModel = popupDetectorViewModel,
+                showPopupDetectorSheet = showPopupDetectorSheet,
+                onShowPopupDetectorSheet = { showPopupDetectorSheet = true },
+                onDismissPopupDetectorSheet = { showPopupDetectorSheet = false }
             )
         }
     }
@@ -925,9 +932,10 @@ private fun SevenDayCycleMiniChart(
 private fun AppUsageTab(
     viewModel: PowerGuardViewModel,
     bottomScrollPadding: PaddingValues,
-    popupDetectorOpenRequest: Int,
     popupDetectorViewModel: PopupDetectorViewModel,
-    onConsumeOpenPopupDetector: () -> Unit
+    showPopupDetectorSheet: Boolean,
+    onShowPopupDetectorSheet: () -> Unit,
+    onDismissPopupDetectorSheet: () -> Unit
 ) {
     val context = LocalContext.current
     val hasPerm by viewModel.hasUsagePermission.collectAsState()
@@ -935,15 +943,6 @@ private fun AppUsageTab(
     val popupDetectorState by popupDetectorViewModel.uiState.collectAsState()
     var showLongPressInfo by remember { mutableStateOf(false) }
     var showPopupDetectorInfo by remember { mutableStateOf(false) }
-    var showPopupDetectorSheet by remember { mutableStateOf(false) }
-
-    LaunchedEffect(popupDetectorOpenRequest) {
-        if (popupDetectorOpenRequest > 0) {
-            showPopupDetectorSheet = true
-            popupDetectorViewModel.scan()
-            onConsumeOpenPopupDetector()
-        }
-    }
 
     LazyColumn(
         contentPadding = bottomScrollPadding,
@@ -962,7 +961,7 @@ private fun AppUsageTab(
             PopupDetectorCard(
                 state = popupDetectorState,
                 onOpenTimeline = {
-                    showPopupDetectorSheet = true
+                    onShowPopupDetectorSheet()
                     popupDetectorViewModel.scan()
                 },
                 onRescan = popupDetectorViewModel::scan,
@@ -1041,7 +1040,7 @@ private fun AppUsageTab(
     if (showPopupDetectorSheet) {
         PopupDetectorSheet(
             state = popupDetectorState,
-            onDismiss = { showPopupDetectorSheet = false },
+            onDismiss = onDismissPopupDetectorSheet,
             onRescan = popupDetectorViewModel::scan,
             onMarkSafe = popupDetectorViewModel::markSafe,
             onRestoreSafeList = popupDetectorViewModel::restoreSafeList,
