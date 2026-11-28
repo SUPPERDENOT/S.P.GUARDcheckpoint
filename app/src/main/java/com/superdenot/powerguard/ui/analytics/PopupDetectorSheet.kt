@@ -422,7 +422,7 @@ internal fun PopupDetectorSheet(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                if (state.timelineFilter != TimelineRiskFilter.ALL && state.timelineEvents.isNotEmpty()) {
+                                if (state.timelineFilter != TimelineRiskFilter.ALL) {
                                     TextButton(
                                         onClick = { onSelectTimelineFilter(TimelineRiskFilter.ALL) },
                                         modifier = Modifier.heightIn(min = 48.dp).semantics {
