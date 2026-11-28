@@ -1043,9 +1043,7 @@ private fun AppUsageTab(
                     )
                 }
             },
-            onOpenSystemApps = {
-                runCatching { context.startActivity(Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)) }
-            }
+            onSelectTimelineFilter = popupDetectorViewModel::setTimelineFilter
         )
     }
     if (showLongPressInfo) {
