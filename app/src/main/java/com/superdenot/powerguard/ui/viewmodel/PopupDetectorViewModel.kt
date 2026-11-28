@@ -5,7 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.superdenot.powerguard.data.repository.PopupDetectorRepository
 import com.superdenot.powerguard.domain.security.PopupIncident
+import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSimulationScenario
+import com.superdenot.powerguard.domain.security.deduplicatePopupIncidents
 import com.superdenot.powerguard.domain.security.withoutSimulatedPopupIncidents
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +20,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
+internal enum class TimelineRiskFilter(val label: String) {
+    ALL("Semua"),
+    SUSPICIOUS("Mencurigakan"),
+    NEEDS_REVIEW("Perlu Dicek")
+}
+
 internal data class PopupDetectorUiState(
     val isScanning: Boolean = false,
     val isLoadingArchive: Boolean = false,
@@ -28,33 +36,78 @@ internal data class PopupDetectorUiState(
     val safePackages: Set<String> = emptySet(),
     val lastScanAtMs: Long? = null,
     val errorMessage: String? = null,
-    val simulationActive: Boolean = false
+    val simulationActive: Boolean = false,
+    val timelineFilter: TimelineRiskFilter = TimelineRiskFilter.ALL
+) {
+    /** Current detected apps only; simulated and safe-list entries are never exposed as suspects. */
+    val suspects: List<PopupIncident>
+        get() = deduplicatePopupIncidents(currentIncidents, safePackages)
+
+    /** One deduplicated, real-app entry per package across current results and persisted history. */
+    val timelineEvents: List<PopupIncident>
+        get() = deduplicatePopupIncidents(currentIncidents + archivedIncidents, safePackages)
+
+    val suspiciousCount: Int
+        get() = timelineEvents.count { it.status == PopupRiskStatus.SUSPICIOUS }
+
+    val needsReviewCount: Int
+        get() = timelineEvents.count { it.status == PopupRiskStatus.NEEDS_REVIEW }
+
+    val filteredTimelineEvents: List<PopupIncident>
+        get() = when (timelineFilter) {
+            TimelineRiskFilter.ALL -> timelineEvents
+            TimelineRiskFilter.SUSPICIOUS -> timelineEvents.filter { it.status == PopupRiskStatus.SUSPICIOUS }
+            TimelineRiskFilter.NEEDS_REVIEW -> timelineEvents.filter { it.status == PopupRiskStatus.NEEDS_REVIEW }
+        }
+}
+
+/**
+ * Reconciles a safe-list mutation and the cached raw scan snapshot in one immutable state update.
+ * Derived suspects/timeline properties are consequently filtered from the same StateFlow version.
+ */
+internal fun reconcilePopupDetectorSafeList(
+    state: PopupDetectorUiState,
+    safePackages: Set<String>,
+    latestRawIncidents: List<PopupIncident>? = null
+): PopupDetectorUiState = state.copy(
+    safePackages = safePackages,
+    currentIncidents = latestRawIncidents ?: state.currentIncidents
 )
 
 internal class PopupDetectorViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PopupDetectorRepository(application)
     private val _uiState = MutableStateFlow(
         PopupDetectorUiState(
-            hasUsagePermission = repository.hasUsagePermission(),
+            hasUsagePermission = runCatching { repository.hasUsagePermission() }.getOrDefault(false),
             safePackages = repository.safePackages(),
             isLoadingArchive = true
         )
     )
     val uiState: StateFlow<PopupDetectorUiState> = _uiState.asStateFlow()
 
+    private var latestRawScanReport: List<PopupIncident>? = null
+    private val scanMutex = Mutex()
+
     init {
         viewModelScope.launch {
             try {
                 val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                 _uiState.update { current ->
-                    if (current.isLoadingArchive) {
-                        current.copy(archivedIncidents = archive, isLoadingArchive = false)
-                    } else {
-                        current
-                    }
+                    if (current.isLoadingArchive) current.copy(
+                        archivedIncidents = archive,
+                        isLoadingArchive = false
+                    ) else current
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (security: SecurityException) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingArchive = false,
+                        hasUsagePermission = false,
+                        errorMessage = "Akses Penggunaan tidak tersedia. Periksa kembali izin SPG di Pengaturan Android."
+                    )
+                }
             } catch (_: Exception) {
                 _uiState.update {
                     it.copy(isLoadingArchive = false, errorMessage = "Arsip deteksi belum dapat dimuat.")
@@ -63,21 +116,18 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         }
     }
 
-    private var latestActualIncidents: List<PopupIncident> = emptyList()
-
-    private val scanMutex = Mutex()
-
     fun scan() {
         viewModelScope.launch {
-            scanMutex.withLock { performScanLocked() }
+            scanMutex.withLock { runScanLocked() }
         }
     }
 
-    private suspend fun performScanLocked() {
+    /** runScan is serialized with add/remove safe-list operations through the same scanMutex. */
+    private suspend fun runScanLocked() {
         _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
         try {
             val result = withContext(Dispatchers.IO) { repository.scan() }
-            latestActualIncidents = result.incidents.distinctBy { it.packageName }
+            latestRawScanReport = result.incidents
             val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
             val safe = withContext(Dispatchers.IO) { repository.safePackages() }
             _uiState.update {
@@ -98,22 +148,36 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         } catch (cancelled: CancellationException) {
             _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
             throw cancelled
+        } catch (security: SecurityException) {
+            _uiState.update {
+                it.copy(
+                    isScanning = false,
+                    isLoadingArchive = false,
+                    hasUsagePermission = false,
+                    errorMessage = "Akses Penggunaan ditolak Android. Aktifkan kembali izin lalu pindai ulang."
+                )
+            }
         } catch (_: Exception) {
             _uiState.update {
                 it.copy(
                     isScanning = false,
                     isLoadingArchive = false,
-                    errorMessage = "Pemindaian belum dapat diselesaikan. Periksa akses penggunaan lalu coba lagi."
+                    errorMessage = "Pemindaian gagal diselesaikan. Periksa izin Akses Penggunaan lalu coba lagi."
                 )
             }
         }
     }
 
+    fun setTimelineFilter(filter: TimelineRiskFilter) {
+        _uiState.update { it.copy(timelineFilter = filter) }
+    }
+
     fun showSimulation() {
         val simulated = PopupSimulationScenario.evaluate(System.currentTimeMillis())
         _uiState.update {
+            val realIncidents = latestRawScanReport ?: withoutSimulatedPopupIncidents(it.currentIncidents)
             it.copy(
-                currentIncidents = (latestActualIncidents + simulated).distinctBy { it.packageName },
+                currentIncidents = realIncidents + simulated,
                 simulationActive = true,
                 errorMessage = null
             )
@@ -123,61 +187,38 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
     fun clearSimulation() {
         _uiState.update {
             it.copy(
-                currentIncidents = withoutSimulatedPopupIncidents(it.currentIncidents),
+                currentIncidents = latestRawScanReport ?: withoutSimulatedPopupIncidents(it.currentIncidents),
                 simulationActive = false
             )
         }
     }
 
+    /** Adds a package to the safe list; equivalent to addToSafeList in the feature contract. */
     fun markSafe(incident: PopupIncident) {
-        if (incident.isSimulated) {
-            _uiState.update {
-                it.copy(currentIncidents = it.currentIncidents.filterNot { item ->
-                    item.isSimulated && item.packageName == incident.packageName
-                })
-            }
-            return
-        }
+        if (incident.isSimulated) return
         viewModelScope.launch {
             scanMutex.withLock {
-                val previousState = _uiState.value
-                val previousActualIncidents = latestActualIncidents
-                _uiState.update {
-                    it.copy(
-                        isScanning = true,
-                        isLoadingArchive = false,
-                        currentIncidents = it.currentIncidents.filterNot { item ->
-                            !item.isSimulated && item.packageName == incident.packageName
-                        },
-                        archivedIncidents = it.archivedIncidents.filterNot { item ->
-                            item.packageName == incident.packageName
-                        },
-                        safePackages = it.safePackages + incident.packageName,
-                        errorMessage = null,
-                        simulationActive = false
-                    )
+                val packageName = incident.packageName
+                _uiState.update { current ->
+                    reconcilePopupDetectorSafeList(
+                        state = current.copy(isScanning = true, isLoadingArchive = false, errorMessage = null),
+                        safePackages = current.safePackages + packageName,
+                        latestRawIncidents = latestRawScanReport
+                    ).copy(simulationActive = false)
                 }
                 try {
-                    val saved = withContext(Dispatchers.IO) {
-                        repository.markSafe(incident.packageName)
-                    }
-                    // Do not drop the rescan if another scan was already active.
+                    val saved = withContext(Dispatchers.IO) { repository.markSafe(packageName) }
                     val result = withContext(Dispatchers.IO) { repository.scan() }
-                    latestActualIncidents = result.incidents.distinctBy { it.packageName }
+                    latestRawScanReport = result.incidents
                     val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                     val safe = withContext(Dispatchers.IO) { repository.safePackages() }
-                    _uiState.update { state ->
-                        val simulatedItems = if (previousState.simulationActive) {
-                            previousState.currentIncidents.filter { it.isSimulated }
-                        } else {
-                            emptyList()
-                        }
-                        state.copy(
+                    _uiState.update {
+                        it.copy(
                             isScanning = false,
                             isLoadingArchive = false,
                             hasUsagePermission = result.hasUsagePermission,
                             hasActivityData = result.hasActivityData,
-                            currentIncidents = (result.incidents + simulatedItems).distinctBy { it.packageName },
+                            currentIncidents = result.incidents,
                             archivedIncidents = archive,
                             safePackages = safe,
                             lastScanAtMs = result.scannedAtMs,
@@ -186,35 +227,55 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                                 !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
                                 else -> null
                             },
-                            simulationActive = previousState.simulationActive
+                            simulationActive = false
                         )
                     }
                 } catch (cancelled: CancellationException) {
-                    latestActualIncidents = previousActualIncidents
-                    _uiState.value = previousState.copy(isScanning = false, isLoadingArchive = false)
+                    _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
+                } catch (security: SecurityException) {
+                    val safe = withContext(Dispatchers.IO) {
+                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
+                    }
+                    _uiState.update {
+                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            hasUsagePermission = false,
+                            errorMessage = "Akses Penggunaan ditolak Android. Periksa kembali izin di Pengaturan."
+                        )
+                    }
                 } catch (_: Exception) {
-                    latestActualIncidents = previousActualIncidents
-                    _uiState.value = previousState.copy(
-                        isScanning = false,
-                        isLoadingArchive = false,
-                        errorMessage = "Daftar aman gagal diperbarui."
-                    )
+                    val safe = withContext(Dispatchers.IO) {
+                        runCatching { repository.safePackages() }.getOrDefault(_uiState.value.safePackages)
+                    }
+                    _uiState.update {
+                        reconcilePopupDetectorSafeList(it, safe, latestRawScanReport).copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            errorMessage = "Daftar aman gagal diperbarui."
+                        )
+                    }
                 }
             }
         }
     }
 
+    /** Removes one package from the safe list; equivalent to removeFromSafeList. */
     fun restoreSafePackage(packageName: String) {
         viewModelScope.launch {
             scanMutex.withLock {
-                _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
+                _uiState.update { current ->
+                    reconcilePopupDetectorSafeList(
+                        state = current.copy(isScanning = true, errorMessage = null, simulationActive = false),
+                        safePackages = current.safePackages - packageName,
+                        latestRawIncidents = latestRawScanReport
+                    )
+                }
                 try {
-                    val (restored, result) = withContext(Dispatchers.IO) {
-                        val didRestore = repository.restoreSafePackage(packageName)
-                        didRestore to repository.scan()
-                    }
-                    latestActualIncidents = result.incidents.distinctBy { it.packageName }
+                    val restored = withContext(Dispatchers.IO) { repository.restoreSafePackage(packageName) }
+                    val result = withContext(Dispatchers.IO) { repository.scan() }
+                    latestRawScanReport = result.incidents
                     val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                     val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                     _uiState.update {
@@ -231,20 +292,24 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                                 !restored -> "Aplikasi belum berhasil dipulihkan dari daftar aman."
                                 !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
                                 else -> null
-                            },
-                            simulationActive = false
+                            }
                         )
                     }
                 } catch (cancelled: CancellationException) {
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
-                } catch (_: Exception) {
+                } catch (security: SecurityException) {
                     _uiState.update {
                         it.copy(
                             isScanning = false,
                             isLoadingArchive = false,
-                            errorMessage = "Aplikasi gagal dipulihkan dari daftar aman."
+                            hasUsagePermission = false,
+                            errorMessage = "Akses Penggunaan ditolak Android. Periksa kembali izin di Pengaturan."
                         )
+                    }
+                } catch (_: Exception) {
+                    _uiState.update {
+                        it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Aplikasi gagal dipulihkan dari daftar aman.")
                     }
                 }
             }
@@ -254,13 +319,17 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
     fun restoreSafeList() {
         viewModelScope.launch {
             scanMutex.withLock {
-                _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
+                _uiState.update { current ->
+                    reconcilePopupDetectorSafeList(
+                        state = current.copy(isScanning = true, errorMessage = null, simulationActive = false),
+                        safePackages = emptySet(),
+                        latestRawIncidents = latestRawScanReport
+                    )
+                }
                 try {
-                    val (safeListRestored, result) = withContext(Dispatchers.IO) {
-                        val restored = repository.restoreSafePackages()
-                        restored to repository.scan()
-                    }
-                    latestActualIncidents = result.incidents.distinctBy { it.packageName }
+                    val restored = withContext(Dispatchers.IO) { repository.restoreSafePackages() }
+                    val result = withContext(Dispatchers.IO) { repository.scan() }
+                    latestRawScanReport = result.incidents
                     val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                     val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                     _uiState.update {
@@ -274,7 +343,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                             safePackages = safe,
                             lastScanAtMs = result.scannedAtMs,
                             errorMessage = when {
-                                !safeListRestored -> "Daftar aman belum berhasil dipulihkan."
+                                !restored -> "Daftar aman belum berhasil dipulihkan."
                                 !result.archivePersisted -> "Hasil pemindaian tersedia, tetapi arsip tidak berhasil disimpan."
                                 else -> null
                             }
@@ -283,6 +352,15 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 } catch (cancelled: CancellationException) {
                     _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                     throw cancelled
+                } catch (security: SecurityException) {
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            hasUsagePermission = false,
+                            errorMessage = "Akses Penggunaan ditolak Android. Periksa kembali izin di Pengaturan."
+                        )
+                    }
                 } catch (_: Exception) {
                     _uiState.update {
                         it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal dipulihkan.")
@@ -291,5 +369,4 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
             }
         }
     }
-
 }
