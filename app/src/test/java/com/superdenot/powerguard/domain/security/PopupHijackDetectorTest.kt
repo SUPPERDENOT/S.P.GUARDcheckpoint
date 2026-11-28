@@ -286,7 +286,8 @@ class PopupHijackDetectorTest {
         val valid = PopupIncident(
             "com.example.system.redirect", 45, PopupRiskStatus.NEEDS_CHECK,
             listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN, PopupSignalReason.NO_LAUNCHER_ICON),
-            listOf(now)
+            listOf(now),
+            hasValidatedBrowserRedirectEvidence = true
         )
         val invalid = PopupIncident(
             "com.example.system.other", 45, PopupRiskStatus.NEEDS_CHECK,
@@ -476,12 +477,33 @@ class PopupHijackDetectorTest {
             listOf(now - 10L * 60_000L, now - 5L * 60_000L, now),
             eventDurationsMs = listOf(1_000L, 4_000L, 6_000L)
         )
-        val cleaned = sanitizePopupIncidentArchive(
-            listOf(normal, legacyBurstWithoutDurations, validFastBurst),
-            emptySet(),
-            establishedLauncherPackages = setOf("com.whatsapp", "com.github.android", "com.example.hrms")
+        val legacyRedirect = PopupIncident(
+            "com.example.legacyredirect",
+            45,
+            PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN),
+            listOf(now)
         )
-        assertEquals(listOf("com.example.hrms"), cleaned.map { it.packageName })
+        val validatedRedirect = PopupIncident(
+            "com.example.validredirect",
+            45,
+            PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN),
+            listOf(now),
+            hasValidatedBrowserRedirectEvidence = true
+        )
+        val cleaned = sanitizePopupIncidentArchive(
+            listOf(normal, legacyBurstWithoutDurations, validFastBurst, legacyRedirect, validatedRedirect),
+            emptySet(),
+            establishedLauncherPackages = setOf(
+                "com.whatsapp", "com.github.android", "com.example.hrms",
+                "com.example.legacyredirect", "com.example.validredirect"
+            )
+        )
+        assertEquals(
+            listOf("com.example.hrms", "com.example.validredirect"),
+            cleaned.map { it.packageName }
+        )
     }
 
     @Test
