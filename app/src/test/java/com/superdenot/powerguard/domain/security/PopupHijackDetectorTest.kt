@@ -44,8 +44,8 @@ class PopupHijackDetectorTest {
             mapOf(suspect to resolved(suspect, overlay = true), browser to resolved(browser, browser = true)), emptySet(), now
         )
         assertEquals(suspect, result.single().packageName)
-        assertEquals(95, result.single().riskScore)
-        assertEquals(PopupRiskStatus.SUSPICIOUS, result.single().status)
+        assertEquals(60, result.single().riskScore)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, result.single().status)
         assertFalse(result.any { it.packageName == browser })
     }
 
@@ -499,7 +499,7 @@ class PopupHijackDetectorTest {
             45,
             PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.BURST_LOOP_3_PLUS),
-            listOf(now - 10L * 60_000L, now - 5L * 60_000L, now),
+            listOf(now - 5L * 60_000L, now - 2L * 60_000L - 30_000L, now),
             eventDurationsMs = listOf(1_000L, 4_000L, 6_000L)
         )
         val legacyRedirect = PopupIncident(

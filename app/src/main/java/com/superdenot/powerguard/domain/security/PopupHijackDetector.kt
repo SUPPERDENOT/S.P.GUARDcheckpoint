@@ -32,8 +32,8 @@ enum class PopupSignalReason(val points: Int, val userLabel: String) {
     BROWSER_REDIRECT_CHAIN(45, "Muncul sebelum aplikasi membuka browser"),
     POST_UNLOCK_AMBUSH(25, "Muncul segera setelah layar dibuka"),
     SANDWICH_LOOP(20, "Muncul singkat lalu kembali ke aplikasi sebelumnya"),
-    BURST_LOOP_2(25, "Siklus berulang dalam 45 menit"),
-    BURST_LOOP_3_PLUS(45, "Siklus berulang dalam 45 menit"),
+    BURST_LOOP_2(25, "Siklus berulang dalam 5 menit"),
+    BURST_LOOP_3_PLUS(45, "Siklus berulang dalam 5 menit"),
     NO_LAUNCHER_ICON(30, "Tidak memiliki ikon menu aplikasi"),
     RECENT_INSTALL(15, "Baru dipasang dalam 14 hari terakhir"),
     OVERLAY_PERMISSION(15, "Memiliki izin tampil di atas aplikasi lain")

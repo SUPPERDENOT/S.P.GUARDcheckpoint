@@ -8,11 +8,11 @@ internal object PopupSimulationScenario {
         val review = "com.superd.simulated.review"
         val home = "com.superd.simulated.home"
         val chrome = "com.android.chrome"
-        val eightMinutes = 8L * 60L * 1000L
+        val twoMinutes = 2L * 60L * 1000L
         val events = mutableListOf<ScreenUsageEvent>()
-        val base = nowMs - 22L * 60L * 1000L
+        val base = nowMs - 6L * 60L * 1000L
         repeat(3) { index ->
-            val at = base + index * eightMinutes
+            val at = base + index * twoMinutes
             events += ScreenUsageEvent(whatsapp, ScreenUsageEventType.ACTIVITY_RESUMED, at)
             events += ScreenUsageEvent(popup, ScreenUsageEventType.ACTIVITY_RESUMED, at + 2_000L)
             events += ScreenUsageEvent(whatsapp, ScreenUsageEventType.ACTIVITY_RESUMED, at + 7_000L)
@@ -37,7 +37,7 @@ internal object PopupSimulationScenario {
             ),
             home to AppPackageSignals(packageName = home, isHomeLauncher = true),
             review to AppPackageSignals(
-                packageName = review, isMetadataResolved = true, hasLauncherActivity = true,
+                packageName = review, isMetadataResolved = true, hasLauncherActivity = false,
                 firstInstallTimeMs = nowMs - 2L * 24L * 60L * 60L * 1000L,
                 hasOverlayPermission = true
             ),
