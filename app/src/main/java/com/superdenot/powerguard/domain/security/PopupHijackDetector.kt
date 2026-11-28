@@ -63,7 +63,7 @@ internal const val REDIRECT_WINDOW_MS = 5_000L
 internal const val LAUNCHER_GRACE_WINDOW_MS = 10_000L
 internal const val POPUP_EVENT_DEDUP_WINDOW_MS = 5_000L
 internal const val POPUP_RECENT_INSTALL_MS = 14L * 24L * 60L * 60L * 1000L
-internal const val POPUP_NEEDS_CHECK_THRESHOLD = 45
+internal const val POPUP_NEEDS_REVIEW_THRESHOLD = 45
 internal const val POPUP_SUSPICIOUS_THRESHOLD = 75
 private data class PopupInterruptionEvidence(val timestampMs: Long, val durationMs: Long?)
 private val POPUP_ALWAYS_EXCLUDED_PACKAGES = setOf(
@@ -298,7 +298,7 @@ object PopupHijackDetector {
             if (establishedLauncherApp && !hasStrongPattern) return@mapNotNull null
 
             val score = reasons.sumOf { it.points }.coerceIn(0, 100)
-            if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
+            if (score < POPUP_NEEDS_REVIEW_THRESHOLD) return@mapNotNull null
             val incidentTimes = timesByPackage[pkg].orEmpty().toList().sorted()
             val incidentDurations = incidentTimes.map { durationsByPackage[pkg]?.get(it) ?: 0L }
             PopupIncident(
@@ -452,7 +452,7 @@ internal fun sanitizePopupIncidentArchive(
         }
 
         val score = reasons.sumOf { it.points }.coerceIn(0, 100)
-        if (score < POPUP_NEEDS_CHECK_THRESHOLD) return@mapNotNull null
+        if (score < POPUP_NEEDS_REVIEW_THRESHOLD) return@mapNotNull null
         incident.copy(
             riskScore = score,
             status = if (score >= POPUP_SUSPICIOUS_THRESHOLD) PopupRiskStatus.SUSPICIOUS else PopupRiskStatus.NEEDS_REVIEW,
