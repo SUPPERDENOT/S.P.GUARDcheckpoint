@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 
 internal data class PopupDetectorUiState(
     val isScanning: Boolean = false,
+    val isLoadingArchive: Boolean = false,
     val hasUsagePermission: Boolean = false,
     val hasActivityData: Boolean = false,
     val currentIncidents: List<PopupIncident> = emptyList(),
@@ -33,11 +34,33 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
     private val _uiState = MutableStateFlow(
         PopupDetectorUiState(
             hasUsagePermission = repository.hasUsagePermission(),
-            archivedIncidents = repository.archivedIncidents(),
-            safePackages = repository.safePackages()
+            safePackages = repository.safePackages(),
+            isLoadingArchive = true
         )
     )
     val uiState: StateFlow<PopupDetectorUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            try {
+                val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
+                _uiState.update { current ->
+                    if (current.isLoadingArchive) {
+                        current.copy(archivedIncidents = archive, isLoadingArchive = false)
+                    } else {
+                        current
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(isLoadingArchive = false, errorMessage = "Arsip deteksi belum dapat dimuat.")
+                }
+            }
+        }
+    }
+
     private var latestActualIncidents: List<PopupIncident> = emptyList()
 
     fun scan() {
@@ -52,6 +75,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 _uiState.update {
                     it.copy(
                         isScanning = false,
+                        isLoadingArchive = false,
                         hasUsagePermission = result.hasUsagePermission,
                         hasActivityData = result.hasActivityData,
                         currentIncidents = result.incidents,
@@ -64,12 +88,13 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     )
                 }
             } catch (cancelled: CancellationException) {
-                _uiState.update { it.copy(isScanning = false) }
+                _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                 throw cancelled
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(
                         isScanning = false,
+                        isLoadingArchive = false,
                         errorMessage = "Pemindaian belum dapat diselesaikan. Periksa akses penggunaan lalu coba lagi."
                     )
                 }
@@ -109,6 +134,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         latestActualIncidents = latestActualIncidents.filterNot { it.packageName == incident.packageName }
         _uiState.update { state ->
             state.copy(
+                isLoadingArchive = false,
                 currentIncidents = state.currentIncidents.filterNot { it.packageName == incident.packageName },
                 archivedIncidents = state.archivedIncidents.filterNot { it.packageName == incident.packageName },
                 safePackages = state.safePackages + incident.packageName,
@@ -124,7 +150,13 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     saved to if (saved) repository.scan() else null
                 }
                 if (result == null) {
-                    _uiState.update { it.copy(isScanning = false, errorMessage = "Aplikasi belum berhasil ditambahkan ke daftar aman.") }
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            isLoadingArchive = false,
+                            errorMessage = "Aplikasi belum berhasil ditambahkan ke daftar aman."
+                        )
+                    }
                     return@launch
                 }
                 latestActualIncidents = result.incidents
@@ -133,6 +165,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 _uiState.update {
                     it.copy(
                         isScanning = false,
+                        isLoadingArchive = false,
                         hasUsagePermission = result.hasUsagePermission,
                         hasActivityData = result.hasActivityData,
                         currentIncidents = result.incidents,
@@ -147,11 +180,11 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     )
                 }
             } catch (cancelled: CancellationException) {
-                _uiState.update { it.copy(isScanning = false) }
+                _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                 throw cancelled
             } catch (error: Exception) {
                 _uiState.update {
-                    it.copy(isScanning = false, errorMessage = "Daftar aman gagal diperbarui.")
+                    it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal diperbarui.")
                 }
             }
         }
@@ -185,6 +218,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 _uiState.update {
                     it.copy(
                         isScanning = false,
+                        isLoadingArchive = false,
                         hasUsagePermission = result.hasUsagePermission,
                         hasActivityData = result.hasActivityData,
                         currentIncidents = result.incidents,
@@ -199,10 +233,12 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     )
                 }
             } catch (cancelled: CancellationException) {
-                _uiState.update { it.copy(isScanning = false) }
+                _uiState.update { it.copy(isScanning = false, isLoadingArchive = false) }
                 throw cancelled
             } catch (error: Exception) {
-                _uiState.update { it.copy(isScanning = false, errorMessage = "Daftar aman gagal dipulihkan.") }
+                _uiState.update {
+                    it.copy(isScanning = false, isLoadingArchive = false, errorMessage = "Daftar aman gagal dipulihkan.")
+                }
             }
         }
     }
