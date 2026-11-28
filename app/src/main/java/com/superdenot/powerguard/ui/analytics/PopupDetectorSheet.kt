@@ -9,7 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Column
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Timeline
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
@@ -55,12 +53,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.core.graphics.drawable.toBitmap
 import com.superdenot.powerguard.domain.security.PopupIncident
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
-import com.superdenot.powerguard.ui.components.InfoDialogSurface
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.viewmodel.PopupDetectorUiState
@@ -151,7 +149,9 @@ internal fun PopupDetectorCard(
                 )
                 OutlinedButton(
                     onClick = onOpenUsageSettings,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
+                        contentDescription = "Buka pengaturan Akses Penggunaan Android"
+                    }
                 ) { Text("Buka Akses Penggunaan", maxLines = 1) }
             }
             state.errorMessage?.let {
@@ -163,7 +163,9 @@ internal fun PopupDetectorCard(
             ) {
                 OutlinedButton(
                     onClick = onOpenTimeline,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                        contentDescription = "Buka Lini Masa detektor pop-up"
+                    },
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
                     Icon(Icons.Rounded.Timeline, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -173,7 +175,9 @@ internal fun PopupDetectorCard(
                 Button(
                     onClick = onRescan,
                     enabled = !state.isScanning && !state.isLoadingArchive,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                        contentDescription = "Pindai ulang aktivitas aplikasi"
+                    },
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
                     Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -371,7 +375,7 @@ internal fun PopupDetectorSheet(
                         Text(
                             "Lini Masa",
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.semantics { androidx.compose.ui.semantics.heading() }
+                            modifier = Modifier.semantics { heading() }
                         )
                     }
                     item(key = "timeline-filter-chips") {
