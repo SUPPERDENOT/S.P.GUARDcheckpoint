@@ -3,8 +3,9 @@ package com.superdenot.powerguard.ui.analytics
 import java.util.Locale
 
 internal object AppDisplayNameFormatter {
+    private val fallbackAliases = mapOf("github" to "GitHub")
+
     private val knownLabels = mapOf(
-        "com.github.android" to "GitHub",
         "com.whatsapp" to "WhatsApp",
         "com.whatsapp.w4b" to "WhatsApp Business",
         "com.mobile.legends" to "Mobile Legends",
@@ -48,7 +49,8 @@ internal object AppDisplayNameFormatter {
             .trim()
             .split(Regex("\\s+"))
             .filter(String::isNotBlank)
-        return words.joinToString(" ") { word ->
+        val normalizedSegment = segment.lowercase(Locale.ROOT)
+        return fallbackAliases[normalizedSegment] ?: words.joinToString(" ") { word ->
             word.lowercase(Locale.ROOT).replaceFirstChar { char -> char.titlecase(Locale.ROOT) }
         }.ifBlank { "Aplikasi tidak dikenal" }
     }
