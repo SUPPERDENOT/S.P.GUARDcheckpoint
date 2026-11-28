@@ -92,7 +92,6 @@ import com.superdenot.powerguard.domain.analytics.DailyCycleTrendPoint
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.viewmodel.PopupDetectorViewModel
-import com.superdenot.powerguard.ui.analytics.PopupDetectorInfoDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
