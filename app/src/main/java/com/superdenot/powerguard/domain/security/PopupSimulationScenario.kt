@@ -20,7 +20,7 @@ internal object PopupSimulationScenario {
         events += ScreenUsageEvent(whatsapp, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 60_000L)
         events += ScreenUsageEvent(redirect, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 59_000L)
         events += ScreenUsageEvent(chrome, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 57_000L)
-        events += ScreenUsageEvent(home, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 3_000L)
+        events += ScreenUsageEvent(home, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 20_000L)
         events += ScreenUsageEvent(null, ScreenUsageEventType.SCREEN_INTERACTIVE, nowMs - 2_000L)
         events += ScreenUsageEvent(review, ScreenUsageEventType.ACTIVITY_RESUMED, nowMs - 500L)
 
