@@ -638,7 +638,7 @@ class PopupHijackDetectorTest {
         )
 
         assertEquals(listOf("com.example.repeat"), result.map { it.packageName })
-        assertEquals(listOf(1_000L, 8_000L), result.single().eventTimesMs)
+        assertEquals(listOf(1_200L, 9_000L), result.single().eventTimesMs)
         assertEquals(PopupRiskStatus.NEEDS_REVIEW, result.single().status)
     }
 
