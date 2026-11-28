@@ -22,6 +22,7 @@ internal class PopupDetectorPreferences(context: Context) {
 
     fun safePackages(): Set<String> = readStringArray(KEY_SAFE_PACKAGES)
 
+    @Synchronized
     fun markSafe(packageName: String): Boolean {
         val next = addPopupSafePackage(safePackages(), packageName)
         val cleanedArchive = sanitizePopupIncidentArchive(archivedIncidents(), next)
@@ -38,6 +39,7 @@ internal class PopupDetectorPreferences(context: Context) {
 
     fun restoreSafePackages(): Boolean = preferences.edit().remove(KEY_SAFE_PACKAGES).commit()
 
+    @Synchronized
     fun archivedIncidents(): List<PopupIncident> {
         val json = runCatching { JSONArray(preferences.getString(KEY_INCIDENT_ARCHIVE, "[]")) }.getOrNull()
             ?: return emptyList()
@@ -91,6 +93,7 @@ internal class PopupDetectorPreferences(context: Context) {
         return cleaned
     }
 
+    @Synchronized
     fun appendIncidents(incidents: List<PopupIncident>): Boolean {
         val newItems = incidents.filterNot { it.isSimulated }
         if (newItems.isEmpty()) return true
