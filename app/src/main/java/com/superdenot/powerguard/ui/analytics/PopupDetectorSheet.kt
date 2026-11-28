@@ -1,6 +1,5 @@
 package com.superdenot.powerguard.ui.analytics
 
-import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
