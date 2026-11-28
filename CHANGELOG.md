@@ -1,3 +1,18 @@
+## 2026-11-28 — PR #17 multi-activity timing and UI-thread PackageManager follow-up
+
+### Changed
+- Popup interruption duration now uses the last matching ACTIVITY_PAUSED event before the previous app resumes, so intermediate activity transitions inside the suspect package do not incorrectly fail the 2-second return check.
+- Serialized scan, Mark Safe, restore-one, and restore-all operations with a shared coroutine Mutex. Safe-list mutations run a fresh scan after any in-flight scan completes rather than being dropped or overlapping.
+- If Mark Safe persistence returns false, the optimistic UI state is reconciled against a fresh scan and persisted safe/archive state; an explanatory error remains visible. Restore-one now handles cancellation separately from other exceptions and resets the scanning state on failure.
+- Popup incident-card and safe-list app labels now resolve through produceState on Dispatchers.IO. The incident-card display-name helper is pure, removing synchronous PackageManager label IPC from composition.
+
+### Verification
+- Added a regression test with two internal activity transitions before returning to the previous app; it asserts that the final pause yields the measured interruption duration.
+- Local `./gradlew testDebugUnitTest assembleDebug` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment; exact-HEAD GitHub Actions verification pending.
+- Physical-device verification: NOT RUN.
+- AndroidManifest.xml, Room DB v3, BatteryMonitorService, and P0 charging-protocol/source paths are outside the change.
+- No merge to main.
+
 ## 2026-11-28 — PR #17 final detector polish
 
 ### Changed
