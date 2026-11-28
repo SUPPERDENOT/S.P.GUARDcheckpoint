@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.data.local
 
+import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -8,6 +9,7 @@ import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
 import com.superdenot.powerguard.domain.security.PopupIncident
+import com.superdenot.powerguard.domain.security.POPUP_RECENT_INSTALL_MS
 import com.superdenot.powerguard.domain.security.PopupRiskStatus
 import com.superdenot.powerguard.domain.security.PopupSignalReason
 import com.superdenot.powerguard.domain.security.addPopupSafePackage
@@ -53,6 +55,10 @@ internal class PopupDetectorPreferences(context: Context) {
                 val parsedTimes = buildList {
                     for (timeIndex in 0 until times.length()) add(times.optLong(timeIndex))
                 }
+                val durations = item.optJSONArray("durations") ?: JSONArray()
+                val parsedDurations = buildList {
+                    for (durationIndex in 0 until durations.length()) add(durations.optLong(durationIndex))
+                }
                 val status = runCatching { PopupRiskStatus.valueOf(item.optString("status")) }
                     .getOrDefault(PopupRiskStatus.NEEDS_CHECK)
                 val packageName = item.optString("packageName").takeIf { it.isNotBlank() } ?: continue
@@ -62,7 +68,8 @@ internal class PopupDetectorPreferences(context: Context) {
                         riskScore = item.optInt("riskScore").coerceIn(0, 100),
                         status = status,
                         reasons = parsedReasons,
-                        eventTimesMs = parsedTimes
+                        eventTimesMs = parsedTimes,
+                        eventDurationsMs = parsedDurations
                     )
                 )
             }
@@ -71,9 +78,14 @@ internal class PopupDetectorPreferences(context: Context) {
             .filter { isSystemOrUpdatedSystemPackage(it.packageName) }
             .map { it.packageName }
             .toSet()
+        val nowMs = System.currentTimeMillis()
         val excludedPackages = safePackages() + listOfNotNull(resolveCurrentHomePackage())
+        val establishedLauncherPackages = resolveEstablishedLauncherPackages(
+            parsed.map { it.packageName }.toSet(),
+            nowMs
+        )
         val cleaned = capPopupIncidentArchive(
-            sanitizePopupIncidentArchive(parsed, excludedPackages, systemPackages)
+            sanitizePopupIncidentArchive(parsed, excludedPackages, systemPackages, establishedLauncherPackages)
         )
         if (cleaned != parsed) preferences.edit().putString(KEY_INCIDENT_ARCHIVE, serializeArchive(cleaned)).commit()
         return cleaned
@@ -91,12 +103,14 @@ internal class PopupDetectorPreferences(context: Context) {
         incidents.forEach { incident ->
             val reasons = JSONArray().apply { incident.reasons.forEach { put(it.name) } }
             val times = JSONArray().apply { incident.eventTimesMs.forEach { put(it) } }
+            val durations = JSONArray().apply { incident.eventDurationsMs.forEach { put(it) } }
             json.put(JSONObject()
                 .put("packageName", incident.packageName)
                 .put("riskScore", incident.riskScore)
                 .put("status", incident.status.name)
                 .put("reasons", reasons)
-                .put("times", times))
+                .put("times", times)
+                .put("durations", durations))
         }
         return json.toString()
     }
@@ -117,11 +131,79 @@ internal class PopupDetectorPreferences(context: Context) {
     }
 
     private fun isSystemOrUpdatedSystemPackage(packageName: String): Boolean {
-        val flags = runCatching {
-            appContext.packageManager.getApplicationInfo(packageName, 0).flags
-        }.getOrNull() ?: return false
+        val flags = runCatching { getApplicationInfo(packageName).flags }.getOrNull() ?: return false
         return flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
     }
+
+    private fun resolveEstablishedLauncherPackages(packageNames: Set<String>, nowMs: Long): Set<String> {
+        val appOps = appContext.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
+            ?: return emptySet()
+        return packageNames.filterTo(mutableSetOf()) { packageName ->
+            val appInfo = runCatching { getApplicationInfo(packageName) }.getOrNull()
+                ?: return@filterTo false
+            val firstInstallTime = runCatching { getPackageInfo(packageName).firstInstallTime }.getOrNull()
+                ?: return@filterTo false
+            if (appInfo.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) {
+                return@filterTo false
+            }
+            val launcherIntent = Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .setPackage(packageName)
+            val hasLauncher = runCatching { queryActivities(launcherIntent).isNotEmpty() }.getOrDefault(false)
+            if (!hasLauncher || firstInstallTime > nowMs - POPUP_RECENT_INSTALL_MS) return@filterTo false
+
+            val overlayMode = runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    appOps.unsafeCheckOpNoThrow(
+                        AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                        appInfo.uid,
+                        packageName
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    appOps.checkOpNoThrow(
+                        AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                        appInfo.uid,
+                        packageName
+                    )
+                }
+            }.getOrNull() ?: return@filterTo false
+            overlayMode != AppOpsManager.MODE_ALLOWED
+        }
+    }
+
+    private fun getApplicationInfo(packageName: String): ApplicationInfo =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            appContext.packageManager.getApplicationInfo(
+                packageName,
+                PackageManager.ApplicationInfoFlags.of(0)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appContext.packageManager.getApplicationInfo(packageName, 0)
+        }
+
+    private fun getPackageInfo(packageName: String) =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            appContext.packageManager.getPackageInfo(
+                packageName,
+                PackageManager.PackageInfoFlags.of(0)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appContext.packageManager.getPackageInfo(packageName, 0)
+        }
+
+    private fun queryActivities(intent: Intent) =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            appContext.packageManager.queryIntentActivities(
+                intent,
+                PackageManager.ResolveInfoFlags.of(0)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appContext.packageManager.queryIntentActivities(intent, 0)
+        }
 
     private fun readStringArray(key: String): Set<String> {
         val json = runCatching { JSONArray(preferences.getString(key, "[]")) }.getOrNull() ?: return emptySet()
