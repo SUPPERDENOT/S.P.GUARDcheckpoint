@@ -63,8 +63,11 @@ internal class PopupDetectorPreferences(context: Context) {
                 }
                 val hasValidatedBrowserRedirectEvidence =
                     item.optBoolean("validatedBrowserRedirect", false)
-                val status = runCatching { PopupRiskStatus.valueOf(item.optString("status")) }
-                    .getOrDefault(PopupRiskStatus.NEEDS_CHECK)
+                val status = when (item.optString("status")) {
+                    "NEEDS_CHECK", "NEEDS_REVIEW" -> PopupRiskStatus.NEEDS_REVIEW
+                    "SUSPICIOUS" -> PopupRiskStatus.SUSPICIOUS
+                    else -> PopupRiskStatus.NEEDS_REVIEW
+                }
                 val packageName = item.optString("packageName").takeIf { it.isNotBlank() } ?: continue
                 add(
                     PopupIncident(
