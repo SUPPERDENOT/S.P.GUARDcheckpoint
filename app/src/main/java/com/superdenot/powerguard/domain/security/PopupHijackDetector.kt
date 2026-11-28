@@ -110,7 +110,8 @@ object PopupHijackDetector {
             val current = activityEvents.getOrNull(index)
             val next = activityEvents.getOrNull(index + 1)
             return current?.packageName == packageName && previous?.packageName != null &&
-                previous.packageName != packageName && !signals(previous.packageName!!).isBrowser &&
+                previous.packageName != packageName && !isLauncher(previous.packageName) &&
+                !signals(previous.packageName!!).isBrowser &&
                 next?.packageName != null &&
                 signals(next.packageName!!).isBrowser &&
                 next.timestampMs - current.timestampMs in 0 until 5_000L
@@ -150,13 +151,9 @@ object PopupHijackDetector {
                 !isLauncher(previous.packageName) && hasSuspiciousStaticSignal(packageName)
             ) record(packageName, PopupSignalReason.SCREEN_HIJACKING, current.timestampMs)
 
-            if (previous != null && next != null && previous.packageName != packageName &&
-                next.packageName != packageName && !isLauncher(previous.packageName) &&
-                signals(next.packageName.orEmpty()).isBrowser &&
-                next.timestampMs - current.timestampMs in 0 until 5_000L
-            ) {
+            if (literalBrowserRedirect) {
                 record(packageName, PopupSignalReason.BROWSER_REDIRECT_CHAIN, current.timestampMs, allowSystemBrowserRedirect = true)
-                if (literalBrowserRedirect && metadata.isSystemApp && metadata.hasOverlayPermission) {
+                if (metadata.isSystemApp && metadata.hasOverlayPermission) {
                     record(packageName, PopupSignalReason.OVERLAY_PERMISSION, current.timestampMs, allowSystemBrowserRedirect = true)
                 }
             }
