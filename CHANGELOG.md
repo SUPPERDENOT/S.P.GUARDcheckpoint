@@ -5,12 +5,14 @@
 - Tightened established launcher-app scoring (launcher icon, installed at least 14 days, no SYSTEM_ALERT_WINDOW): only a literal browser redirect chain or at least three 1–6 second interruptions within 30 minutes, with average gaps no greater than 10 minutes, can reach the visible threshold. Fast interruptions also require the previous app to resume within 2 seconds after the suspect activity pauses.
 - Added persisted interruption-duration evidence and archive re-evaluation. Legacy established-launcher entries without current qualifying redirect/fast-burst evidence are removed during archive load; unverified legacy burst durations are not treated as proof.
 - Package-name fallback skips generic trailing segments; `com.github.android` resolves to GitHub.
-- Detail-dialog indicators render as separate bullet lines. Simulation scoring and simulated-item safe-list restrictions remain covered by existing regression tests.
+- Detail-dialog indicators render as separate bullet lines. Existing simulation tests continue to assert both score bands; the UI source keeps Tandai Aman disabled for simulated items.
+- Archive PackageManager metadata re-evaluation runs on Dispatchers.IO rather than the UI thread. Unknown/zero install timestamps are not treated as proof that an app is established.
 
 ### Verification
 - Unit tests added for normal WhatsApp/GitHub/HRMS multitasking, qualifying and non-qualifying interruption durations, browser redirect threshold, archive sanitization, GitHub fallback formatting, and JSON duration persistence.
-- `bash scripts/ui-audit.sh`, `:app:testDebugUnitTest`, and `:app:assembleDebug`: pending exact-HEAD GitHub Actions verification.
-- Debug APK artifact: pending exact-HEAD workflow upload.
+- Intermediate GitHub Actions Run #864 on code/test HEAD `feca66934d137fec06d7a5245fce6a9943164de8`: Anti-Slop UI Audit Gate, `testDebugUnitTest`, `assembleDebug`, APK upload, and unit-test report upload all SUCCESS. APK Artifact ID `15245385508`; test-report Artifact ID `15245031505`.
+- Final exact-HEAD CI after the install-age and background archive-loading follow-up: pending.
+- Debug APK artifact for the final exact HEAD: pending.
 - Physical itel P55 360dp / 720p re-test: NOT RUN after this source update.
 - Protected P0 paths and AndroidManifest are outside this change.
 
