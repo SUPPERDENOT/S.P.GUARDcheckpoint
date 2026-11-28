@@ -255,7 +255,7 @@ class PopupHijackDetectorTest {
     @Test fun systemPackageIsOnlyAllowedForLiteralThreeStepBrowserRedirect() {
         val systemPackage = "com.example.system.redirect"
         val result = PopupHijackDetector.evaluateEvents(
-            listOf(event(appA, now - 10_000), event(systemPackage, now - 4_000), event(browser, now - 1_500)),
+            listOf(event(appA, now - 6_500), event(systemPackage, now - 4_000), event(browser, now - 1_500)),
             mapOf(systemPackage to resolved(systemPackage, system = true, overlay = true),
                 browser to resolved(browser, browser = true)), emptySet(), now
         )
@@ -460,7 +460,7 @@ class PopupHijackDetectorTest {
     fun establishedLauncherAppBrowserRedirectMeetsVisibleThreshold() {
         val result = PopupHijackDetector.evaluateEvents(
             listOf(
-                event(appA, now - 10_000L),
+                event(appA, now - 6_500L),
                 event(suspect, now - 4_000L),
                 event(browser, now - 1_500L)
             ),
