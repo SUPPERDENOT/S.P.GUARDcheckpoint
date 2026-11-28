@@ -1,7 +1,7 @@
 ## 2026-11-28 — PR #17 final detector polish
 
 - [x] Daftar Aman is collapsed by default; count is visible and list rows plus Pulihkan Semua are only rendered when expanded.
-- [x] Established launcher apps (launcher icon, install age >=14 days, no SYSTEM_ALERT_WINDOW) require a literal browser redirect or >=3 measured 1–6 second interruptions within <=30 minutes and average gaps <=10 minutes to reach >=45.
+- [x] Established launcher apps (launcher icon, install age >=14 days, no SYSTEM_ALERT_WINDOW) require a literal browser redirect or >=3 measured 1–6 second interruptions within <=30 minutes and average gaps <=10 minutes to reach >=45. Fast interruptions also require the previous app to resume within 2 seconds after the suspect activity pauses.
 - [x] Detector captures ACTIVITY_PAUSED duration evidence; fast-burst duration data is persisted with the JSON archive.
 - [x] Archive load re-evaluates installed-package launcher, install-age, overlay, safe-list, and system-exclusion signals. Legacy launcher false positives without qualifying evidence are removed; missing legacy duration evidence is not assumed valid.
 - [x] Fallback formatter skips generic trailing package segments; com.github.android resolves to GitHub.
