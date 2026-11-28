@@ -8,6 +8,7 @@
 - [x] PopupIncidentCard and PopupSafePackageRow resolve application labels via produceState + Dispatchers.IO; synchronous PackageManager label lookup is removed from composition.
 - [ ] Local `./gradlew testDebugUnitTest assembleDebug` — NOT RUN in this connected GitHub-only environment; exact-HEAD CI pending.
 - [ ] Local `bash scripts/ui-audit.sh` — NOT RUN in this connected GitHub-only environment; exact-HEAD CI pending.
+- [x] Intermediate Actions Run #881 on pre-correction HEAD `6e988fae2324f999da1808bb81256b2722be945b`: Anti-Slop UI Audit Gate PASS; Kotlin compilation FAIL due the compact incident summary retaining the old display-name helper call. Corrected by routing the summary through the same asynchronous label producer in commit `5b46e087a0e5d8cadee5d2fdbee8bdf6e47f0ff1`.
 - [ ] Exact-HEAD GitHub Actions unit tests, assembleDebug, and Anti-Slop UI Audit Gate — pending.
 - [ ] Physical-device runtime/UI verification — NOT RUN.
 - [x] No AndroidManifest.xml, Room DB v3, BatteryMonitorService, or P0 source/protocol files changed.
