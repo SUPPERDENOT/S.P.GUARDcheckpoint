@@ -100,6 +100,21 @@ class PopupDetectorPreferencesTest {
             .put("reasons", JSONArray(reasons)).put("times", JSONArray(times))
 
     @Test
+    fun fastInterruptionDurationsRoundTripThroughJsonArchive() {
+        val incident = PopupIncident(
+            packageName = "com.example.popup",
+            riskScore = 65,
+            status = PopupRiskStatus.NEEDS_CHECK,
+            reasons = listOf(PopupSignalReason.SANDWICH_LOOP, PopupSignalReason.BURST_LOOP_3_PLUS),
+            eventTimesMs = listOf(1_000L, 301_000L, 601_000L),
+            eventDurationsMs = listOf(1_000L, 4_000L, 6_000L)
+        )
+        val preferences = PopupDetectorPreferences(context)
+        assertTrue(preferences.appendIncidents(listOf(incident)))
+        assertEquals(listOf(1_000L, 4_000L, 6_000L), preferences.archivedIncidents().single().eventDurationsMs)
+    }
+
+    @Test
     fun simulatedIncidentsAreNeverPersisted() {
         val simulated = PopupIncident(
             packageName = "com.superd.simulated.popup",
