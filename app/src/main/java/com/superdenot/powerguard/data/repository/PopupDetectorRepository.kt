@@ -59,7 +59,7 @@ internal class PopupDetectorRepository(context: Context) {
         val signals = events.mapNotNull { it.packageName }.distinct().associateWith { packageName ->
             resolveSignals(packageName, browserPackages, homePackage, keyboardPackage, dialerPackage)
         }
-        val incidents = PopupHijackDetector.evaluate(
+        val incidents = PopupHijackDetector.evaluateEvents(
             events = events,
             appSignals = signals,
             safePackages = preferences.safePackages(),
