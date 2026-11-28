@@ -277,7 +277,7 @@ internal fun PopupDetectorSheet(
                             }
                         }
                     }
-                    item(key = "timeline-section-title") {                    item(key = "timeline-section-title") {
+                    item(key = "timeline-section-title") {
                         Text(
                             "Lini Masa",
                             style = MaterialTheme.typography.titleSmall,
