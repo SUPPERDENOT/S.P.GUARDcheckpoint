@@ -276,7 +276,7 @@ object PopupHijackDetector {
             }
             val lastSeen = activityEvents.lastOrNull { it.packageName == pkg }?.timestampMs ?: nowMs
             if (!metadata.hasLauncherActivity) record(pkg, PopupSignalReason.NO_LAUNCHER_ICON, lastSeen)
-            if (launchedDirectlyFromHome && metadata.hasLauncherActivity && !hasBehavioralEvidence) {
+            if (launchedDirectlyFromHome && !hasBehavioralEvidence) {
                 return@forEach
             }
             if (isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs)) {
