@@ -457,4 +457,5 @@ internal fun sanitizePopupIncidentArchive(
         )
     }
     return deduplicatePopupIncidents(cleaned, safePackages, POPUP_EVENT_DEDUP_WINDOW_MS)
+        .sortedBy { it.lastSeenAtMs }
 }
