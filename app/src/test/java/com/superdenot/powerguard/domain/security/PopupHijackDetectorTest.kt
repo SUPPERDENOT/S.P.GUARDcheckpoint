@@ -28,7 +28,7 @@ class PopupHijackDetectorTest {
     ) = AppPackageSignals(pkg, true, system, launcher, installAt, overlay, isBrowser = browser)
 
     @Test fun screenHijackAddsExpectedPoints() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 5_000), event(suspect, now - 2_000)),
             mapOf(appA to resolved(appA), suspect to resolved(suspect, overlay = true)),
             emptySet(), now
@@ -39,7 +39,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun browserRedirectScoresMiddlePackageNotBrowser() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 10_000), event(suspect, now - 4_000), event(browser, now - 1_500)),
             mapOf(suspect to resolved(suspect, overlay = true), browser to resolved(browser, browser = true)), emptySet(), now
         )
@@ -50,7 +50,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun postUnlockAmbushWithinThreeSecondsIsDetected() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(null, now - 2_000, ScreenUsageEventType.SCREEN_INTERACTIVE), event(suspect, now - 500)),
             mapOf(suspect to resolved(suspect, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)),
             emptySet(), now
@@ -60,7 +60,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun sandwichLoopRequiresOneToFifteenSeconds() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 10_000), event(suspect, now - 6_000), event(appA, now - 1_000)),
             mapOf(suspect to resolved(suspect, overlay = true)), emptySet(), now
         )
@@ -69,14 +69,14 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun twoInterruptionsAddTwentyFiveBurstPointsAndNeedCheck() {
-        val incident = PopupHijackDetector.evaluate(sandwichEvents(2, 10L * 60L * 1000L), emptyMap(), emptySet(), now).single()
+        val incident = PopupHijackDetector.evaluateEvents(sandwichEvents(2, 10L * 60L * 1000L), emptyMap(), emptySet(), now).single()
         assertEquals(45, incident.riskScore)
-        assertEquals(PopupRiskStatus.NEEDS_CHECK, incident.status)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, incident.status)
         assertTrue(PopupSignalReason.BURST_LOOP_2 in incident.reasons)
     }
 
     @Test fun threeInterruptionsAddFortyFiveBurstPointsAndAreSuspicious() {
-        val incident = PopupHijackDetector.evaluate(
+        val incident = PopupHijackDetector.evaluateEvents(
             sandwichEvents(3, 5L * 60L * 1000L),
             mapOf(suspect to resolved(suspect, overlay = true)), emptySet(), now
         ).first()
@@ -89,21 +89,21 @@ class PopupHijackDetectorTest {
 
     @Test fun missingLauncherIconRequiresResolvedMetadata() {
         val events = listOf(event(suspect, now - 1_000))
-        val resolvedResult = PopupHijackDetector.evaluate(
+        val resolvedResult = PopupHijackDetector.evaluateEvents(
             events, mapOf(suspect to resolved(suspect, launcher = false)), emptySet(), now
         )
         assertTrue(resolvedResult.isEmpty())
-        val needsCheck = PopupHijackDetector.evaluate(
+        val needsCheck = PopupHijackDetector.evaluateEvents(
             events, mapOf(suspect to resolved(suspect, launcher = false, overlay = true)), emptySet(), now
         )
         assertEquals(45, needsCheck.single().riskScore)
         val unresolved = resolved(suspect, launcher = false).copy(isMetadataResolved = false)
-        assertTrue(PopupHijackDetector.evaluate(events, mapOf(suspect to unresolved), emptySet(), now).isEmpty())
+        assertTrue(PopupHijackDetector.evaluateEvents(events, mapOf(suspect to unresolved), emptySet(), now).isEmpty())
     }
 
     @Test fun recentInstallAndOverlayAreSeparateSignals() {
         val signal = resolved(suspect, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)
-        val incident = PopupHijackDetector.evaluate(
+        val incident = PopupHijackDetector.evaluateEvents(
             listOf(event(null, now - 2_000, ScreenUsageEventType.KEYGUARD_HIDDEN), event(suspect, now - 500)),
             mapOf(suspect to signal), emptySet(), now
         ).single()
@@ -114,7 +114,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun chatBrowserReturnDoesNotAccuseBrowser() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 8_000), event(browser, now - 4_000), event(appA, now - 500)),
             mapOf(browser to resolved(browser, browser = true)), emptySet(), now
         )
@@ -125,7 +125,7 @@ class PopupHijackDetectorTest {
         val safe = addPopupSafePackage(setOf("com.example.one"), "com.example.two")
         assertEquals(setOf("com.example.one", "com.example.two"), safe)
         assertTrue(restorePopupSafePackages().isEmpty())
-        assertTrue(PopupHijackDetector.evaluate(
+        assertTrue(PopupHijackDetector.evaluateEvents(
             listOf(event(suspect, now - 1_000)),
             mapOf(suspect to resolved(suspect, launcher = false)), safe + suspect, now
         ).isEmpty())
@@ -133,7 +133,7 @@ class PopupHijackDetectorTest {
 
     @Test fun archiveRetainsOnlyLatestThirtyIncidents() {
         val incidents = (1..35).map { index ->
-            PopupIncident("pkg.$index", 30, PopupRiskStatus.NEEDS_CHECK,
+            PopupIncident("pkg.$index", 30, PopupRiskStatus.NEEDS_REVIEW,
                 listOf(PopupSignalReason.NO_LAUNCHER_ICON), listOf(now + index))
         }
         val capped = capPopupIncidentArchive(incidents)
@@ -150,7 +150,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun keyguardHiddenIsAlsoAnUnlockSignal() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(null, now - 2_000, ScreenUsageEventType.KEYGUARD_HIDDEN), event(suspect, now - 500)),
             mapOf(suspect to resolved(suspect, overlay = true, installAt = now - 2L * 24L * 60L * 60L * 1000L)),
             emptySet(), now
@@ -160,7 +160,7 @@ class PopupHijackDetectorTest {
 
     @Test fun launcherBetweenAppsPreventsScreenHijackTransitionScore() {
         val launcher = "com.example.home"
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 8_000), event(launcher, now - 4_000), event(suspect, now - 1_000)),
             mapOf(
                 launcher to AppPackageSignals(launcher, isHomeLauncher = true),
@@ -173,17 +173,17 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun burstAverageGapAtFifteenMinutesIsIncluded() {
-        val incident = PopupHijackDetector.evaluate(
+        val incident = PopupHijackDetector.evaluateEvents(
             sandwichEvents(3, 15L * 60L * 1000L), emptyMap(), emptySet(), now
         ).single()
         assertTrue(PopupSignalReason.BURST_LOOP_3_PLUS in incident.reasons)
-        assertEquals(PopupRiskStatus.NEEDS_CHECK, incident.status)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, incident.status)
     }
 
     @Test fun launcherOpenedAppWithOnlyWeakInAppSignalsIsNotFlagged() {
         val launcher = "com.example.home"
         val recentInstall = now - 2L * 24L * 60L * 60L * 1000L
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(launcher, now - 5_000), event(suspect, now - 1_000)),
             mapOf(
                 launcher to AppPackageSignals(launcher, isHomeLauncher = true),
@@ -198,7 +198,7 @@ class PopupHijackDetectorTest {
 
     @Test fun burstIntervalsOverFifteenMinutesNeverReceiveBurstReason() {
         listOf(44L, 73L, 466L).forEach { minutes ->
-            val result = PopupHijackDetector.evaluate(sandwichEvents(2, minutes * 60_000L), emptyMap(), emptySet(), now)
+            val result = PopupHijackDetector.evaluateEvents(sandwichEvents(2, minutes * 60_000L), emptyMap(), emptySet(), now)
             assertTrue("Unexpected burst for $minutes minutes", result.none {
                 PopupSignalReason.BURST_LOOP_2 in it.reasons || PopupSignalReason.BURST_LOOP_3_PLUS in it.reasons
             })
@@ -207,13 +207,13 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun fourEventsAcrossExactlyFortyFiveMinutesAreValidBurst() {
-        val incident = PopupHijackDetector.evaluate(sandwichEvents(4, 15L * 60_000L), emptyMap(), emptySet(), now).single()
+        val incident = PopupHijackDetector.evaluateEvents(sandwichEvents(4, 15L * 60_000L), emptyMap(), emptySet(), now).single()
         assertTrue(PopupSignalReason.BURST_LOOP_3_PLUS in incident.reasons)
-        assertEquals(PopupRiskStatus.NEEDS_CHECK, incident.status)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, incident.status)
     }
 
     @Test fun ordinaryOldLauncherAppDoesNotReachRiskThresholdFromScreenSwitching() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 5_000), event(suspect, now - 2_000)),
             mapOf(appA to resolved(appA), suspect to resolved(suspect)), emptySet(), now
         )
@@ -221,7 +221,7 @@ class PopupHijackDetectorTest {
     }
 
     @Test fun ordinaryOldLauncherAppWithUnlockAndSandwichSignalsStillStaysBelowVisibleRisk() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(
                 event(appA, now - 10_000),
                 event(null, now - 5_000, ScreenUsageEventType.SCREEN_INTERACTIVE),
@@ -244,7 +244,7 @@ class PopupHijackDetectorTest {
             "com.android.systemui", "com.android.settings", "com.android.chrome"
         )
         excluded.forEach { pkg ->
-            val result = PopupHijackDetector.evaluate(
+            val result = PopupHijackDetector.evaluateEvents(
                 listOf(event(appA, now - 5_000), event(pkg, now - 2_000), event(appA, now - 1_000)),
                 mapOf(pkg to resolved(pkg, launcher = false, overlay = true)), emptySet(), now
             )
@@ -254,7 +254,7 @@ class PopupHijackDetectorTest {
 
     @Test fun systemPackageIsOnlyAllowedForLiteralThreeStepBrowserRedirect() {
         val systemPackage = "com.example.system.redirect"
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(event(appA, now - 10_000), event(systemPackage, now - 4_000), event(browser, now - 1_500)),
             mapOf(systemPackage to resolved(systemPackage, system = true, overlay = true),
                 browser to resolved(browser, browser = true)), emptySet(), now
@@ -284,13 +284,13 @@ class PopupHijackDetectorTest {
 
     @Test fun archiveMigrationRetainsSystemPackageWithLiteralRedirectWithoutOverlayPermission() {
         val valid = PopupIncident(
-            "com.example.system.redirect", 45, PopupRiskStatus.NEEDS_CHECK,
+            "com.example.system.redirect", 45, PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN, PopupSignalReason.NO_LAUNCHER_ICON),
             listOf(now),
             hasValidatedBrowserRedirectEvidence = true
         )
         val invalid = PopupIncident(
-            "com.example.system.other", 45, PopupRiskStatus.NEEDS_CHECK,
+            "com.example.system.other", 45, PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.NO_LAUNCHER_ICON, PopupSignalReason.RECENT_INSTALL),
             listOf(now)
         )
@@ -304,7 +304,7 @@ class PopupHijackDetectorTest {
     @Test fun simulationContainsBothNewStatusBands() {
         val simulated = PopupSimulationScenario.evaluate(now)
         assertTrue(simulated.any { it.status == PopupRiskStatus.SUSPICIOUS && it.riskScore >= 75 })
-        assertTrue(simulated.any { it.status == PopupRiskStatus.NEEDS_CHECK && it.riskScore in 45..74 })
+        assertTrue(simulated.any { it.status == PopupRiskStatus.NEEDS_REVIEW && it.riskScore in 45..74 })
     }
 
     @Test
@@ -320,7 +320,7 @@ class PopupHijackDetectorTest {
             pause(suspect, now - 6_000L),
             event(appA, now - 5_000L)
         )
-        val incident = PopupHijackDetector.evaluate(
+        val incident = PopupHijackDetector.evaluateEvents(
             events,
             mapOf(suspect to resolved(suspect, overlay = true)),
             emptySet(),
@@ -350,7 +350,7 @@ class PopupHijackDetectorTest {
         }
         val signals = packages.associateWith { resolved(it) } +
             (home to AppPackageSignals(home, isHomeLauncher = true))
-        val result = PopupHijackDetector.evaluate(events, signals, emptySet(), now)
+        val result = PopupHijackDetector.evaluateEvents(events, signals, emptySet(), now)
         assertTrue(result.none { it.packageName in packages && it.riskScore >= 45 })
     }
 
@@ -366,7 +366,7 @@ class PopupHijackDetectorTest {
             events += pause(suspect, popupAt + duration)
             events += event(appA, popupAt + duration + 100L)
         }
-        val incident = PopupHijackDetector.evaluate(
+        val incident = PopupHijackDetector.evaluateEvents(
             events,
             mapOf(appA to resolved(appA), suspect to resolved(suspect)),
             emptySet(),
@@ -388,7 +388,7 @@ class PopupHijackDetectorTest {
             events += pause(suspect, popupAt + 8_000L)
             events += event(appA, popupAt + 8_100L)
         }
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             events,
             mapOf(appA to resolved(appA), suspect to resolved(suspect)),
             emptySet(),
@@ -407,7 +407,7 @@ class PopupHijackDetectorTest {
             events += pause(suspect, popupAt + 2_000L)
             events += event(appA, popupAt + 2_100L)
         }
-        val incident = PopupHijackDetector.evaluate(
+        val incident = PopupHijackDetector.evaluateEvents(
             events,
             mapOf(appA to resolved(appA), suspect to resolved(suspect)),
             emptySet(),
@@ -427,7 +427,7 @@ class PopupHijackDetectorTest {
             events += pause(suspect, popupAt + 2_000L)
             events += event(appA, popupAt + 2_100L)
         }
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             events,
             mapOf(appA to resolved(appA), suspect to resolved(suspect)),
             emptySet(),
@@ -447,7 +447,7 @@ class PopupHijackDetectorTest {
             events += pause(suspect, popupAt + 8_000L)
             events += event(appA, popupAt + 8_100L)
         }
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             events,
             mapOf(appA to resolved(appA), suspect to resolved(suspect, installAt = null)),
             emptySet(),
@@ -458,7 +458,7 @@ class PopupHijackDetectorTest {
 
     @Test
     fun establishedLauncherAppBrowserRedirectMeetsVisibleThreshold() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(
                 event(appA, now - 10_000L),
                 event(suspect, now - 4_000L),
@@ -474,7 +474,7 @@ class PopupHijackDetectorTest {
         )
         val incident = result.single { it.packageName == suspect }
         assertEquals(45, incident.riskScore)
-        assertEquals(PopupRiskStatus.NEEDS_CHECK, incident.status)
+        assertEquals(PopupRiskStatus.NEEDS_REVIEW, incident.status)
         assertTrue(PopupSignalReason.BROWSER_REDIRECT_CHAIN in incident.reasons)
     }
 
@@ -483,21 +483,21 @@ class PopupHijackDetectorTest {
         val normal = PopupIncident(
             "com.whatsapp",
             45,
-            PopupRiskStatus.NEEDS_CHECK,
+            PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.SANDWICH_LOOP, PopupSignalReason.POST_UNLOCK_AMBUSH),
             listOf(now)
         )
         val legacyBurstWithoutDurations = PopupIncident(
             "com.github.android",
             45,
-            PopupRiskStatus.NEEDS_CHECK,
+            PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.BURST_LOOP_3_PLUS),
             listOf(now - 10L * 60_000L, now - 5L * 60_000L, now)
         )
         val validFastBurst = PopupIncident(
             "com.example.hrms",
             45,
-            PopupRiskStatus.NEEDS_CHECK,
+            PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.BURST_LOOP_3_PLUS),
             listOf(now - 10L * 60_000L, now - 5L * 60_000L, now),
             eventDurationsMs = listOf(1_000L, 4_000L, 6_000L)
@@ -505,14 +505,14 @@ class PopupHijackDetectorTest {
         val legacyRedirect = PopupIncident(
             "com.example.legacyredirect",
             45,
-            PopupRiskStatus.NEEDS_CHECK,
+            PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN),
             listOf(now)
         )
         val validatedRedirect = PopupIncident(
             "com.example.validredirect",
             45,
-            PopupRiskStatus.NEEDS_CHECK,
+            PopupRiskStatus.NEEDS_REVIEW,
             listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN),
             listOf(now),
             hasValidatedBrowserRedirectEvidence = true
@@ -539,7 +539,7 @@ class PopupHijackDetectorTest {
 
     @Test
     fun browserToSuspectToBrowserIsNotAnAppToBrowserRedirectChain() {
-        val result = PopupHijackDetector.evaluate(
+        val result = PopupHijackDetector.evaluateEvents(
             listOf(
                 event(browser, now - 10_000L),
                 event(suspect, now - 4_000L),
