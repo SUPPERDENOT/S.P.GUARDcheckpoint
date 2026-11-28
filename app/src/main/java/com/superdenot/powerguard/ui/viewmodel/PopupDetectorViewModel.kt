@@ -131,7 +131,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
         _uiState.update { it.copy(isScanning = true, errorMessage = null, simulationActive = false) }
         try {
             val result = withContext(Dispatchers.IO) { repository.scan() }
-            latestRawScanReport = result.incidents
+            latestRawScanReport = result.rawIncidents
             val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
             val safe = withContext(Dispatchers.IO) { repository.safePackages() }
             _uiState.update {
@@ -140,7 +140,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                     isLoadingArchive = false,
                     hasUsagePermission = result.hasUsagePermission,
                     hasActivityData = result.hasActivityData,
-                    currentIncidents = result.incidents,
+                    currentIncidents = result.rawIncidents,
                     archivedIncidents = archive,
                     safePackages = safe,
                     lastScanAtMs = result.scannedAtMs,
@@ -218,7 +218,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 try {
                     val saved = withContext(Dispatchers.IO) { repository.markSafe(packageName) }
                     val result = withContext(Dispatchers.IO) { repository.scan() }
-                    latestRawScanReport = result.incidents
+                    latestRawScanReport = result.rawIncidents
                     val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                     val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                     _uiState.update {
@@ -227,7 +227,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                             isLoadingArchive = false,
                             hasUsagePermission = result.hasUsagePermission,
                             hasActivityData = result.hasActivityData,
-                            currentIncidents = result.incidents,
+                            currentIncidents = result.rawIncidents,
                             archivedIncidents = archive,
                             safePackages = safe,
                             lastScanAtMs = result.scannedAtMs,
@@ -286,7 +286,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 try {
                     val restored = withContext(Dispatchers.IO) { repository.restoreSafePackage(packageName) }
                     val result = withContext(Dispatchers.IO) { repository.scan() }
-                    latestRawScanReport = result.incidents
+                    latestRawScanReport = result.rawIncidents
                     val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                     val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                     _uiState.update {
@@ -295,7 +295,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                             isLoadingArchive = false,
                             hasUsagePermission = result.hasUsagePermission,
                             hasActivityData = result.hasActivityData,
-                            currentIncidents = result.incidents,
+                            currentIncidents = result.rawIncidents,
                             archivedIncidents = archive,
                             safePackages = safe,
                             lastScanAtMs = result.scannedAtMs,
@@ -349,7 +349,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                 try {
                     val restored = withContext(Dispatchers.IO) { repository.restoreSafePackages() }
                     val result = withContext(Dispatchers.IO) { repository.scan() }
-                    latestRawScanReport = result.incidents
+                    latestRawScanReport = result.rawIncidents
                     val archive = withContext(Dispatchers.IO) { repository.archivedIncidents() }
                     val safe = withContext(Dispatchers.IO) { repository.safePackages() }
                     _uiState.update {
@@ -358,7 +358,7 @@ internal class PopupDetectorViewModel(application: Application) : AndroidViewMod
                             isLoadingArchive = false,
                             hasUsagePermission = result.hasUsagePermission,
                             hasActivityData = result.hasActivityData,
-                            currentIncidents = result.incidents,
+                            currentIncidents = result.rawIncidents,
                             archivedIncidents = archive,
                             safePackages = safe,
                             lastScanAtMs = result.scannedAtMs,
