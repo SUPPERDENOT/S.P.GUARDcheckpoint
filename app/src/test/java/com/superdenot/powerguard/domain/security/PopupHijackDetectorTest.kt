@@ -1,5 +1,6 @@
 package com.superdenot.powerguard.domain.security
 
+import com.superdenot.powerguard.ui.analytics.AppDisplayNameFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -13,6 +14,9 @@ class PopupHijackDetectorTest {
 
     private fun event(pkg: String?, at: Long, type: ScreenUsageEventType = ScreenUsageEventType.ACTIVITY_RESUMED) =
         ScreenUsageEvent(pkg, type, at)
+
+    private fun pause(pkg: String, at: Long) =
+        ScreenUsageEvent(pkg, ScreenUsageEventType.ACTIVITY_PAUSED, at)
 
     private fun resolved(
         pkg: String,
@@ -300,6 +304,130 @@ class PopupHijackDetectorTest {
         val simulated = PopupSimulationScenario.evaluate(now)
         assertTrue(simulated.any { it.status == PopupRiskStatus.SUSPICIOUS && it.riskScore >= 75 })
         assertTrue(simulated.any { it.status == PopupRiskStatus.NEEDS_CHECK && it.riskScore in 45..74 })
+    }
+
+    @Test
+    fun establishedLauncherAppsWithNormalMultitaskingStayBelowVisibleRisk() {
+        val home = "com.example.home"
+        val packages = listOf("com.whatsapp", "com.github.android", "com.example.hrms")
+        val events = mutableListOf<ScreenUsageEvent>()
+        var timestamp = now - 20L * 60_000L
+        events += event(home, timestamp)
+        listOf(
+            "com.whatsapp", "com.github.android", "com.example.hrms",
+            "com.whatsapp", "com.github.android", "com.example.hrms"
+        ).forEach { packageName ->
+            val resumedAt = timestamp + 1_000L
+            events += event(packageName, resumedAt)
+            events += pause(packageName, resumedAt + 30_000L)
+            timestamp = resumedAt + 60_000L
+        }
+        val signals = packages.associateWith { resolved(it) } +
+            (home to AppPackageSignals(home, isHomeLauncher = true))
+        val result = PopupHijackDetector.evaluate(events, signals, emptySet(), now)
+        assertTrue(result.none { it.packageName in packages && it.riskScore >= 45 })
+    }
+
+    @Test
+    fun establishedLauncherAppNeedsThreeFastInterruptionsWithinThirtyMinutes() {
+        val durations = listOf(1_000L, 3_000L, 6_000L)
+        val events = mutableListOf<ScreenUsageEvent>()
+        durations.forEachIndexed { index, duration ->
+            val previousAt = now - (durations.size - index) * 5L * 60_000L
+            val popupAt = previousAt + 1_000L
+            events += event(appA, previousAt)
+            events += event(suspect, popupAt)
+            events += pause(suspect, popupAt + duration)
+            events += event(appA, popupAt + duration + 100L)
+        }
+        val incident = PopupHijackDetector.evaluate(
+            events,
+            mapOf(appA to resolved(appA), suspect to resolved(suspect)),
+            emptySet(),
+            now
+        ).single { it.packageName == suspect }
+        assertTrue(incident.riskScore >= 45)
+        assertTrue(PopupSignalReason.BURST_LOOP_3_PLUS in incident.reasons)
+        assertEquals(durations, incident.eventDurationsMs.filter { it > 0L })
+    }
+
+    @Test
+    fun establishedLauncherAppWithThreeEightSecondInterruptionsIsNotFlagged() {
+        val events = mutableListOf<ScreenUsageEvent>()
+        repeat(3) { index ->
+            val previousAt = now - (3 - index) * 5L * 60_000L
+            val popupAt = previousAt + 1_000L
+            events += event(appA, previousAt)
+            events += event(suspect, popupAt)
+            events += pause(suspect, popupAt + 8_000L)
+            events += event(appA, popupAt + 8_100L)
+        }
+        val result = PopupHijackDetector.evaluate(
+            events,
+            mapOf(appA to resolved(appA), suspect to resolved(suspect)),
+            emptySet(),
+            now
+        )
+        assertFalse(result.any { it.packageName == suspect && it.riskScore >= 45 })
+    }
+
+    @Test
+    fun establishedLauncherAppBrowserRedirectMeetsVisibleThreshold() {
+        val result = PopupHijackDetector.evaluate(
+            listOf(
+                event(appA, now - 10_000L),
+                event(suspect, now - 4_000L),
+                event(browser, now - 1_500L)
+            ),
+            mapOf(
+                appA to resolved(appA),
+                suspect to resolved(suspect),
+                browser to resolved(browser, browser = true)
+            ),
+            emptySet(),
+            now
+        )
+        val incident = result.single { it.packageName == suspect }
+        assertEquals(45, incident.riskScore)
+        assertEquals(PopupRiskStatus.NEEDS_CHECK, incident.status)
+        assertTrue(PopupSignalReason.BROWSER_REDIRECT_CHAIN in incident.reasons)
+    }
+
+    @Test
+    fun archiveSanitizationRemovesLegacyNormalLauncherFalsePositives() {
+        val normal = PopupIncident(
+            "com.whatsapp",
+            45,
+            PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.SANDWICH_LOOP, PopupSignalReason.POST_UNLOCK_AMBUSH),
+            listOf(now)
+        )
+        val legacyBurstWithoutDurations = PopupIncident(
+            "com.github.android",
+            45,
+            PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.BURST_LOOP_3_PLUS),
+            listOf(now - 10L * 60_000L, now - 5L * 60_000L, now)
+        )
+        val validFastBurst = PopupIncident(
+            "com.example.hrms",
+            45,
+            PopupRiskStatus.NEEDS_CHECK,
+            listOf(PopupSignalReason.BURST_LOOP_3_PLUS),
+            listOf(now - 10L * 60_000L, now - 5L * 60_000L, now),
+            eventDurationsMs = listOf(1_000L, 4_000L, 6_000L)
+        )
+        val cleaned = sanitizePopupIncidentArchive(
+            listOf(normal, legacyBurstWithoutDurations, validFastBurst),
+            emptySet(),
+            establishedLauncherPackages = setOf("com.whatsapp", "com.github.android", "com.example.hrms")
+        )
+        assertEquals(listOf("com.example.hrms"), cleaned.map { it.packageName })
+    }
+
+    @Test
+    fun githubAndroidPackageUsesGitHubFallbackLabel() {
+        assertEquals("GitHub", AppDisplayNameFormatter.format("com.github.android", null))
     }
 
     private fun sandwichEvents(count: Int, intervalMs: Long): List<ScreenUsageEvent> {
