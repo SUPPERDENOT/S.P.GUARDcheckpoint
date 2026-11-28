@@ -206,9 +206,7 @@ object PopupHijackDetector {
         interruptions.forEach { (pkg, evidence) ->
             val orderedEvidence = evidence.distinctBy { it.timestampMs }.sortedBy { it.timestampMs }
             val metadata = signals(pkg)
-            val establishedLauncherApp = metadata.isMetadataResolved && metadata.hasLauncherActivity &&
-                !metadata.isSystemApp && !metadata.hasOverlayPermission &&
-                !isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs)
+            val establishedLauncherApp = isEstablishedLauncherApp(metadata, nowMs)
             var bestValidWindow = emptyList<PopupInterruptionEvidence>()
             for (end in orderedEvidence.indices) {
                 var start = end
@@ -274,9 +272,7 @@ object PopupHijackDetector {
 
         return reasonsByPackage.mapNotNull { (pkg, reasons) ->
             val metadata = signals(pkg)
-            val establishedLauncherApp = metadata.isMetadataResolved && metadata.hasLauncherActivity &&
-                !metadata.isSystemApp && !metadata.hasOverlayPermission &&
-                !isRecentlyInstalled(metadata.firstInstallTimeMs, nowMs)
+            val establishedLauncherApp = isEstablishedLauncherApp(metadata, nowMs)
             val hasStrongPattern = PopupSignalReason.BROWSER_REDIRECT_CHAIN in reasons ||
                 if (establishedLauncherApp) {
                     PopupSignalReason.BURST_LOOP_3_PLUS in reasons
@@ -304,6 +300,15 @@ object PopupHijackDetector {
                 .thenByDescending { it.riskScore }.thenByDescending { it.lastSeenAtMs }
         )
     }
+
+    private fun isEstablishedLauncherApp(metadata: AppPackageSignals, nowMs: Long): Boolean =
+        metadata.isMetadataResolved &&
+            metadata.hasLauncherActivity &&
+            !metadata.isSystemApp &&
+            !metadata.hasOverlayPermission &&
+            metadata.firstInstallTimeMs?.let {
+                it > 0L && it <= nowMs - POPUP_RECENT_INSTALL_MS
+            } == true
 
     private fun isRecentlyInstalled(firstInstallTimeMs: Long?, nowMs: Long): Boolean =
         firstInstallTimeMs != null && firstInstallTimeMs > nowMs - POPUP_RECENT_INSTALL_MS &&
