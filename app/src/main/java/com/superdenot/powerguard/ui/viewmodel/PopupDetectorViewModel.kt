@@ -46,6 +46,7 @@ internal data class PopupDetectorUiState(
     /** One deduplicated, real-app entry per package across current results and persisted history. */
     val timelineEvents: List<PopupIncident>
         get() = deduplicatePopupIncidents(currentIncidents + archivedIncidents, safePackages)
+            .sortedByDescending { it.lastSeenAtMs }
 
     val suspiciousCount: Int
         get() = timelineEvents.count { it.status == PopupRiskStatus.SUSPICIOUS }
