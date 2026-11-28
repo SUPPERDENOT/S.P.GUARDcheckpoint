@@ -115,6 +115,21 @@ class PopupDetectorPreferencesTest {
     }
 
     @Test
+    fun validatedBrowserRedirectEvidenceRoundTripsThroughJsonArchive() {
+        val incident = PopupIncident(
+            packageName = "com.example.redirect",
+            riskScore = 45,
+            status = PopupRiskStatus.NEEDS_CHECK,
+            reasons = listOf(PopupSignalReason.BROWSER_REDIRECT_CHAIN),
+            eventTimesMs = listOf(1_000L),
+            hasValidatedBrowserRedirectEvidence = true
+        )
+        val preferences = PopupDetectorPreferences(context)
+        assertTrue(preferences.appendIncidents(listOf(incident)))
+        assertTrue(preferences.archivedIncidents().single().hasValidatedBrowserRedirectEvidence)
+    }
+
+    @Test
     fun simulatedIncidentsAreNeverPersisted() {
         val simulated = PopupIncident(
             packageName = "com.superd.simulated.popup",
