@@ -1,3 +1,32 @@
+## 2026-11-28 — PR #17 detector attribution, state reconciliation, and Timeline risk filters
+
+### Changed
+- Added pure deterministic `PopupHijackDetector.evaluateEvents(...)`; repository evaluation now calls this method, while `evaluate(...)` remains as a compatibility wrapper.
+- Foreground history uses the immediately preceding transition via `lastOrNull`; consecutive resumed events from the same package are collapsed and ignored as internal Activity transitions.
+- Added a 10-second Home Launcher grace window for legitimate app launches.
+- Browser redirect attribution is limited to a non-launcher, non-browser triggering package in an App A → trigger → browser sequence, with the browser opening within `REDIRECT_WINDOW_MS = 5 seconds`. A direct app → browser transition is not assumed to be an automatic redirect, avoiding ordinary link-navigation false positives. Browser packages themselves remain excluded.
+- Added strict package/event deduplication with a 5-second event deduplication window. Simulated entries and safe-list packages are excluded from both suspect summaries and Timeline state. Archive ordering remains chronological after deduplication.
+- Renamed the two risk states to `SUSPICIOUS` and `NEEDS_REVIEW`; legacy JSON `NEEDS_CHECK` records migrate to `NEEDS_REVIEW`.
+- Added `TimelineRiskFilter` (`ALL`, `SUSPICIOUS`, `NEEDS_REVIEW`) and derived `suspects`, `timelineEvents`, counts, and `filteredTimelineEvents` to `PopupDetectorUiState`.
+- Scan, Mark Safe, restore-one, and restore-all remain serialized by one Mutex. The latest raw scan snapshot is cached; safe-list mutations update safe packages and the raw incident list in one StateFlow copy so derived suspects/Timeline reconcile immediately.
+- Cancellation is rethrown. `SecurityException` maps to `hasUsagePermission = false`; failures reset scanning flags and reconcile the safe list against persisted state.
+- Rebuilt the popup Timeline dialog around a keyed `LazyColumn`, horizontal Material 3 filter chips, zero-match empty state, and Reset Filter action. Chips and buttons have 48dp minimum height and explicit accessibility descriptions. Risk status capsules use a pill shape, status dot, and semantic color roles.
+- App labels continue to resolve asynchronously through `produceState` + `Dispatchers.IO`, keyed by package name.
+
+### Tests added or updated
+- Same-package Activity transitions do not create popup incidents.
+- Multi-Activity pause selection and fast-burst duration use the final matching pause event.
+- Browser redirect chain attribution, direct browser-navigation false-positive guard, and launcher grace boundary.
+- Duplicate burst timestamps coalesce; simulated and safe-list entries are excluded.
+- Timeline filter counts and all three filter modes; concurrent safe-list reconciliation and cached-entry restoration.
+- Legacy `NEEDS_CHECK` archive status migrates to `NEEDS_REVIEW`.
+
+### Verification
+- Local `./gradlew testDebugUnitTest` and `bash scripts/ui-audit.sh`: NOT RUN in this connected GitHub-only environment.
+- Exact-HEAD GitHub Actions Build and Unit Tests + Anti-Slop UI Audit Gate: pending.
+- Physical-device verification: NOT RUN.
+- No AndroidManifest.xml, Room DB v3, BatteryMonitorService, battery sensor/sampling, or P0 charging-protocol/source files changed. No merge to `main`.
+
 ## 2026-11-28 — PR #17 multi-activity timing and UI-thread PackageManager follow-up
 
 ### Changed
