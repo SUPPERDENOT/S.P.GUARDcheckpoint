@@ -637,7 +637,7 @@ private fun TimelineFilterChip(
             .height(48.dp)
             .semantics(mergeDescendants = true) {
                 this.contentDescription = contentDescription
-                this.selected = selected
+                this.stateDescription = if (selected) "Dipilih" else "Tidak dipilih"
             }
             .clickable(role = Role.Checkbox, onClick = onClick),
         contentAlignment = Alignment.Center
