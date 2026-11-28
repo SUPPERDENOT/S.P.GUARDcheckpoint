@@ -7,7 +7,7 @@
 - [x] Timeline filter slots use 0.82 / 1.15 / 1.03 weights, 6dp spacing, 36dp visual capsules, and 48dp clickable bounds.
 - [x] Empty Timeline viewport is capped at 180dp; Reset Filter continues using the shared 36dp / 48dp compact-action helper.
 - [x] 24-hour app-usage rows reuse asynchronous real app icons; PackageManager work is performed on Dispatchers.IO.
-- [x] Popup-detector explanation card has an accessible trailing Info cue; Quick Settings artwork is a monochrome shield-radar vector.
+- [x] Tapping the popup-detector card opens its heuristic explanation; the trailing Info cue is accessible and the separate Lihat Lini Masa action still opens the timeline. Quick Settings artwork is a monochrome shield-radar vector.
 - [x] Charging summary label now reads `RINGKASAN SESI PENGISIAN`; no unsupported charging-protocol claims introduced.
 - [x] Source-level diff review complete; no protected Battery Monitoring or architecture paths changed.
 - [ ] Exact-HEAD GitHub Actions `testDebugUnitTest assembleDebug` — pending.

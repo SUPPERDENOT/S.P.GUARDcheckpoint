@@ -6,7 +6,7 @@
 - Balanced the three Lini Masa filter slots to 0.82 / 1.15 / 1.03 in a single non-scrolling row with 6dp spacing. Each capsule renders at 36dp inside a 48dp clickable target, with compact horizontal padding and single-line labels.
 - Reduced the empty Timeline viewport cap to 180dp so the dialog wraps more tightly when no incidents are present. Reset Filter already uses the shared 36dp capsule / 48dp target helper and remains on that implementation.
 - Reused the detector's asynchronous real-app-icon loader for the 24-hour app-usage rows; PackageManager label lookup now also runs on Dispatchers.IO.
-- Added a trailing accessible information cue to the popup-detector card header and replaced the Quick Settings tile artwork with a monochrome shield-radar VectorDrawable.
+- Added a trailing accessible information cue to the popup-detector card header; tapping the card opens the heuristic explanation, while the explicit Lihat Lini Masa action opens the timeline. Replaced the Quick Settings tile artwork with a monochrome shield-radar VectorDrawable.
 - Renamed the Charging tab header to **RINGKASAN SESI PENGISIAN**. No charging-protocol or fast-charging claims were added.
 
 ### Verification

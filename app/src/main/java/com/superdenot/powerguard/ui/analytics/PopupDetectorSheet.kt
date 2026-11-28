@@ -89,7 +89,7 @@ internal fun PopupDetectorCard(
     Card(
         modifier = Modifier.fillMaxWidth().infoLongPress(
             onLongPress = onInfo,
-            onClick = onOpenTimeline
+            onClick = onInfo
         ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
