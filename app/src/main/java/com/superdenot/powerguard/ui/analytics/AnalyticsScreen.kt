@@ -92,6 +92,7 @@ import com.superdenot.powerguard.domain.analytics.DailyCycleTrendPoint
 import com.superdenot.powerguard.ui.components.ChargingCurveChart
 import com.superdenot.powerguard.ui.components.InfoLongPressDialog
 import com.superdenot.powerguard.ui.viewmodel.PopupDetectorViewModel
+import com.superdenot.powerguard.ui.analytics.PopupDetectorInfoDialog
 import com.superdenot.powerguard.ui.components.infoLongPress
 import com.superdenot.powerguard.ui.theme.AmberThermal
 import com.superdenot.powerguard.ui.theme.CrimsonAnomaly
@@ -1015,7 +1016,7 @@ private fun AppUsageTab(
         }
     }
     if (showPopupDetectorInfo) {
-        InfoLongPressDialog(
+        PopupDetectorInfoDialog(
             title = "Detektor Pop-up & Pembajak Layar",
             body = "Detektor membaca riwayat perpindahan aktivitas dan status layar Android selama 24 jam terakhir. Skor merupakan heuristik; Riwayat aktivitas tidak membuktikan jendela overlay benar-benar tampil atau memastikan suatu aplikasi adalah malware. Pemindaian berjalan hanya saat tab ini dibuka, tombol Pindai Ulang digunakan, atau tile Cek Pop-up diketuk.",
             onDismiss = { showPopupDetectorInfo = false }
