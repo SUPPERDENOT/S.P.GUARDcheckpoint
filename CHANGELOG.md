@@ -2,7 +2,7 @@
 
 ### Changed
 - Collapsed the Daftar Aman section by default; its app count remains visible and the app rows plus Pulihkan Semua are revealed only on demand.
-- Tightened established launcher-app scoring (launcher icon, installed at least 14 days, no SYSTEM_ALERT_WINDOW): only a literal browser redirect chain or at least three 1–6 second interruptions within 30 minutes, with average gaps no greater than 10 minutes, can reach the visible threshold.
+- Tightened established launcher-app scoring (launcher icon, installed at least 14 days, no SYSTEM_ALERT_WINDOW): only a literal browser redirect chain or at least three 1–6 second interruptions within 30 minutes, with average gaps no greater than 10 minutes, can reach the visible threshold. Fast interruptions also require the previous app to resume within 2 seconds after the suspect activity pauses.
 - Added persisted interruption-duration evidence and archive re-evaluation. Legacy established-launcher entries without current qualifying redirect/fast-burst evidence are removed during archive load; unverified legacy burst durations are not treated as proof.
 - Package-name fallback skips generic trailing segments; `com.github.android` resolves to GitHub.
 - Detail-dialog indicators render as separate bullet lines. Simulation scoring and simulated-item safe-list restrictions remain covered by existing regression tests.
